@@ -24,7 +24,6 @@ LinearInterpolation(u,t) = LinearInterpolation{true}(u,t)
 function (A::LinearInterpolation{<:AbstractVector{<:Number}})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
-  @show θ,idx
   (1-θ)*A.u[idx] + θ*A.u[idx+1]
 end
 
