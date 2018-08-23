@@ -1,16 +1,15 @@
 function findRequiredIdxs(A, t)
-  tmp = sort(A.t)
-  idx = findfirst(x->x>=t,tmp)
-  if idx == 1
-    x₀ = tmp[1]; x₁ = tmp[2]; x₂ = tmp[3]
-  elseif idx == length(tmp)
-    x₀ = tmp[end-2]; x₁ = tmp[end-1]; x₂ = tmp[end]
+  idx = findfirst(x->x>=t,A.t)  # assuming A.t is already sorted
+  if idx == 1 || idx == 2
+    x₀ = A.t[1]; x₁ = A.t[2]; x₂ = A.t[3]
+  elseif idx == length(A.t)
+    x₀ = A.t[end-2]; x₁ = A.t[end-1]; x₂ = A.t[end]
   else
-    x = tmp[idx-1]; y = tmp[idx]
-    if(abs(t-tmp[idx-2])<=abs(t-tmp[idx+1]))
-      x₀ = tmp[idx-2]; x₁ = x; x₂ = y
+    x = A.t[idx-1]; y = A.t[idx]
+    if(abs(t-A.t[idx-2])<=abs(t-A.t[idx+1]))
+      x₀ = A.t[idx-2]; x₁ = x; x₂ = y
     else
-      x₀ = x; x₁ = y; x₂ = tmp[idx+1]
+      x₀ = x; x₁ = y; x₂ = A.t[idx+1]
     end
   end
   i₀, i₁, i₂ = 0, 0, 0
