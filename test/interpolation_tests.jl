@@ -22,3 +22,12 @@ A = QuadraticInterpolation(u,t)
 @test A(1.5) == 2.25
 @test A(3.5) == 12.25
 @test A(2.5) == 6.25
+
+u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
+A = QuadraticInterpolation(u,t)
+
+A(2.0)
+@test A(2.0) == [4.0,4.0]
+@test A(1.5) == [2.25,2.25]
+@test A(3.5) == [12.25,12.25]
+@test A(2.5) == [6.25,6.25]
