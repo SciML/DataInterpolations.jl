@@ -27,3 +27,27 @@ function (A::QuadraticInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   l₂ = ((t-A.t[i₀])*(t-A.t[i₁]))/((A.t[i₂]-A.t[i₀])*(A.t[i₂]-A.t[i₁]))
   A.u[:,i₀]*l₀ + A.u[:,i₁]*l₁ + A.u[:,i₂]*l₂
 end
+
+# Lagrange Interpolation
+function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
+  idxs = findRequiredIdxs(A,t)
+  @show idxs
+  l = zero(A.t)
+  for i = 1:length(idxs)
+    mult = one(A.t[1])
+    for j = 1:(i-1)
+      mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+    end
+    for j = (i+1):length(idxs)
+      mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+    end
+    l[i] = mult
+  end
+  N = zero(A.u[1]); D = zero(A.t[1]); tmp = N
+  for i = 1:length(idxs)
+    tmp = inv((t - A.t[idxs[i]]) * l[i])
+    D += tmp
+    N += (tmp * A.u[idxs[i]])
+  end
+  N/D
+end
