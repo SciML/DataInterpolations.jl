@@ -31,7 +31,6 @@ end
 # Lagrange Interpolation
 function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
   idxs = findRequiredIdxs(A,t)
-  @show idxs
   l = zero(A.t)
   for i = 1:length(idxs)
     mult = one(A.t[1])
