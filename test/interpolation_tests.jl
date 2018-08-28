@@ -45,3 +45,9 @@ A = LagrangeInterpolation(u,t,2)
 
 @test A(1.5) == 3.0
 @test A(2.7) ≈ 20.04
+
+u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
+A = LagrangeInterpolation(u,t,2)
+
+@test A(1.5) == [2.25,2.25]
+@test A(3.5) ≈ [12.25,12.25]

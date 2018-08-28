@@ -46,3 +46,21 @@ function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
   end
   N/D
 end
+
+function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
+  idxs = findRequiredIdxs(A,t)
+  N = zero(A.u[:,1]); D = zero(A.t[1]); tmp = D
+  for i = 1:length(idxs)
+    mult = one(A.t[1])
+    for j = 1:(i-1)
+      mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+    end
+    for j = (i+1):length(idxs)
+      mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+    end
+    tmp = inv((t - A.t[idxs[i]]) * mult)
+    D += tmp
+    @. N += (tmp * A.u[:,idxs[i]])
+  end
+  N/D
+end
