@@ -31,7 +31,7 @@ end
 # Lagrange Interpolation
 function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
   idxs = findRequiredIdxs(A,t)
-  l = zero(A.t)
+  N = zero(A.u[1]); D = zero(A.t[1]); tmp = N
   for i = 1:length(idxs)
     mult = one(A.t[1])
     for j = 1:(i-1)
@@ -40,11 +40,7 @@ function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
     for j = (i+1):length(idxs)
       mult *= (A.t[idxs[i]] - A.t[idxs[j]])
     end
-    l[i] = mult
-  end
-  N = zero(A.u[1]); D = zero(A.t[1]); tmp = N
-  for i = 1:length(idxs)
-    tmp = inv((t - A.t[idxs[i]]) * l[i])
+    tmp = inv((t - A.t[idxs[i]]) * mult)
     D += tmp
     N += (tmp * A.u[idxs[i]])
   end
