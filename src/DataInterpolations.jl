@@ -12,11 +12,13 @@ Base.setindex!(A::AbstractInterpolation,x,i) = A.u[i] = x
 Base.setindex!(A::AbstractInterpolation{true},x,i) =
                                    i <= length(A.u) ? (A.u[i] = x) : (A.t[i-length(A.u)] = x)
 
+using LinearAlgebra
 
 include("caches/interpolation_caches.jl")
 include("interpolation_utils.jl")
 include("interpolation_alg/interpolation_methods.jl")
 
-export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation
+export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
+       QuadraticSpline
 
 end # module

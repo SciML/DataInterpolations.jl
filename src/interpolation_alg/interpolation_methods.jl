@@ -64,3 +64,12 @@ function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   end
   N/D
 end
+
+# QuadraticSpline Interpolation
+function (A::QuadraticSpline{<:AbstractVector{<:Number}})(t::Number)
+  i = findfirst(x->x>=t,A.t)
+  i == 1 ? i += 1 : nothing
+  Cᵢ = A.u[i-1]
+  σ = 1//2 * (A.z[i] - A.z[i-1])/(A.t[i] - A.t[i-1])
+  A.z[i-1] * (t - A.t[i-1]) + σ * (t - A.t[i-1])^2 + Cᵢ
+end
