@@ -51,3 +51,19 @@ A = LagrangeInterpolation(u,t,2)
 
 @test A(1.5) == [2.25,2.25]
 @test A(3.5) ≈ [12.25,12.25]
+
+# QuadraticSpline Interpolation
+u = [0.0, 1.0, 3.0]
+t = [-1.0, 0.0, 1.0]
+
+A = QuadraticSpline(u,t)
+
+#             Solution ->
+#             f(x) = (x+1)^2 for x -> [-1.0, 0.0]
+#             f(x) = 1+2x    for x -> [0.0, 1.0]
+
+@test A(-0.5) == 0.25
+@test A(0.7) == 2.4
+@test A(-1.0) == 0.0
+@test A(0.0) == 1.0
+@test A(1.0) == 3.0
