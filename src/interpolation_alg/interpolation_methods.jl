@@ -1,12 +1,14 @@
 # Linear Interpolation
 function (A::LinearInterpolation{<:AbstractVector{<:Number}})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
+  idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
   (1-θ)*A.u[idx] + θ*A.u[idx+1]
 end
 
 function (A::LinearInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
+  idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
   (1-θ)*A.u[:,idx] + θ*A.u[:,idx+1]
 end
@@ -31,6 +33,9 @@ end
 # Lagrange Interpolation
 function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
   idxs = findRequiredIdxs(A,t)
+  if A.t[idxs[1]] == t
+    return A.u[idxs[1]]
+  end
   N = zero(A.u[1]); D = zero(A.t[1]); tmp = N
   for i = 1:length(idxs)
     mult = one(A.t[1])
@@ -49,6 +54,9 @@ end
 
 function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   idxs = findRequiredIdxs(A,t)
+  if A.t[idxs[1]] == t
+    return A.u[:,idxs[1]]
+  end
   N = zero(A.u[:,1]); D = zero(A.t[1]); tmp = D
   for i = 1:length(idxs)
     mult = one(A.t[1])
