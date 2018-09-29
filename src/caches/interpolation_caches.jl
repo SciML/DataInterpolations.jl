@@ -47,3 +47,27 @@ function QuadraticSpline(u,t)
   z = tA\d
   QuadraticSpline{true}(u,t,tA,d,z)
 end
+
+# Cubic Spline Interpolation
+struct CubicSpline{uType,tType,hType,zType,FT,T} <: AbstractInterpolation{FT,T}
+  u::uType
+  t::tType
+  h::hType
+  z::zType
+  CubicSpline{FT}(u,t,h,z) where FT = new{typeof(u),typeof(t),typeof(h),typeof(z),FT,eltype(u)}(u,t,h,z)
+end
+
+function CubicSpline(u,t)
+  n = length(t) - 1
+  h = vcat(0, diff(t), 0)
+  dl = h[2:n+1]
+  d = 2 .* (h[1:n+1] + h[2:n+2])
+  du = h[2:n+1]
+  tA = LinearAlgebra.Tridiagonal(dl,d,du)
+  d = zero(t)
+  for i = 2:n
+    d[i] = 6(u[i+1] - u[i]) / h[i+1] - 6(u[i] - u[i-1]) / h[i]
+  end
+  z = tA\d
+  CubicSpline{true}(u,t,h[1:n+1],z)
+end

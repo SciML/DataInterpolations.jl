@@ -73,3 +73,22 @@ A = QuadraticSpline(u,t)
 @test A(-1.0) == 0.0
 @test A(0.0) == 1.0
 @test A(1.0) == 3.0
+
+
+# CubicSpline Interpolation
+u = [0.0, 1.0, 3.0]
+t = [-1.0, 0.0, 1.0]
+
+A = CubicSpline(u,t)
+
+#             Solution ->
+#             f(x) = 1 + 1.5x + x^2 + 0.5x^3 for x -> [-1.0, 0.0]
+#             f(x) = 1 + 1.5x + x^2 - 0.5x^3   for x -> [0.0, 1.0]
+
+@test A(-0.5) == 0.4375
+@test A(0.5) == 1.9375
+@test A(-0.7) == 0.2685
+@test A(0.3) == 1.5265
+@test A(-1.0) == 0.0
+@test A(0.0) == 1.0
+@test A(1.0) == 3.0
