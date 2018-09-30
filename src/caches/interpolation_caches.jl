@@ -55,10 +55,12 @@ struct BSpline{uType,tType,pType,kType,FT,T} <: AbstractInterpolation{FT,T}
   d::Int    # degree
   p::pType  # params vector
   k::kType  # knot vector
-  BSpline{FT}(u,t,d,p,k) where FT =  new{typeof(u),typeof(t),typeof(p),typeof(k),FT,eltype(u)}(u,t,d,p,k)
+  pVec::Symbol
+  knotVec::Symbol
+  BSpline{FT}(u,t,d,p,k,pVec,knotVec) where FT =  new{typeof(u),typeof(t),typeof(p),typeof(k),FT,eltype(u)}(u,t,d,p,k,pVec,knotVec)
 end
 
-function BSpline(u,t,d)
+function BSpline(u,t,d,pVec,knotVec)
   n = length(t)
   s = zero(eltype(u))
   p = zero(t)
@@ -69,11 +71,11 @@ function BSpline(u,t,d)
     l[i-1] = s
   end
 
-  a = p[1] = pdomain[1]; b = p[end] = pdomain[2]
+  a = p[1] = 0; b = p[end] = 1
 
   if pVec == :Uniform
     for i = 2:(n-1)
-      p[i] = a + (i-1)*(b-a)/n
+      p[i] = a + (i-1)*(b-a)/(n-1)
     end
   elseif pVec == :ArcLen
     for i = 2:(n-1)
@@ -90,23 +92,25 @@ function BSpline(u,t,d)
 
   lk = n + d + 1
   k = zeros(eltype(t),lk)
-  for i = lk:-1:(d+1)
+  for i = lk:-1:(n+1)
     k[i] = one(eltype(t))
   end
 
   if knotVec == :Uniform
     # uniformly spaced knot vector
-    for i = (d+2):(n-1)
+    for i = (d+2):n
       k[i] = (i-d-1)//(n-d)
     end
   elseif knotVec == :Average
     # average spaced knot vector
     idx = 1
     k[d+2] = 1//d * ts[d]
-    for i = (d+3):(n-1)
+    for i = (d+3):n
       k[i] = 1//d * (ts[idx+d] - ts[idx])
       idx += 1
     end
   end
-  BSpline{true}(u,t,d,p,k)
+  @show p
+  @show k
+  BSpline{true}(u,t,d,p,k,pVec,knotVec)
 end

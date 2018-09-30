@@ -81,3 +81,16 @@ function (A::QuadraticSpline{<:AbstractVector{<:Number}})(t::Number)
   σ = 1//2 * (A.z[i] - A.z[i-1])/(A.t[i] - A.t[i-1])
   A.z[i-1] * (t - A.t[i-1]) + σ * (t - A.t[i-1])^2 + Cᵢ
 end
+
+# BSpline Interpolation
+function (A::BSpline{<:AbstractVector{<:Number}})(t::Number)
+  # change t into param
+  B = compute_splines(A, t)
+  xcum = zero(eltype(A.t))
+  ycum = zero(eltype(A.u))
+  for i = 1:length(A.t)
+    xcum += B[i] * A.t[i]
+    ycum += B[i] * A.u[i]
+  end
+  xcum, ycum
+end

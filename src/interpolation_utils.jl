@@ -17,15 +17,15 @@ function compute_splines(A::BSpline, t)
   elseif t == k[end]
     B[end] = one(A.t[1])
   else
-    idx = findfirst(x->x>t,A.k) - 1
-    B[idx] = one(A.t[1])
+    i = findfirst(x->x>t,A.k) - 1
+    B[i] = one(A.t[1])
     for deg = 1:d
-      B[idx-deg+1] = (k[idx+2]-t)/(k[idx+2]-k[idx-deg+2]) * B[idx-deg+2]
-      for i = idx-deg+2:idx
-        B[i] = (t-k[i])/(k[i+deg]-k[i]) * B[i] + (k[i+deg+1]-t)/(k[i+deg+1]-k[i+1]) * B[i+1]
+      B[i-deg+1] = (k[i+2]-t)/(k[i+2]-k[i-deg+2]) * B[i-deg+2]
+      for j = i-deg+2:i
+        B[j] = (t-k[j])/(k[j+deg]-k[j]) * B[j] + (k[j+deg+1]-t)/(k[j+deg+1]-k[j+1]) * B[j+1]
       end
-      B[idx+1] = (t-k[idx+1])/(k[idx+1+deg]-k[idx+1]) * B[idx+1]
+      B[i+1] = (t-k[i+1])/(k[i+deg+1]-k[i+1]) * B[i+1]
     end
   end
-  B    
+  B
 end
