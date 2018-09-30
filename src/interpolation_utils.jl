@@ -20,11 +20,11 @@ function compute_splines(A::BSpline, t)
     i = findfirst(x->x>t,A.k) - 1
     B[i] = one(A.t[1])
     for deg = 1:d
-      B[i-deg+1] = (k[i+2]-t)/(k[i+2]-k[i-deg+2]) * B[i-deg+2]
-      for j = i-deg+2:i
+      B[i-deg] = (k[i+1]-t)/(k[i+1]-k[i-deg+1]) * B[i-deg+1]
+      for j = (i-deg+1):(i-1)
         B[j] = (t-k[j])/(k[j+deg]-k[j]) * B[j] + (k[j+deg+1]-t)/(k[j+deg+1]-k[j+1]) * B[j+1]
       end
-      B[i+1] = (t-k[i+1])/(k[i+deg+1]-k[i+1]) * B[i+1]
+      B[i] = (t-k[i])/(k[i+deg]-k[i]) * B[i]
     end
   end
   B

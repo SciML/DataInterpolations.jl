@@ -83,11 +83,11 @@ function BSpline(u,t,d,pVec,knotVec)
     end
   end
 
-  ts = zero(t)
+  ps = zero(t)
   s = zero(eltype(t))
   for i = 1:n
-    s += t[i]
-    ts[i] = s
+    s += p[i]
+    ps[i] = s
   end
 
   lk = n + d + 1
@@ -104,9 +104,11 @@ function BSpline(u,t,d,pVec,knotVec)
   elseif knotVec == :Average
     # average spaced knot vector
     idx = 1
-    k[d+2] = 1//d * ts[d]
+    if d+2 <= n
+      k[d+2] = 1//d * ps[d]
+    end
     for i = (d+3):n
-      k[i] = 1//d * (ts[idx+d] - ts[idx])
+      k[i] = 1//d * (ps[idx+d] - ps[idx])
       idx += 1
     end
   end
