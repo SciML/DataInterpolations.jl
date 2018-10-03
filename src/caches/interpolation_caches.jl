@@ -61,7 +61,7 @@ function CubicSpline(u,t)
   n = length(t) - 1
   h = vcat(0, diff(t), 0)
   dl = h[2:n+1]
-  d = 2 .* (h[1:n+1] + h[2:n+2])
+  d = 2 .* (h[1:n+1] .+ h[2:n+2])
   du = h[2:n+1]
   tA = LinearAlgebra.Tridiagonal(dl,d,du)
   d = zero(t)
