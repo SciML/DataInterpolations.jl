@@ -81,3 +81,14 @@ function (A::QuadraticSpline{<:AbstractVector{<:Number}})(t::Number)
   σ = 1//2 * (A.z[i] - A.z[i-1])/(A.t[i] - A.t[i-1])
   A.z[i-1] * (t - A.t[i-1]) + σ * (t - A.t[i-1])^2 + Cᵢ
 end
+
+# CubicSpline Interpolation
+function (A::CubicSpline{<:AbstractVector{<:Number}})(t::Number)
+  i = findfirst(x->x>=t,A.t)
+  i == nothing ? i = length(A.t) - 1 : i -= 1
+  i == 0 ? i += 1 : nothing
+  I = A.z[i] * (A.t[i+1] - t)^3 / (6A.h[i+1]) + A.z[i+1] * (t - A.t[i])^3 / (6A.h[i+1])
+  C = (A.u[i+1]/A.h[i+1] - A.z[i+1]*A.h[i+1]/6)*(t - A.t[i])
+  D = (A.u[i]/A.h[i+1] - A.z[i]*A.h[i+1]/6)*(A.t[i+1] - t)
+  I + C + D
+end
