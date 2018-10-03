@@ -84,13 +84,12 @@ end
 
 # BSpline Interpolation
 function (A::BSpline{<:AbstractVector{<:Number}})(t::Number)
-  # change t into param
+  # change t into param [0 1]
+  t = (t-A.t[1])/(A.t[end]-A.t[1])
   B = compute_splines(A, t)
-  xcum = zero(eltype(A.t))
-  ycum = zero(eltype(A.u))
+  ucum = zero(eltype(A.u))
   for i = 1:length(A.t)
-    xcum += B[i] * A.t[i]
-    ycum += B[i] * A.u[i]
+    ucum += B[i] * A.u[i]
   end
-  xcum, ycum
+  ucum
 end
