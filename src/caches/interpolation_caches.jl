@@ -31,7 +31,7 @@ struct ZeroSpline{uType,tType,dirType,FT,T} <: AbstractInterpolation{FT,T}
   ZeroSpline{FT}(u,t,dir) where FT = new{typeof(u),typeof(t),typeof(dir),FT,eltype(u)}(u,t,dir)
 end
 
-ZeroSpline(u,t,dir) = ZeroSpline{true}(u,t,dir)
+ZeroSpline(u,t;dir=:left) = ZeroSpline{true}(u,t,dir)
 
 ### QuadraticSpline Interpolation
 struct QuadraticSpline{uType,tType,tAType,dType,zType,FT,T} <: AbstractInterpolation{FT,T}
