@@ -73,6 +73,27 @@ function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   N/D
 end
 
+# ZeroSpline Interpolation
+function (A::ZeroSpline{<:AbstractVector{<:Number}})(t::Number)
+  i = findfirst(x->x>=t,A.t)
+  i == 1 ? i += 1 : nothing
+  if A.dir == :left
+    return A.u[i-1]
+  else
+    return A.u[i]
+  end
+end
+
+function (A::ZeroSpline{<:AbstractMatrix{<:Number}})(t::Number)
+  i = findfirst(x->x>=t,A.t)
+  i == 1 ? i += 1 : nothing
+  if A.dir == :left
+    return A.u[:,i-1]
+  else
+    return A.u[:,i]
+  end
+end
+
 # QuadraticSpline Interpolation
 function (A::QuadraticSpline{<:AbstractVector{<:Number}})(t::Number)
   i = findfirst(x->x>=t,A.t)
