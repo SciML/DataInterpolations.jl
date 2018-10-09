@@ -58,6 +58,25 @@ A = LagrangeInterpolation(u,t,2)
 @test A(1.5) == [2.25,2.25]
 @test A(3.5) ≈ [12.25,12.25]
 
+
+# ZeroSpline Interpolation
+u = [1.0, 4.0, 9.0, 16.0]
+t = [1.0, 2.0, 3.0, 4.0]
+A = ZeroSpline(u,t)
+
+@test A(1.0) == 1.0
+@test A(1.5) == 1.0
+@test A(2.5) == 4.0
+@test A(4.0) == 9.0
+
+u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
+A = ZeroSpline(u,t)
+
+@test A(1.0) == [1.0, 1.0]
+@test A(1.5) == [1.0, 1.0]
+@test A(2.5) == [4.0, 4.0]
+@test A(4.0) == [9.0, 9.0]
+
 # QuadraticSpline Interpolation
 u = [0.0, 1.0, 3.0]
 t = [-1.0, 0.0, 1.0]
