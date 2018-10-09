@@ -92,3 +92,18 @@ function (A::CubicSpline{<:AbstractVector{<:Number}})(t::Number)
   D = (A.u[i]/A.h[i+1] - A.z[i]*A.h[i+1]/6)*(A.t[i+1] - t)
   I + C + D
 end
+
+# Loess
+function (A::Loess{<:AbstractVector{<:Number}})(t::Number)
+  tmp = sort(abs.(A.t .- t))
+  w = abs.(A.t .- t) ./ tmp[A.q]
+  w = (1 .- (w .^ 3)) .^ 3
+  w = w .* (w .<= 1.0)
+  w = Diagonal(w)
+  b = inv(transpose(A.x) * w * A.x) * transpose(A.x) * w * A.u
+  u = zero(t[1])
+  for (idx,v) in enumerate(b)
+    u += v*(t^(idx-1))
+  end
+  u
+end
