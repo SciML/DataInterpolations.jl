@@ -97,8 +97,13 @@ end
 function (A::Loess{<:AbstractVector{<:Number}})(t::Number)
   tmp = sort(abs.(A.t .- t))
   w = abs.(A.t .- t) ./ tmp[A.q]
-  w = (1 .- (w .^ 3)) .^ 3
-  w = w .* (w .<= 1.0)
+  for i = 1:length(A.t)
+    if w[i] <= one(A.t[1])
+      w[i] = (1 - (w[i] ^ 3)) ^ 3
+    else
+      w[i] = zero(A.t[1])
+    end
+  end
   w = Diagonal(w)
   b = inv(transpose(A.x) * w * A.x) * transpose(A.x) * w * A.u
   u = zero(t[1])

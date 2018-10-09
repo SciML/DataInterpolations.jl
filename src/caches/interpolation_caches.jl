@@ -86,11 +86,10 @@ end
 function Loess(u,t,d,α)
   n = length(t)
   q = floor(Int,n*α)
-  w = Matrix{eltype(t)}(I,n,n)
   x = Matrix{eltype(t)}(undef,n,d+1)
   x[:,1] .= one(t[1])
   for i = 2:(d+1)
-    x[:,i] = u .^ (i-1)
+    x[:,i] = t .^ (i-1)
   end
   Loess{true}(u,t,d,α,q,x)
 end
