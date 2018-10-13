@@ -73,27 +73,6 @@ function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   N/D
 end
 
-# ZeroSpline Interpolation
-function (A::ZeroSpline{<:AbstractVector{<:Number}})(t::Number)
-  i = findfirst(x->x>=t,A.t)
-  i == 1 ? i += 1 : nothing
-  if A.dir == :left
-    return A.u[i-1]
-  else
-    return A.u[i]
-  end
-end
-
-function (A::ZeroSpline{<:AbstractMatrix{<:Number}})(t::Number)
-  i = findfirst(x->x>=t,A.t)
-  i == 1 ? i += 1 : nothing
-  if A.dir == :left
-    return A.u[:,i-1]
-  else
-    return A.u[:,i]
-  end
-end
-
 # QuadraticSpline Interpolation
 function (A::QuadraticSpline{<:AbstractVector{<:Number}})(t::Number)
   i = findfirst(x->x>=t,A.t)
@@ -112,6 +91,18 @@ function (A::CubicSpline{<:AbstractVector{<:Number}})(t::Number)
   C = (A.u[i+1]/A.h[i+1] - A.z[i+1]*A.h[i+1]/6)*(t - A.t[i])
   D = (A.u[i]/A.h[i+1] - A.z[i]*A.h[i+1]/6)*(A.t[i+1] - t)
   I + C + D
+end
+
+# BSpline Interpolation
+function (A::BSpline{<:AbstractVector{<:Number}})(t::Number)
+  # change t into param [0 1]
+  t = (t-A.t[1])/(A.t[end]-A.t[1])
+  B = compute_splines(A, t)
+  ucum = zero(eltype(A.u))
+  for i = 1:length(A.t)
+    ucum += B[i] * A.u[i]
+  end
+  ucum
 end
 
 # Loess

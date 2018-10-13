@@ -23,16 +23,6 @@ struct LagrangeInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
 end
 LagrangeInterpolation(u,t,n) = LagrangeInterpolation{true}(u,t,n)
 
-### ZeroSpline Interpolation
-struct ZeroSpline{uType,tType,dirType,FT,T} <: AbstractInterpolation{FT,T}
-  u::uType
-  t::tType
-  dir::Symbol
-  ZeroSpline{FT}(u,t,dir) where FT = new{typeof(u),typeof(t),typeof(dir),FT,eltype(u)}(u,t,dir)
-end
-
-ZeroSpline(u,t;dir=:left) = ZeroSpline{true}(u,t,dir)
-
 ### QuadraticSpline Interpolation
 struct QuadraticSpline{uType,tType,tAType,dType,zType,FT,T} <: AbstractInterpolation{FT,T}
   u::uType
@@ -80,6 +70,73 @@ function CubicSpline(u,t)
   end
   z = tA\d
   CubicSpline{true}(u,t,h[1:n+1],z)
+end
+
+### BSpline Interpolation
+struct BSpline{uType,tType,pType,kType,FT,T} <: AbstractInterpolation{FT,T}
+  u::uType
+  t::tType
+  d::Int    # degree
+  p::pType  # params vector
+  k::kType  # knot vector
+  pVec::Symbol
+  knotVec::Symbol
+  BSpline{FT}(u,t,d,p,k,pVec,knotVec) where FT =  new{typeof(u),typeof(t),typeof(p),typeof(k),FT,eltype(u)}(u,t,d,p,k,pVec,knotVec)
+end
+
+function BSpline(u,t,d,pVec,knotVec)
+  n = length(t)
+  s = zero(eltype(u))
+  p = zero(t)
+  l = zeros(eltype(u),n-1)
+
+  for i = 2:n
+    s += sqrt((t[i] - t[i-1])^2 + (u[i] - u[i-1])^2)
+    l[i-1] = s
+  end
+
+  a = p[1] = 0; b = p[end] = 1
+
+  if pVec == :Uniform
+    for i = 2:(n-1)
+      p[i] = a + (i-1)*(b-a)/(n-1)
+    end
+  elseif pVec == :ArcLen
+    for i = 2:(n-1)
+      p[i] = a + l[i-1]/s * (b-a)
+    end
+  end
+
+  ps = zero(t)
+  s = zero(eltype(t))
+  for i = 1:n
+    s += p[i]
+    ps[i] = s
+  end
+
+  lk = n + d + 1
+  k = zeros(eltype(t),lk)
+  for i = lk:-1:(n+1)
+    k[i] = one(eltype(t))
+  end
+
+  if knotVec == :Uniform
+    # uniformly spaced knot vector
+    for i = (d+2):n
+      k[i] = (i-d-1)//(n-d)
+    end
+  elseif knotVec == :Average
+    # average spaced knot vector
+    idx = 1
+    if d+2 <= n
+      k[d+2] = 1//d * ps[d]
+    end
+    for i = (d+3):n
+      k[i] = 1//d * (ps[idx+d] - ps[idx])
+      idx += 1
+    end
+  end
+  BSpline{true}(u,t,d,p,k,pVec,knotVec)
 end
 
 ### Loess

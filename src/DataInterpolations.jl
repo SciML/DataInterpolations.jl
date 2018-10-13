@@ -20,6 +20,5 @@ include("interpolation_alg/interpolation_methods.jl")
 include("plot_rec.jl")
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
-       ZeroSpline, QuadraticSpline, CubicSpline, Loess
-
+       ZeroSpline, QuadraticSpline, CubicSpline, BSpline, Loess
 end # module
