@@ -104,3 +104,23 @@ function (A::BSpline{<:AbstractVector{<:Number}})(t::Number)
   end
   ucum
 end
+
+# Loess
+function (A::Loess{<:AbstractVector{<:Number}})(t::Number)
+  tmp = sort(abs.(A.t .- t))
+  w = abs.(A.t .- t) ./ tmp[A.q]
+  for i = 1:length(A.t)
+    if w[i] <= one(A.t[1])
+      w[i] = (1 - (w[i] ^ 3)) ^ 3
+    else
+      w[i] = zero(A.t[1])
+    end
+  end
+  w = Diagonal(w)
+  b = inv(transpose(A.x) * w * A.x) * transpose(A.x) * w * A.u
+  u = zero(t[1])
+  for (idx,v) in enumerate(b)
+    u += v*(t^(idx-1))
+  end
+  u
+end
