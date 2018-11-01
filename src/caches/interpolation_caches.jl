@@ -162,16 +162,16 @@ function Loess(u,t,d,α)
 end
 
 ### GaussianProcess
-struct GaussianProcess{uType,tType,αType,xType,FT,T} <: AbstractInterpolation{FT,T}
+struct GaussianProcess{uType,tType,μType,σ²Type,lType,KType,LType,FT,T} <: AbstractInterpolation{FT,T}
   u::uType
   t::tType
   μ::μType
   σ²::σ²Type
   l::lType
   K::KType
-  K⋆::k_starType
-  K⋆⋆::k_star_starType
-  GaussianProcess{FT}(u,t,d,α,q,x) where FT = new{typeof(u),typeof(t),typeof(α),typeof(x),FT,eltype(u)}(u,t,d,α,q,x)
+  L::LType
+  GaussianProcess{FT}(u,t,μ,σ²,l,K,L) where FT = new{typeof(u),typeof(t),typeof(μ),typeof(σ²),typeof(l),
+                                                    typeof(K),typeof(L),FT,eltype(u)}(u,t,μ,σ²,l,K,L)
 end
 
 function GaussianProcess(u,t,μ,σ²,l)
@@ -181,5 +181,5 @@ function GaussianProcess(u,t,μ,σ²,l)
   kernel = squared_expo_kernel
   K = kernel(t,t,σ²,l)
   L = cholesky(K + n * Matrix{eltype(t)}(I,s,s)).L
-  GaussianProcess{true}(u,t,d,α,q,x)
+  GaussianProcess{true}(u,t,μ,σ²,l,K,L)
 end

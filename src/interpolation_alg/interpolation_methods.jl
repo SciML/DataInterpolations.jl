@@ -127,5 +127,13 @@ end
 
 # GaussianProcess
 function (A::GaussianProcess{<:AbstractVector{<:Number}})(t::Number)
-
+  s = length(t)  # total test points
+  n = 1e-6
+  K⋆ = kernel(A.t,t,A.σ²,A.l)
+  K⋆⋆ = kernel(t,t,A.σ²,A.l)
+  Lk = A.L\K⋆
+  μ = transpose(Lk) * (A.L\A.u)
+  σ = sqrt.(diag(K⋆⋆) - sum(Lk.^2,dims=1))
+  L = cholesky(K⋆⋆ + n*Matrix{eltype(t)}(I,s,s) - transpose(Lk) * Lk)
+  μ + L * rand(Normal(),s)
 end
