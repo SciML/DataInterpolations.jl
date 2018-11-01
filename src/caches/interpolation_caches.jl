@@ -160,3 +160,26 @@ function Loess(u,t,d,α)
   end
   Loess{true}(u,t,d,α,q,x)
 end
+
+### GaussianProcess
+struct GaussianProcess{uType,tType,αType,xType,FT,T} <: AbstractInterpolation{FT,T}
+  u::uType
+  t::tType
+  μ::μType
+  σ²::σ²Type
+  l::lType
+  K::KType
+  K⋆::k_starType
+  K⋆⋆::k_star_starType
+  GaussianProcess{FT}(u,t,d,α,q,x) where FT = new{typeof(u),typeof(t),typeof(α),typeof(x),FT,eltype(u)}(u,t,d,α,q,x)
+end
+
+function GaussianProcess(u,t,μ,σ²,l)
+  # decide which kernel to use by default and handle user choice
+  s = length(t)
+  n = 0.00005
+  kernel = squared_expo_kernel
+  K = kernel(t,t,σ²,l)
+  L = cholesky(K + n * Matrix{eltype(t)}(I,s,s)).L
+  GaussianProcess{true}(u,t,d,α,q,x)
+end

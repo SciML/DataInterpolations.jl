@@ -124,3 +124,8 @@ function (A::Loess{<:AbstractVector{<:Number}})(t::Number)
   end
   u
 end
+
+# GaussianProcess
+function (A::GaussianProcess{<:AbstractVector{<:Number}})(t::Number)
+
+end
