@@ -126,14 +126,19 @@ function (A::Loess{<:AbstractVector{<:Number}})(t::Number)
 end
 
 # GaussianProcess
-function (A::GaussianProcess{<:AbstractVector{<:Number}})(t::Number)
-  s = length(t)  # total test points
+function (A::GaussianProcess{<:AbstractVector{<:Number}})(t::AbstractVector{<:Number})
+  s = length(t)
   n = 1e-6
-  K⋆ = kernel(A.t,t,A.σ²,A.l)
-  K⋆⋆ = kernel(t,t,A.σ²,A.l)
-  Lk = A.L\K⋆
+  kernel = squared_expo_kernel
+  K_s = kernel(A.t,t,A.σ²,A.l)
+  K_ss = kernel(t,t,A.σ²,A.l)
+  Lk = A.L\K_s
   μ = transpose(Lk) * (A.L\A.u)
-  σ = sqrt.(diag(K⋆⋆) - sum(Lk.^2,dims=1))
-  L = cholesky(K⋆⋆ + n*Matrix{eltype(t)}(I,s,s) - transpose(Lk) * Lk)
+  σ = sqrt.(diag(K_ss) - reshape(sum(Lk.^2,dims=1), length(diag(K_ss))))
+  L = cholesky(K_ss + n*Matrix{eltype(t)}(I,s,s) - transpose(Lk) * Lk).L
   μ + L * rand(Normal(),s)
+end
+
+function (A::GaussianProcess{<:AbstractVector{<:Number}})(t::Number)
+  A([t])
 end
