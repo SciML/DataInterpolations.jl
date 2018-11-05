@@ -29,8 +29,3 @@ function compute_splines(A::BSpline, t)
   end
   B
 end
-
-function squared_expo_kernel(x1, x2, σ², l)
-  sq = (x1 .- transpose(x2)) .^ 2
-  σ² * exp.(-0.5 * inv(l^2) * sq)
-end

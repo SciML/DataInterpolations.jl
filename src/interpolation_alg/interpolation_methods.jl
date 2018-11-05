@@ -126,19 +126,10 @@ function (A::Loess{<:AbstractVector{<:Number}})(t::Number)
 end
 
 # GaussianProcess
-function (A::GaussianProcess{<:AbstractVector{<:Number}})(t::AbstractVector{<:Number})
-  s = length(t)
-  n = 1e-6
-  kernel = squared_expo_kernel
-  K_s = kernel(A.t,t,A.σ²,A.l)
-  K_ss = kernel(t,t,A.σ²,A.l)
-  Lk = A.L\K_s
-  μ = transpose(Lk) * (A.L\A.u)
-  σ = sqrt.(diag(K_ss) - reshape(sum(Lk.^2,dims=1), length(diag(K_ss))))
-  L = cholesky(K_ss + n*Matrix{eltype(t)}(I,s,s) - transpose(Lk) * Lk).L
-  μ + L * rand(Normal(),s)
+function (A::GPE)(t::Number)
+  predict_y(A,[t])
 end
 
-function (A::GaussianProcess{<:AbstractVector{<:Number}})(t::Number)
-  A([t])
+function (A::GPE)(t::AbstractVector{<:Number})
+  predict_y(A,t)
 end
