@@ -124,3 +124,8 @@ function (A::Loess{<:AbstractVector{<:Number}})(t::Number)
   end
   u
 end
+
+# Curvefit
+function (A::Curvefit{<:AbstractVector{<:Number}})(t::Number)
+  A.m(t,A.c_f.param)
+end

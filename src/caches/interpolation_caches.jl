@@ -160,3 +160,17 @@ function Loess(u,t,d,α)
   end
   Loess{true}(u,t,d,α,q,x)
 end
+
+### Curvefit
+struct Curvefit{uType,tType,mType,cfType,FT,T} <: AbstractInterpolation{FT,T}
+  u::uType
+  t::tType
+  m::mType
+  c_f::cfType
+  Curvefit{FT}(u,t,m,c_f) where FT = new{typeof(u),typeof(t),typeof(m),typeof(c_f),FT,eltype(u)}(u,t,m,c_f)
+end
+
+function Curvefit(u,t,m)
+  c_f = curve_fit(m,t,u,rand(2))
+  Curvefit{true}(u,t,m,c_f)
+end

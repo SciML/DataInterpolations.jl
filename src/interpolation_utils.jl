@@ -29,3 +29,20 @@ function compute_splines(A::BSpline, t)
   end
   B
 end
+
+##### Special Curve fitting functions
+# Sigmoid (Logistic function)
+struct sigmoid
+  p::AbstractVector
+end
+Sigmoid(p=rand(2)) = sigmoid(p)
+logistic_fun(x,p) = @. p[1]/(1+exp(-p[2]*x))
+model(m::sigmoid, x) = logistic_fun
+
+# Hill equation
+struct hill
+  p::AbstractVector
+end
+Hill(p=rand(3)) = hill(p)
+hill_fun(x,p) = @. p[1]/(1+(p[2]/x)^p[3])
+model(m::hill, x, p=rand(3)) = hill_fun
