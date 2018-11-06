@@ -126,10 +126,10 @@ function (A::Loess{<:AbstractVector{<:Number}})(t::Number)
 end
 
 # GaussianProcess
-function (A::GPE)(t::Number)
-  predict_y(A,[t])
+function (A::GPInterpolation{<:AbstractVector{<:Number}})(t::AbstractVector{<:Number})
+  rand(A.gp,t,1)
 end
 
-function (A::GPE)(t::AbstractVector{<:Number})
-  predict_y(A,t)
+function (A::GPInterpolation{<:AbstractVector{<:Number}})(t::Number)
+  rand(A.gp,[t],1)[1]
 end
