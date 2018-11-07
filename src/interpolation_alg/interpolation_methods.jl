@@ -124,3 +124,12 @@ function (A::Loess{<:AbstractVector{<:Number}})(t::Number)
   end
   u
 end
+
+# GaussianProcess
+function (A::GPInterpolation{<:AbstractVector{<:Number}})(t::AbstractVector{<:Number})
+  rand(A.gp,t,1)
+end
+
+function (A::GPInterpolation{<:AbstractVector{<:Number}})(t::Number)
+  rand(A.gp,[t],1)[1]
+end

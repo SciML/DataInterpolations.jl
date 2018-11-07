@@ -12,7 +12,9 @@ Base.setindex!(A::AbstractInterpolation,x,i) = A.u[i] = x
 Base.setindex!(A::AbstractInterpolation{true},x,i) =
                                    i <= length(A.u) ? (A.u[i] = x) : (A.t[i-length(A.u)] = x)
 
-using LinearAlgebra, RecursiveArrayTools, RecipesBase
+using LinearAlgebra, RecursiveArrayTools, RecipesBase, Reexport
+@reexport using GaussianProcesses
+import GaussianProcesses: GP
 
 include("caches/interpolation_caches.jl")
 include("interpolation_utils.jl")
@@ -20,5 +22,5 @@ include("interpolation_alg/interpolation_methods.jl")
 include("plot_rec.jl")
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
-       ZeroSpline, QuadraticSpline, CubicSpline, BSpline, Loess
+       ZeroSpline, QuadraticSpline, CubicSpline, BSpline, Loess, GPInterpolation
 end # module
