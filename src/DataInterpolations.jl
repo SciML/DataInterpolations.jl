@@ -22,5 +22,5 @@ include("plot_rec.jl")
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        ZeroSpline, QuadraticSpline, CubicSpline, BSpline, Loess, Curvefit
 
-export model, Sigmoid
+export logistic_fun
 end # module
