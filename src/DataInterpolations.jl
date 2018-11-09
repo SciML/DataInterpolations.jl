@@ -22,7 +22,6 @@ include("interpolation_alg/interpolation_methods.jl")
 include("plot_rec.jl")
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
-       ZeroSpline, QuadraticSpline, CubicSpline, BSpline, Loess, GPInterpolation, Curvefit
-
-export logistic_fun
+       ZeroSpline, QuadraticSpline, CubicSpline, BSpline, Loess, GPInterpolation, Curvefit,
+       SigmoidFit, HillFit, WeibullFit
 end # module
