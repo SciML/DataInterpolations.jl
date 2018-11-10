@@ -29,3 +29,15 @@ function compute_splines(A::BSpline, t)
   end
   B
 end
+
+function weibull_fun(x,p)
+  ans = copy(x)
+  for i = 1:length(x)
+    if x[i] >= 0
+      ans[i] = p[1] * (1 - exp(-1 * (x[i]/p[2])^p[3]))
+    else
+      ans[i] = 0.0
+    end
+  end
+  ans
+end

@@ -133,3 +133,8 @@ end
 function (A::GPInterpolation{<:AbstractVector{<:Number}})(t::Number)
   rand(A.gp,[t],1)[1]
 end
+
+# Curvefit
+function (A::Curvefit{<:AbstractVector{<:Number}})(t::Number)
+  A.m(t,A.c_f.param)
+end

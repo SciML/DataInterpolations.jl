@@ -173,3 +173,43 @@ function GPInterpolation(u,t,m,k,n=-2.0)
   gp = GP(t,u,m,k,n)
   GPInterpolation{true}(u,t,gp)
 end
+
+### Curvefit
+struct Curvefit{uType,tType,mType,cfType,FT,T} <: AbstractInterpolation{FT,T}
+  u::uType
+  t::tType
+  m::mType
+  c_f::cfType
+  Curvefit{FT}(u,t,m,c_f) where FT = new{typeof(u),typeof(t),typeof(m),typeof(c_f),FT,eltype(u)}(u,t,m,c_f)
+end
+
+function Curvefit(u,t,m,p)
+  c_f = curve_fit(m,t,u,p)
+  Curvefit{true}(u,t,m,c_f)
+end
+
+# SigmoidFit
+function SigmoidFit(u,t,p=zeros(2))
+  m = (x, p) -> @. p[1]/(1+exp(x-p[2]))
+  c_f = curve_fit(m,t,u,p)
+  Curvefit{true}(u,t,m,c_f)
+end
+
+# HillFit
+function HillFit(u,t,p=zeros(2),n=nothing)
+  if n == nothing
+    push!(p,rand(1)[1])
+    m = (x, p) -> @. p[1] * inv(1.0 + p[2]/(x^p[3]))
+  else
+    m = (x, p) -> @. p[1] * inv(1.0 + p[2]/(x^n))
+  end
+  c_f = curve_fit(m,t,u,p)
+  Curvefit{true}(u,t,m,c_f)
+end
+
+# WeibullFit
+function WeibullFit(u,t,p=zeros(3))
+  m = weibull_fun
+  c_f = curve_fit(m,t,u,p)
+  Curvefit{true}(u,t,m,c_f)
+end
