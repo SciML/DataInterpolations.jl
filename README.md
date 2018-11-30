@@ -47,7 +47,7 @@ corresponding to `(u,t)` pairs.
 
 - `Loess(u,t,d,α)` - A local least square regression. `d` is the degree of the polynomial to use and `α` is a smoothing parameter.
 
-- `GPInterpolation(u,t,m,k,n=-2.0)` - A Gaussian Process interpolation. Stochastic: each trajectory is different. `m` is mean function. `k` is kernel function. `n` is log standard deviation of observation noise and defaults to `-2.0`.
+- `GPInterpolation(u,t,m,k,n=-2.0)` - A Gaussian Process interpolation via GaussianProcess.jl. Stochastic: each trajectory is different. `m` is mean function. `k` is kernel function. `n` is log standard deviation of observation noise and defaults to `-2.0`.
 
 	- Available Mean functions
 		- `MeanZero` - Zero mean function
@@ -64,7 +64,7 @@ corresponding to `(u,t)` pairs.
 	 	- `Noise` - White noise covariance function
 	 	- `Const` - Constant (bias) covariance function
 		
-- `Curvefit(u,t,m,p)` - An interpolation which is done by fitting a user-given functional form `m(t,p)` where `p` is the vector of parameters. The user's input `p` is a an initial value for a least-square fitting and the optimal `p`s are used in the interpolation.
+- `Curvefit(u,t,m,p)` - An interpolation which is done by fitting a user-given functional form `m(t,p)` where `p` is the vector of parameters via CurveFit.jl. The user's input `p` is a an initial value for a least-square fitting and the optimal `p`s are used in the interpolation.
 
 - `SigmoidFit(u,t,p=zeros(2))` - A `CurveFit` to the Sigmoid function: `m(t,p) = p[1]/(1+exp(t-p[2]))`. Initial parameters default to zeros.
 
