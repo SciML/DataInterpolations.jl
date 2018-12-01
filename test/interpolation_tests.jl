@@ -111,3 +111,20 @@ A = CubicSpline(u,t)
 @test A(-1.0) == 0.0
 @test A(0.0) == 1.0
 @test A(1.0) == 3.0
+
+# Loess Interpolation
+# test against Loess.jl [https://github.com/JuliaStats/Loess.jl]
+# Currently, Loess.jl is not compatible with Julia 1.0
+
+# using Loess
+# xs = [1.0 * x for x in 1:20]
+# ys = [1.0 * x * x for x in 1:20]
+# us = collect(minimum(xs):0.1:maximum(xs))
+
+# model = loess(xs, ys)
+# vs = predict(model, us)
+
+# A = Loess(u,t,2,0.75)
+# uu = A.(us)
+
+# @test vs ≈ uu
