@@ -8,26 +8,32 @@ function findRequiredIdxs(A::LagrangeInterpolation, t)
   idxs[1:(A.n+1)]
 end
 
-function compute_splines(A::BSpline, t)
-  n = length(A.t)
-  d,k = A.d,A.k
-  B = zero(A.t)
-  if t == k[1]
-    B[1] = one(A.t[1])
-  elseif t == k[end]
-    B[end] = one(A.t[1])
+function spline_coefficients(n, d, k, u::Number)
+  N = zeros(n)
+  if u == k[1]
+    N[1] = one(u)
+  elseif u == k[end]
+    N[end] = one(u)
   else
-    i = findfirst(x->x>t,A.k) - 1
-    B[i] = one(A.t[1])
+    i = findfirst(x->x>u,k) - 1
+    N[i] = one(u)
     for deg = 1:d
-      B[i-deg] = (k[i+1]-t)/(k[i+1]-k[i-deg+1]) * B[i-deg+1]
+      N[i-deg] = (k[i+1]-u)/(k[i+1]-k[i-deg+1]) * N[i-deg+1]
       for j = (i-deg+1):(i-1)
-        B[j] = (t-k[j])/(k[j+deg]-k[j]) * B[j] + (k[j+deg+1]-t)/(k[j+deg+1]-k[j+1]) * B[j+1]
+        N[j] = (u-k[j])/(k[j+deg]-k[j]) * N[j] + (k[j+deg+1]-u)/(k[j+deg+1]-k[j+1]) * N[j+1]
       end
-      B[i] = (t-k[i])/(k[i+deg]-k[i]) * B[i]
+      N[i] = (u-k[i])/(k[i+deg]-k[i]) * N[i]
     end
   end
-  B
+  N
+end
+
+function spline_coefficients(n, d, k, u::AbstractVector)
+  N = zeros(eltype(u),n,n)
+  for i = 1:n
+    N[i,:] .= spline_coefficients(n,d,k,u[i])
+  end
+  N
 end
 
 function weibull_fun(x,p)
