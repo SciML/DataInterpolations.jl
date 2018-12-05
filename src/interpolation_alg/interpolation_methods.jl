@@ -117,10 +117,11 @@ end
 function (A::BSpline{<:AbstractVector{<:Number}})(t::Number)
   # change t into param [0 1]
   t = (t-A.t[1])/(A.t[end]-A.t[1])
-  B = compute_splines(A, t)
+  n = length(A.t)
+  N = spline_coefficients(n,A.d,A.k,t)
   ucum = zero(eltype(A.u))
-  for i = 1:length(A.t)
-    ucum += B[i] * A.u[i]
+  for i = 1:n
+    ucum += N[i] * A.c[i]
   end
   ucum
 end
