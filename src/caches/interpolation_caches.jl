@@ -175,7 +175,7 @@ function BSplineApprox(u,t,d,h,pVecType,knotVecType)
   n = length(t)
   s = zero(eltype(u))
   p = zero(t)
-  k = zeros(eltype(t),n+d+1)
+  k = zeros(eltype(t),h+d+1)
   l = zeros(eltype(u),n-1)
   p[1] = zero(eltype(t))
   p[end] = one(eltype(t))
@@ -214,8 +214,8 @@ function BSplineApprox(u,t,d,h,pVecType,knotVecType)
     # uniformly spaced knot vector
     # this method is not recommended because, if it is used with the chord length method for global interpolation,
     # the system of linear equations would be singular.
-    for i = (d+2):n
-      k[i] = k[1] + (i-d-1)//(n-d) * (k[end]-k[1])
+    for i = (d+2):h
+      k[i] = k[1] + (i-d-1)//(h-d) * (k[end]-k[1])
     end
   elseif knotVecType == :Average
     # average spaced knot vector
@@ -228,14 +228,15 @@ function BSplineApprox(u,t,d,h,pVecType,knotVecType)
       idx += 1
     end
   end
-  @show p
-  @show k
   # control points
   c = zeros(eltype(u), h)
   c[1] = u[1]
   c[end] = u[end]
   q = zeros(eltype(u), n)
-  N = spline_coefficients(n,d,k,p)
+  N = zeros(eltype(t), n, h)
+  for i = 1:n
+    N[i, :] .= spline_coefficients(h,d,k,p[i])
+  end
   for k = 2:n-1
     q[k] = u[k] - N[k, 1]*u[1] - N[k, h]*u[end]
   end
@@ -250,9 +251,7 @@ function BSplineApprox(u,t,d,h,pVecType,knotVecType)
   N = N[2:end-1,2:h-1]
   M = transpose(N) * N
   P = M\Q
-  @show P
   c[2:end-1] .= vec(P)
-  @show c
   BSplineApprox{true}(u,t,d,h,p,k,c,pVecType,knotVecType)
 end
 

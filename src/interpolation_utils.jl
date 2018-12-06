@@ -28,6 +28,7 @@ function spline_coefficients(n, d, k, u::Number)
   N
 end
 
+
 function spline_coefficients(n, d, k, u::AbstractVector)
   N = zeros(eltype(u),n,n)
   for i = 1:n

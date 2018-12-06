@@ -131,7 +131,7 @@ function (A::BSplineApprox{<:AbstractVector{<:Number}})(t::Number)
   # change t into param [0 1]
   t = (t-A.t[1])/(A.t[end]-A.t[1])
   n = length(A.t)
-  N = spline_coefficients(n,A.d,A.k,t)
+  N = spline_coefficients(A.h,A.d,A.k,t)
   ucum = zero(eltype(A.u))
   for i = 1:A.h
     ucum += N[i] * A.c[i]
