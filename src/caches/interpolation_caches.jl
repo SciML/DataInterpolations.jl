@@ -218,12 +218,13 @@ function BSplineApprox(u,t,d,h,pVecType,knotVecType)
       k[i] = k[1] + (i-d-1)//(h-d) * (k[end]-k[1])
     end
   elseif knotVecType == :Average
+    # NOTE: verify that average method can be applied when size of k is less than size of p
     # average spaced knot vector
     idx = 1
-    if d+2 <= n
+    if d+2 <= h
       k[d+2] = 1//d * ps[d]
     end
-    for i = (d+3):n
+    for i = (d+3):h
       k[i] = 1//d * (ps[idx+d] - ps[idx])
       idx += 1
     end

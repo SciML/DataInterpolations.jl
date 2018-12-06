@@ -131,7 +131,9 @@ end
 # BSpline Curve Approx
 function (A::BSplineApprox{<:AbstractVector{<:Number}})(t::Number)
   # change t into param [0 1]
-  t = (t-A.t[1])/(A.t[end]-A.t[1])
+  idx = findfirst(x->x>=t,A.t) - 1
+  idx == 0 ? idx += 1 : nothing
+  t = A.p[idx] + (t - A.t[idx])/(A.t[idx+1] - A.t[idx]) * (A.p[idx+1] - A.p[idx])
   n = length(A.t)
   N = spline_coefficients(A.h,A.d,A.k,t)
   ucum = zero(eltype(A.u))
