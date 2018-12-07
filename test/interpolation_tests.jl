@@ -113,6 +113,27 @@ A = CubicSpline(u,t)
 @test A(0.0) == 1.0
 @test A(1.0) == 3.0
 
+
+
+# BSpline Interpolation and Approximation
+t = [0,62.25,109.66,162.66,205.8,252.3]
+u = [14.7,11.51,10.41,14.95,12.24,11.22]
+
+A = BSplineInterpolation(u,t,2,:Uniform,:Uniform)
+
+@test [A(25.0), A(80.0)] == [13.454197730061425, 10.305633616059845]
+@test [A(190.0), A(225.0)] == [14.07428439395079, 11.057784141519251]
+
+A = BSplineInterpolation(u,t,2,:ArcLen,:Average)
+
+@test [A(25.0), A(80.0)] == [13.363814458968486, 10.685201117692609]
+@test [A(190.0), A(225.0)] == [13.437481084762863, 11.367034741256463]
+
+A = BSplineApprox(u,t,2,4,:Uniform,:Uniform)
+
+@test [A(25.0), A(80.0)] == [12.979802931218234, 10.914310609953178]
+@test [A(190.0), A(225.0)] == [13.851245975109263, 12.963685868886575]
+
 # Loess Interpolation
 # test against Loess.jl [https://github.com/JuliaStats/Loess.jl]
 # Currently, Loess.jl is not compatible with Julia 1.0
