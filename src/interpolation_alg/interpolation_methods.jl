@@ -15,7 +15,13 @@ end
 
 # Quadratic Interpolation
 function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(t::Number)
-  i₀, i₁, i₂ = findRequiredIdxs(A,t)
+  idx = findfirst(x->x>=t,A.t)-1
+  idx == 0 ? idx += 1 : nothing
+  if idx == length(A.t) - 1
+    i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
+  else
+    i₀ = idx; i₁ = i₀ + 1; i₂ = i₁ + 1;
+  end
   l₀ = ((t-A.t[i₁])*(t-A.t[i₂]))/((A.t[i₀]-A.t[i₁])*(A.t[i₀]-A.t[i₂]))
   l₁ = ((t-A.t[i₀])*(t-A.t[i₂]))/((A.t[i₁]-A.t[i₀])*(A.t[i₁]-A.t[i₂]))
   l₂ = ((t-A.t[i₀])*(t-A.t[i₁]))/((A.t[i₂]-A.t[i₀])*(A.t[i₂]-A.t[i₁]))
@@ -23,7 +29,13 @@ function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(t::Number)
 end
 
 function (A::QuadraticInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
-  i₀, i₁, i₂ = findRequiredIdxs(A,t)
+  idx = findfirst(x->x>=t,A.t)-1
+  idx == 0 ? idx += 1 : nothing
+  if idx == length(A.t) - 1
+    i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
+  else
+    i₀ = idx; i₁ = i₀ + 1; i₂ = i₁ + 1;
+  end
   l₀ = ((t-A.t[i₁])*(t-A.t[i₂]))/((A.t[i₀]-A.t[i₁])*(A.t[i₀]-A.t[i₂]))
   l₁ = ((t-A.t[i₀])*(t-A.t[i₂]))/((A.t[i₁]-A.t[i₀])*(A.t[i₁]-A.t[i₂]))
   l₂ = ((t-A.t[i₀])*(t-A.t[i₁]))/((A.t[i₂]-A.t[i₀])*(A.t[i₂]-A.t[i₁]))
