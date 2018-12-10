@@ -26,6 +26,9 @@ function LagrangeInterpolation(u,t,n=nothing)
   if n == nothing
     n = length(t) - 1 # degree
   end
+  if n != length(t) - 1
+    error("Currently only n=length(t) - 1 is supported")
+  end
   LagrangeInterpolation{true}(u,t,n)
 end
 
