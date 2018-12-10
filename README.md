@@ -8,7 +8,7 @@ data points in applications like timeseries data.
 
 ## Tutorial / Demonstration
 
-A tutorial is included and can be found at [](). To run the tutorial yourself
+A tutorial is included and can be found at [this page](https://htmlpreview.github.io/?https://github.com/UMCTM/DataInterpolations.jl/blob/master/Example/DataInterpolations.html). To run the tutorial yourself
 locally, use the following Weave commands:
 
 ```julia
