@@ -42,3 +42,15 @@ function weibull_fun(x,p)
   end
   ans
 end
+
+# helper functions to get t_max and c_max (OneCompartmentPK)
+function OneCompartmentPK_tmax(A)
+  p = A.c_f.param
+  2.303 * log(10.0,p[1]/p[4]) / (p[1] - p[4])
+end
+
+function OneCompartmentPK_cmax(A)
+  p = A.c_f.param
+  t = OneCompartmentPK_tmax(A)
+  p[1] * p[2] * p[3] * (exp(-p[4]*t) - exp(-p[1]*t)) / (p[5] * (p[1] - p[4]))
+end

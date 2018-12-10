@@ -23,5 +23,5 @@ include("plot_rec.jl")
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        ZeroSpline, QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox, Loess, GPInterpolation, Curvefit,
-       SigmoidFit, HillFit, WeibullFit
+       SigmoidFit, HillFit, WeibullFit, OneCompartmentPKFit
 end # module
