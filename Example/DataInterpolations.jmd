@@ -1,0 +1,117 @@
+
+# DataInterpolations.jl
+
+This library is meant for interpolating one dimensional data, this library includes following interpolation methods.
+-  [Linear Interpolation](#1)
+-  [Quadratic Interpolation](#2)
+-  [Lagrange Interpolation](#3)
+-  [Zero Spline](#4)
+-  [Quadratic Spline](#5)
+-  [Cubic Spline](#6)
+-  [BSpline Global Curve Interpolation](#7)
+-  [BSpline Global Curve Approximation](#8)
+-  [Loess Interpolation](#9)
+-  [Gaussian Processes Interpolation](#10)
+-  [Curve fitting](#11)
+
+```julia
+# We will use this one dimensional data to demonstrate interpolation methods.
+# Dependent variable
+u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+# Independent variable
+t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
+```
+
+## Linear Interpolation
+It does linear interpolation between ends points of interval of input data point.
+
+```julia
+using DataInterpolations, Plots
+gr()
+```
+
+```julia
+A = LinearInterpolation(u,t)
+```
+
+```julia
+# plotting input data and interpolation function
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+## Quadratic Interpolation
+It fits a parabola passing through three nearest points from input data point.
+
+```julia
+A = QuadraticInterpolation(u,t)
+```
+
+```julia
+# plotting input data and interpolation function
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+## Lagrange Interpolation
+It fits polynomial of degree d (=length(t)-1).
+
+```julia
+A = LagrangeInterpolation(u,t)
+```
+
+```julia
+# plotting input data and interpolation function
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+## Zero Spline (Piecewise constant interpolation)
+It fits constant curve between intervals of data points, by default it takes value at left end of the interval. one can change it by passing third argument as `dir = :right`.
+
+```julia
+A = ZeroSpline(u,t)
+```
+
+```julia
+# plotting input data and interpolation function
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+```julia
+# if you want to use values at r.h.s then you can pass :right (Symbol) as third arg
+A = ZeroSpline(u,t,dir=:right)
+```
+
+```julia
+# plotting input data and interpolation function
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+## Quadratic Spline
+This method is implemented from https://www.math.uh.edu/~jingqiu/math4364/spline.pdf
+
+```julia
+A = QuadraticSpline(u,t)
+```
+
+```julia
+# plotting input data and interpolation function
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+## Cubic Spline
+This method is implemented from https://www.math.uh.edu/~jingqiu/math4364/spline.pdf
+
+```julia
+A = CubicSpline(u,t)
+```
+
+```julia
+# plotting input data and interpolation function
+scatter(t, u, label="input data")
+plot!(A)
+```
