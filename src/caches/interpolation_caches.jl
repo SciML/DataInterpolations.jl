@@ -21,7 +21,13 @@ struct LagrangeInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
   n::Int
   LagrangeInterpolation{FT}(u,t,n) where FT = new{typeof(u),typeof(t),FT,eltype(u)}(u,t,n)
 end
-LagrangeInterpolation(u,t,n) = LagrangeInterpolation{true}(u,t,n)
+
+function LagrangeInterpolation(u,t,n=nothing)
+  if n == nothing
+    n = length(t) - 1 # degree
+  end
+  LagrangeInterpolation{true}(u,t,n)
+end
 
 ### ZeroSpline Interpolation
 struct ZeroSpline{uType,tType,dirType,FT,T} <: AbstractInterpolation{FT,T}
