@@ -1,5 +1,5 @@
 
-## DataInterpolations.jl
+# DataInterpolations.jl
 
 This library is meant for interpolating one dimensional data, this library includes following interpolation methods.
 -  [Linear Interpolation](#1)
@@ -11,7 +11,7 @@ This library is meant for interpolating one dimensional data, this library inclu
 -  [BSpline Global Curve Interpolation](#7)
 -  [BSpline Global Curve Approximation](#8)
 -  [Loess Interpolation](#9)
--  [Gaussina Processes Interpolation](#10)
+-  [Gaussian Processes Interpolation](#10)
 -  [Curve fitting](#11)
 
 ```julia
@@ -22,13 +22,12 @@ u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
 t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
 ```
 
-<a id='1'></a>
-### Linear Interpolation
+## Linear Interpolation
 It does linear interpolation between ends points of interval of input data point.
 
 ```julia
 using DataInterpolations, Plots
-pyplot()
+gr()
 ```
 
 ```julia
@@ -41,8 +40,7 @@ scatter(t, u, label="input data")
 plot!(A)
 ```
 
-<a id='2'></a>
-### Quadratic Interpolation
+## Quadratic Interpolation
 It fits a parabola passing through three nearest points from input data point.
 
 ```julia
@@ -55,13 +53,11 @@ scatter(t, u, label="input data")
 plot!(A)
 ```
 
-<a id='3'></a>
-### Lagrange Interpolation
-It fits polynomial of degree <= d through (d+1) nearest points.
+## Lagrange Interpolation
+It fits polynomial of degree d (=length(t)-1).
 
 ```julia
-d = 4 # degree of the curve
-A = LagrangeInterpolation(u,t,d)
+A = LagrangeInterpolation(u,t)
 ```
 
 ```julia
@@ -70,8 +66,7 @@ scatter(t, u, label="input data")
 plot!(A)
 ```
 
-<a id='4'></a>
-### Zero Spline (Piecewise constant interpolation)
+## Zero Spline (Piecewise constant interpolation)
 It fits constant curve between intervals of data points, by default it takes value at left end of the interval. one can change it by passing third argument as `dir = :right`.
 
 ```julia
@@ -95,8 +90,7 @@ scatter(t, u, label="input data")
 plot!(A)
 ```
 
-<a id='5'></a>
-### Quadratic Spline
+## Quadratic Spline
 This method is implemented from https://www.math.uh.edu/~jingqiu/math4364/spline.pdf
 
 ```julia
@@ -109,8 +103,7 @@ scatter(t, u, label="input data")
 plot!(A)
 ```
 
-<a id='6'></a>
-### Cubic Spline
+## Cubic Spline
 This method is implemented from https://www.math.uh.edu/~jingqiu/math4364/spline.pdf
 
 ```julia
