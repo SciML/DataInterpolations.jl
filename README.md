@@ -1,10 +1,20 @@
 # DataInterpolations.jl
 
-DataInterpolations.jl is a library for performing interpolations of one-dimensional data. By 
+DataInterpolations.jl is a library for performing interpolations of one-dimensional data. By
 "data interpolations" we mean techniques for interpolating possibly noisy data, and thus
 some methods are mixtures of regressions with interpolations (i.e. do not hit the data
 points exactly, smoothing out the lines). This library can be used to fill in intermediate
 data points in applications like timeseries data.
+
+## Tutorial / Demonstration
+
+A tutorial is included and can be found at [](). To run the tutorial yourself
+locally, use the following Weave commands:
+
+```julia
+using Weave, DataInterpolations
+weave(joinpath(dirname(pathof(DataInterpolations)), "../Example", "DataInterpolations.jmd"), out_path=:doc)
+```
 
 ## API
 
@@ -65,7 +75,7 @@ corresponding to `(u,t)` pairs.
 	 	- `Poly` - Polnomial covariance function
 	 	- `Noise` - White noise covariance function
 	 	- `Const` - Constant (bias) covariance function
-		
+
 - `Curvefit(u,t,m,p)` - An interpolation which is done by fitting a user-given functional form `m(t,p)` where `p` is the vector of parameters via CurveFit.jl. The user's input `p` is a an initial value for a least-square fitting and the optimal `p`s are used in the interpolation.
 
 - `SigmoidFit(u,t,p=zeros(2))` - A `CurveFit` to the Sigmoid function: `m(t,p) = p[1]/(1+exp(t-p[2]))`. Initial parameters default to zeros.

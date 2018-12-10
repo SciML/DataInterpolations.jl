@@ -1,0 +1,238 @@
+# DataInterpolations.jl
+
+This library is meant for interpolating one dimensional data by methods which
+both hit every point exactly or smooth the data into an approximate fitting
+curve. The library contains the following interpolation methods:
+
+-  Linear Interpolation
+-  Quadratic Interpolation
+-  Lagrange Interpolation
+-  Zero Spline
+-  Quadratic Spline
+-  Cubic Spline
+-  BSpline Global Curve Interpolation
+-  BSpline Global Curve Approximation
+-  Loess Interpolation
+-  Gaussian Processes Interpolation
+-  Curve fitting
+
+## Demonstration
+
+We will use the following data to demonstrate interpolation methods.
+```julia
+using DataInterpolations, Plots
+gr()
+# Dependent variable
+u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+# Independent variable
+t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
+```
+
+For each method, we will show how to perform the fit and use the plot recipe
+to show the fitting curve.
+
+### Linear Interpolation
+
+This is a linear interpolation between ends points of interval of input data point.
+
+```julia
+A = LinearInterpolation(u,t)
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+### Quadratic Interpolation
+
+This function fits a parabola passing through three nearest points from input
+data point. It is continuous and piecewise differentiable.
+
+```julia
+A = QuadraticInterpolation(u,t)
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+### Lagrange Interpolation
+
+It fits polynomial of degree d (=length(t)-1), and is thuse a continuously
+differentiable function.
+
+```julia
+A = LagrangeInterpolation(u,t)
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+### Zero Spline (Piecewise constant interpolation)
+This function fits a constant curve between intervals of data points. By default
+it takes value at left end of the interval. One can change that behavior by
+passing the keyword argument `dir = :right`.
+
+```julia
+A = ZeroSpline(u,t)
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+Or using the right endpoints:
+
+```julia
+A = ZeroSpline(u,t,dir=:right)
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+### Quadratic Spline
+This is the quadratic spline. It is a continuously differentiable interpolation
+which hits each of the data points exactly. Splines are a local interpolation
+method, meaning that the curve in a given spot is only affected by the points
+nearest to it. It is explained in more detail at
+https://www.math.uh.edu/~jingqiu/math4364/spline.pdf .
+
+```julia
+A = QuadraticSpline(u,t)
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+### Cubic Spline
+This is the cubic spline. It is a continuously twice differentiable interpolation
+which hits each of the data points exactly. It is explained in more detail at
+https://www.math.uh.edu/~jingqiu/math4364/spline.pdf .
+
+```julia
+A = CubicSpline(u,t)
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+### B-Splines
+
+This is an interpolating B-spline. B-splines are a global method, meaning
+that every data point is taken into account for each point of the curve.
+The interpolating B-spline is the version which hits each of the points. This
+method is described in more detail at
+https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/INT-APP/CURVE-INT-global.html .
+Let's plot a cubic B-spline (3rd order). Since the data points are not close to
+uniformly spaced, we will use the `:ArcLen` and `:Average` choices:
+
+```julia
+A = BSplineInterpolation(u,t,3,:ArcLen,:Average)
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+The approximating B-spline is a smoothed version of the B-spline. It again is
+a global method. In this case, we need to give a number of control points
+`length(t)>h` and this method fits a B-spline through the control points which
+is a least square approximation. This has a natural effect of smoothing the
+data. For example, if we use 4 control points, we get the result:
+
+```julia
+A = BSplineApprox(u,t,3,4,:ArcLen,:Average)
+scatter(t, u, label="input data")
+plot!(A)
+```
+
+## Dense Data Demonstration
+
+Some methods are better suited for dense data. Let's generate such data to
+demonstrate these methods.
+
+```julia
+t = sort(10 .* rand(100))
+u = sin.(t) .+ 0.5 * randn(100)
+```
+
+### LOESS
+
+LOESS is a local least square method. Let's use a 3rd degree polynomial with
+a smoothing α=0.75.
+
+```julia
+A = Loess(u,t,2,0.75)
+scatter(t,u,label="points",legend=:bottomright)
+plot!(A,label="2nd Degree LOESS")
+A = Loess(u,t,3,0.75)
+plot!(A,label="3rd Degree LOESS")
+```
+
+### Gaussian Processes
+
+A Gaussian Process is a stochastic interpolation, meaning that it gives a
+different result each time `A(t)` is called, with the mean and variance determined
+from the uncertainty in the dataset. This functionality is provided as a wrapper
+over GaussianProcess.jl. Here we will use a zero-mean function with a squared
+exponential covariance kernal function, and -1 as our guess for the log standard
+deviation of the observation noise. More details on the arguments can be found
+at the GaussianProcess.jl repository. Using our wrapper, we build a
+GPInterpolation like any other:
+
+```julia
+mZero = MeanZero()
+kern = SE(0.0,0.0)
+logObsNoise = -1.0
+
+A = GPInterpolation(u,t,mZero,kern,logObsNoise)
+scatter(t,u,label="points",legend=:bottomright)
+plot!(A)
+```
+
+But now we notice that adding more samples of the same interpolation gives
+different results:
+
+```julia
+plot!(A)
+```
+
+We can directly plot the Gaussian Process to see the mean and variance functions:
+
+```julia
+plot(A.gp)
+```
+
+### Curve Fits
+
+A curve fit works with both dense and sparse data. We will demonstrate the curve
+fit on the dense data since we generated it based on `sin(t)`, so this is the
+curve we want to fit through it. Do do so, let's define a similar function
+with parameters. Let's choose the form:
+
+```julia
+m(t,p) = @. p[1]*sin(p[2]*t) + p[3]*cos(p[4]*t)
+```
+
+Notice that this is a function on the whole array of `t` and expects an array
+for the predicted `u` out. This choice of `m` is the assumption that our
+function is of the form `p1*sin(p2*t)+p3*cos(p4*t)`. We want to find the `p` to
+match our data. Let's start with the guess of every `p` being zero, that is
+`p=ones(4)`. Then we would fit this curve using:
+
+```julia
+A = Curvefit(u,t,m,ones(4))
+scatter(t,u,label="points",legend=:bottomright)
+plot!(A)
+```
+
+We can check what the fitted parameters are via:
+
+```julia
+A.c_f.param
+```
+
+Notice that it essentially made `p3=0` with `p1=p2=1`, meaning it approximately
+found `sin(t)`! But note that the ability to fit is dependent on the initial
+parameters. For example, with `p=zeros(4)` as the initial parameters the fit
+is not good:
+
+```julia
+A = Curvefit(u,t,m,zeros(4))
+scatter(t,u,label="points",legend=:bottomright)
+plot!(A)
+```
+
+And the parameters show the issue:
+
+```julia
+A.c_f.param
+```
