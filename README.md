@@ -83,3 +83,8 @@ corresponding to `(u,t)` pairs.
 - `HillFit(u,t,p=zeros(2),n=nothing)` - A `CurveFit` to the Hill function: `m(t,p) = p[1] * inv(1.0 + p[2]/(t^n))`. If `n` is given then it's assumed constant, otherwise it is a parameter which is fit. Initial parameters default to zero.
 
 - `WeibullFit(u,t,p=zeros(3))` - A `CurveFit` to the Weibull exponential function: `m(t,p) = max(0,p[1] * (1 - exp(-1 * (t/p[2])^p[3])))`. Initial parameters default to zero.
+
+- `OneCompartmentPKFit(u,t,p=zeros(5))` - A `CurveFit` to the solution to the one-compartment pharmacokinetic (PK) ODE, i.e.
+  `m = (x,p) -> @. p[1] * p[2] * p[3] * (exp(-p[4]*x) - exp(-p[1]*x)) / (p[5] * (p[1] - p[4]))`. Comes with helper
+  functions `DataInterpolations.OneCompartmentPK_tmax(A)` and `DataInterpolations.OneCompartmentPK_cmax(A)` which 
+  give the time to maximum `u` and the maximum `u` value of the fit curve provided by the analytical solution.
