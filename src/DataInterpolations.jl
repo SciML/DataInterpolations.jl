@@ -12,9 +12,8 @@ Base.setindex!(A::AbstractInterpolation,x,i) = A.u[i] = x
 Base.setindex!(A::AbstractInterpolation{true},x,i) =
                                    i <= length(A.u) ? (A.u[i] = x) : (A.t[i-length(A.u)] = x)
 
-using LinearAlgebra, RecursiveArrayTools, RecipesBase, Reexport, LsqFit
-@reexport using GaussianProcesses
-import GaussianProcesses: GP
+using LinearAlgebra, RecursiveArrayTools, RecipesBase, Reexport
+@reexport using GaussianProcesses, Optim
 
 include("caches/interpolation_caches.jl")
 include("interpolation_utils.jl")

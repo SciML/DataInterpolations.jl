@@ -90,7 +90,7 @@ function CubicSpline(u,t)
   CubicSpline{true}(u,t,h[1:n+1],z)
 end
 
-### BSpline Curve Interpolation 
+### BSpline Curve Interpolation
 struct BSplineInterpolation{uType,tType,pType,kType,cType,FT,T} <: AbstractInterpolation{FT,T}
   u::uType
   t::tType
@@ -301,16 +301,31 @@ function GPInterpolation(u,t,m,k,n=-2.0)
 end
 
 ### Curvefit
-struct Curvefit{uType,tType,mType,cfType,FT,T} <: AbstractInterpolation{FT,T}
-  u::uType
-  t::tType
-  m::mType
-  c_f::cfType
-  Curvefit{FT}(u,t,m,c_f) where FT = new{typeof(u),typeof(t),typeof(m),typeof(c_f),FT,eltype(u)}(u,t,m,c_f)
+struct CurvefitCache{uType,tType,mType,p0Type,ubType,lbType,algType,pminType,FT,T} <: AbstractInterpolation{FT,T}
+    u::uType
+    t::tType
+    m::mType        # model type
+    p0::p0Type      # intial params
+    ub::ubType      # upper bound of params
+    lb::lbType      # lower bound of params
+    alg::algType    # alg to optimize cost function
+    pmin::pminType  # optimized params
+    CurvefitCache{FT}(u,t,m,p0,ub,lb,alg,pmin) where FT = new{typeof(u),typeof(t),typeof(m),
+                                        typeof(p0),typeof(ub),typeof(lb),
+                                        typeof(alg),typeof(pmin),FT,eltype(u)}(u,t,m,p0,ub,lb,alg,pmin)
 end
 
-function Curvefit(u,t,m,p)
-  c_f = curve_fit(m,t,u,p)
-  Curvefit{true}(u,t,m,c_f)
+function Curvefit(t, u, model, p0, alg, box=false, lb=nothing, ub=nothing)
+    errfun(t,u,p) = sum(abs2.(u .- model(t,p)))
+    if box == false
+        mfit = optimize(p->errfun(t,u,p), p0, alg)
+    else
+        if lb == nothing || ub == nothing
+            error("lower or upper bound should not be nothing")
+        end
+        od = OnceDifferentiable(p->errfun(t,u,p), p0, autodiff=:finite)
+        mfit = optimize(od, lb, ub, p0, Fminbox(alg))
+    end
+    pmin = Optim.minimizer(mfit)
+    CurvefitCache{true}(u,t,model,p0,ub,lb,alg,pmin)
 end
-

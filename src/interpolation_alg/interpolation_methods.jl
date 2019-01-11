@@ -185,6 +185,6 @@ function (A::GPInterpolation{<:AbstractVector{<:Number}})(t::Number)
 end
 
 # Curvefit
-function (A::Curvefit{<:AbstractVector{<:Number}})(t::Number)
-  A.m(t,A.c_f.param)
+function (A::CurvefitCache{<:AbstractVector{<:Number}})(t::Union{AbstractVector{<:Number},Number})
+  A.m(t,A.pmin)
 end
