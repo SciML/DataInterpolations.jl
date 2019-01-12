@@ -315,7 +315,7 @@ struct CurvefitCache{uType,tType,mType,p0Type,ubType,lbType,algType,pminType,FT,
                                         typeof(alg),typeof(pmin),FT,eltype(u)}(u,t,m,p0,ub,lb,alg,pmin)
 end
 
-function Curvefit(t, u, model, p0, alg, box=false, lb=nothing, ub=nothing)
+function Curvefit(u, t, model, p0, alg, box=false, lb=nothing, ub=nothing)
     errfun(t,u,p) = sum(abs2.(u .- model(t,p)))
     if box == false
         mfit = optimize(p->errfun(t,u,p), p0, alg)
