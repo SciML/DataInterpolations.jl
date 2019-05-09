@@ -4,7 +4,11 @@ struct LinearInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
   t::tType
   LinearInterpolation{FT}(u,t) where FT = new{typeof(u),typeof(t),FT,eltype(u)}(u,t)
 end
-LinearInterpolation(u,t) = LinearInterpolation{true}(u,t)
+
+function LinearInterpolation(u,t)
+  u, t = munge_data(u, t)
+  LinearInterpolation{true}(u,t)
+end
 
 ### Quadratic Interpolation
 struct QuadraticInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
@@ -12,7 +16,11 @@ struct QuadraticInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
   t::tType
   QuadraticInterpolation{FT}(u,t) where FT = new{typeof(u),typeof(t),FT,eltype(u)}(u,t)
 end
-QuadraticInterpolation(u,t) = QuadraticInterpolation{true}(u,t)
+
+function QuadraticInterpolation(u,t)
+  u, t = munge_data(u, t)
+  QuadraticInterpolation{true}(u,t)
+end
 
 ### Lagrange Interpolation
 struct LagrangeInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
@@ -23,6 +31,7 @@ struct LagrangeInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
 end
 
 function LagrangeInterpolation(u,t,n=nothing)
+  u, t = munge_data(u, t)
   if n == nothing
     n = length(t) - 1 # degree
   end
@@ -39,7 +48,11 @@ struct ZeroSpline{uType,tType,dirType,FT,T} <: AbstractInterpolation{FT,T}
   dir::Symbol
   ZeroSpline{FT}(u,t,dir) where FT = new{typeof(u),typeof(t),typeof(dir),FT,eltype(u)}(u,t,dir)
 end
- ZeroSpline(u,t;dir=:left) = ZeroSpline{true}(u,t,dir)
+
+function ZeroSpline(u,t;dir=:left)
+  u, t = munge_data(u, t)
+  ZeroSpline{true}(u,t,dir)
+end
 
 ### QuadraticSpline Interpolation
 struct QuadraticSpline{uType,tType,tAType,dType,zType,FT,T} <: AbstractInterpolation{FT,T}
@@ -53,6 +66,7 @@ struct QuadraticSpline{uType,tType,tAType,dType,zType,FT,T} <: AbstractInterpola
 end
 
 function QuadraticSpline(u,t)
+  u, t = munge_data(u, t)
   s = length(t)
   dl = ones(eltype(t),s-1)
   d = ones(eltype(t),s)
@@ -76,6 +90,7 @@ struct CubicSpline{uType,tType,hType,zType,FT,T} <: AbstractInterpolation{FT,T}
 end
 
 function CubicSpline(u,t)
+  u, t = munge_data(u, t)
   n = length(t) - 1
   h = vcat(0, diff(t), 0)
   dl = h[2:n+1]
@@ -104,6 +119,7 @@ struct BSplineInterpolation{uType,tType,pType,kType,cType,FT,T} <: AbstractInter
 end
 
 function BSplineInterpolation(u,t,d,pVecType,knotVecType)
+  u, t = munge_data(u, t)
   n = length(t)
   s = zero(eltype(u))
   p = zero(t)
@@ -181,6 +197,7 @@ struct BSplineApprox{uType,tType,pType,kType,cType,FT,T} <: AbstractInterpolatio
 end
 
 function BSplineApprox(u,t,d,h,pVecType,knotVecType)
+  u, t = munge_data(u, t)
   n = length(t)
   s = zero(eltype(u))
   p = zero(t)
@@ -277,6 +294,7 @@ struct Loess{uType,tType,αType,xType,FT,T} <: AbstractInterpolation{FT,T}
 end
 
 function Loess(u,t,d,α)
+  u, t = munge_data(u, t)
   n = length(t)
   q = floor(Int,n*α)
   x = Matrix{eltype(t)}(undef,n,d+1)
@@ -296,36 +314,38 @@ struct GPInterpolation{uType,tType,gpType,FT,T} <: AbstractInterpolation{FT,T}
 end
 
 function GPInterpolation(u,t,m,k,n=-2.0)
+  u, t = munge_data(u, t)
   gp = GP(t,u,m,k,n)
   GPInterpolation{true}(u,t,gp)
 end
 
 ### Curvefit
 struct CurvefitCache{uType,tType,mType,p0Type,ubType,lbType,algType,pminType,FT,T} <: AbstractInterpolation{FT,T}
-    u::uType
-    t::tType
-    m::mType        # model type
-    p0::p0Type      # intial params
-    ub::ubType      # upper bound of params
-    lb::lbType      # lower bound of params
-    alg::algType    # alg to optimize cost function
-    pmin::pminType  # optimized params
-    CurvefitCache{FT}(u,t,m,p0,ub,lb,alg,pmin) where FT = new{typeof(u),typeof(t),typeof(m),
-                                        typeof(p0),typeof(ub),typeof(lb),
-                                        typeof(alg),typeof(pmin),FT,eltype(u)}(u,t,m,p0,ub,lb,alg,pmin)
+  u::uType
+  t::tType
+  m::mType        # model type
+  p0::p0Type      # intial params
+  ub::ubType      # upper bound of params
+  lb::lbType      # lower bound of params
+  alg::algType    # alg to optimize cost function
+  pmin::pminType  # optimized params
+  CurvefitCache{FT}(u,t,m,p0,ub,lb,alg,pmin) where FT = new{typeof(u),typeof(t),typeof(m),
+                                      typeof(p0),typeof(ub),typeof(lb),
+                                      typeof(alg),typeof(pmin),FT,eltype(u)}(u,t,m,p0,ub,lb,alg,pmin)
 end
 
 function Curvefit(u, t, model, p0, alg, box=false, lb=nothing, ub=nothing)
-    errfun(t,u,p) = sum(abs2.(u .- model(t,p)))
-    if box == false
-        mfit = optimize(p->errfun(t,u,p), p0, alg)
-    else
-        if lb == nothing || ub == nothing
-            error("lower or upper bound should not be nothing")
-        end
-        od = OnceDifferentiable(p->errfun(t,u,p), p0, autodiff=:finite)
-        mfit = optimize(od, lb, ub, p0, Fminbox(alg))
-    end
-    pmin = Optim.minimizer(mfit)
-    CurvefitCache{true}(u,t,model,p0,ub,lb,alg,pmin)
+  u, t = munge_data(u, t)
+  errfun(t,u,p) = sum(abs2.(u .- model(t,p)))
+  if box == false
+      mfit = optimize(p->errfun(t,u,p), p0, alg)
+  else
+      if lb == nothing || ub == nothing
+          error("lower or upper bound should not be nothing")
+      end
+      od = OnceDifferentiable(p->errfun(t,u,p), p0, autodiff=:finite)
+      mfit = optimize(od, lb, ub, p0, Fminbox(alg))
+  end
+  pmin = Optim.minimizer(mfit)
+  CurvefitCache{true}(u,t,model,p0,ub,lb,alg,pmin)
 end

@@ -54,3 +54,10 @@ function OneCompartmentPK_cmax(A)
   t = OneCompartmentPK_tmax(A)
   p[1] * p[2] * p[3] * (exp(-p[4]*t) - exp(-p[1]*t)) / (p[5] * (p[1] - p[4]))
 end
+
+# helper function for data manipulation
+function munge_data(u, t)
+  df = DataFrame(u => u, t => t)
+  dropmissing!(df, disallowmissing=true)
+  df.u, df.t
+end
