@@ -10,7 +10,7 @@ A = LinearInterpolation(u,t)
 @test A(5) == u[5]
 @test A(5.5) == 11.0
 
-u = vcat(2.0collect(1:10)',3.0collect(1:10)')
+u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
 A = LinearInterpolation(u,t)
 
 @test A(1) == u[:,1]
@@ -180,3 +180,21 @@ vs = [1.0039795744162028,0.9854877725868618, 0.881099402277441, 0.37178612895420
 us = A.(ts)
 
 @test vs ≈ us
+
+# missing values handling tests
+u = [1.0, 4.0, 9.0, 16.0, 25.0, missing, missing]
+t = [1.0, 2.0, 3.0, 4.0, missing, 6.0, missing]
+A = QuadraticInterpolation(u,t)
+
+@test A(2.0) == 4.0
+@test A(1.5) == 2.25
+@test A(3.5) == 12.25
+@test A(2.5) == 6.25
+
+u = hcat(u, u)'
+A = QuadraticInterpolation(u,t)
+
+@test A(2.0) == [4.0, 4.0]
+@test A(1.5) == [2.25, 2.25]
+@test A(3.5) == [12.25,12.25]
+@test A(2.5) == [6.25, 6.25]

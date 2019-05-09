@@ -4,3 +4,4 @@ RecipesBase 0.1.0
 Reexport
 GaussianProcesses
 Optim
+DataFrames

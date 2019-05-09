@@ -56,8 +56,17 @@ function OneCompartmentPK_cmax(A)
 end
 
 # helper function for data manipulation
-function munge_data(u, t)
-  df = DataFrame(u => u, t => t)
+function munge_data(u::AbstractVector, t)
+  df = DataFrame(u = u, t = t)
   dropmissing!(df, disallowmissing=true)
   df.u, df.t
+end
+
+function munge_data(u::AbstractMatrix, t)
+  df = convert(DataFrame, u')
+  df.t = t
+  dropmissing!(df, disallowmissing=true)
+  t = df.t
+  deletecols!(df, :t)
+  convert(Matrix, df)', t
 end
