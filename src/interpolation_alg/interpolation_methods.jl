@@ -88,16 +88,19 @@ end
 # ZeroSpline Interpolation
 function (A::ZeroSpline{<:AbstractVector{<:Number}})(t::Number)
   i = findfirst(x->x>=t,A.t)
-  i == 1 ? i += 1 : nothing
+  i == 1 ? (i += 1) : nothing
   if A.dir == :left
-    return A.u[i-1]
+    _i = i == nothing ? length(A.t)+1 : i
+    return A.u[_i-1]
   else
-    return A.u[i]
+    _i = i == nothing ? length(A.t) : i
+    return A.u[_i]
   end
 end
  function (A::ZeroSpline{<:AbstractMatrix{<:Number}})(t::Number)
   i = findfirst(x->x>=t,A.t)
-  i == 1 ? i += 1 : nothing
+  i == 1 ? (i += 1) : nothing
+  _i = i == nothing ? length(x) : i
   if A.dir == :left
     return A.u[:,i-1]
   else
