@@ -67,6 +67,6 @@ function munge_data(u::AbstractMatrix, t)
   df.t = t
   dropmissing!(df, disallowmissing=true)
   t = df.t
-  deletecols!(df, :t)
+  select!(df, Not(:t))
   convert(Matrix, df)', t
 end
