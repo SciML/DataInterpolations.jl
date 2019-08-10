@@ -67,7 +67,16 @@ end
 
     label --> "Quadratic fit"
 
-    to_plottable(QuadraticInterpolation(y, x); plotdensity = plotdensity, denseplot = denseplot)
+    nx, ny = to_plottable(
+        QuadraticInterpolation(
+            T.(y),
+            T.(x)
+        );
+        plotdensity = plotdensity,
+        denseplot = denseplot
+    )
+    x := nx
+    y := ny
 end
 
 ########################################
