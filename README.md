@@ -1,5 +1,7 @@
 # DataInterpolations.jl
 
+[![Build Status](https://travis-ci.org/PumasAI/DataInterpolations.jl.svg?branch=master)](https://travis-ci.org/PumasAI/DataInterpolations.jl)
+
 DataInterpolations.jl is a library for performing interpolations of one-dimensional data. By
 "data interpolations" we mean techniques for interpolating possibly noisy data, and thus
 some methods are mixtures of regressions with interpolations (i.e. do not hit the data
