@@ -57,9 +57,19 @@ end
 
 # helper function for data manipulation
 function munge_data(u::AbstractVector, t)
-  df = DataFrame(u = u, t = t)
-  dropmissing!(df, disallowmissing=true)
-  df.u, df.t
+  Tu = Missings.T(eltype(u))
+  Tt = Missings.T(eltype(t))
+  newu = Tu[]
+  newt = Tt[]
+  @inbounds for i in eachindex(t)
+    ui = u[i]
+    ti = t[i]
+    if !ismissing(ui) && !ismissing(ti)
+      push!(newu, ui)
+      push!(newt, ti)
+    end
+  end
+  return newu, newt
 end
 
 function munge_data(u::AbstractMatrix, t)
