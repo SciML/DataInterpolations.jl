@@ -56,9 +56,9 @@ function OneCompartmentPK_cmax(A)
 end
 
 # helper function for data manipulation
-function munge_data(u::AbstractVector, t)
-  Tu = Missings.T(eltype(u))
-  Tt = Missings.T(eltype(t))
+function munge_data(u::AbstractVector, t::AbstractVector)
+  Tu = Base.nonmissingtype(eltype(u))
+  Tt = Base.nonmissingtype(eltype(t))
   newu = Tu[]
   newt = Tt[]
   @inbounds for i in eachindex(t)
@@ -72,11 +72,23 @@ function munge_data(u::AbstractVector, t)
   return newu, newt
 end
 
-function munge_data(u::AbstractMatrix, t)
-  df = convert(DataFrame, u')
-  df.t = t
-  dropmissing!(df, disallowmissing=true)
-  t = df.t
-  select!(df, Not(:t))
-  convert(Matrix, df)', t
+function munge_data(U::StridedMatrix, t::AbstractVector)
+  TU = Base.nonmissingtype(eltype(U))
+  Tt = Base.nonmissingtype(eltype(t))
+  newUs = [TU[] for i in 1:size(U, 1)]
+  newt  = Tt[]
+  @inbounds for j in eachindex(t)
+    tj = t[j]
+    if ismissing(tj) || any(ismissing, view(U, :, j))
+      continue
+    end
+
+    push!(newt, tj)
+    for i in 1:length(newUs)
+      push!(newUs[i], U[i,j])
+    end
+  end
+
+  return vcat(adjoint.(newUs)...), newt
 end
+
