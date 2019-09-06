@@ -87,18 +87,24 @@ end
 
 # ZeroSpline Interpolation
 function (A::ZeroSpline{<:AbstractVector{<:Number}})(t::Number)
-  i = searchsortedfirst(A.t, t)
   if A.dir === :left
-    return A.u[max(2, i) - 1]
+    # :left means that value to the left is used for interpolation
+    i = searchsortedlast(A.t, t)
+    return A.u[max(1, i)]
   else
+    # :right means that value to the right is used for interpolation
+    i = searchsortedfirst(A.t, t)
     return A.u[min(length(A.t), i)]
   end
 end
  function (A::ZeroSpline{<:AbstractMatrix{<:Number}})(t::Number)
-  i = searchsortedfirst(A.t, t)
   if A.dir === :left
-    return A.u[:, max(2, i) - 1]
+    # :left means that value to the left is used for interpolation
+    i = searchsortedlast(A.t, t)
+    return A.u[:, max(1, i)]
   else
+    # :right means that value to the right is used for interpolation
+    i = searchsortedfirst(A.t, t)
     return A.u[:, min(length(A.t), i)]
   end
 end
