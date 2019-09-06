@@ -191,7 +191,7 @@ A = QuadraticInterpolation(u,t)
 @test A(3.5) == 12.25
 @test A(2.5) == 6.25
 
-u = hcat(u, u)'
+u = copy(hcat(u, u)')
 A = QuadraticInterpolation(u,t)
 
 @test A(2.0) == [4.0, 4.0]
