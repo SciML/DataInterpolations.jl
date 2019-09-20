@@ -45,7 +45,7 @@ end
 struct ZeroSpline{uType,tType,dirType,FT,T} <: AbstractInterpolation{FT,T}
   u::uType
   t::tType
-  dir::Symbol
+  dir::Symbol # indicates if value to the $dir should be used for the interpolation
   ZeroSpline{FT}(u,t,dir) where FT = new{typeof(u),typeof(t),typeof(dir),FT,eltype(u)}(u,t,dir)
 end
 
