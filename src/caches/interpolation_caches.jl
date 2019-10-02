@@ -41,6 +41,43 @@ function LagrangeInterpolation(u,t,n=nothing)
   LagrangeInterpolation{true}(u,t,n)
 end
 
+### Akima Interpolation
+struct AkimaInterpolation{uType,tType,bType,cType,dType,FT,T} <: AbstractInterpolation{FT,T}
+  u::uType
+  t::tType
+  b::bType
+  c::cType
+  d::dType
+  AkimaInterpolation{FT}(u,t,b,c,d) where FT = new{typeof(u),typeof(t),typeof(b),typeof(c),
+                                                     typeof(d),FT,eltype(u)}(u,t,b,c,d)
+end
+
+function AkimaInterpolation(u, t)
+  u, t = munge_data(u, t)
+  n = length(t)
+  dt = diff(t)
+  m = Array{eltype(u)}(undef, n + 3)
+  m[3:end-2] = diff(u) ./ dt
+  m[2] = 2m[3] - m[4]
+  m[1] = 2m[2] - m[3]
+  m[end-1] = 2m[end-2] - m[end-3]
+  m[end] = 2m[end-1] - m[end-2]
+
+  b = 0.5 .* (m[4:end] .+ m[1:end-3])
+  dm = abs.(diff(m))
+  f1 = dm[3:n+2]
+  f2 = dm[1:n]
+  f12 = f1 + f2
+  ind = findall(f12 .> 1e-9 * maximum(f12))
+  b[ind] = (f1[ind] .* m[ind .+ 1] .+
+            f2[ind] .* m[ind .+ 2]) ./ f12[ind]
+  c = (3.0 .* m[3:end-2] .- 2.0 .* b[1:end-1] .- b[2:end]) ./ dt
+  d = (b[1:end-1] .+ b[2:end] .- 2.0 .* m[3:end-2]) ./ dt.^2
+
+  AkimaInterpolation{true}(u,t,b,c,d)
+end
+
+
 ### ZeroSpline Interpolation
 struct ZeroSpline{uType,tType,dirType,FT,T} <: AbstractInterpolation{FT,T}
   u::uType
