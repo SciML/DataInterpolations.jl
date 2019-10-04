@@ -193,6 +193,10 @@ end
         y := ny
 end
 
+########################################
+#       B-spline (approximation)       #
+########################################
+
 @recipe function f(::Type{Val{:bspline_approx}}, x, y; d = 5, h = length(x)-1, pVec=:ArcLen, knotVec = :Average)
 
         seriestype := :path
@@ -240,4 +244,31 @@ end
         x := nx
         y := ny
 end
-
+
+
+################################################################################
+#                                  Shorthands                                  #
+################################################################################
+
+"""
+    loess(
+        u, t;
+        d = 5,
+        α = 0.75,
+        plotdensity = length(u) * 6,
+        denseplot = true
+    )
+    loess!(...)
+
+Plot the LOESS fit (with the given parameters)
+of the input data.
+"""
+@shorthands loess
+
+"""
+    akima(u, t)
+    akima!(u, t)
+
+Plot the Akima interpolation of the given data.
+"""
+@shorthands akima
