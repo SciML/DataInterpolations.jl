@@ -85,6 +85,14 @@ function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   N/D
 end
 
+function (A::AkimaInterpolation{<:AbstractVector{<:Number}})(t::Number)
+  i = searchsortedlast(A.t, t)
+  i == 0 && return A.u[1]
+  i == length(A.t) && return A.u[end]
+  wj = t - A.t[i]
+  @evalpoly wj A.u[i] A.b[i] A.c[i] A.d[i]
+end
+
 # ZeroSpline Interpolation
 function (A::ZeroSpline{<:AbstractVector{<:Number}})(t::Number)
   if A.dir === :left

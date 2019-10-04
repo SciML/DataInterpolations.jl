@@ -20,7 +20,7 @@ include("interpolation_utils.jl")
 include("interpolation_alg/interpolation_methods.jl")
 include("plot_rec.jl")
 
-export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
+export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation, AkimaInterpolation,
        ZeroSpline, QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox,
        Loess, GPInterpolation, Curvefit
 end # module
