@@ -108,7 +108,12 @@ end
 #        Lagrange Interpolation        #
 ########################################
 
-@recipe function f(::Type{Val{:lagrange_interp}}, x, y, z; n = length(x) - 1, plotdensity = 10_000, denseplot = true)
+@recipe function f(::Type{Val{:lagrange_interp}},
+                    x, y, z;
+                    n = length(x) - 1,
+                    plotdensity = 10_000,
+                    denseplot = true
+                )
 
     seriestype := :path
 
@@ -158,7 +163,13 @@ end
 #                Loess                 #
 ########################################
 
-@recipe function f(::Type{Val{:loess}}, x, y, z; d = 5, α = 0.75, plotdensity = length(x) * 6, denseplot = true)
+@recipe function f(::Type{Val{:loess}},
+                    x, y, z;
+                    d = 5,
+                    α = 0.75,
+                    plotdensity = length(x) * 6,
+                    denseplot = true
+                )
 
     seriestype := :path
 
@@ -170,13 +181,22 @@ end
     y := ny
 end
 
-@recipe function f(::Type{Val{:bspline_interp}}, x, y; d = 5, pVec=:ArcLen, knotVec = :Average)
+@recipe function f(::Type{Val{:bspline_interp}},
+                x, y, z;
+                d = 5,
+                pVec=:ArcLen,
+                knotVec = :Average,
+                plotdensity = length(x) * 6,
+                denseplot = true
+            )
 
         seriestype := :path
 
         label --> "B-Spline"
 
-        T = promote_type(eltype(y), eltype(x))
+        @show x y eltype(x)
+
+        # T = promote_type(eltype(y), eltype(x))
 
         nx, ny = to_plottable(
             BSplineInterpolation(
@@ -197,7 +217,15 @@ end
 #       B-spline (approximation)       #
 ########################################
 
-@recipe function f(::Type{Val{:bspline_approx}}, x, y; d = 5, h = length(x)-1, pVec=:ArcLen, knotVec = :Average)
+@recipe function f(::Type{Val{:bspline_approx}}
+                    x, y, z;
+                    d = 5,
+                    h = length(x) - 1,
+                    pVec=:ArcLen,
+                    knotVec = :Average,
+                    plotdensity = length(x) * 6,
+                    denseplot = true
+                )
 
         seriestype := :path
 
@@ -225,7 +253,7 @@ end
 #          Akima intepolation          #
 ########################################
 
-@recipe function f(::Type{Val{:akima}}, x, y)
+@recipe function f(::Type{Val{:akima}}, x, y, z; plotdensity = length(x) * 6, denseplot = true)
 
         seriestype := :path
 
