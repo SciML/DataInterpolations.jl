@@ -216,3 +216,28 @@ end
         x := nx
         y := ny
 end
+
+########################################
+#          Akima intepolation          #
+########################################
+
+@recipe function f(::Type{Val{:akima}}, x, y)
+
+        seriestype := :path
+
+        label --> "B-Spline"
+
+        T = promote_type(eltype(y), eltype(x))
+
+        nx, ny = to_plottable(
+            AkimaInterpolation(
+                T.(y),
+                T.(x)
+            );
+            plotdensity = plotdensity,
+            denseplot = denseplot
+        )
+        x := nx
+        y := ny
+end
+
