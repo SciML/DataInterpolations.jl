@@ -257,7 +257,7 @@ end
 
         seriestype := :path
 
-        label --> "B-Spline"
+        label --> "Akima"
 
         T = promote_type(eltype(y), eltype(x))
 
