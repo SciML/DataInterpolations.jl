@@ -217,11 +217,11 @@ end
 #       B-spline (approximation)       #
 ########################################
 
-@recipe function f(::Type{Val{:bspline_approx}}
+@recipe function f(::Type{Val{:bspline_approx}},
                     x, y, z;
                     d = 5,
                     h = length(x) - 1,
-                    pVec=:ArcLen,
+                    pVec = :ArcLen,
                     knotVec = :Average,
                     plotdensity = length(x) * 6,
                     denseplot = true
