@@ -61,6 +61,7 @@ function munge_data(u::AbstractVector, t::AbstractVector)
   Tt = Base.nonmissingtype(eltype(t))
   newu = Tu[]
   newt = Tt[]
+  @assert length(t) == length(u)
   @inbounds for i in eachindex(t)
     ui = u[i]
     ti = t[i]
@@ -77,6 +78,7 @@ function munge_data(U::StridedMatrix, t::AbstractVector)
   Tt = Base.nonmissingtype(eltype(t))
   newUs = [TU[] for i in 1:size(U, 1)]
   newt  = Tt[]
+  @assert length(t) == length(u)
   @inbounds for j in eachindex(t)
     tj = t[j]
     if ismissing(tj) || any(ismissing, view(U, :, j))
@@ -91,4 +93,3 @@ function munge_data(U::StridedMatrix, t::AbstractVector)
 
   return vcat(adjoint.(newUs)...), newt
 end
-
