@@ -78,7 +78,7 @@ function munge_data(U::StridedMatrix, t::AbstractVector)
   Tt = Base.nonmissingtype(eltype(t))
   newUs = [TU[] for i in 1:size(U, 1)]
   newt  = Tt[]
-  @assert length(t) == size(u,2)
+  @assert length(t) == size(U,2)
   @inbounds for j in eachindex(t)
     tj = t[j]
     if ismissing(tj) || any(ismissing, view(U, :, j))
