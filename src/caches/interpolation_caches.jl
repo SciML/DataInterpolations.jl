@@ -159,8 +159,8 @@ function BSplineInterpolation(u,t,d,pVecType,knotVecType)
   u, t = munge_data(u, t)
   n = length(t)
   s = zero(eltype(u))
-  p = zero(t)
-  k = zeros(eltype(t),n+d+1)
+  p = float(zero(t))
+  k = float(zeros(eltype(t),n+d+1))
   l = zeros(eltype(u),n-1)
   p[1] = zero(eltype(t))
   p[end] = one(eltype(t))
@@ -188,7 +188,7 @@ function BSplineInterpolation(u,t,d,pVecType,knotVecType)
     ridx -= 1
   end
 
-  ps = zeros(eltype(t),n-2)
+  ps = float(zeros(eltype(t),n-2))
   s = zero(eltype(t))
   for i = 2:n-1
     s += p[i]
@@ -237,8 +237,8 @@ function BSplineApprox(u,t,d,h,pVecType,knotVecType)
   u, t = munge_data(u, t)
   n = length(t)
   s = zero(eltype(u))
-  p = zero(t)
-  k = zeros(eltype(t),h+d+1)
+  p = float(zero(t))
+  k = float(zeros(eltype(t),h+d+1))
   l = zeros(eltype(u),n-1)
   p[1] = zero(eltype(t))
   p[end] = one(eltype(t))
@@ -266,7 +266,7 @@ function BSplineApprox(u,t,d,h,pVecType,knotVecType)
     ridx -= 1
   end
 
-  ps = zeros(eltype(t),n-2)
+  ps = float(zeros(eltype(t),n-2))
   s = zero(eltype(t))
   for i = 2:n-1
     s += p[i]
@@ -297,7 +297,7 @@ function BSplineApprox(u,t,d,h,pVecType,knotVecType)
   c[1] = u[1]
   c[end] = u[end]
   q = zeros(eltype(u), n)
-  N = zeros(eltype(t), n, h)
+  N = float(zeros(eltype(t), n, h))
   for i = 1:n
     N[i, :] .= spline_coefficients(h,d,k,p[i])
   end

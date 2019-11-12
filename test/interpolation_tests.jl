@@ -181,6 +181,28 @@ A = BSplineApprox(u,t,2,4,:Uniform,:Uniform)
 @test [A(25.0), A(80.0)] ≈ [12.979802931218234, 10.914310609953178]
 @test [A(190.0), A(225.0)] ≈ [13.851245975109263, 12.963685868886575]
 
+t_int = trunc.(Int, t)
+t_float = float(t_int)
+A = BSplineInterpolation(u,t_int,2,:Uniform,:Uniform)
+B = BSplineInterpolation(u,t_float,2,:Uniform,:Uniform)
+
+@test A(25.0) == B(25.0)
+
+A = BSplineInterpolation(u,t_int,2,:ArcLen,:Average)
+B = BSplineInterpolation(u,t_float,2,:ArcLen,:Average)
+
+@test A(25.0) == B(25.0)
+
+A = BSplineApprox(u,t_int,2,4,:Uniform,:Uniform)
+B = BSplineApprox(u,t_float,2,4,:Uniform,:Uniform)
+
+@test A(25.0) == B(25.0)
+
+A = BSplineApprox(u,t_int,2,4,:ArcLen,:Average)
+B = BSplineApprox(u,t_float,2,4,:ArcLen,:Average)
+
+@test A(25.0) == B(25.0)
+
 # Loess Interpolation
 # test against Loess.jl [https://github.com/JuliaStats/Loess.jl]
 # Currently, Loess.jl is not compatible with Julia 1.0
