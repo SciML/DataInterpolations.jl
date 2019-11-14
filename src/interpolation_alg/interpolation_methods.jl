@@ -1,13 +1,61 @@
+function shortcut_index_search_last(t,T,curidx)
+  _curidx = curidx[]
+  #=
+  if _curidx == length(T) && t >= T[_curidx]
+    idx = _curidx
+  elseif _curidx < length(T)-1 && t >= T[_curidx] && t < T[_curidx+1]
+    idx = _curidx
+  elseif _curidx < length(T)-2 && t >= T[_curidx+1] && t < T[_curidx+2]
+    idx = _curidx + 1
+  elseif _curidx > 1 && t >= T[_curidx-1] && t < T[_curidx]
+    idx = _curidx - 1
+  else
+    idx = max(1,searchsortedlast(T,t))
+  end
+  =#
+  idx = ifelse(_curidx == length(T) && t >= T[_curidx],_curidx,
+    ifelse(_curidx < length(T)-1 && t >= T[_curidx] && t < T[_curidx+1], _curidx,
+    ifelse(_curidx < length(T)-2 && t >= T[_curidx+1] && t < T[_curidx+2],_curidx+1,
+    ifelse(_curidx > 1 && t >= T[_curidx-1] && t < T[_curidx],_curidx-1,
+    max(1,searchsortedlast(T,t))))))
+  curidx[] = idx
+  idx
+end
+
+function shortcut_index_search_first(t,T,curidx)
+  _curidx = curidx[]
+  #=
+  if _curidx > 1 && t >= T[_curidx-1] && t <= T[_curidx]
+    idx = _curidx
+  elseif _curidx == 1 && t <= T[1]
+    idx = _curidx
+  elseif _curidx < length(T)-1 && t >= T[_curidx] && t <= T[_curidx+1]
+    idx = _curidx + 1
+  elseif _curidx > 2 && t >= T[_curidx-2] && t <= T[_curidx-1]
+    idx = _curidx - 1
+  else
+    idx = min(length(T),searchsortedfirst(T,t))
+  end
+  =#
+  idx = ifelse(_curidx > 1 && t >= T[_curidx-1] && t <= T[_curidx],_curidx,
+    ifelse(_curidx == 1 && t <= T[1],_curidx,
+    ifelse(_curidx < length(T)-1 && t >= T[_curidx] && t <= T[_curidx+1],_curidx+1,
+    ifelse(_curidx > 2 && t >= T[_curidx-2] && t <= T[_curidx-1],_curidx-1,
+    min(length(T),searchsortedfirst(T,t))))))
+  curidx[] = idx
+  idx
+end
+
 # Linear Interpolation
 function (A::LinearInterpolation{<:AbstractVector{<:Number}})(t::Number)
-  idx = findfirst(x->x>=t,A.t)-1
+  idx = shortcut_index_search_last(t,A.t,A.curidx)
   idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
   (1-θ)*A.u[idx] + θ*A.u[idx+1]
 end
 
 function (A::LinearInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
-  idx = findfirst(x->x>=t,A.t)-1
+  idx = shortcut_index_search_last(t,A.t,A.curidx)
   idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
   (1-θ)*A.u[:,idx] + θ*A.u[:,idx+1]
@@ -97,23 +145,23 @@ end
 function (A::ZeroSpline{<:AbstractVector{<:Number}})(t::Number)
   if A.dir === :left
     # :left means that value to the left is used for interpolation
-    i = searchsortedlast(A.t, t)
-    return A.u[max(1, i)]
+    i = shortcut_index_search_last(t,A.t,A.curidx)
+    return A.u[i]
   else
     # :right means that value to the right is used for interpolation
-    i = searchsortedfirst(A.t, t)
-    return A.u[min(length(A.t), i)]
+    i = shortcut_index_search_first(t,A.t,A.curidx)
+    return A.u[i]
   end
 end
  function (A::ZeroSpline{<:AbstractMatrix{<:Number}})(t::Number)
   if A.dir === :left
     # :left means that value to the left is used for interpolation
-    i = searchsortedlast(A.t, t)
-    return A.u[:, max(1, i)]
+    i = shortcut_index_search_last(t,A.t,A.curidx)
+    return A.u[:, i]
   else
     # :right means that value to the right is used for interpolation
-    i = searchsortedfirst(A.t, t)
-    return A.u[:, min(length(A.t), i)]
+    i = shortcut_index_search_first(t,A.t,A.curidx)
+    return A.u[:, i]
   end
 end
 

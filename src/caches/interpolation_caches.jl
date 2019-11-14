@@ -2,7 +2,8 @@
 struct LinearInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
   u::uType
   t::tType
-  LinearInterpolation{FT}(u,t) where FT = new{typeof(u),typeof(t),FT,eltype(u)}(u,t)
+  curidx::Ref{Int}
+  LinearInterpolation{FT}(u,t) where FT = new{typeof(u),typeof(t),FT,eltype(u)}(u,t,Ref(1))
 end
 
 function LinearInterpolation(u,t)
@@ -83,7 +84,8 @@ struct ZeroSpline{uType,tType,dirType,FT,T} <: AbstractInterpolation{FT,T}
   u::uType
   t::tType
   dir::Symbol # indicates if value to the $dir should be used for the interpolation
-  ZeroSpline{FT}(u,t,dir) where FT = new{typeof(u),typeof(t),typeof(dir),FT,eltype(u)}(u,t,dir)
+  curidx::Ref{Int}
+  ZeroSpline{FT}(u,t,dir) where FT = new{typeof(u),typeof(t),typeof(dir),FT,eltype(u)}(u,t,dir,Ref(1))
 end
 
 function ZeroSpline(u,t;dir=:left)
