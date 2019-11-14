@@ -17,7 +17,7 @@ function shortcut_index_search_last(t,T,curidx)
     ifelse(_curidx < length(T)-1 && t >= T[_curidx] && t < T[_curidx+1], _curidx,
     ifelse(_curidx < length(T)-2 && t >= T[_curidx+1] && t < T[_curidx+2],_curidx+1,
     ifelse(_curidx > 1 && t >= T[_curidx-1] && t < T[_curidx],_curidx-1,-1))))
-  if idx = -1
+  if idx == -1
     idx = max(1,searchsortedlast(T,t)
   end
   curidx[] = idx
