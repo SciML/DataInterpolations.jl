@@ -52,7 +52,7 @@ end
 function munge_data(U::StridedMatrix, t::AbstractVector)
   TU = Base.nonmissingtype(eltype(U))
   Tt = Base.nonmissingtype(eltype(t))
-  newUs = []
+  newUs = AbstractVector{TU}[]
   newt  = Tt[]
   @assert length(t) == size(U,2)
   @inbounds for (j, tj) in enumerate(t)
