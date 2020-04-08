@@ -27,8 +27,11 @@ git:
 #  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
 
 ## uncomment the following lines to override the default test script
-#script:
-#  - julia -e 'Pkg.clone(pwd()); Pkg.build("DataInterpolations"); Pkg.test("DataInterpolations"; coverage=true)'
+script:
+ - julia --check-bounds=yes --color=yes -e "using Pkg; Pkg.test(coverage=true)"
+ # Test Weave docs
+ - julia --color=yes -e 'using Pkg; Pkg.add(["Weave", "Plots"])
+ - julia --color=yes -e 'using Weave; weave("example/DataInterpolations.jmd")'
 after_success:
   # push coverage results to Codecov
   - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
