@@ -41,7 +41,7 @@ interp[4] # Gives the 4th value of u
 In all cases, `u` an `AbstractVector` of values and `t` is an `AbstractVector` of timepoints
 corresponding to `(u,t)` pairs.
 
-- `ZeroSpline(u,t)` - A piecewise constant interpolation.
+- `ConstantInterpolation(u,t)` - A piecewise constant interpolation.
 
 - `LinearInterpolation(u,t)` - A linear interpolation.
 

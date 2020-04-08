@@ -21,6 +21,10 @@ include("interpolation_methods.jl")
 include("plot_rec.jl")
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation, AkimaInterpolation,
-       ZeroSpline, QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox,
+       ConstantInterpolation, QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox,
        Loess, GPInterpolation, Curvefit
+
+# Deprecated April 2020
+export ZeroSpline
+
 end # module

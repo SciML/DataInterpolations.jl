@@ -52,20 +52,19 @@ end
 function munge_data(U::StridedMatrix, t::AbstractVector)
   TU = Base.nonmissingtype(eltype(U))
   Tt = Base.nonmissingtype(eltype(t))
-  newUs = [TU[] for i in 1:size(U, 1)]
+  newUs = []
   newt  = Tt[]
   @assert length(t) == size(U,2)
-  @inbounds for j in eachindex(t)
-    tj = t[j]
-    if ismissing(tj) || any(ismissing, view(U, :, j))
+  @inbounds for (j, tj) in enumerate(t)
+
+    vUj = view(U, :, j)
+    if ismissing(tj) || any(ismissing, vUj)
       continue
     end
 
     push!(newt, tj)
-    for i in 1:length(newUs)
-      push!(newUs[i], U[i,j])
-    end
+    push!(newUs, vUj)
   end
 
-  return vcat(adjoint.(newUs)...), newt
+  return hcat(newUs...), newt
 end

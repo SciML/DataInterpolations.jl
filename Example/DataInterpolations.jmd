@@ -63,13 +63,13 @@ scatter(t, u, label="input data")
 plot!(A)
 ```
 
-### Zero Spline (Piecewise constant interpolation)
-This function fits a constant curve between intervals of data points. By default
+### Constant Interpolation (Piecewise constant interpolation)
+This function is constant between data points. By default
 it takes value at left end of the interval. One can change that behavior by
 passing the keyword argument `dir = :right`.
 
 ```julia
-A = ZeroSpline(u,t)
+A = ConstantInterpolation(u,t)
 scatter(t, u, label="input data")
 plot!(A)
 ```
@@ -77,7 +77,7 @@ plot!(A)
 Or using the right endpoints:
 
 ```julia
-A = ZeroSpline(u,t,dir=:right)
+A = ConstantInterpolation(u,t,dir=:right)
 scatter(t, u, label="input data")
 plot!(A)
 ```
