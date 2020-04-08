@@ -94,7 +94,7 @@ function (A::AkimaInterpolation{<:AbstractVector{<:Number}})(t::Number)
 end
 
 # ZeroSpline Interpolation
-function (A::ZeroSpline{<:AbstractVector{<:Number}})(t::Number)
+function (A::ZeroSpline{<:AbstractVector})(t::Number)
   if A.dir === :left
     # :left means that value to the left is used for interpolation
     i = searchsortedlast(A.t, t)
@@ -105,7 +105,7 @@ function (A::ZeroSpline{<:AbstractVector{<:Number}})(t::Number)
     return A.u[min(length(A.t), i)]
   end
 end
- function (A::ZeroSpline{<:AbstractMatrix{<:Number}})(t::Number)
+ function (A::ZeroSpline{<:AbstractMatrix})(t::Number)
   if A.dir === :left
     # :left means that value to the left is used for interpolation
     i = searchsortedlast(A.t, t)
