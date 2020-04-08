@@ -78,18 +78,20 @@ function AkimaInterpolation(u, t)
 end
 
 
-### ZeroSpline Interpolation
-struct ZeroSpline{uType,tType,dirType,FT,T} <: AbstractInterpolation{FT,T}
+### ConstantInterpolation Interpolation
+struct ConstantInterpolation{uType,tType,dirType,FT,T} <: AbstractInterpolation{FT,T}
   u::uType
   t::tType
   dir::Symbol # indicates if value to the $dir should be used for the interpolation
-  ZeroSpline{FT}(u,t,dir) where FT = new{typeof(u),typeof(t),typeof(dir),FT,eltype(u)}(u,t,dir)
+  ConstantInterpolation{FT}(u,t,dir) where FT = new{typeof(u),typeof(t),typeof(dir),FT,eltype(u)}(u,t,dir)
 end
 
-function ZeroSpline(u,t;dir=:left)
+function ConstantInterpolation(u,t;dir=:left)
   u, t = munge_data(u, t)
-  ZeroSpline{true}(u,t,dir)
+  ConstantInterpolation{true}(u,t,dir)
 end
+
+Base.@deprecate_binding ZeroSpline ConstantInterpolation
 
 ### QuadraticSpline Interpolation
 struct QuadraticSpline{uType,tType,tAType,dType,zType,FT,T} <: AbstractInterpolation{FT,T}

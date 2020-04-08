@@ -77,53 +77,62 @@ A = AkimaInterpolation(u, t)
 @test A(9.9) ≈ 3.4110386597938129327189927
 @test A(10.0) ≈ 3.0
 
-# ZeroSpline Interpolation
-u = [1.0, 2.0, 0.0, 1.0]
-t = [1.0, 2.0, 3.0, 4.0]
-A = ZeroSpline(u, t, dir=:right)
-@test A(0.5) == 1.0
-@test A(1.0) == 1.0
-@test A(1.5) == 2.0
-@test A(2.0) == 2.0
-@test A(2.5) == 0.0
-@test A(3.0) == 0.0
-@test A(3.5) == 1.0
-@test A(4.0) == 1.0
-@test A(4.5) == 1.0
-A = ZeroSpline(u, t) # dir=:left is default
-@test A(0.5) == 1.0
-@test A(1.0) == 1.0
-@test A(1.5) == 1.0
-@test A(2.0) == 2.0
-@test A(2.5) == 2.0
-@test A(3.0) == 0.0
-@test A(3.5) == 0.0
-@test A(4.0) == 1.0
-@test A(4.5) == 1.0
+@testset "ConstantInterpolation" begin
 
-u = [1.0 2.0 0.0 1.0; 1.0 2.0 0.0 1.0]
-A = ZeroSpline(u,t)
+    t = [1.0, 2.0, 3.0, 4.0]
 
-A = ZeroSpline(u, t, dir=:right)
-@test A(0.5) == [1.0, 1.0]
-@test A(1.0) == [1.0, 1.0]
-@test A(1.5) == [2.0, 2.0]
-@test A(2.0) == [2.0, 2.0]
-@test A(2.5) == [0.0, 0.0]
-@test A(3.0) == [0.0, 0.0]
-@test A(3.5) == [1.0, 1.0]
-@test A(4.0) == [1.0, 1.0]
-@test A(4.5) == [1.0, 1.0]
-A = ZeroSpline(u, t) # dir=:left is default
-@test A(0.5) == [1.0, 1.0]
-@test A(1.0) == [1.0, 1.0]
-@test A(1.5) == [1.0, 1.0]
-@test A(2.0) == [2.0, 2.0]
-@test A(2.5) == [2.0, 2.0]
-@test A(3.0) == [0.0, 0.0]
-@test A(3.5) == [0.0, 0.0]
-@test A(4.0) == [1.0, 1.0]
-@test A(4.5) == [1.0, 1.0]
+    @testset "Vector case" for u in
+        [[1.0, 2.0, 0.0, 1.0], ["B", "C", "A", "B"]]
+
+        A = ConstantInterpolation(u, t, dir=:right)
+        @test A(0.5) == u[1]
+        @test A(1.0) == u[1]
+        @test A(1.5) == u[2]
+        @test A(2.0) == u[2]
+        @test A(2.5) == u[3]
+        @test A(3.0) == u[3]
+        @test A(3.5) == u[1]
+        @test A(4.0) == u[1]
+        @test A(4.5) == u[1]
+
+        A = ConstantInterpolation(u, t) # dir=:left is default
+        @test A(0.5) == u[1]
+        @test A(1.0) == u[1]
+        @test A(1.5) == u[1]
+        @test A(2.0) == u[2]
+        @test A(2.5) == u[2]
+        @test A(3.0) == u[3]
+        @test A(3.5) == u[3]
+        @test A(4.0) == u[1]
+        @test A(4.5) == u[1]
+    end
+
+    @testset "Matrix case" for u in
+        [[1.0 2.0 0.0 1.0; 1.0 2.0 0.0 1.0], ["B" "C" "A" "B"; "B" "C" "A" "B"]]
+
+        A = ConstantInterpolation(u, t, dir=:right)
+        @test A(0.5) == u[:,1]
+        @test A(1.0) == u[:,1]
+        @test A(1.5) == u[:,2]
+        @test A(2.0) == u[:,2]
+        @test A(2.5) == u[:,3]
+        @test A(3.0) == u[:,3]
+        @test A(3.5) == u[:,1]
+        @test A(4.0) == u[:,1]
+        @test A(4.5) == u[:,1]
+
+        A = ConstantInterpolation(u, t) # dir=:left is default
+        @test A(0.5) == u[:,1]
+        @test A(1.0) == u[:,1]
+        @test A(1.5) == u[:,1]
+        @test A(2.0) == u[:,2]
+        @test A(2.5) == u[:,2]
+        @test A(3.0) == u[:,3]
+        @test A(3.5) == u[:,3]
+        @test A(4.0) == u[:,1]
+        @test A(4.5) == u[:,1]
+    end
+end
 
 # QuadraticSpline Interpolation
 u = [0.0, 1.0, 3.0]
