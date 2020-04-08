@@ -77,7 +77,7 @@ plot!(A)
 Or using the right endpoints:
 
 ```julia
-A = ConstantInterpolation(u,t,dir=:right)
+A = ConstantInterpolation(u, t, dir=:right)
 scatter(t, u, label="input data")
 plot!(A)
 ```
@@ -117,7 +117,7 @@ Let's plot a cubic B-spline (3rd order). Since the data points are not close to
 uniformly spaced, we will use the `:ArcLen` and `:Average` choices:
 
 ```julia
-A = BSplineInterpolation(u,t,3,:ArcLen,:Average)
+A = BSplineInterpolation(u, t, 3, :ArcLen, :Average)
 scatter(t, u, label="input data")
 plot!(A)
 ```
@@ -129,7 +129,7 @@ is a least square approximation. This has a natural effect of smoothing the
 data. For example, if we use 4 control points, we get the result:
 
 ```julia
-A = BSplineApprox(u,t,3,4,:ArcLen,:Average)
+A = BSplineApprox(u, t, 3, 4, :ArcLen, :Average)
 scatter(t, u, label="input data")
 plot!(A)
 ```
@@ -150,11 +150,11 @@ LOESS is a local least square method. Let's use a 3rd degree polynomial with
 a smoothing α=0.75.
 
 ```julia
-A = Loess(u,t,2,0.75)
-scatter(t,u,label="points",legend=:bottomright)
-plot!(A,label="2nd Degree LOESS")
-A = Loess(u,t,3,0.75)
-plot!(A,label="3rd Degree LOESS")
+A = Loess(u, t, 2, 0.75)
+scatter(t, u, label="points", legend=:bottomright)
+plot!(A, label="2nd Degree LOESS")
+A = Loess(u, t, 3, 0.75)
+plot!(A, label="3rd Degree LOESS")
 ```
 
 ### Gaussian Processes
@@ -173,8 +173,8 @@ mZero = MeanZero()
 kern = SE(0.0,0.0)
 logObsNoise = -1.0
 
-A = GPInterpolation(u,t,mZero,kern,logObsNoise)
-scatter(t,u,label="points",legend=:bottomright)
+A = GPInterpolation(u, t, mZero, kern, logObsNoise)
+scatter(t, u, label="points", legend=:bottomright)
 plot!(A)
 ```
 
@@ -189,4 +189,50 @@ We can directly plot the Gaussian Process to see the mean and variance functions
 
 ```julia
 plot(A.gp)
+```
+
+### Curve Fits
+
+A curve fit works with both dense and sparse data. We will demonstrate the curve
+fit on the dense data since we generated it based on `sin(t)`, so this is the
+curve we want to fit through it. Do do so, let's define a similar function
+with parameters. Let's choose the form:
+
+```julia
+m(t,p) = @. p[1]*sin(p[2]*t) + p[3]*cos(p[4]*t)
+```
+
+Notice that this is a function on the whole array of `t` and expects an array
+for the predicted `u` out. This choice of `m` is the assumption that our
+function is of the form `p1*sin(p2*t)+p3*cos(p4*t)`. We want to find the `p` to
+match our data. Let's start with the guess of every `p` being zero, that is
+`p=ones(4)`. Then we would fit this curve using:
+
+```julia
+A = Curvefit(u, t, m, ones(4), LBFGS())
+scatter(t, u, label="points", legend=:bottomright)
+plot!(A)
+```
+
+We can check what the fitted parameters are via:
+
+```julia
+A.pmin
+```
+
+Notice that it essentially made `p3=0` with `p1=p2=1`, meaning it approximately
+found `sin(t)`! But note that the ability to fit is dependent on the initial
+parameters. For example, with `p=zeros(4)` as the initial parameters the fit
+is not good:
+
+```julia
+A = Curvefit(u, t, m, zeros(4), LBFGS())
+scatter(t,u,label="points",legend=:bottomright)
+plot!(A)
+```
+
+And the parameters show the issue:
+
+```julia
+A.pmin
 ```
