@@ -14,22 +14,7 @@ function to_plottable(A::AbstractInterpolation; plotdensity = 10_000, denseplot 
   plott, output
 end
 
-function to_plottable(A::GPInterpolation; plotdensity = 10_000, denseplot = true)
-  t = sort(A.t)
-  start = t[1]; stop = t[end]
-  if denseplot
-    plott = collect(range(start,stop=stop,length=plotdensity))
-  else
-    plott = t
-  end
-  plott, A(plott)
-end
-
 @recipe function f(A::AbstractInterpolation; plotdensity = 10_000, denseplot = true)
-    to_plottable(A; plotdensity = plotdensity, denseplot=denseplot)
-end
-
-@recipe function f(A::GPInterpolation; plotdensity = 10_000, denseplot = true)
     to_plottable(A; plotdensity = plotdensity, denseplot=denseplot)
 end
 
@@ -159,27 +144,6 @@ end
     y := ny
 end
 
-########################################
-#                Loess                 #
-########################################
-
-@recipe function f(::Type{Val{:loess}},
-                    x, y, z;
-                    d = 5,
-                    α = 0.75,
-                    plotdensity = length(x) * 6,
-                    denseplot = true
-                )
-
-    seriestype := :path
-
-    label --> "LOESS fit"
-
-    nx, ny = to_plottable(Loess(y, x, d, α); plotdensity = plotdensity, denseplot = denseplot)
-
-    x := nx
-    y := ny
-end
 
 @recipe function f(::Type{Val{:bspline_interp}},
                 x, y, z;
@@ -277,21 +241,6 @@ end
 ################################################################################
 #                                  Shorthands                                  #
 ################################################################################
-
-"""
-    loess(
-        u, t;
-        d = 5,
-        α = 0.75,
-        plotdensity = length(u) * 6,
-        denseplot = true
-    )
-    loess!(...)
-
-Plot the LOESS fit (with the given parameters)
-of the input data.
-"""
-@shorthands loess
 
 """
     akima(u, t)

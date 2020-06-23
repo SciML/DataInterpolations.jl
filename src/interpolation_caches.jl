@@ -321,42 +321,6 @@ function BSplineApprox(u,t,d,h,pVecType,knotVecType)
   BSplineApprox{true}(u,t,d,h,p,k,c,pVecType,knotVecType)
 end
 
-### Loess
-struct Loess{uType,tType,αType,xType,FT,T} <: AbstractInterpolation{FT,T}
-  u::uType
-  t::tType
-  d::Int
-  α::αType
-  q::Int
-  x::xType
-  Loess{FT}(u,t,d,α,q,x) where FT = new{typeof(u),typeof(t),typeof(α),typeof(x),FT,eltype(u)}(u,t,d,α,q,x)
-end
-
-function Loess(u,t,d,α)
-  u, t = munge_data(u, t)
-  n = length(t)
-  q = floor(Int,n*α)
-  x = Matrix{eltype(t)}(undef,n,d+1)
-  x[:,1] .= one(t[1])
-  for i = 2:(d+1)
-    x[:,i] = t .^ (i-1)
-  end
-  Loess{true}(u,t,d,α,q,x)
-end
-
-### GaussianProcesses
-struct GPInterpolation{uType,tType,gpType,FT,T} <: AbstractInterpolation{FT,T}
-  u::uType
-  t::tType
-  gp::gpType
-  GPInterpolation{FT}(u,t,gp) where FT = new{typeof(u),typeof(t),typeof(gp),FT,eltype(u)}(u,t,gp)
-end
-
-function GPInterpolation(u,t,m,k,n=-2.0)
-  u, t = munge_data(u, t)
-  gp = GP(t,u,m,k,n)
-  GPInterpolation{true}(u,t,gp)
-end
 
 ### Curvefit
 struct CurvefitCache{uType,tType,mType,p0Type,ubType,lbType,algType,pminType,FT,T} <: AbstractInterpolation{FT,T}

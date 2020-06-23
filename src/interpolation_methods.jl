@@ -167,35 +167,6 @@ function (A::BSplineApprox{<:AbstractVector{<:Number}})(t::Number)
   ucum
 end
 
-# Loess
-function (A::Loess{<:AbstractVector{<:Number}})(t::Number)
-  tmp = sort(abs.(A.t .- t))
-  w = abs.(A.t .- t) ./ tmp[A.q]
-  for i = 1:length(A.t)
-    if w[i] <= one(A.t[1])
-      w[i] = (1 - (w[i] ^ 3)) ^ 3
-    else
-      w[i] = zero(A.t[1])
-    end
-  end
-  w = Diagonal(w)
-  b = inv(transpose(A.x) * w * A.x) * transpose(A.x) * w * A.u
-  u = zero(t[1])
-  for (idx,v) in enumerate(b)
-    u += v*(t^(idx-1))
-  end
-  u
-end
-
-# GaussianProcess
-function (A::GPInterpolation{<:AbstractVector{<:Number}})(t::AbstractVector{<:Number})
-  rand(A.gp,t,1)
-end
-
-function (A::GPInterpolation{<:AbstractVector{<:Number}})(t::Number)
-  rand(A.gp,[t],1)[1]
-end
-
 # Curvefit
 function (A::CurvefitCache{<:AbstractVector{<:Number}})(t::Union{AbstractVector{<:Number},Number})
   A.m(t,A.pmin)
