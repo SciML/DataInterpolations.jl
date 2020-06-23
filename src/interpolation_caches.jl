@@ -344,19 +344,6 @@ function Loess(u,t,d,α)
   Loess{true}(u,t,d,α,q,x)
 end
 
-### GaussianProcesses
-struct GPInterpolation{uType,tType,gpType,FT,T} <: AbstractInterpolation{FT,T}
-  u::uType
-  t::tType
-  gp::gpType
-  GPInterpolation{FT}(u,t,gp) where FT = new{typeof(u),typeof(t),typeof(gp),FT,eltype(u)}(u,t,gp)
-end
-
-function GPInterpolation(u,t,m,k,n=-2.0)
-  u, t = munge_data(u, t)
-  gp = GP(t,u,m,k,n)
-  GPInterpolation{true}(u,t,gp)
-end
 
 ### Curvefit
 struct CurvefitCache{uType,tType,mType,p0Type,ubType,lbType,algType,pminType,FT,T} <: AbstractInterpolation{FT,T}

@@ -62,23 +62,6 @@ corresponding to `(u,t)` pairs.
 
 - `Loess(u,t,d,α)` - A local least square regression. `d` is the degree of the polynomial to use and `α` is a smoothing parameter.
 
-- `GPInterpolation(u,t,m,k,n=-2.0)` - A Gaussian Process interpolation via GaussianProcess.jl. Stochastic: each trajectory is different. `m` is mean function. `k` is kernel function. `n` is log standard deviation of observation noise and defaults to `-2.0`.
-
-	- Available Mean functions
-		- `MeanZero` - Zero mean function
-		- `MeanConst` - Constant mean function
-		- `MeanLin` - Linear mean function
-		- `MeanPoly` - Polynomial mean function
-	- Available Kernel functions (covariance functions)
-	 	- `Lin` - Linear covariance function
-	 	- `SE` - Squared exponential covariance function
-	 	- `RQ` - Rational quadratic covariance function
-	 	- `Matern` - Matern covariance function
-	 	- `Periodic` - Periodic covariance function
-	 	- `Poly` - Polnomial covariance function
-	 	- `Noise` - White noise covariance function
-	 	- `Const` - Constant (bias) covariance function
-
 - `Curvefit(u,t,m,p,alg)` - An interpolation which is done by fitting a user-given functional form `m(t,p)` where `p` is the vector of parameters. The user's input `p` is a an initial value for a least-square fitting, `alg` is the algorithm choice to use for optimize the cost function (sum of squared deviations) via `Optim.jl` and optimal `p`s are used in the interpolation.
 
 ## Plotting

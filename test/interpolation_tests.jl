@@ -207,21 +207,6 @@ A = BSplineApprox(u,t,2,4,:Uniform,:Uniform)
 
 # @test vs ≈ uu
 
-# GPInterpolation
-Random.seed!(12345)
-n = 10
-t = 2π * rand(n)
-u = sin.(t) + 0.05*randn(n);
-
-mZero = MeanZero()
-kern = SE(0.0,0.0)
-logObsNoise = -1.0
-
-A = GPInterpolation(u,t,mZero,kern,logObsNoise)
-us = A([1.0,2.0,3.0,4.0,5.0])
-vs = [0.3412042842104448, 0.6876218632482206, -0.4799782414757682, -0.6803503802052436, -0.7657477524147117]
-
-@test us ≈ vs
 
 # Curvefit Interpolation
 Random.seed!(12345)

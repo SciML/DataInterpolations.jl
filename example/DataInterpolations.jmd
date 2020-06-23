@@ -13,7 +13,6 @@ curve. The library contains the following interpolation methods:
 -  BSpline Global Curve Interpolation
 -  BSpline Global Curve Approximation
 -  Loess Interpolation
--  Gaussian Processes Interpolation
 -  Curve fitting
 
 ## Demonstration
@@ -155,40 +154,6 @@ scatter(t, u, label="points", legend=:bottomright)
 plot!(A, label="2nd Degree LOESS")
 A = Loess(u, t, 3, 0.75)
 plot!(A, label="3rd Degree LOESS")
-```
-
-### Gaussian Processes
-
-A Gaussian Process is a stochastic interpolation, meaning that it gives a
-different result each time `A(t)` is called, with the mean and variance determined
-from the uncertainty in the dataset. This functionality is provided as a wrapper
-over GaussianProcess.jl. Here we will use a zero-mean function with a squared
-exponential covariance kernal function, and -1 as our guess for the log standard
-deviation of the observation noise. More details on the arguments can be found
-at the GaussianProcess.jl repository. Using our wrapper, we build a
-GPInterpolation like any other:
-
-```julia
-mZero = MeanZero()
-kern = SE(0.0,0.0)
-logObsNoise = -1.0
-
-A = GPInterpolation(u, t, mZero, kern, logObsNoise)
-scatter(t, u, label="points", legend=:bottomright)
-plot!(A)
-```
-
-But now we notice that adding more samples of the same interpolation gives
-different results:
-
-```julia
-plot!(A)
-```
-
-We can directly plot the Gaussian Process to see the mean and variance functions:
-
-```julia
-plot(A.gp)
 ```
 
 ### Curve Fits
