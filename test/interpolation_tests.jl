@@ -190,23 +190,6 @@ A = BSplineApprox(u,t,2,4,:Uniform,:Uniform)
 @test [A(25.0), A(80.0)] ≈ [12.979802931218234, 10.914310609953178]
 @test [A(190.0), A(225.0)] ≈ [13.851245975109263, 12.963685868886575]
 
-# Loess Interpolation
-# test against Loess.jl [https://github.com/JuliaStats/Loess.jl]
-# Currently, Loess.jl is not compatible with Julia 1.0
-
-# using Loess
-# xs = [1.0 * x for x in 1:20]
-# ys = [1.0 * x * x for x in 1:20]
-# us = collect(minimum(xs):0.1:maximum(xs))
-
-# model = loess(xs, ys)
-# vs = predict(model, us)
-
-# A = Loess(u,t,2,0.75)
-# uu = A.(us)
-
-# @test vs ≈ uu
-
 
 # Curvefit Interpolation
 Random.seed!(12345)

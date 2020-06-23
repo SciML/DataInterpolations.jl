@@ -60,8 +60,6 @@ corresponding to `(u,t)` pairs.
 
 - `BSplineApprox(u,t,d,h,pVec,knotVec)` - A regression B-spline which smooths the fitting curve. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h<length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing.
 
-- `Loess(u,t,d,α)` - A local least square regression. `d` is the degree of the polynomial to use and `α` is a smoothing parameter.
-
 - `Curvefit(u,t,m,p,alg)` - An interpolation which is done by fitting a user-given functional form `m(t,p)` where `p` is the vector of parameters. The user's input `p` is a an initial value for a least-square fitting, `alg` is the algorithm choice to use for optimize the cost function (sum of squared deviations) via `Optim.jl` and optimal `p`s are used in the interpolation.
 
 ## Plotting
@@ -77,6 +75,5 @@ The series types defined are:
 - `:lagrange_interp`
 - `:quadratic_spline`
 - `:cubic_spline`
-- `:loess`
 
 By and large, these accept the same keywords as their function counterparts.

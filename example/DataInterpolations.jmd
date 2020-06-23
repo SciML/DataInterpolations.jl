@@ -12,7 +12,6 @@ curve. The library contains the following interpolation methods:
 -  Cubic Spline
 -  BSpline Global Curve Interpolation
 -  BSpline Global Curve Approximation
--  Loess Interpolation
 -  Curve fitting
 
 ## Demonstration
@@ -141,19 +140,6 @@ demonstrate these methods.
 ```julia
 t = sort(10 .* rand(100))
 u = sin.(t) .+ 0.5 * randn(100)
-```
-
-### LOESS
-
-LOESS is a local least square method. Let's use a 3rd degree polynomial with
-a smoothing α=0.75.
-
-```julia
-A = Loess(u, t, 2, 0.75)
-scatter(t, u, label="points", legend=:bottomright)
-plot!(A, label="2nd Degree LOESS")
-A = Loess(u, t, 3, 0.75)
-plot!(A, label="3rd Degree LOESS")
 ```
 
 ### Curve Fits
