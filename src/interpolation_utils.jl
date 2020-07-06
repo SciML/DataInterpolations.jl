@@ -33,38 +33,16 @@ end
 
 # helper function for data manipulation
 function munge_data(u::AbstractVector, t::AbstractVector)
-  Tu = Base.nonmissingtype(eltype(u))
-  Tt = Base.nonmissingtype(eltype(t))
-  newu = Tu[]
-  newt = Tt[]
+  newu = DataFrames.dropmissing(u)
+  newt = DataFrames.dropmissing(t)
   @assert length(t) == length(u)
-  @inbounds for i in eachindex(t)
-    ui = u[i]
-    ti = t[i]
-    if !ismissing(ui) && !ismissing(ti)
-      push!(newu, ui)
-      push!(newt, ti)
-    end
-  end
   return newu, newt
 end
 
 function munge_data(U::StridedMatrix, t::AbstractVector)
-  TU = Base.nonmissingtype(eltype(U))
-  Tt = Base.nonmissingtype(eltype(t))
-  newUs = AbstractVector{TU}[]
-  newt  = Tt[]
+  tmpU = [U[:,j] for j un length(t)]
+  newUs = DataFrames.dropmissing(tmpU)
+  newt  = DataFrames.dropmissing(t)
   @assert length(t) == size(U,2)
-  @inbounds for (j, tj) in enumerate(t)
-
-    vUj = view(U, :, j)
-    if ismissing(tj) || any(ismissing, vUj)
-      continue
-    end
-
-    push!(newt, tj)
-    push!(newUs, vUj)
-  end
-
   return hcat(newUs...), newt
 end
