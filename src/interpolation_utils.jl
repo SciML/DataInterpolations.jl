@@ -47,7 +47,7 @@ function munge_data(U::StridedMatrix, t::AbstractVector)
   TU = Base.nonmissingtype(eltype(U))
   Tt = Base.nonmissingtype(eltype(t))
   @assert length(t) == size(U,2)
-  non_missing_indices = collect(i for i in 1:length(t) if !ismissing(U[:,i]) && !ismissing(t[i]))
+  non_missing_indices = collect(i for i in 1:length(t) if !any(ismissing,U[:,i]) && !ismissing(t[i]))
   newUs = [TU.(U[:,i]) for i in non_missing_indices]
   newt= Tt.([t[i] for i in non_missing_indices])
 
