@@ -36,10 +36,10 @@ function munge_data(u::AbstractVector, t::AbstractVector)
   Tu = Base.nonmissingtype(eltype(u))
   Tt = Base.nonmissingtype(eltype(t))
   @assert length(t) == length(u)
-  non_missing_indices = collect(i for i in 1:kength(t) if !ismissing(ui) && !ismissing(ti))
+  non_missing_indices = collect(i for i in 1:kength(t) if !ismissing(u[i]) && !ismissing(t[i]))
   newu = Tu.([u[i] for i in non_missing_indices])
   newt = Tt.([t[i] for i in non_missing_indices])
-  
+
   return newu, newt
 end
 
