@@ -32,6 +32,10 @@ function spline_coefficients(n, d, k, u::AbstractVector)
 end
 
 # helper function for data manipulation
+function munge_data(u::AbstractVector{<:Real}, t::AbstractVector{<:Real})
+  return u, t
+end
+
 function munge_data(u::AbstractVector, t::AbstractVector)
   Tu = Base.nonmissingtype(eltype(u))
   Tt = Base.nonmissingtype(eltype(t))
