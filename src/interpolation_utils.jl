@@ -33,16 +33,23 @@ end
 
 # helper function for data manipulation
 function munge_data(u::AbstractVector, t::AbstractVector)
-  newu = DataFrames.dropmissing(u)
-  newt = DataFrames.dropmissing(t)
+  Tu = Base.nonmissingtype(eltype(u))
+  Tt = Base.nonmissingtype(eltype(t))
   @assert length(t) == length(u)
+  non_missing_indices = collect(i for i in 1:kength(t) if !ismissing(ui) && !ismissing(ti))
+  newu = Tu.([u[i] for i in non_missing_indices])
+  newt = Tt.([t[i] for i in non_missing_indices])
+  
   return newu, newt
 end
 
 function munge_data(U::StridedMatrix, t::AbstractVector)
-  tmpU = [U[:,j] for j un length(t)]
-  newUs = DataFrames.dropmissing(tmpU)
-  newt  = DataFrames.dropmissing(t)
+  TU = Base.nonmissingtype(eltype(U))
+  Tt = Base.nonmissingtype(eltype(t))
   @assert length(t) == size(U,2)
+  non_missing_indices = collect(i for i in 1:kength(t) if !ismissing(U[:,i]) && !ismissing(t[i]))
+  newUs = TU.([U[:,i] for i in non_missing_indices])
+  newt= Tt.([t[i] for i in non_missing_indices])
+
   return hcat(newUs...), newt
 end
