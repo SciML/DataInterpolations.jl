@@ -35,36 +35,21 @@ end
 function munge_data(u::AbstractVector, t::AbstractVector)
   Tu = Base.nonmissingtype(eltype(u))
   Tt = Base.nonmissingtype(eltype(t))
-  newu = Tu[]
-  newt = Tt[]
   @assert length(t) == length(u)
-  @inbounds for i in eachindex(t)
-    ui = u[i]
-    ti = t[i]
-    if !ismissing(ui) && !ismissing(ti)
-      push!(newu, ui)
-      push!(newt, ti)
-    end
-  end
+  non_missing_indices = collect(i for i in 1:length(t) if !ismissing(u[i]) && !ismissing(t[i]))
+  newu = Tu.([u[i] for i in non_missing_indices])
+  newt = Tt.([t[i] for i in non_missing_indices])
+
   return newu, newt
 end
 
 function munge_data(U::StridedMatrix, t::AbstractVector)
   TU = Base.nonmissingtype(eltype(U))
   Tt = Base.nonmissingtype(eltype(t))
-  newUs = AbstractVector{TU}[]
-  newt  = Tt[]
   @assert length(t) == size(U,2)
-  @inbounds for (j, tj) in enumerate(t)
-
-    vUj = view(U, :, j)
-    if ismissing(tj) || any(ismissing, vUj)
-      continue
-    end
-
-    push!(newt, tj)
-    push!(newUs, vUj)
-  end
+  non_missing_indices = collect(i for i in 1:length(t) if !any(ismissing,U[:,i]) && !ismissing(t[i]))
+  newUs = [TU.(U[:,i]) for i in non_missing_indices]
+  newt= Tt.([t[i] for i in non_missing_indices])
 
   return hcat(newUs...), newt
 end
