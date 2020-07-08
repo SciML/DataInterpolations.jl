@@ -112,9 +112,7 @@ function QuadraticSpline(u,t)
   du = zeros(eltype(t),s-1)
   tA = Tridiagonal(dl,d,du)
   d = zero(t)
-  for i = 2:length(d)
-    d[i] = 2//1 * (u[i] - u[i-1])/(t[i] - t[i-1])
-  end
+  d[i] = map(i -> 2//1 * (u[i] - u[i-1])/(t[i] - t[i-1]), 2:length(d))
   z = tA\d
   QuadraticSpline{true}(u,t,tA,d,z)
 end
@@ -137,9 +135,7 @@ function CubicSpline(u,t)
   du = h[2:n+1]
   tA = LinearAlgebra.Tridiagonal(dl,d,du)
   d = zero(t)
-  for i = 2:n
-    d[i] = 6(u[i+1] - u[i]) / h[i+1] - 6(u[i] - u[i-1]) / h[i]
-  end
+  map(i -> 6(u[i+1] - u[i]) / h[i+1] - 6(u[i] - u[i-1]) / h[i], 2:n)
   z = tA\d
   CubicSpline{true}(u,t,h[1:n+1],z)
 end
