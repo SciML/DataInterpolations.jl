@@ -93,6 +93,11 @@ end
 
 Base.@deprecate_binding ZeroSpline ConstantInterpolation
 
+ZygoteRules.@adjoint ZygoteRules.literal_getproperty(A::Tridiagonal, ::Val{:dl}) = A.dl,y -> Tridiagonal(dl,zeros(length(d)),zeros(length(du)),)
+ZygoteRules.@adjoint ZygoteRules.literal_getproperty(A::Tridiagonal, ::Val{:d}) = A.d,y -> Tridiagonal(zeros(length(dl)),d,zeros(length(du)),)
+ZygoteRules.@adjoint ZygoteRules.literal_getproperty(A::Tridiagonal, ::Val{:du}) = A.dl,y -> Tridiagonal(zeros(length(dl)),zeros(length(d),du),)
+ZygoteRules.@adjoint Tridiagonal(dl, d, du) = Tridiagonal(dl, d, du), p̄ -> (diag(p̄[2:end,1:end-1]),diag(p̄),diag(p̄[1:end-1,2:end]))
+
 ### QuadraticSpline Interpolation
 struct QuadraticSpline{uType,tType,tAType,dType,zType,FT,T} <: AbstractInterpolation{FT,T}
   u::uType
@@ -133,7 +138,7 @@ function CubicSpline(u,t)
   d_tmp = 2 .* (h[1:n+1] .+ h[2:n+2])
   du = h[2:n+1]
   tA = LinearAlgebra.Tridiagonal(dl,d_tmp,du)
-  d = map(i -> i == 1 ? 0 : 6(u[i+1] - u[i]) / h[i+1] - 6(u[i] - u[i-1]) / h[i], 1:n)
+  d = map(i -> i == 1 || i == n + 1 ? 0 : 6(u[i+1] - u[i]) / h[i+1] - 6(u[i] - u[i-1]) / h[i], 1:n+1)
   z = tA\d
   CubicSpline{true}(u,t,h[1:n+1],z)
 end
