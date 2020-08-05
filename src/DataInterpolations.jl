@@ -4,6 +4,8 @@ module DataInterpolations
 
 abstract type AbstractInterpolation{FT,T} <: AbstractVector{T} end
 
+function _interpolate end
+
 Base.size(A::AbstractInterpolation) = size(A.u)
 Base.size(A::AbstractInterpolation{true}) = length(A.u) .+ size(A.t)
 Base.getindex(A::AbstractInterpolation,i) = A.u[i]
@@ -12,7 +14,9 @@ Base.setindex!(A::AbstractInterpolation,x,i) = A.u[i] = x
 Base.setindex!(A::AbstractInterpolation{true},x,i) =
                                    i <= length(A.u) ? (A.u[i] = x) : (A.t[i-length(A.u)] = x)
 
-using LinearAlgebra, RecursiveArrayTools, RecipesBase, Reexport
+(A::AbstractInterpolation)(t::Number) = _interpolate(A, t)
+
+using ChainRulesCore, LinearAlgebra, RecursiveArrayTools, RecipesBase, Reexport
 @reexport using Optim
 
 include("interpolation_caches.jl")
@@ -20,6 +24,17 @@ include("interpolation_utils.jl")
 include("interpolation_methods.jl")
 include("plot_rec.jl")
 include("derivatives.jl")
+
+function ChainRulesCore.rrule(::typeof(_interpolate), A::AbstractInterpolation, t::Number)
+    function interpolate_pullback(Δ)
+        return (NO_FIELDS, DoesNotExist(), derivative(A, t) * Δ)
+    end
+    return _interpolate(A, t), interpolate_pullback
+end
+
+function ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolation, t::Number)
+    return _interpolate(A, t), derivative(A, t) * Δt
+end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation, AkimaInterpolation,
        ConstantInterpolation, QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox, Curvefit

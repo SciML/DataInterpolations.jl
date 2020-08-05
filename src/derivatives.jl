@@ -68,7 +68,7 @@ function derivative(A::LagrangeInterpolation{<:AbstractVector{<:Number}}, t::Num
     (DG * F - G * DF) / (F ^ 2)
 end
 
-function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
+function derivative(A::LagrangeInterpolation{<:AbstractMatrix{<:Number}}, t::Number)
     idxs = DataInterpolations.findRequiredIdxs(A, t)
     if A.t[idxs[1]] == t
         return zero(A.u[:, idxs[1]])
