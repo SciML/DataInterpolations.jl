@@ -19,6 +19,7 @@ include("interpolation_caches.jl")
 include("interpolation_utils.jl")
 include("interpolation_methods.jl")
 include("plot_rec.jl")
+include("derivatives.jl")
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation, AkimaInterpolation,
        ConstantInterpolation, QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox, Curvefit
