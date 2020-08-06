@@ -141,7 +141,7 @@ function derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Numb
     N = spline_coefficients(n, A.d - 1, A.k, t)
     ducum = zero(eltype(A.u))
     for i = 1:(n - 1)
-        ducum += N[i] * (A.d - 1) * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d] - A.k[i + 1])
+        ducum += N[i + 1] * A.d * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
     end
     ducum
 end
@@ -156,7 +156,7 @@ function derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
     N = spline_coefficients(A.n, A.d - 1, A.k, t)
     ducum = zero(eltype(A.u))
     for i = 1:(A.h - 1)
-        ducum += N[i] * (A.d - 1) * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d] - A.k[i + 1])
+        ducum += N[i + 1] * A.d * (A.c[i + 2] - A.c[i + 1]) / (A.k[i + A.d + 1] - A.k[i + 2])
     end
     ducum
 end
