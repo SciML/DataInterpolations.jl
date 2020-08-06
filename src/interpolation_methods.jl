@@ -1,12 +1,12 @@
 # Linear Interpolation
-function _interpolate(A::LinearInterpolation{<:AbstractVector{<:Number}}, t::Number)
+function (A::LinearInterpolation{<:AbstractVector{<:Number}})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
   idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
   (1-θ)*A.u[idx] + θ*A.u[idx+1]
 end
 
-function _interpolate(A::LinearInterpolation{<:AbstractMatrix{<:Number}}, t::Number)
+function (A::LinearInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
   idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
@@ -14,7 +14,7 @@ function _interpolate(A::LinearInterpolation{<:AbstractMatrix{<:Number}}, t::Num
 end
 
 # Quadratic Interpolation
-function _interpolate(A::QuadraticInterpolation{<:AbstractVector{<:Number}}, t::Number)
+function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
   idx == 0 ? idx += 1 : nothing
   if idx == length(A.t) - 1
@@ -28,7 +28,7 @@ function _interpolate(A::QuadraticInterpolation{<:AbstractVector{<:Number}}, t::
   A.u[i₀]*l₀ + A.u[i₁]*l₁ + A.u[i₂]*l₂
 end
 
-function _interpolate(A::QuadraticInterpolation{<:AbstractMatrix{<:Number}}, t::Number)
+function (A::QuadraticInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
   idx == 0 ? idx += 1 : nothing
   if idx == length(A.t) - 1
@@ -43,7 +43,7 @@ function _interpolate(A::QuadraticInterpolation{<:AbstractMatrix{<:Number}}, t::
 end
 
 # Lagrange Interpolation
-function _interpolate(A::LagrangeInterpolation{<:AbstractVector{<:Number}}, t::Number)
+function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
   idxs = findRequiredIdxs(A,t)
   if A.t[idxs[1]] == t
     return A.u[idxs[1]]
@@ -64,7 +64,7 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractVector{<:Number}}, t::N
   N/D
 end
 
-function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix{<:Number}}, t::Number)
+function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   idxs = findRequiredIdxs(A,t)
   if A.t[idxs[1]] == t
     return A.u[:,idxs[1]]
@@ -85,7 +85,7 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix{<:Number}}, t::N
   N/D
 end
 
-function _interpolate(A::AkimaInterpolation{<:AbstractVector{<:Number}}, t::Number)
+function (A::AkimaInterpolation{<:AbstractVector{<:Number}})(t::Number)
   i = searchsortedlast(A.t, t)
   i == 0 && return A.u[1]
   i == length(A.t) && return A.u[end]
@@ -94,7 +94,7 @@ function _interpolate(A::AkimaInterpolation{<:AbstractVector{<:Number}}, t::Numb
 end
 
 # ConstantInterpolation Interpolation
-function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number)
+function (A::ConstantInterpolation{<:AbstractVector})(t::Number)
   if A.dir === :left
     # :left means that value to the left is used for interpolation
     i = searchsortedlast(A.t, t)
@@ -105,7 +105,7 @@ function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number)
     return A.u[min(length(A.t), i)]
   end
 end
- function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number)
+ function (A::ConstantInterpolation{<:AbstractMatrix})(t::Number)
   if A.dir === :left
     # :left means that value to the left is used for interpolation
     i = searchsortedlast(A.t, t)
@@ -118,7 +118,7 @@ end
 end
 
 # QuadraticSpline Interpolation
-function _interpolate(A::QuadraticSpline{<:AbstractVector{<:Number}}, t::Number)
+function (A::QuadraticSpline{<:AbstractVector{<:Number}})(t::Number)
   i = findfirst(x->x>=t,A.t)
   i == 1 ? i += 1 : nothing
   Cᵢ = A.u[i-1]
@@ -127,7 +127,7 @@ function _interpolate(A::QuadraticSpline{<:AbstractVector{<:Number}}, t::Number)
 end
 
 # CubicSpline Interpolation
-function _interpolate(A::CubicSpline{<:AbstractVector{<:Number}}, t::Number)
+function (A::CubicSpline{<:AbstractVector{<:Number}})(t::Number)
   i = findfirst(x->x>=t,A.t)
   i == nothing ? i = length(A.t) - 1 : i -= 1
   i == 0 ? i += 1 : nothing
@@ -138,7 +138,7 @@ function _interpolate(A::CubicSpline{<:AbstractVector{<:Number}}, t::Number)
 end
 
 # BSpline Curve Interpolation
-function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number)
+function (A::BSplineInterpolation{<:AbstractVector{<:Number}})(t::Number)
   # change t into param [0 1]
   idx = searchsortedlast(A.t,t)
   idx == 0 ? idx += 1 : nothing
@@ -153,7 +153,7 @@ function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Nu
 end
 
 # BSpline Curve Approx
-function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
+function (A::BSplineApprox{<:AbstractVector{<:Number}})(t::Number)
   # change t into param [0 1]
   idx = searchsortedlast(A.t,t)
   idx == 0 ? idx += 1 : nothing
