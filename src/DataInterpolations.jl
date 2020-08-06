@@ -12,8 +12,6 @@ Base.setindex!(A::AbstractInterpolation,x,i) = A.u[i] = x
 Base.setindex!(A::AbstractInterpolation{true},x,i) =
                                    i <= length(A.u) ? (A.u[i] = x) : (A.t[i-length(A.u)] = x)
 
-(A::AbstractInterpolation)(t::Number) = _interpolate(A, t)
-
 using ChainRulesCore, LinearAlgebra, RecursiveArrayTools, RecipesBase, Reexport
 @reexport using Optim
 
