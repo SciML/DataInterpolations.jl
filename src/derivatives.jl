@@ -100,7 +100,8 @@ function derivative(A::AkimaInterpolation{<:AbstractVector{<:Number}}, t::Number
     i = searchsortedlast(A.t, t)
     i == 0 && return zero(A.u[1])
     i == length(A.t) && return zero(A.u[end])
-    3 * A.u[i] + 2 * A.b[i] + A.c[i]
+    wj = t - A.t[i]
+    @evalpoly wj A.b[i] 2A.c[i] 3A.d[i]
 end
 
 function derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
@@ -115,9 +116,8 @@ end
 function derivative(A::QuadraticSpline{<:AbstractVector{<:Number}}, t::Number)
     i = findfirst(x -> x >= t, A.t)
     i == 1 ? i += 1 : nothing
-    Cᵢ = A.u[i-1]
-    σ = 1//2 * (A.z[i] - A.z[i-1]) / (A.t[i] - A.t[i-1])
-    A.z[i-1] + σ
+    σ = 1//2 * (A.z[i] - A.z[i - 1]) / (A.t[i] - A.t[i - 1])
+    A.z[i-1] + 2σ * (t - A.t[i-1])
 end
 
 # CubicSpline Interpolation
@@ -153,10 +153,10 @@ function derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
     idx == 0 ? idx += 1 : nothing
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
-    N = spline_coefficients(A.n, A.d - 1, A.k, t)
+    N = spline_coefficients(A.h, A.d - 1, A.k, t)
     ducum = zero(eltype(A.u))
     for i = 1:(A.h - 1)
-        ducum += N[i + 1] * A.d * (A.c[i + 2] - A.c[i + 1]) / (A.k[i + A.d + 1] - A.k[i + 2])
+        ducum += N[i + 1] * A.d * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
     end
     ducum
 end
