@@ -128,7 +128,7 @@ end
 function CubicSpline(u,t)
   u, t = munge_data(u, t)
   n = length(t) - 1
-  h = vcat(0, diff(t), 0)
+  h = vcat(0, map(k -> t[k+1] - t[k], 1:length(t)-1), 0)
   dl = h[2:n+1]
   d_tmp = 2 .* (h[1:n+1] .+ h[2:n+2])
   du = h[2:n+1]
