@@ -141,7 +141,7 @@ end
 function (A::BSplineInterpolation{<:AbstractVector{<:Number}})(t::Number)
   # change t into param [0 1]
   idx = searchsortedlast(A.t,t)
-  idx == 0 ? idx += 1 : nothing
+  idx == length(A.t) ? idx -= 1 : nothing
   t = A.p[idx] + (t - A.t[idx])/(A.t[idx+1] - A.t[idx]) * (A.p[idx+1] - A.p[idx])
   n = length(A.t)
   N = spline_coefficients(n,A.d,A.k,t)
@@ -156,7 +156,7 @@ end
 function (A::BSplineApprox{<:AbstractVector{<:Number}})(t::Number)
   # change t into param [0 1]
   idx = searchsortedlast(A.t,t)
-  idx == 0 ? idx += 1 : nothing
+  idx == length(A.t) ? idx -= 1 : nothing
   t = A.p[idx] + (t - A.t[idx])/(A.t[idx+1] - A.t[idx]) * (A.p[idx+1] - A.p[idx])
   n = length(A.t)
   N = spline_coefficients(A.h,A.d,A.k,t)
