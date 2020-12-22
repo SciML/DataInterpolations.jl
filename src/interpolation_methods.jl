@@ -1,12 +1,12 @@
 # Linear Interpolation
-function (A::LinearInterpolation{<:AbstractVector{<:Number}})(t::Number)
+function (A::LinearInterpolation{<:AbstractVector})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
   idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
   (1-θ)*A.u[idx] + θ*A.u[idx+1]
 end
 
-function (A::LinearInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
+function (A::LinearInterpolation{<:AbstractMatrix})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
   idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
@@ -14,7 +14,7 @@ function (A::LinearInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
 end
 
 # Quadratic Interpolation
-function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(t::Number)
+function (A::QuadraticInterpolation{<:AbstractVector})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
   idx == 0 ? idx += 1 : nothing
   if idx == length(A.t) - 1
@@ -28,7 +28,7 @@ function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(t::Number)
   A.u[i₀]*l₀ + A.u[i₁]*l₁ + A.u[i₂]*l₂
 end
 
-function (A::QuadraticInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
+function (A::QuadraticInterpolation{<:AbstractMatrix})(t::Number)
   idx = findfirst(x->x>=t,A.t)-1
   idx == 0 ? idx += 1 : nothing
   if idx == length(A.t) - 1
@@ -43,7 +43,7 @@ function (A::QuadraticInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
 end
 
 # Lagrange Interpolation
-function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
+function (A::LagrangeInterpolation{<:AbstractVector})(t::Number)
   idxs = findRequiredIdxs(A,t)
   if A.t[idxs[1]] == t
     return A.u[idxs[1]]
@@ -64,7 +64,7 @@ function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
   N/D
 end
 
-function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
+function (A::LagrangeInterpolation{<:AbstractMatrix})(t::Number)
   idxs = findRequiredIdxs(A,t)
   if A.t[idxs[1]] == t
     return A.u[:,idxs[1]]
@@ -85,7 +85,7 @@ function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   N/D
 end
 
-function (A::AkimaInterpolation{<:AbstractVector{<:Number}})(t::Number)
+function (A::AkimaInterpolation{<:AbstractVector})(t::Number)
   i = searchsortedlast(A.t, t)
   i == 0 && return A.u[1]
   i == length(A.t) && return A.u[end]
