@@ -23,16 +23,21 @@ function QuadraticInterpolation(u,t)
 end
 
 ### Lagrange Interpolation
-struct LagrangeInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
+struct LagrangeInterpolation{uType,tType,FT,T,bcacheType} <: AbstractInterpolation{FT,T}
   u::uType
   t::tType
   n::Int
-  LagrangeInterpolation{FT}(u,t,n) where FT = new{typeof(u),typeof(t),FT,eltype(u)}(u,t,n)
+  bcache::bcacheType
+  function LagrangeInterpolation{FT}(u,t,n) where FT
+    bcache = zeros(eltype(u),n+1)
+    fill!(bcache, NaN)
+    new{typeof(u),typeof(t),FT,eltype(u),typeof(bcache)}(u,t,n,bcache)
+  end
 end
 
 function LagrangeInterpolation(u,t,n=nothing)
   u, t = munge_data(u, t)
-  if n == nothing
+  if isnothing(n)
     n = length(t) - 1 # degree
   end
   if n != length(t) - 1
