@@ -50,12 +50,17 @@ function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
   end
   N = zero(A.u[1]); D = zero(A.t[1]); tmp = N
   for i = 1:length(idxs)
-    mult = one(A.t[1])
-    for j = 1:(i-1)
-      mult *= (A.t[idxs[i]] - A.t[idxs[j]])
-    end
-    for j = (i+1):length(idxs)
-      mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+    if isnan(A.bcache[idxs[i]])
+      mult = one(A.t[1])
+      for j = 1:(i-1)
+        mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+      end
+      for j = (i+1):length(idxs)
+        mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+      end
+      A.bcache[idxs[i]] = mult
+    else
+      mult = A.bcache[idxs[i]]
     end
     tmp = inv((t - A.t[idxs[i]]) * mult)
     D += tmp
@@ -71,12 +76,17 @@ function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   end
   N = zero(A.u[:,1]); D = zero(A.t[1]); tmp = D
   for i = 1:length(idxs)
-    mult = one(A.t[1])
-    for j = 1:(i-1)
-      mult *= (A.t[idxs[i]] - A.t[idxs[j]])
-    end
-    for j = (i+1):length(idxs)
-      mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+    if isnan(A.bcache[idxs[i]])
+      mult = one(A.t[1])
+      for j = 1:(i-1)
+        mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+      end
+      for j = (i+1):length(idxs)
+        mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+      end
+      A.bcache[idxs[i]] = mult
+    else
+      mult = A.bcache[idxs[i]]
     end
     tmp = inv((t - A.t[idxs[i]]) * mult)
     D += tmp
@@ -105,7 +115,8 @@ function (A::ConstantInterpolation{<:AbstractVector})(t::Number)
     return A.u[min(length(A.t), i)]
   end
 end
- function (A::ConstantInterpolation{<:AbstractMatrix})(t::Number)
+
+function (A::ConstantInterpolation{<:AbstractMatrix})(t::Number)
   if A.dir === :left
     # :left means that value to the left is used for interpolation
     i = searchsortedlast(A.t, t)
