@@ -76,19 +76,3 @@ t = [-1.0, 0.0, 1.0]
 A = CubicSpline(u,t)
 
 test_derivatives(A, t, "Cubic Spline Interpolation")
-
-# BSpline Interpolation and Approximation
-# t = [0,62.25,109.66,162.66,205.8,252.3]
-# u = [14.7,11.51,10.41,14.95,12.24,11.22]
-
-# A = BSplineInterpolation(u,t,2,:Uniform,:Uniform)
-
-# test_derivatives(A, t, "BSpline Interpolation (Uniform, Uniform)")
-
-# A = BSplineInterpolation(u,t,2,:ArcLen,:Average)
-
-# test_derivatives(A, t, "BSpline Interpolation (Arclen, Average)")
-
-# A = BSplineApprox(u,t,2,4,:Uniform,:Uniform)
-
-# test_derivatives(A, t, "BSpline Approx (Uniform, Uniform)")
