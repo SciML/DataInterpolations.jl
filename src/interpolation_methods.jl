@@ -1,13 +1,19 @@
 # Linear Interpolation
 function (A::LinearInterpolation{<:AbstractVector})(t::Number)
-  idx = findfirst(x->x>=t,A.t)-1
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+      idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
   (1-θ)*A.u[idx] + θ*A.u[idx+1]
 end
 
 function (A::LinearInterpolation{<:AbstractMatrix})(t::Number)
-  idx = findfirst(x->x>=t,A.t)-1
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+      idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
   (1-θ)*A.u[:,idx] + θ*A.u[:,idx+1]
@@ -15,7 +21,10 @@ end
 
 # Quadratic Interpolation
 function (A::QuadraticInterpolation{<:AbstractVector})(t::Number)
-  idx = findfirst(x->x>=t,A.t)-1
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+      idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   if idx == length(A.t) - 1
     i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
@@ -29,7 +38,10 @@ function (A::QuadraticInterpolation{<:AbstractVector})(t::Number)
 end
 
 function (A::QuadraticInterpolation{<:AbstractMatrix})(t::Number)
-  idx = findfirst(x->x>=t,A.t)-1
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+      idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   if idx == length(A.t) - 1
     i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
