@@ -1,6 +1,6 @@
 function derivative(A::LinearInterpolation{<:AbstractVector{<:Number}}, t::Number)
-    idx = findfirst(x -> x >= t, A.t) - 1
-    idx == 0 ? idx += 1 : nothing
+    idx = searchsortedfirst(A.t, t) - 1
+    idx == 0 && ( idx += 1 )
     θ = 1 / (A.t[idx+1] - A.t[idx])
     (A.u[idx+1] - A.u[idx]) / (A.t[idx+1] - A.t[idx])
 end
@@ -37,7 +37,7 @@ function derivative(A::QuadraticInterpolation{<:AbstractMatrix{<:Number}}, t::Nu
     dl₀ = (2t - A.t[i₁] - A.t[i₂]) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
     dl₁ = (2t - A.t[i₀] - A.t[i₂]) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
     dl₂ = (2t - A.t[i₀] - A.t[i₁]) / ((A.t[i₂] - A.t[i₀]) * (A.t[i₂] - A.t[i₁]))
-    A.u[:, i₀] * dl₀ + A.u[:, i₁] * dl₁ + A.u[:, i₂] * dl₂
+    @views @. A.u[:, i₀] * dl₀ + A.u[:, i₁] * dl₁ + A.u[:, i₂] * dl₂
 end
 
 function derivative(A::LagrangeInterpolation{<:AbstractVector{<:Number}}, t::Number)
