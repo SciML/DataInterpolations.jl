@@ -140,33 +140,3 @@ function derivative(A::CubicSpline{<:AbstractVector{<:Number}}, t::Number)
   dD = -(A.u[i] / A.h[i + 1] - A.z[i] * A.h[i + 1] / 6)
   dI + dC + dD
 end
-
-# BSpline Curve Interpolation
-function derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number)
-  # change t into param [0 1]
-  idx = searchsortedlast(A.t,t)
-  idx == 0 ? idx += 1 : nothing
-  t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
-  n = length(A.t)
-  N = spline_coefficients(n, A.d - 1, A.k, t)
-  ducum = zero(eltype(A.u))
-  for i = 1:(n - 1)
-    ducum += N[i + 1] * A.d * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
-  end
-  ducum
-end
-
-# BSpline Curve Approx
-function derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
-  # change t into param [0 1]
-  idx = searchsortedlast(A.t,t)
-  idx == 0 ? idx += 1 : nothing
-  t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
-  n = length(A.t)
-  N = spline_coefficients(A.h, A.d - 1, A.k, t)
-  ducum = zero(eltype(A.u))
-  for i = 1:(A.h - 1)
-    ducum += N[i + 1] * A.d * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
-  end
-  ducum
-end
