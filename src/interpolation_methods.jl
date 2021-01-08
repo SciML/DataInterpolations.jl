@@ -1,21 +1,30 @@
 # Linear Interpolation
-function (A::LinearInterpolation{<:AbstractVector{<:Number}})(t::Number)
-  idx = findfirst(x->x>=t,A.t)-1
+function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number)
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+      idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
   (1-θ)*A.u[idx] + θ*A.u[idx+1]
 end
 
-function (A::LinearInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
-  idx = findfirst(x->x>=t,A.t)-1
+function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number)
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+      idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
   (1-θ)*A.u[:,idx] + θ*A.u[:,idx+1]
 end
 
 # Quadratic Interpolation
-function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(t::Number)
-  idx = findfirst(x->x>=t,A.t)-1
+function _interpolate(A::QuadraticInterpolation{<:AbstractVector}, t::Number)
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+      idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   if idx == length(A.t) - 1
     i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
@@ -28,8 +37,11 @@ function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(t::Number)
   A.u[i₀]*l₀ + A.u[i₁]*l₁ + A.u[i₂]*l₂
 end
 
-function (A::QuadraticInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
-  idx = findfirst(x->x>=t,A.t)-1
+function _interpolate(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number)
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+      idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   if idx == length(A.t) - 1
     i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
@@ -43,7 +55,7 @@ function (A::QuadraticInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
 end
 
 # Lagrange Interpolation
-function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
+function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
   idxs = findRequiredIdxs(A,t)
   if A.t[idxs[1]] == t
     return A.u[idxs[1]]
@@ -69,7 +81,7 @@ function (A::LagrangeInterpolation{<:AbstractVector{<:Number}})(t::Number)
   N/D
 end
 
-function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
+function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
   idxs = findRequiredIdxs(A,t)
   if A.t[idxs[1]] == t
     return A.u[:,idxs[1]]
@@ -95,7 +107,7 @@ function (A::LagrangeInterpolation{<:AbstractMatrix{<:Number}})(t::Number)
   N/D
 end
 
-function (A::AkimaInterpolation{<:AbstractVector{<:Number}})(t::Number)
+function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number)
   i = searchsortedlast(A.t, t)
   i == 0 && return A.u[1]
   i == length(A.t) && return A.u[end]
@@ -152,7 +164,7 @@ end
 function (A::BSplineInterpolation{<:AbstractVector{<:Number}})(t::Number)
   # change t into param [0 1]
   idx = searchsortedlast(A.t,t)
-  idx == 0 ? idx += 1 : nothing
+  idx == length(A.t) ? idx -= 1 : nothing
   t = A.p[idx] + (t - A.t[idx])/(A.t[idx+1] - A.t[idx]) * (A.p[idx+1] - A.p[idx])
   n = length(A.t)
   N = spline_coefficients(n,A.d,A.k,t)
@@ -167,7 +179,7 @@ end
 function (A::BSplineApprox{<:AbstractVector{<:Number}})(t::Number)
   # change t into param [0 1]
   idx = searchsortedlast(A.t,t)
-  idx == 0 ? idx += 1 : nothing
+  idx == length(A.t) ? idx -= 1 : nothing
   t = A.p[idx] + (t - A.t[idx])/(A.t[idx+1] - A.t[idx]) * (A.p[idx+1] - A.p[idx])
   n = length(A.t)
   N = spline_coefficients(A.h,A.d,A.k,t)
