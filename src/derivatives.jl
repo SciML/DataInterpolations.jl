@@ -1,19 +1,28 @@
-function derivative(A::LinearInterpolation{<:AbstractVector{<:Number}}, t::Number)
-  idx = searchsortedfirst(A.t, t) - 1
+function derivative(A::LinearInterpolation{<:AbstractVector}, t::Number)
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+    idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   θ = 1 / (A.t[idx+1] - A.t[idx])
   (A.u[idx+1] - A.u[idx]) / (A.t[idx+1] - A.t[idx])
 end
 
-function derivative(A::LinearInterpolation{<:AbstractMatrix{<:Number}}, t::Number)
-  idx = searchsortedfirst(A.t, t) - 1
+function derivative(A::LinearInterpolation{<:AbstractMatrix}, t::Number)
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+    idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   θ = 1 / (A.t[idx+1] - A.t[idx])
   @views @. (A.u[:, idx+1] - A.u[:, idx]) / (A.t[idx+1] - A.t[idx])
 end
 
-function derivative(A::QuadraticInterpolation{<:AbstractVector{<:Number}}, t::Number)
-  idx = searchsortedfirst(A.t, t) - 1
+function derivative(A::QuadraticInterpolation{<:AbstractVector}, t::Number)
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+    idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   if idx == length(A.t) - 1
     i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
@@ -26,8 +35,11 @@ function derivative(A::QuadraticInterpolation{<:AbstractVector{<:Number}}, t::Nu
   A.u[i₀] * dl₀ + A.u[i₁] * dl₁ + A.u[i₂] * dl₂
 end
 
-function derivative(A::QuadraticInterpolation{<:AbstractMatrix{<:Number}}, t::Number)
-  idx = searchsortedfirst(A.t, t) - 1
+function derivative(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number)
+  idx = searchsortedfirst(A.t, t)
+  if A.t[idx] >= t
+      idx -= 1
+  end
   idx == 0 ? idx += 1 : nothing
   if idx == length(A.t) - 1
     i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
@@ -40,7 +52,7 @@ function derivative(A::QuadraticInterpolation{<:AbstractMatrix{<:Number}}, t::Nu
   @views @. A.u[:, i₀] * dl₀ + A.u[:, i₁] * dl₁ + A.u[:, i₂] * dl₂
 end
 
-function derivative(A::LagrangeInterpolation{<:AbstractVector{<:Number}}, t::Number)
+function derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
   idxs = findRequiredIdxs(A, t)
   if A.t[idxs[1]] == t
     return zero(A.u[idxs[1]])
@@ -73,7 +85,7 @@ function derivative(A::LagrangeInterpolation{<:AbstractVector{<:Number}}, t::Num
   (DG * F - G * DF) / (F ^ 2)
 end
 
-function derivative(A::LagrangeInterpolation{<:AbstractMatrix{<:Number}}, t::Number)
+function derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
   idxs = findRequiredIdxs(A, t)
   if A.t[idxs[1]] == t
     return zero(A.u[:, idxs[1]])
@@ -106,7 +118,7 @@ function derivative(A::LagrangeInterpolation{<:AbstractMatrix{<:Number}}, t::Num
   @. (DG * F - G * DF) / (F ^ 2)
 end
 
-function derivative(A::AkimaInterpolation{<:AbstractVector{<:Number}}, t::Number)
+function derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number)
   i = searchsortedlast(A.t, t)
   i == 0 && return zero(A.u[1])
   i == length(A.t) && return zero(A.u[end])
@@ -139,4 +151,34 @@ function derivative(A::CubicSpline{<:AbstractVector{<:Number}}, t::Number)
   dC = A.u[i + 1] / A.h[i + 1] - A.z[i + 1] * A.h[i + 1] / 6
   dD = -(A.u[i] / A.h[i + 1] - A.z[i] * A.h[i + 1] / 6)
   dI + dC + dD
+end
+
+function derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number)
+  # change t into param [0 1]
+  idx = searchsortedlast(A.t,t)
+  idx == length(A.t) ? idx -= 1 : nothing
+  n = length(A.t)
+  t_ = A.p[idx] + (t - A.t[idx])/(A.t[idx+1] - A.t[idx]) * (A.p[idx+1] - A.p[idx])
+  N = DataInterpolations.spline_coefficients(n, A.d-1, A.k, t_)
+  scale = (A.t[idx+1] - A.t[idx]) * (A.p[idx+1] - A.p[idx])
+  ducum = zero(eltype(A.u))
+  for i = 1:(n - 1)
+    ducum += N[i+1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+  end
+  ducum * A.d * scale
+end
+
+# BSpline Curve Approx
+function derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
+  # change t into param [0 1]
+  idx = searchsortedlast(A.t,t)
+  idx == 0 ? idx += 1 : nothing
+  t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
+  n = length(A.t)
+  N = spline_coefficients(n, A.d - 1, A.k[2:end-1], t)
+  ducum = zero(eltype(A.u))
+  for i = 1:(A.h - 1)
+    ducum += N[i + 1] * A.d * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+  end
+  ducum * A.d * scale
 end

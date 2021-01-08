@@ -21,16 +21,14 @@ include("interpolation_methods.jl")
 include("plot_rec.jl")
 include("derivatives.jl")
 
-function ChainRulesCore.rrule(A::AbstractInterpolation, t::Number)
-    function interpolate_pullback(Δ)
-        return (NO_FIELDS, derivative(A, t) * Δ)
-    end
-    return A(t), interpolate_pullback
+function ChainRulesCore.rrule(::typeof(_interpolate), A::AbstractInterpolation, t::Number)
+    interpolate_pullback(Δ) = (NO_FIELDS, DoesNotExist(), derivative(A, t) * Δ)
+    return _interpolate(A, t), interpolate_pullback
 end
 
-function ChainRulesCore.frule((_, Δt), A::AbstractInterpolation, t::Number)
-    return A(t), derivative(A, t) * Δt
-end
+ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolation, t::Number) = _interpolate(A, t), derivative(A, t) * Δt
+
+(interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation, AkimaInterpolation,
        ConstantInterpolation, QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox, Curvefit

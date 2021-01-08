@@ -116,7 +116,7 @@ function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number)
 end
 
 # ConstantInterpolation Interpolation
-function (A::ConstantInterpolation{<:AbstractVector})(t::Number)
+function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number)
   if A.dir === :left
     # :left means that value to the left is used for interpolation
     i = searchsortedlast(A.t, t)
@@ -128,7 +128,7 @@ function (A::ConstantInterpolation{<:AbstractVector})(t::Number)
   end
 end
 
-function (A::ConstantInterpolation{<:AbstractMatrix})(t::Number)
+function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number)
   if A.dir === :left
     # :left means that value to the left is used for interpolation
     i = searchsortedlast(A.t, t)
@@ -141,7 +141,7 @@ function (A::ConstantInterpolation{<:AbstractMatrix})(t::Number)
 end
 
 # QuadraticSpline Interpolation
-function (A::QuadraticSpline{<:AbstractVector{<:Number}})(t::Number)
+function _interpolate(A::QuadraticSpline{<:AbstractVector{<:Number}}, t::Number)
   i = findfirst(x->x>=t,A.t)
   i == 1 ? i += 1 : nothing
   Cᵢ = A.u[i-1]
@@ -150,7 +150,7 @@ function (A::QuadraticSpline{<:AbstractVector{<:Number}})(t::Number)
 end
 
 # CubicSpline Interpolation
-function (A::CubicSpline{<:AbstractVector{<:Number}})(t::Number)
+function _interpolate(A::CubicSpline{<:AbstractVector{<:Number}}, t::Number)
   i = findfirst(x->x>=t,A.t)
   i == nothing ? i = length(A.t) - 1 : i -= 1
   i == 0 ? i += 1 : nothing
@@ -161,7 +161,7 @@ function (A::CubicSpline{<:AbstractVector{<:Number}})(t::Number)
 end
 
 # BSpline Curve Interpolation
-function (A::BSplineInterpolation{<:AbstractVector{<:Number}})(t::Number)
+function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number)
   # change t into param [0 1]
   idx = searchsortedlast(A.t,t)
   idx == length(A.t) ? idx -= 1 : nothing
@@ -176,7 +176,7 @@ function (A::BSplineInterpolation{<:AbstractVector{<:Number}})(t::Number)
 end
 
 # BSpline Curve Approx
-function (A::BSplineApprox{<:AbstractVector{<:Number}})(t::Number)
+function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
   # change t into param [0 1]
   idx = searchsortedlast(A.t,t)
   idx == length(A.t) ? idx -= 1 : nothing
@@ -191,6 +191,6 @@ function (A::BSplineApprox{<:AbstractVector{<:Number}})(t::Number)
 end
 
 # Curvefit
-function (A::CurvefitCache{<:AbstractVector{<:Number}})(t::Union{AbstractVector{<:Number},Number})
+function _interpolate(A::CurvefitCache{<:AbstractVector{<:Number}}, t::Union{AbstractVector{<:Number},Number})
   A.m(t,A.pmin)
 end
