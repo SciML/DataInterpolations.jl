@@ -158,12 +158,12 @@ function derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Numb
   idx = searchsortedlast(A.t,t)
   idx == length(A.t) ? idx -= 1 : nothing
   n = length(A.t)
-  t_ = A.p[idx] + (t - A.t[idx])/(A.t[idx+1] - A.t[idx]) * (A.p[idx+1] - A.p[idx])
+  scale = (A.p[idx+1] - A.p[idx]) / (A.t[idx+1] - A.t[idx])
+  t_ = A.p[idx] + (t - A.t[idx]) * scale
   N = DataInterpolations.spline_coefficients(n, A.d-1, A.k, t_)
-  scale = (A.t[idx+1] - A.t[idx]) * (A.p[idx+1] - A.p[idx])
   ducum = zero(eltype(A.u))
   for i = 1:(n - 1)
-    ducum += N[i+1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+    ducum += N[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
   end
   ducum * A.d * scale
 end
@@ -173,12 +173,12 @@ function derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
   # change t into param [0 1]
   idx = searchsortedlast(A.t,t)
   idx == 0 ? idx += 1 : nothing
-  t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
-  n = length(A.t)
-  N = spline_coefficients(n, A.d - 1, A.k[2:end-1], t)
+  scale = (A.p[idx+1] - A.p[idx]) / (A.t[idx+1] - A.t[idx])
+  t_ = A.p[idx] + (t - A.t[idx]) * scale
+  N = spline_coefficients(A.h, A.d-1, A.k, t_)
   ducum = zero(eltype(A.u))
   for i = 1:(A.h - 1)
-    ducum += N[i + 1] * A.d * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+    ducum += N[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
   end
   ducum * A.d * scale
 end
