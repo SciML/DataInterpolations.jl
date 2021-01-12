@@ -22,7 +22,7 @@ include("plot_rec.jl")
 include("derivatives.jl")
 
 function ChainRulesCore.rrule(::typeof(_interpolate), A::Union{LagrangeInterpolation,AkimaInterpolation,
-                                                               BSplineInterpolation,BSplineApprox} t::Number)
+                                                               BSplineInterpolation,BSplineApprox}, t::Number)
     interpolate_pullback(Δ) = (NO_FIELDS, DoesNotExist(), derivative(A, t) * Δ)
     return _interpolate(A, t), interpolate_pullback
 end
