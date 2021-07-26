@@ -1,5 +1,5 @@
 using DataInterpolations, Test
-using Random
+using StableRNGs
 
 # Linear Interpolation
 u = 2.0collect(1:10)
@@ -195,16 +195,16 @@ A = BSplineApprox(u,t,2,4,:Uniform,:Uniform)
 
 
 # Curvefit Interpolation
-Random.seed!(12345)
-model(x, p) = @. p[1]/(1+exp(x-p[2]))
+rng = StableRNG(12345)
+model(x, p) = @. p[1]/(1 + exp(x - p[2]))
 t = range(-10, stop=10, length=40)
-u = model(t, [1.0, 2.0]) + 0.01*randn(length(t))
+u = model(t, [1.0, 2.0]) + 0.01*randn(rng, length(t))
 p0 = [0.5, 0.5]
 
-A = Curvefit(u,t,model,p0,LBFGS())
+A = Curvefit(u, t, model, p0, LBFGS())
 
-ts = [-7.0,-2.0,0.0,2.5,5.0]
-vs = [1.0039795744162028,0.9854877725868618, 0.881099402277441, 0.3717861289542075, 0.04623053035113763]
+ts = [-7.0, -2.0, 0.0, 2.5, 5.0]
+vs = [1.0013468217936277, 0.9836755196317837, 0.8833959853995836, 0.3810348276782708, 0.048062978598861855]
 us = A.(ts)
 
 @test vs ≈ us
