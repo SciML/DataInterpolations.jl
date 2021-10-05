@@ -1,57 +1,33 @@
 # Linear Interpolation
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number)
-  idx = searchsortedfirst(A.t, t)
-  if A.t[idx] >= t
-      idx -= 1
-  end
-  idx == 0 ? idx += 1 : nothing
-  θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
-  (1-θ)*A.u[idx] + θ*A.u[idx+1]
+  idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
+  θ = (t - A.t[idx])/(A.t[idx + 1] - A.t[idx])
+  return (1 - θ)*A.u[idx] + θ*A.u[idx+1]
 end
 
 function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number)
-  idx = searchsortedfirst(A.t, t)
-  if A.t[idx] >= t
-      idx -= 1
-  end
-  idx == 0 ? idx += 1 : nothing
-  θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
-  (1-θ)*A.u[:,idx] + θ*A.u[:,idx+1]
+  idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
+  θ = (t - A.t[idx])/(A.t[idx + 1] - A.t[idx])
+  return (1 - θ)*A.u[:,idx] + θ*A.u[:,idx + 1]
 end
 
 # Quadratic Interpolation
 function _interpolate(A::QuadraticInterpolation{<:AbstractVector}, t::Number)
-  idx = searchsortedfirst(A.t, t)
-  if A.t[idx] >= t
-      idx -= 1
-  end
-  idx == 0 ? idx += 1 : nothing
-  if idx == length(A.t) - 1
-    i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
-  else
-    i₀ = idx; i₁ = i₀ + 1; i₂ = i₁ + 1;
-  end
-  l₀ = ((t-A.t[i₁])*(t-A.t[i₂]))/((A.t[i₀]-A.t[i₁])*(A.t[i₀]-A.t[i₂]))
-  l₁ = ((t-A.t[i₀])*(t-A.t[i₂]))/((A.t[i₁]-A.t[i₀])*(A.t[i₁]-A.t[i₂]))
-  l₂ = ((t-A.t[i₀])*(t-A.t[i₁]))/((A.t[i₂]-A.t[i₀])*(A.t[i₂]-A.t[i₁]))
-  A.u[i₀]*l₀ + A.u[i₁]*l₁ + A.u[i₂]*l₂
+  idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 2))
+  i₀, i₁, i₂ = idx, idx + 1, idx + 2
+  l₀ = ((t - A.t[i₁])*(t - A.t[i₂]))/((A.t[i₀] - A.t[i₁])*(A.t[i₀] - A.t[i₂]))
+  l₁ = ((t - A.t[i₀])*(t - A.t[i₂]))/((A.t[i₁] - A.t[i₀])*(A.t[i₁] - A.t[i₂]))
+  l₂ = ((t - A.t[i₀])*(t - A.t[i₁]))/((A.t[i₂] - A.t[i₀])*(A.t[i₂] - A.t[i₁]))
+  return A.u[i₀]*l₀ + A.u[i₁]*l₁ + A.u[i₂]*l₂
 end
 
 function _interpolate(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number)
-  idx = searchsortedfirst(A.t, t)
-  if A.t[idx] >= t
-      idx -= 1
-  end
-  idx == 0 ? idx += 1 : nothing
-  if idx == length(A.t) - 1
-    i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
-  else
-    i₀ = idx; i₁ = i₀ + 1; i₂ = i₁ + 1;
-  end
-  l₀ = ((t-A.t[i₁])*(t-A.t[i₂]))/((A.t[i₀]-A.t[i₁])*(A.t[i₀]-A.t[i₂]))
-  l₁ = ((t-A.t[i₀])*(t-A.t[i₂]))/((A.t[i₁]-A.t[i₀])*(A.t[i₁]-A.t[i₂]))
-  l₂ = ((t-A.t[i₀])*(t-A.t[i₁]))/((A.t[i₂]-A.t[i₀])*(A.t[i₂]-A.t[i₁]))
-  A.u[:,i₀]*l₀ + A.u[:,i₁]*l₁ + A.u[:,i₂]*l₂
+  idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 2))
+  i₀, i₁, i₂ = idx, idx + 1, idx + 2
+  l₀ = ((t - A.t[i₁])*(t - A.t[i₂]))/((A.t[i₀] - A.t[i₁])*(A.t[i₀] - A.t[i₂]))
+  l₁ = ((t - A.t[i₀])*(t - A.t[i₂]))/((A.t[i₁] - A.t[i₀])*(A.t[i₁] - A.t[i₂]))
+  l₂ = ((t - A.t[i₀])*(t - A.t[i₁]))/((A.t[i₂] - A.t[i₀])*(A.t[i₂] - A.t[i₁]))
+  return A.u[:,i₀]*l₀ + A.u[:,i₁]*l₁ + A.u[:,i₂]*l₂
 end
 
 # Lagrange Interpolation
@@ -142,18 +118,15 @@ end
 
 # QuadraticSpline Interpolation
 function _interpolate(A::QuadraticSpline{<:AbstractVector{<:Number}}, t::Number)
-  i = findfirst(x->x>=t,A.t)
-  i == 1 ? i += 1 : nothing
+  i = min(max(2, searchsortedfirst(A.t, t)), length(A.t))
   Cᵢ = A.u[i-1]
   σ = 1//2 * (A.z[i] - A.z[i-1])/(A.t[i] - A.t[i-1])
-  A.z[i-1] * (t - A.t[i-1]) + σ * (t - A.t[i-1])^2 + Cᵢ
+  return A.z[i-1] * (t - A.t[i-1]) + σ * (t - A.t[i-1])^2 + Cᵢ
 end
 
 # CubicSpline Interpolation
 function _interpolate(A::CubicSpline{<:AbstractVector{<:Number}}, t::Number)
-  i = findfirst(x->x>=t,A.t)
-  i == nothing ? i = length(A.t) - 1 : i -= 1
-  i == 0 ? i += 1 : nothing
+  i = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
   I = A.z[i] * (A.t[i+1] - t)^3 / (6A.h[i+1]) + A.z[i+1] * (t - A.t[i])^3 / (6A.h[i+1])
   C = (A.u[i+1]/A.h[i+1] - A.z[i+1]*A.h[i+1]/6)*(t - A.t[i])
   D = (A.u[i]/A.h[i+1] - A.z[i]*A.h[i+1]/6)*(A.t[i+1] - t)
