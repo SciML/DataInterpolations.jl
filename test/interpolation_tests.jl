@@ -152,21 +152,24 @@ end
     end
 end
 
-# QuadraticSpline Interpolation
-u = [0.0, 1.0, 3.0]
-t = [-1.0, 0.0, 1.0]
+@testset "QuadraticSpline Interpolation" begin
+    u = [0.0, 1.0, 3.0]
+    t = [-1.0, 0.0, 1.0]
 
-A = QuadraticSpline(u,t)
+    A = QuadraticSpline(u,t)
 
-#             Solution ->
-#             f(x) = (x+1)^2 for x -> [-1.0, 0.0]
-#             f(x) = 1+2x    for x -> [0.0, 1.0]
+    # Solution
+    P₁ = x -> (x + 1)^2 # for x ∈ [-1, 0]
+    P₂ = x -> 2*x + 1   # for x ∈ [ 0, 1]
 
-@test A(-0.5) == 0.25
-@test A(0.7) == 2.4
-@test A(-1.0) == 0.0
-@test A(0.0) == 1.0
-@test A(1.0) == 3.0
+    for (_t, _u) in zip(t, u)
+        @test A(_t) == _u
+    end
+    @test A(-2.0) == P₁(-2.0)
+    @test A(-0.5) == P₁(-0.5)
+    @test A(0.7)  == P₂( 0.7)
+    @test A(2.0)  == P₂( 2.0)
+end
 
 
 # CubicSpline Interpolation
