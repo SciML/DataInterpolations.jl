@@ -1,22 +1,14 @@
 # Linear Interpolation
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number)
-  idx = searchsortedfirst(A.t, t)
-  if A.t[idx] >= t
-      idx -= 1
-  end
-  idx == 0 ? idx += 1 : nothing
-  θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
-  (1-θ)*A.u[idx] + θ*A.u[idx+1]
+  idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
+  θ = (t - A.t[idx])/(A.t[idx + 1] - A.t[idx])
+  return (1 - θ)*A.u[idx] + θ*A.u[idx+1]
 end
 
 function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number)
-  idx = searchsortedfirst(A.t, t)
-  if A.t[idx] >= t
-      idx -= 1
-  end
-  idx == 0 ? idx += 1 : nothing
-  θ = (t - A.t[idx])/ (A.t[idx+1] - A.t[idx])
-  (1-θ)*A.u[:,idx] + θ*A.u[:,idx+1]
+  idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
+  θ = (t - A.t[idx])/(A.t[idx + 1] - A.t[idx])
+  return (1 - θ)*A.u[:,idx] + θ*A.u[:,idx + 1]
 end
 
 # Quadratic Interpolation

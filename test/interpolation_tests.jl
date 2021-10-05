@@ -1,81 +1,91 @@
 using DataInterpolations, Test
 using StableRNGs
 
-# Linear Interpolation
-u = 2.0collect(1:10)
-t = 1.0collect(1:10)
-A = LinearInterpolation(u,t)
+@testset "Linear Interpolation" begin
+    u = 2.0collect(1:10)
+    t = 1.0collect(1:10)
+    A = LinearInterpolation(u,t)
 
-@test A(1) == u[1]
-@test A(5) == u[5]
-@test A(5.5) == 11.0
+    for (_t, _u) in zip(t, u)
+        @test A(_t) == _u
+    end
+    @test A(0)        == 0.0
+    @test A(5.5)      == 11.0
+    @test A(11)       == 22
 
-u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
-A = LinearInterpolation(u,t)
+    u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
+    A = LinearInterpolation(u,t)
 
-@test A(1) == u[:,1]
-@test A(5) == u[:,5]
-@test A(5.5) == [11.0,16.5]
+    for (_t, _u) in zip(t, eachcol(u))
+        @test A(_t) == _u
+    end
+    @test A(0)        == [0.0, 0.0]
+    @test A(5.5)      == [11.0, 16.5]
+    @test A(11)       == [22, 33]
+end
 
-# Quadratic Interpolation
-u = [1.0, 4.0, 9.0, 16.0]
-t = [1.0, 2.0, 3.0, 4.0]
-A = QuadraticInterpolation(u,t)
+@testset "Quadratic Interpolation" begin
+    u = [1.0, 4.0, 9.0, 16.0]
+    t = [1.0, 2.0, 3.0, 4.0]
+    A = QuadraticInterpolation(u,t)
 
-@test A(2.0) == 4.0
-@test A(1.5) == 2.25
-@test A(3.5) == 12.25
-@test A(2.5) == 6.25
+    @test A(2.0) == 4.0
+    @test A(1.5) == 2.25
+    @test A(3.5) == 12.25
+    @test A(2.5) == 6.25
 
-u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
-A = QuadraticInterpolation(u,t)
+    u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
+    A = QuadraticInterpolation(u,t)
 
-@test A(2.0) == [4.0,4.0]
-@test A(1.5) == [2.25,2.25]
-@test A(3.5) == [12.25,12.25]
-@test A(2.5) == [6.25,6.25]
+    @test A(2.0) == [4.0,4.0]
+    @test A(1.5) == [2.25,2.25]
+    @test A(3.5) == [12.25,12.25]
+    @test A(2.5) == [6.25,6.25]
+end
 
-# Lagrange Interpolation
-u = [1.0, 4.0, 9.0]
-t = [1.0, 2.0, 3.0]
-A = LagrangeInterpolation(u,t)
+@testset "Lagrange Interpolation" begin
+    u = [1.0, 4.0, 9.0]
+    t = [1.0, 2.0, 3.0]
+    A = LagrangeInterpolation(u,t)
 
-@test A(2.0) == 4.0
-@test A(1.5) == 2.25
+    @test A(2.0) == 4.0
+    @test A(1.5) == 2.25
 
-u = [1.0, 8.0, 27.0, 64.0]
-t = [1.0, 2.0, 3.0, 4.0]
-A = LagrangeInterpolation(u,t)
+    u = [1.0, 8.0, 27.0, 64.0]
+    t = [1.0, 2.0, 3.0, 4.0]
+    A = LagrangeInterpolation(u,t)
 
-@test A(2.0) == 8.0
-@test A(1.5) ≈ 3.375
-@test A(3.5) ≈ 42.875
+    @test A(2.0) == 8.0
+    @test A(1.5) ≈ 3.375
+    @test A(3.5) ≈ 42.875
 
-u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
-A = LagrangeInterpolation(u,t)
+    u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
+    A = LagrangeInterpolation(u,t)
 
-@test A(2.0) == [4.0,4.0]
-@test A(1.5) ≈ [2.25,2.25]
-@test A(3.5) ≈ [12.25,12.25]
+    @test A(2.0) == [4.0,4.0]
+    @test A(1.5) ≈ [2.25,2.25]
+    @test A(3.5) ≈ [12.25,12.25]
+end
 
-# Akima Interpolation
-u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
-t = collect(0.0:10.0)
-A = AkimaInterpolation(u, t)
+@testset "Akima Interpolation" begin
+    u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+    t = collect(0.0:10.0)
+    A = AkimaInterpolation(u, t)
 
-@test A(0.0) ≈ 0.0
-@test A(0.5) ≈ 1.375
-@test A(1.0) ≈ 2.0
-@test A(1.5) ≈ 1.5
-@test A(2.5) ≈ 1.953125
-@test A(3.5) ≈ 2.484375
-@test A(4.5) ≈ 4.1363636363636366866103344
-@test A(5.1) ≈ 5.9803623910336236590978842
-@test A(6.5) ≈ 5.5067291516462386624652936
-@test A(7.2) ≈ 5.2031367459745245795943447
-@test A(8.6) ≈ 4.1796554159017080820603951
-@test A(9.9) ≈ 3.4110386597938129327189927
-@test A(10.0) ≈ 3.0
+    @test A(0.0) ≈ 0.0
+    @test A(0.5) ≈ 1.375
+    @test A(1.0) ≈ 2.0
+    @test A(1.5) ≈ 1.5
+    @test A(2.5) ≈ 1.953125
+    @test A(3.5) ≈ 2.484375
+    @test A(4.5) ≈ 4.1363636363636366866103344
+    @test A(5.1) ≈ 5.9803623910336236590978842
+    @test A(6.5) ≈ 5.5067291516462386624652936
+    @test A(7.2) ≈ 5.2031367459745245795943447
+    @test A(8.6) ≈ 4.1796554159017080820603951
+    @test A(9.9) ≈ 3.4110386597938129327189927
+    @test A(10.0) ≈ 3.0
+end
 
 @testset "ConstantInterpolation" begin
 
