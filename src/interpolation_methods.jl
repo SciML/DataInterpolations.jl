@@ -126,9 +126,7 @@ end
 
 # CubicSpline Interpolation
 function _interpolate(A::CubicSpline{<:AbstractVector{<:Number}}, t::Number)
-  i = findfirst(x->x>=t,A.t)
-  i == nothing ? i = length(A.t) - 1 : i -= 1
-  i == 0 ? i += 1 : nothing
+  i = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
   I = A.z[i] * (A.t[i+1] - t)^3 / (6A.h[i+1]) + A.z[i+1] * (t - A.t[i])^3 / (6A.h[i+1])
   C = (A.u[i+1]/A.h[i+1] - A.z[i+1]*A.h[i+1]/6)*(t - A.t[i])
   D = (A.u[i]/A.h[i+1] - A.z[i]*A.h[i+1]/6)*(A.t[i+1] - t)
