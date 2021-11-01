@@ -16,3 +16,11 @@ A = LinearInterpolation{false}(u,t)
 for i in 1:10
   @test u[i] == A[i]
 end
+
+using Symbolics
+u = 2.0collect(1:10)
+t = 1.0collect(1:10)
+A = LinearInterpolation(u,t)
+
+@variables t
+A(t)

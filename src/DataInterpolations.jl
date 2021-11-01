@@ -31,6 +31,13 @@ ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolati
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
 
+import Symbolics
+Base.@pure __parameterless_type(T) = Base.typename(T).wrapper
+Base.nameof(x::AbstractInterpolation) = typeof(x)
+Base.isbinaryoperator(::Type{T}) where T <: AbstractInterpolation = false
+(interp::DataInterpolations.AbstractInterpolation)(t::Symbolics.Num) = Symbolics.SymbolicUtils.term(interp,t)
+
+
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation, AkimaInterpolation,
        ConstantInterpolation, QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox, Curvefit
 
