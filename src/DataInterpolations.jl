@@ -32,8 +32,6 @@ ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolati
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
 
 import Symbolics
-Base.nameof(x::AbstractInterpolation) = Symbol(typeof(x))
-Base.isbinaryoperator(::Type{T}) where T <: AbstractInterpolation = false
 (interp::DataInterpolations.AbstractInterpolation)(t::Symbolics.Num) = Symbolics.SymbolicUtils.term(interp,Symbolics.unwrap(t))
 
 
