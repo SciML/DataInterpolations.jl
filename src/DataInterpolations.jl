@@ -43,6 +43,12 @@ export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
     BSplineInterpolation, BSplineApprox, Curvefit
 
+# added for RegularizationSmooth, JJS 11/27/21
+import RegularizationTools
+const RT = RegularizationTools
+include("regularization_smooth.jl")
+export RegularizationSmooth
+
 # Deprecated April 2020
 export ZeroSpline
 
