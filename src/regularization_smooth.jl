@@ -52,17 +52,15 @@ function RegularizationSmooth(u, t, d=2; λ=1.0, t̂=nothing, alg=:gcv_svd)
     N = length(t)
     if isnothing(t̂)
         t̂ = t
-        # identity matrix for A (RegularizationTools `A` matrix, not `A` object of
-        # DataInterpolations)
-        A = Array{Float64}(LA.I, (N, N))
+        M = Array{eltype(t)}(LA.I, (N, N)) # identity mapping matrix
     else
-        A = _mapping_matrix(t̂, t) # mapping matrix for A
+        M = _mapping_matrix(t̂, t) 
     end
 
     # RT.Γ function, used internally there, does not not account for spacing of x 
-    #Ψ = RT.setupRegularizationProblem(A, d)
+    #Ψ = RT.setupRegularizationProblem(M, d)
     D = _derivative_matrix(t̂,d)
-    Ψ = RT.setupRegularizationProblem(A, D)
+    Ψ = RT.setupRegularizationProblem(M, D)
     
     if alg == :fixed
         b̄ = RT.to_standard_form(Ψ, u) # via b̄
@@ -97,7 +95,7 @@ function _mapping_matrix(t̂::AbstractVector,t::AbstractVector)
     idx[idx.==N̂] .+= -1 
     # create the linear interpolation matrix
     m2 = @. (t - t̂[idx])/(t̂[idx+1] - t̂[idx])
-    M = zeros((N,N̂))
+    M = zeros(eltype(t), (N,N̂))
     for i in 1:N
         M[i,idx[i]] = 1 - m2[i] 
         M[i,idx[i]+1] = m2[i]
