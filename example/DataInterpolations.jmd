@@ -132,14 +132,75 @@ scatter(t, u, label="input data")
 plot!(A)
 ```
 
+### Regularization Smoothing
+
+Smoothing by regularization (a.k.a. regression) finds a function ``\hat{u}``
+that minimizes the objective function:
+
+``Q(\hat{u}) = \int_{t_1}^{t_N} |\hat{u}(t) - u(t)|^2 \mathrm{d}t + 
+\lambda \int_{\hat{t}_1}^{\hat{t}_N} |\hat{u}^{(d)}(\hat{t})|^2 \mathrm{d} \hat{t}``
+
+where ``(d)`` denotes derivative order and ``\lambda`` is the regularization
+(smoothing) parameter. The integrals are evaluated numerically at the set of
+independent ``\hat{t}`` values (equal to ``t`` if not provided). Regularization
+smoothing is a global method and creates a smooth curve directly. See [Stickel
+(2010)
+Comput. Chem. Eng. 34:467](http://dx.doi.org/10.1016/j.compchemeng.2009.10.007)
+for details. The implementation in this package uses cubic splines to
+interpolate the smoothed points after they are determined.
+
+```julia
+d = 2
+λ = 1e3
+A = RegularizationSmooth(u,t, d; λ=λ, alg=:fixed)
+û = A.û
+# interpolate using the smoothed values
+N = 200
+titp = collect(range(minimum(t), maximum(t), length=N))
+uitp = A.(titp)
+lw = 1.5
+scatter(t,u, label="data")
+scatter!(t,û, marker=:square, label="smoothed data")
+plot!(titp,uitp, lw=lw, label="smoothed interpolation")
+```
+
 ## Dense Data Demonstration
 
 Some methods are better suited for dense data. Let's generate such data to
 demonstrate these methods.
 
 ```julia
-t = sort(10 .* rand(100))
-u = sin.(t) .+ 0.5 * randn(100)
+import StableRNGs: StableRNG
+rng = StableRNG(318)
+t = sort(10 .* rand(rng, 100))
+u = sin.(t) .+ 0.5 * randn(rng, 100)
+```
+
+### Regularization Smoothing
+
+Although smoothing by regularization can be used to interpolate sparse data as
+shown above, it is especially useful for dense and also scattered data (unequally
+spaced, unordered, and/or repeat-valued). Generalized cross validation (GCV) or
+so-called L-curve methods can be used to determine an "optimal" value for the
+smoothing parameter. In this example, we perform smoothing in two ways. In the
+first, we find smooth values at the original ``t`` values and then
+interpolate. In the second, we perform the smoothing for the interpolatant
+``\hat{t}`` values directly. GCV is used to determine the regularization
+parameter for both cases.
+
+```julia
+d = 4
+A = RegularizationSmooth(u,t, d; alg=:gcv_svd)
+û = A.û
+N = 200
+titp = collect(range(minimum(t), maximum(t), length=N))
+uitp = A.(titp)
+Am = RegularizationSmooth(u,t, d; t̂=titp, alg=:gcv_svd)
+ûm = Am.û
+scatter(t,u, label="simulated data", legend=:top)
+scatter!(t,û, marker=(:square, 4), label="smoothed data")
+plot!(titp,uitp, lw=lw, label="smoothed interpolation")
+plot!(titp,ûm, lw=lw, linestyle=:dash, label="smoothed, more points")
 ```
 
 ### Curve Fits
