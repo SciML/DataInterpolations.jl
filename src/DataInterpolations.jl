@@ -22,6 +22,7 @@ include("interpolation_methods.jl")
 include("plot_rec.jl")
 include("derivatives.jl")
 include("integrals.jl")
+include("online.jl")
 
 function ChainRulesCore.rrule(::typeof(_interpolate),
                               A::Union{LagrangeInterpolation,AkimaInterpolation,
