@@ -58,7 +58,7 @@ end
                              method, or as bounds if a 2-tuple is provided (TBD)
 - `alg::Symbol = :gcv_svd`: algorithm for determining an optimal value for λ; the provided λ
                             value is used directly if `alg = :fixed`; otherwise `alg =
-                            [:gcv_svd, :gcv_tr, L_curve]` is passed to the
+                            [:gcv_svd, :gcv_tr, :L_curve]` is passed to the
                             RegularizationTools solver
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
@@ -68,7 +68,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
     M = _mapping_matrix(t̂, t)
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = LA.diagm(sqrt.(wr))
-    û, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
+    û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂,wls,wr,d,λ,alg,Aitp)
 end
 """ direct smoothing, no t̂ or weights """
@@ -80,7 +80,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int=2; λ
     M = Array{Float64}(LA.I, N, N)
     Wls½ = Array{Float64}(LA.I, N, N)
     Wr½ = Array{Float64}(LA.I, N-d, N-d)
-    û, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
+    û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂, LA.diag(Wls½), LA.diag(Wr½), d,λ,alg,Aitp)
 end
 """ t̂ provided, no weights """
@@ -91,7 +91,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
     M = _mapping_matrix(t̂, t)
     Wls½ = Array{Float64}(LA.I, N, N)
     Wr½ = Array{Float64}(LA.I, N̂-d, N̂-d)
-    û, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
+    û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂, LA.diag(Wls½), LA.diag(Wr½), d,λ,alg,Aitp)
 end
 """ t̂ and wls provided """
@@ -103,7 +103,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
     M = _mapping_matrix(t̂, t)
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = Array{Float64}(LA.I, N̂-d, N̂-d)
-    û, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
+    û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂,wls, LA.diag(Wr½), d,λ,alg,Aitp)
 end
 """ wls provided, no t̂ """
@@ -116,7 +116,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     M = Array{Float64}(LA.I, N, N)
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = Array{Float64}(LA.I, N-d, N-d)
-    û, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
+    û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂,wls, LA.diag(Wr½), d,λ,alg,Aitp)
 end
 """ keyword provided for wls, no t̂ """
@@ -129,7 +129,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     wls, wr = _weighting_by_kw(t, d, wls)
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = LA.diagm(sqrt.(wr))
-    û, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
+    û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂, LA.diag(Wls½), LA.diag(Wr½), d,λ,alg,Aitp)
 end
 # """ t̂ provided and keyword for wls  TBD """
@@ -160,7 +160,7 @@ function _reg_smooth_solve(u::AbstractVector, t̂::AbstractVector, d::Int, M::Ab
     # It seems logical to use B-Spline of order d+1, but I am unsure if theory supports the
     # extra computational cost, JJS 12/25/21
     #Aitp = BSplineInterpolation(û,t̂,d+1,:ArcLen,:Average) 
-    return û, Aitp
+    return û, λ, Aitp
 end
 
 
