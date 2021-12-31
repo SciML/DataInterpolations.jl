@@ -7,15 +7,15 @@
 # - initial guess for λ? will require mods to RegularizationTools
 # - scaled λ? will need to work out equivalency with λ² formulation, and resolve with
 #   derivative rather than difference matrix
-# - standard deviation
-# - relative weights? (not sure if worth implementing)
+# - optimize λ via standard deviation?
+# - relative weights? 
 # - arbitrary weighting -- implemented but not yet tested
 # - midpoint rule with scattered?
 # x add argument types for `RegularizationSmooth` constructor methods (why isn't this done
 #   for the other interpolaters?)
 # - make use of `munge_data` features (allow for matrix rather than vector u & t arguments?)
 # - validate data and t̂
-# - unit tests!
+# x unit tests
 
 const LA = LinearAlgebra
 
@@ -46,7 +46,7 @@ end
                increasing
 - `wls::{Vector,Symbol}`: weights to use with the least-squares fitting term; if set to
                           `:midpoint`, then midpoint-rule integration weights are used for
-                          both `wls` and `wr`
+                          /both/ `wls` and `wr`
 - `wr::Vector`: weights to use with the roughness term 
 - `d::Int = 2`: derivative used to calculate roughness; e.g., when `d = 2`, the 2nd
                 derivative (i.e. the curvature) of the data is used to calculate roughness.
@@ -116,6 +116,19 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     M = Array{Float64}(LA.I, N, N)
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = Array{Float64}(LA.I, N-d, N-d)
+    û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
+    RegularizationSmooth{true}(u,û,t,t̂,wls, LA.diag(Wr½), d,λ,alg,Aitp)
+end
+""" wls and wr provided, no t̂ """
+function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
+                              wls::AbstractVector, wr::AbstractVector, d::Int=2;
+                              λ::Real=1.0, alg::Symbol=:gcv_svd)
+    u, t = munge_data(u, t)
+    t̂ = t
+    N = length(t)
+    M = Array{Float64}(LA.I, N, N)
+    Wls½ = LA.diagm(sqrt.(wls))
+    Wr½ = LA.diagm(sqrt.(wr))
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂,wls, LA.diag(Wr½), d,λ,alg,Aitp)
 end
