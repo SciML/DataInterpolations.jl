@@ -17,6 +17,7 @@
 # - validate data and t̂
 # x unit tests
 
+
 const LA = LinearAlgebra
 
 ### Regularization data smoothing and interpolation
@@ -46,7 +47,7 @@ end
                increasing
 - `wls::{Vector,Symbol}`: weights to use with the least-squares fitting term; if set to
                           `:midpoint`, then midpoint-rule integration weights are used for
-                          /both/ `wls` and `wr`
+                          _both_ `wls` and `wr`
 - `wr::Vector`: weights to use with the roughness term 
 - `d::Int = 2`: derivative used to calculate roughness; e.g., when `d = 2`, the 2nd
                 derivative (i.e. the curvature) of the data is used to calculate roughness.
@@ -60,6 +61,12 @@ end
                             value is used directly if `alg = :fixed`; otherwise `alg =
                             [:gcv_svd, :gcv_tr, :L_curve]` is passed to the
                             RegularizationTools solver
+
+## Example Constructors
+Smoothing using all arguments
+```julia
+A = RegularizationSmooth(u, t, t̂, wls, wr, d; λ=[1.0], alg=[:gcv_svd])
+```
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
                               wls::AbstractVector, wr::AbstractVector, d::Int=2;
@@ -71,7 +78,12 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂,wls,wr,d,λ,alg,Aitp)
 end
-""" direct smoothing, no t̂ or weights """
+"""
+Direct smoothing, no `t̂` or weights 
+```julia
+A = RegularizationSmooth(u, t, d; λ=[1.0], alg=[:gcv_svd])
+```
+"""
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int=2; λ::Real=1.0,
                               alg::Symbol=:gcv_svd)
     u, t = munge_data(u, t)
@@ -83,7 +95,12 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int=2; λ
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂, LA.diag(Wls½), LA.diag(Wr½), d,λ,alg,Aitp)
 end
-""" t̂ provided, no weights """
+"""
+`t̂` provided, no weights 
+```julia
+A = RegularizationSmooth(u, t, t̂, d; λ=[1.0], alg=[:gcv_svd])
+```
+"""
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
                               d::Int=2; λ::Real=1.0, alg::Symbol=:gcv_svd)
     u, t = munge_data(u, t)
@@ -94,7 +111,12 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂, LA.diag(Wls½), LA.diag(Wr½), d,λ,alg,Aitp)
 end
-""" t̂ and wls provided """
+"""
+`t̂` and `wls` provided
+```julia
+A = RegularizationSmooth(u, t, t̂, wls, d; λ=[1.0], alg=[:gcv_svd])
+```
+"""
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
                               wls::AbstractVector, d::Int=2; λ::Real=1.0,
                               alg::Symbol=:gcv_svd)
@@ -106,7 +128,12 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂,wls, LA.diag(Wr½), d,λ,alg,Aitp)
 end
-""" wls provided, no t̂ """
+"""
+`wls` provided, no `t̂`
+```julia
+A = RegularizationSmooth(u, t, nothing, wls,d; λ=[1.0], alg=[:gcv_svd])
+```
+"""
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
                               wls::AbstractVector, d::Int=2; λ::Real=1.0,
                               alg::Symbol=:gcv_svd)
@@ -119,7 +146,12 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂,wls, LA.diag(Wr½), d,λ,alg,Aitp)
 end
-""" wls and wr provided, no t̂ """
+"""
+`wls` and `wr` provided, no `t̂`
+```julia
+A = RegularizationSmooth(u, t, nothing, wls, wr, d; λ=[1.0], alg=[:gcv_svd])
+```
+"""
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
                               wls::AbstractVector, wr::AbstractVector, d::Int=2;
                               λ::Real=1.0, alg::Symbol=:gcv_svd)
@@ -132,7 +164,12 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂,wls, LA.diag(Wr½), d,λ,alg,Aitp)
 end
-""" keyword provided for wls, no t̂ """
+"""
+Keyword provided for `wls`, no `t̂`
+```julia
+A = RegularizationSmooth(u, t, nothing, :midpoint, d; λ=[1.0], alg=[:gcv_svd])
+```
+"""
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
                               wls::Symbol, d::Int=2; λ::Real=1.0, alg::Symbol=:gcv_svd)
     u, t = munge_data(u, t)
@@ -145,7 +182,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg)
     RegularizationSmooth{true}(u,û,t,t̂, LA.diag(Wls½), LA.diag(Wr½), d,λ,alg,Aitp)
 end
-# """ t̂ provided and keyword for wls  TBD """
+# """ t̂ provided and keyword for wls  _TBD_ """
 # function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
 #                               wls::Symbol, d::Int=2; λ::Real=1.0, alg::Symbol=:gcv_svd)
 
