@@ -200,9 +200,9 @@ function _reg_smooth_solve(u::AbstractVector, t̂::AbstractVector, d::Int, M::Ab
         ū = RT.solve(Ψ, b̄, λ)
         û = RT.to_general_form(Ψ, Wls½u, ū)
     else
-        # note that the provided λ is currently ignored; using as initial guess or bounds
-        # TBD, JJS 12/21/21
-        result = RT.solve(Ψ, Wls½u, alg=alg)
+        # the provided λ (a scalar) is used as an initial guess; using bounds for Brent()
+        # method is TBD, JJS 12/21/21
+        result = RT.solve(Ψ, Wls½u; alg=alg, method=RT.NelderMead(), λ₀=λ)
         û = result.x
         λ = result.λ
     end
