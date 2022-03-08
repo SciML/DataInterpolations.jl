@@ -50,7 +50,6 @@ end
     @test isapprox(A.û, ans, rtol=tolerance)
     # arbitrary weights for wls (and fixed λ, GCV not working well for some of these)
     A = RegularizationSmooth(uₒ,tₒ, nothing, collect(1:npts); λ=1e-1, alg=:fixed)
-#    @test isapprox(A.λ, 0.1447077651169621, rtol=tolerance)
     ans = [0.24640196218427968, 0.3212059975226125, 0.6557626475144205, 0.9222911426465459, 0.9913331910731215, 1.0072241662103494, 0.9757899817730779, 0.935880516370941, 0.8381074902073471, 0.6475589703422522, 0.2094170714475404, 0.09102085384961625, -0.5640882848240228, -0.810519277110118, -1.1159124134900906]
     @test isapprox(A.û, ans, rtol=tolerance)
     # arbitrary weights for wls and wr
@@ -58,7 +57,6 @@ end
     wls = vcat(ones(nhalf),10*ones(npts-nhalf))
     wr = collect(1:npts-2)
     A = RegularizationSmooth(uₒ,tₒ, nothing, wls, wr; λ=1e-1, alg=:fixed)
-#    @test isapprox(A.λ, 0.01920769986569919, rtol=tolerance)
     ans = [0.21878709713242372, 0.3118480645325099, 0.7669822464946172, 1.0232343854914931, 1.0526513115274412, 1.0469579284244412, 0.9962426294084775, 0.9254407155702626, 0.8204764044515936, 0.6514510142804217, 0.27796896299068763, 0.04756024028728636, -0.5301034620974782, -0.8408107101140526, -1.1058428573417736]
     @test isapprox(A.û, ans, rtol=tolerance)
 end
