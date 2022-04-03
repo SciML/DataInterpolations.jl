@@ -29,7 +29,7 @@ struct LagrangeInterpolation{uType,tType,FT,T,bcacheType} <: AbstractInterpolati
   n::Int
   bcache::bcacheType
   function LagrangeInterpolation{FT}(u,t,n) where FT
-    bcache = zeros(eltype(u),n+1)
+    bcache = zeros(eltype(u[1]),n+1)
     fill!(bcache, NaN)
     new{typeof(u),typeof(t),FT,eltype(u),typeof(bcache)}(u,t,n,bcache)
   end
