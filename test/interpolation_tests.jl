@@ -22,6 +22,48 @@ using StableRNGs
     @test A(0)        == [0.0, 0.0]
     @test A(5.5)      == [11.0, 16.5]
     @test A(11)       == [22, 33]
+
+        # with NaNs (#113)
+        u = [NaN, 1.0, 2.0, 3.0]
+        t = 1:4
+        A = LinearInterpolation(u, t)
+        @test isnan(A(1.0))
+        @test A(2.0) == 1.0
+        @test A(2.5) == 1.5
+        @test A(3.0) == 2.0
+        @test A(4.0) == 3.0
+
+        u = [0.0, NaN, 2.0, 3.0]
+        A = LinearInterpolation(u, t)
+        @test A(1.0) == 0.0
+        @test isnan(A(2.0))
+        @test isnan(A(2.5))
+        @test A(3.0) == 2.0
+        @test A(4.0) == 3.0
+
+        u = [0.0, NaN, 2.0, 3.0]
+        A = LinearInterpolation(u, t)
+        @test A(1.0) == 0.0
+        @test isnan(A(2.0))
+        @test isnan(A(2.5))
+        @test A(3.0) == 2.0
+        @test A(4.0) == 3.0
+
+        u = [0.0, 1.0, NaN, 3.0]
+        A = LinearInterpolation(u, t)
+        @test A(1.0) == 0.0
+        @test A(2.0) == 1.0
+        @test isnan(A(2.5))
+        @test isnan(A(3.0))
+        @test A(4.0) == 3.0
+
+        u = [0.0, 1.0, 2.0, NaN]
+        A = LinearInterpolation(u, t)
+        @test A(1.0) == 0.0
+        @test A(2.0) == 1.0
+        @test A(3.0) == 2.0
+        @test isnan(A(3.5))
+        @test isnan(A(4.0))
 end
 
 @testset "Quadratic Interpolation" begin
