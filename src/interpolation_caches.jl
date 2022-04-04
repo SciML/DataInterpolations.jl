@@ -109,7 +109,7 @@ struct QuadraticSpline{uType,tType,tAType,dType,zType,FT,T} <: AbstractInterpola
                                                   typeof(d),typeof(z),FT,eltype(u)}(u,t,tA,d,z)
 end
 
-function QuadraticSpline(u,t)
+function QuadraticSpline(u::uType,t) where {uType<:AbstractVector{<:Number}}
   u, t = munge_data(u, t)
   s = length(t)
   dl = ones(eltype(t),s-1)
@@ -118,6 +118,20 @@ function QuadraticSpline(u,t)
   tA = Tridiagonal(dl,d_tmp,du)
   d = map(i -> i == 1 ? 0 : 2//1 * (u[i] - u[i-1])/(t[i] - t[i-1]), 1:s)
   z = tA\d
+  QuadraticSpline{true}(u,t,tA,d,z)
+end
+
+function QuadraticSpline(u::uType,t) where {uType<:AbstractVector}
+  u, t = munge_data(u, t)
+  s = length(t)
+  dl = ones(eltype(t),s-1)
+  d_tmp = ones(eltype(t),s)
+  du = zeros(eltype(t),s-1)
+  tA = Tridiagonal(dl,d_tmp,du)
+  d_ = map(i -> i == 1 ? zeros(size(u[1])) : 2//1 * (u[i] - u[i-1])/(t[i] - t[i-1]), 1:s)
+  d = transpose(reshape(reduce(hcat, d_), :, s))
+  z_ = reshape(transpose(tA\d), size(u[1])..., :)
+  z = [z_s for z_s in eachslice(z_, dims=ndims(z_))]
   QuadraticSpline{true}(u,t,tA,d,z)
 end
 
@@ -130,16 +144,31 @@ struct CubicSpline{uType,tType,hType,zType,FT,T} <: AbstractInterpolation{FT,T}
   CubicSpline{FT}(u,t,h,z) where FT = new{typeof(u),typeof(t),typeof(h),typeof(z),FT,eltype(u)}(u,t,h,z)
 end
 
-function CubicSpline(u,t)
+function CubicSpline(u::uType,t) where {uType<:AbstractVector{<:Number}}
   u, t = munge_data(u, t)
   n = length(t) - 1
   h = vcat(0, map(k -> t[k+1] - t[k], 1:length(t)-1), 0)
   dl = h[2:n+1]
   d_tmp = 2 .* (h[1:n+1] .+ h[2:n+2])
   du = h[2:n+1]
-  tA = LinearAlgebra.Tridiagonal(dl,d_tmp,du)
+  tA = Tridiagonal(dl,d_tmp,du)
   d = map(i -> i == 1 || i == n + 1 ? 0 : 6(u[i+1] - u[i]) / h[i+1] - 6(u[i] - u[i-1]) / h[i], 1:n+1)
   z = tA\d
+  CubicSpline{true}(u,t,h[1:n+1],z)
+end
+
+function CubicSpline(u::uType,t) where {uType<:AbstractVector}
+  u, t = munge_data(u, t)
+  n = length(t) - 1
+  h = vcat(0, map(k -> t[k+1] - t[k], 1:length(t)-1), 0)
+  dl = h[2:n+1]
+  d_tmp = 2 .* (h[1:n+1] .+ h[2:n+2])
+  du = h[2:n+1]
+  tA = Tridiagonal(dl,d_tmp,du)
+  d_ = map(i -> i == 1 || i == n + 1 ? zeros(size(u[1])) : 6(u[i+1] - u[i]) / h[i+1] - 6(u[i] - u[i-1]) / h[i], 1:n+1)
+  d = transpose(reshape(reduce(hcat, d_), :, n+1))
+  z_ = reshape(transpose(tA\d), size(u[1])...,:)
+  z = [z_s for z_s in eachslice(z_, dims=ndims(z_))]
   CubicSpline{true}(u,t,h[1:n+1],z)
 end
 
