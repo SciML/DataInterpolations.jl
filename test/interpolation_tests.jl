@@ -22,7 +22,7 @@ using StableRNGs
     @test A(0)        == [0.0, 0.0]
     @test A(5.5)      == [11.0, 16.5]
     @test A(11)       == [22, 33]
-  
+
     x = 1:10
     y = 2:4
     u_= x' .* y
@@ -81,6 +81,42 @@ using StableRNGs
     @test A(3.0) == 2.0
     @test isnan(A(3.5))
     @test isnan(A(4.0))
+
+    # Test type stability
+    u = Float32.(1:5)
+    t = Float32.(1:5)
+    A = LinearInterpolation(u, t)
+    @test Core.Compiler.return_type(A, Tuple{Float32}) == Float32
+    @test Core.Compiler.return_type(A, Tuple{Float64}) == Float64
+    @test Core.Compiler.return_type(A, Tuple{Int32}) == Float32
+    @test Core.Compiler.return_type(A, Tuple{Int64}) == Float32
+
+    u = 1:5
+    t = 1:5
+    A = LinearInterpolation(u, t)
+    @test Core.Compiler.return_type(A, Tuple{Float32}) == Float32
+    @test Core.Compiler.return_type(A, Tuple{Float64}) == Float64
+    @test Core.Compiler.return_type(A, Tuple{Int32}) == Float64
+    @test Core.Compiler.return_type(A, Tuple{Int64}) == Float64
+
+    u = [1//i for i in 1:5]
+    t = (1:5)
+    A = LinearInterpolation(u, t)
+    @test Core.Compiler.return_type(A, Tuple{Float32}) == Float32
+    @test Core.Compiler.return_type(A, Tuple{Float64}) == Float64
+    @test Core.Compiler.return_type(A, Tuple{Int32}) == Float64
+    @test Core.Compiler.return_type(A, Tuple{Int64}) == Float64
+    @test Core.Compiler.return_type(A, Tuple{Rational{Int64}}) == Rational{Int64}
+
+    u = [1//i for i in 1:5]
+    t = [1//(6-i) for i in 1:5]
+    A = LinearInterpolation(u, t)
+    @test Core.Compiler.return_type(A, Tuple{Float32}) == Float32
+    @test Core.Compiler.return_type(A, Tuple{Float64}) == Float64
+    @test Core.Compiler.return_type(A, Tuple{Int32}) == Rational{Int64}
+    @test Core.Compiler.return_type(A, Tuple{Int64}) == Rational{Int64}
+    @test Core.Compiler.return_type(A, Tuple{Rational{Int32}}) == Rational{Int64}
+    @test Core.Compiler.return_type(A, Tuple{Rational{Int64}}) == Rational{Int64}
 end
 
 @testset "Quadratic Interpolation" begin
@@ -252,7 +288,7 @@ end
     end
 
     @testset "Vector of Vectors case" for u in
-        [[[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]], 
+        [[[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]],
         [["B", "C"], ["A", "B"], ["B", "C"], ["A", "B"]]]
 
         A = ConstantInterpolation(u, t, dir=:right)
@@ -279,7 +315,7 @@ end
     end
 
     @testset "Vector of Matrices case" for u in
-        [[[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]], 
+        [[[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]],
         [["B" "C"; "B" "C"], ["A" "B"; "A" "B"], ["B" "C"; "B" "C"], ["A" "B"; "A" "B"]]]
 
         A = ConstantInterpolation(u, t, dir=:right)
