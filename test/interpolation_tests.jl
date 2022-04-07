@@ -85,38 +85,31 @@ using StableRNGs
     # Test type stability
     u = Float32.(1:5)
     t = Float32.(1:5)
-    A = LinearInterpolation(u, t)
-    @test Core.Compiler.return_type(A, Tuple{Float32}) == Float32
-    @test Core.Compiler.return_type(A, Tuple{Float64}) == Float64
-    @test Core.Compiler.return_type(A, Tuple{Int32}) == Float32
-    @test Core.Compiler.return_type(A, Tuple{Int64}) == Float32
-
+    A1 = LinearInterpolation(u, t)
     u = 1:5
     t = 1:5
-    A = LinearInterpolation(u, t)
-    @test Core.Compiler.return_type(A, Tuple{Float32}) == Float32
-    @test Core.Compiler.return_type(A, Tuple{Float64}) == Float64
-    @test Core.Compiler.return_type(A, Tuple{Int32}) == Float64
-    @test Core.Compiler.return_type(A, Tuple{Int64}) == Float64
-
+    A2 = LinearInterpolation(u, t)
     u = [1//i for i in 1:5]
     t = (1:5)
-    A = LinearInterpolation(u, t)
-    @test Core.Compiler.return_type(A, Tuple{Float32}) == Float32
-    @test Core.Compiler.return_type(A, Tuple{Float64}) == Float64
-    @test Core.Compiler.return_type(A, Tuple{Int32}) == Float64
-    @test Core.Compiler.return_type(A, Tuple{Int64}) == Float64
-    @test Core.Compiler.return_type(A, Tuple{Rational{Int64}}) == Rational{Int64}
-
+    A3 = LinearInterpolation(u, t)
     u = [1//i for i in 1:5]
     t = [1//(6-i) for i in 1:5]
-    A = LinearInterpolation(u, t)
-    @test Core.Compiler.return_type(A, Tuple{Float32}) == Float32
-    @test Core.Compiler.return_type(A, Tuple{Float64}) == Float64
-    @test Core.Compiler.return_type(A, Tuple{Int32}) == Rational{Int64}
-    @test Core.Compiler.return_type(A, Tuple{Int64}) == Rational{Int64}
-    @test Core.Compiler.return_type(A, Tuple{Rational{Int32}}) == Rational{Int64}
-    @test Core.Compiler.return_type(A, Tuple{Rational{Int64}}) == Rational{Int64}
+    A4 = LinearInterpolation(u, t)
+
+    F32 = Float32(1)
+    F64 = Float64(1)
+    I32 = Int32(1)
+    I64 = Int64(1)
+    R32 = Int32(1)//Int32(1)
+    R64 = 1//1
+    for A in [A1, A2, A3, A4]
+        @test @inferred(A(F32)) === A(F32)
+        @test @inferred(A(F64)) === A(F64)
+        @test @inferred(A(I32)) === A(I32)
+        @test @inferred(A(I64)) === A(I64)
+        @test @inferred(A(R32)) === A(R32)
+        @test @inferred(A(R64)) === A(R64)
+    end
 end
 
 @testset "Quadratic Interpolation" begin
