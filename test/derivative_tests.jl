@@ -53,6 +53,20 @@ A = LagrangeInterpolation(u,t)
 
 test_derivatives(A, t, "Lagrange Interpolation (Matrix)")
 
+# Lagrange Interpolation
+u = [[1.0, 4.0, 9.0], [3.0, 7.0, 4.0], [5.0, 4.0, 1.0]]
+t = [1.0, 2.0, 3.0]
+A = LagrangeInterpolation(u,t)
+
+test_derivatives(A, t, "Lagrange Interpolation (Vector of Vectors)")
+
+# Lagrange Interpolation
+u = [[3.0 1.0 4.0; 1.0 5.0 9.0], [2.0 6.0 5.0; 3.0 5.0 8.0], [9.0 7.0 9.0; 3.0 2.0 3.0]]
+t = [1.0, 2.0, 3.0]
+A = LagrangeInterpolation(u,t)
+
+test_derivatives(A, t, "Lagrange Interpolation (Vector of Matrices)")
+
 # Akima Interpolation
 u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
 t = collect(0.0:10.0)
@@ -66,7 +80,23 @@ t = [-1.0, 0.0, 1.0]
 
 A = QuadraticSpline(u,t)
 
-test_derivatives(A, t, "Quadratic Interpolation")
+test_derivatives(A, t, "Quadratic Interpolation (Vector)")
+
+# QuadraticSpline Interpolation
+u = [[1.0, 2.0, 9.0], [3.0, 7.0, 5.0], [5.0, 4.0, 1.0]]
+t = [-1.0, 0.0, 1.0]
+
+A = QuadraticSpline(u,t)
+
+test_derivatives(A, t, "Quadratic Interpolation (Vector of Vectors)")
+
+# QuadraticSpline Interpolation
+u = [[1.0 4.0 9.0; 5.0 9.0 2.0], [3.0 7.0 4.0; 6.0 5.0 3.0], [5.0 4.0 1.0; 2.0 3.0 8.0]]
+t = [-1.0, 0.0, 1.0]
+
+A = QuadraticSpline(u,t)
+
+test_derivatives(A, t, "Quadratic Interpolation (Vector of Matrices)")
 
 # CubicSpline Interpolation
 u = [0.0, 1.0, 3.0]
@@ -74,7 +104,23 @@ t = [-1.0, 0.0, 1.0]
 
 A = CubicSpline(u,t)
 
-test_derivatives(A, t, "Cubic Spline Interpolation")
+test_derivatives(A, t, "Cubic Spline Interpolation (Vector)")
+
+# CubicSpline Interpolation
+u = [[1.0, 2.0, 9.0], [3.0, 7.0, 5.0], [5.0, 4.0, 1.0]]
+t = [-1.0, 0.0, 1.0]
+
+A = CubicSpline(u,t)
+
+test_derivatives(A, t, "Cubic Spline Interpolation (Vector of Vectors)")
+
+# CubicSpline Interpolation
+u = [[1.0 4.0 9.0; 5.0 9.0 2.0], [3.0 7.0 4.0; 6.0 5.0 3.0], [5.0 4.0 1.0; 2.0 3.0 8.0]]
+t = [-1.0, 0.0, 1.0]
+
+A = CubicSpline(u,t)
+
+test_derivatives(A, t, "Cubic Spline Interpolation (Vector of Matrices)")
 
 # BSpline Interpolation and Approximation
 t = [0,62.25,109.66,162.66,205.8,252.3]
