@@ -5,8 +5,9 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number)
     u1, u2 = A.u[idx], A.u[idx+1]
     θ = (t - t1)/(t2 - t1)
     val = (1 - θ)*u1 + θ*u2
-    t == t1 && return oftype(val, u1) # Return exact value if no interpolation needed (eg when NaN at t2)
-    t == t2 && return oftype(val, u2) # ... (eg when NaN at t1)
+    # Note: The following is limited to when val is NaN as to not change the derivative.
+    t == t1 && isnan(val) && return oftype(val, u1) # Return exact value if no interpolation needed (eg when NaN at t2)
+    t == t2 && isnan(val) && return oftype(val, u2) # ... (eg when NaN at t1)
     val
 end
 
