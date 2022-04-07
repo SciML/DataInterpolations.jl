@@ -1,5 +1,6 @@
 using DataInterpolations, Test
 using StableRNGs
+import ForwardDiff
 
 @testset "Linear Interpolation" begin
     u = 2.0collect(1:10)
@@ -110,6 +111,13 @@ using StableRNGs
         @test @inferred(A(R32)) === A(R32)
         @test @inferred(A(R64)) === A(R64)
     end
+
+    # Nan time value:
+    t = 0:3;
+    u = [0, -2, -1, -2];
+    A = LinearInterpolation(u, t);
+    dA = t -> ForwardDiff.derivative(A, t)
+    @test isnan(dA(NaN))
 end
 
 @testset "Quadratic Interpolation" begin

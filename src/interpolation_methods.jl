@@ -1,8 +1,13 @@
 # Linear Interpolation
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number)
-    idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
-    t1, t2 = A.t[idx], A.t[idx+1]
-    u1, u2 = A.u[idx], A.u[idx+1]
+    if isnan(t)
+        t1 = t2 = eltype(A.t)(NaN)
+        u1 = u2 = one(eltype(A.u))
+    else
+        idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
+        t1, t2 = A.t[idx], A.t[idx+1]
+        u1, u2 = A.u[idx], A.u[idx+1]
+    end
     θ = (t - t1)/(t2 - t1)
     val = (1 - θ)*u1 + θ*u2
     # Note: The following is limited to when val is NaN as to not change the derivative.
