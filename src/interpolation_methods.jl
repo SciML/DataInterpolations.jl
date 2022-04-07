@@ -121,7 +121,7 @@ function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number)
 end
 
 # QuadraticSpline Interpolation
-function _interpolate(A::QuadraticSpline{<:AbstractVector{<:Number}}, t::Number)
+function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number)
   i = min(max(2, searchsortedfirst(A.t, t)), length(A.t))
   Cᵢ = A.u[i-1]
   σ = 1//2 * (A.z[i] - A.z[i-1])/(A.t[i] - A.t[i-1])
@@ -129,7 +129,7 @@ function _interpolate(A::QuadraticSpline{<:AbstractVector{<:Number}}, t::Number)
 end
 
 # CubicSpline Interpolation
-function _interpolate(A::CubicSpline{<:AbstractVector{<:Number}}, t::Number)
+function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number)
   i = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
   I = A.z[i] * (A.t[i+1] - t)^3 / (6A.h[i+1]) + A.z[i+1] * (t - A.t[i])^3 / (6A.h[i+1])
   C = (A.u[i+1]/A.h[i+1] - A.z[i+1]*A.h[i+1]/6)*(t - A.t[i])

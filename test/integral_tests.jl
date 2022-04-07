@@ -33,7 +33,7 @@ t = [-1.0, 0.0, 1.0]
 
 A = QuadraticSpline(u,t)
 
-test_integral(A, t, "Quadratic Interpolation")
+test_integral(A, t, "Quadratic Interpolation (Vector)")
 
 # CubicSpline Interpolation
 u = [0.0, 1.0, 3.0]
@@ -41,4 +41,4 @@ t = [-1.0, 0.0, 1.0]
 
 A = CubicSpline(u,t)
 
-test_integral(A, t, "Cubic Spline Interpolation")
+test_integral(A, t, "Cubic Spline Interpolation (Vector)")

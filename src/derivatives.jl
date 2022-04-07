@@ -135,7 +135,7 @@ function derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number)
 end
 
 # QuadraticSpline Interpolation
-function derivative(A::QuadraticSpline{<:AbstractVector{<:Number}}, t::Number)
+function derivative(A::QuadraticSpline{<:AbstractVector}, t::Number)
   i = searchsortedfirst(A.t, t)
   i == 1 ? i += 1 : nothing
   σ = 1//2 * (A.z[i] - A.z[i - 1]) / (A.t[i] - A.t[i - 1])
@@ -143,7 +143,7 @@ function derivative(A::QuadraticSpline{<:AbstractVector{<:Number}}, t::Number)
 end
 
 # CubicSpline Interpolation
-function derivative(A::CubicSpline{<:AbstractVector{<:Number}}, t::Number)
+function derivative(A::CubicSpline{<:AbstractVector}, t::Number)
   i = searchsortedfirst(A.t, t)
   isnothing(i) ? i = length(A.t) - 1 : i -= 1
   i == 0 ? i += 1 : nothing

@@ -22,48 +22,65 @@ using StableRNGs
     @test A(0)        == [0.0, 0.0]
     @test A(5.5)      == [11.0, 16.5]
     @test A(11)       == [22, 33]
+  
+    x = 1:10
+    y = 2:4
+    u_= x' .* y
+    u = [u_[:,i] for i = 1:size(u_,2)]
+    A = LinearInterpolation(u,t)
+    @test A(0)        == [0.0, 0.0, 0.0]
+    @test A(5.5)      == [11.0, 16.5, 22.0]
+    @test A(11)       == [22.0, 33.0, 44.0]
 
-        # with NaNs (#113)
-        u = [NaN, 1.0, 2.0, 3.0]
-        t = 1:4
-        A = LinearInterpolation(u, t)
-        @test isnan(A(1.0))
-        @test A(2.0) == 1.0
-        @test A(2.5) == 1.5
-        @test A(3.0) == 2.0
-        @test A(4.0) == 3.0
+    u = [u_[:,i:i+1] for i = 1:2:10]
+    t = 1.0collect(2:2:10)
+    A = LinearInterpolation(u,t)
 
-        u = [0.0, NaN, 2.0, 3.0]
-        A = LinearInterpolation(u, t)
-        @test A(1.0) == 0.0
-        @test isnan(A(2.0))
-        @test isnan(A(2.5))
-        @test A(3.0) == 2.0
-        @test A(4.0) == 3.0
+    @test A(0)        == [-2.0 0.0; -3.0 0.0; -4.0 0.0]
+    @test A(3)        == [4.0 6.0; 6.0 9.0; 8.0 12.0]
+    @test A(5)        == [8.0 10.0; 12.0 15.0; 16.0 20.0]
 
-        u = [0.0, NaN, 2.0, 3.0]
-        A = LinearInterpolation(u, t)
-        @test A(1.0) == 0.0
-        @test isnan(A(2.0))
-        @test isnan(A(2.5))
-        @test A(3.0) == 2.0
-        @test A(4.0) == 3.0
+    # with NaNs (#113)
+    u = [NaN, 1.0, 2.0, 3.0]
+    t = 1:4
+    A = LinearInterpolation(u, t)
+    @test isnan(A(1.0))
+    @test A(2.0) == 1.0
+    @test A(2.5) == 1.5
+    @test A(3.0) == 2.0
+    @test A(4.0) == 3.0
 
-        u = [0.0, 1.0, NaN, 3.0]
-        A = LinearInterpolation(u, t)
-        @test A(1.0) == 0.0
-        @test A(2.0) == 1.0
-        @test isnan(A(2.5))
-        @test isnan(A(3.0))
-        @test A(4.0) == 3.0
+    u = [0.0, NaN, 2.0, 3.0]
+    A = LinearInterpolation(u, t)
+    @test A(1.0) == 0.0
+    @test isnan(A(2.0))
+    @test isnan(A(2.5))
+    @test A(3.0) == 2.0
+    @test A(4.0) == 3.0
 
-        u = [0.0, 1.0, 2.0, NaN]
-        A = LinearInterpolation(u, t)
-        @test A(1.0) == 0.0
-        @test A(2.0) == 1.0
-        @test A(3.0) == 2.0
-        @test isnan(A(3.5))
-        @test isnan(A(4.0))
+    u = [0.0, NaN, 2.0, 3.0]
+    A = LinearInterpolation(u, t)
+    @test A(1.0) == 0.0
+    @test isnan(A(2.0))
+    @test isnan(A(2.5))
+    @test A(3.0) == 2.0
+    @test A(4.0) == 3.0
+
+    u = [0.0, 1.0, NaN, 3.0]
+    A = LinearInterpolation(u, t)
+    @test A(1.0) == 0.0
+    @test A(2.0) == 1.0
+    @test isnan(A(2.5))
+    @test isnan(A(3.0))
+    @test A(4.0) == 3.0
+
+    u = [0.0, 1.0, 2.0, NaN]
+    A = LinearInterpolation(u, t)
+    @test A(1.0) == 0.0
+    @test A(2.0) == 1.0
+    @test A(3.0) == 2.0
+    @test isnan(A(3.5))
+    @test isnan(A(4.0))
 end
 
 @testset "Quadratic Interpolation" begin
@@ -83,7 +100,7 @@ end
     u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
     A = QuadraticInterpolation(u,t)
 
-  for (_t, _u) in zip(t, eachcol(u))
+    for (_t, _u) in zip(t, eachcol(u))
         @test A(_t) == _u
     end
     @test A(0.0) == [0.0  ,  0.0 ]
@@ -91,6 +108,23 @@ end
     @test A(2.5) == [6.25 ,  6.25]
     @test A(3.5) == [12.25, 12.25]
     @test A(5.0) == [25.0 , 25.0 ]
+
+    u_= [1.0, 4.0, 9.0, 16.0]' .* ones(5)
+    u = [u_[:,i] for i = 1:size(u_,2)]
+    A = QuadraticInterpolation(u,t)
+    @test A(0)   == zeros(5)
+    @test A(1.5) == 2.25 * ones(5)
+    @test A(2.5) == 6.25 * ones(5)
+    @test A(3.5) == 12.25 * ones(5)
+    @test A(5.0) == 25.0 * ones(5)
+
+    u = [repeat(u[i], 1, 3) for i=1:4]
+    A = QuadraticInterpolation(u,t)
+    @test A(0)   == zeros(5, 3)
+    @test A(1.5) == 2.25 * ones(5, 3)
+    @test A(2.5) == 6.25 * ones(5, 3)
+    @test A(3.5) == 12.25 * ones(5, 3)
+    @test A(5.0) == 25.0 * ones(5, 3)
 end
 
 @testset "Lagrange Interpolation" begin
@@ -115,6 +149,30 @@ end
     @test A(2.0) == [4.0,4.0]
     @test A(1.5) ≈ [2.25,2.25]
     @test A(3.5) ≈ [12.25,12.25]
+
+    u_= [1.0, 4.0, 9.0]' .* ones(4)
+    u = [u_[:,i] for i = 1:size(u_,2)]
+    t = [1.0, 2.0, 3.0]
+    A = LagrangeInterpolation(u,t)
+
+    @test A(2.0) == 4.0 * ones(4)
+    @test A(1.5) == 2.25 * ones(4)
+
+    u_= [1.0, 8.0, 27.0, 64.0]' .* ones(4)
+    u = [u_[:,i] for i = 1:size(u_,2)]
+    t = [1.0, 2.0, 3.0, 4.0]
+    A = LagrangeInterpolation(u,t)
+
+    @test A(2.0) == 8.0 * ones(4)
+    @test A(1.5) ≈ 3.375 * ones(4)
+    @test A(3.5) ≈ 42.875 * ones(4)
+
+    u = [repeat(u[i], 1, 3) for i=1:4]
+    A = LagrangeInterpolation(u,t)
+
+    @test A(2.0) == 8.0 * ones(4, 3)
+    @test A(1.5) ≈ 3.375 * ones(4, 3)
+    @test A(3.5) ≈ 42.875 * ones(4, 3)
 end
 
 @testset "Akima Interpolation" begin
@@ -192,6 +250,60 @@ end
         @test A(4.0) == u[:,1]
         @test A(4.5) == u[:,1]
     end
+
+    @testset "Vector of Vectors case" for u in
+        [[[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]], 
+        [["B", "C"], ["A", "B"], ["B", "C"], ["A", "B"]]]
+
+        A = ConstantInterpolation(u, t, dir=:right)
+        @test A(0.5) == u[1]
+        @test A(1.0) == u[1]
+        @test A(1.5) == u[2]
+        @test A(2.0) == u[2]
+        @test A(2.5) == u[3]
+        @test A(3.0) == u[3]
+        @test A(3.5) == u[4]
+        @test A(4.0) == u[4]
+        @test A(4.5) == u[4]
+
+        A = ConstantInterpolation(u, t) # dir=:left is default
+        @test A(0.5) == u[1]
+        @test A(1.0) == u[1]
+        @test A(1.5) == u[1]
+        @test A(2.0) == u[2]
+        @test A(2.5) == u[2]
+        @test A(3.0) == u[3]
+        @test A(3.5) == u[3]
+        @test A(4.0) == u[4]
+        @test A(4.5) == u[4]
+    end
+
+    @testset "Vector of Matrices case" for u in
+        [[[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]], 
+        [["B" "C"; "B" "C"], ["A" "B"; "A" "B"], ["B" "C"; "B" "C"], ["A" "B"; "A" "B"]]]
+
+        A = ConstantInterpolation(u, t, dir=:right)
+        @test A(0.5) == u[1]
+        @test A(1.0) == u[1]
+        @test A(1.5) == u[2]
+        @test A(2.0) == u[2]
+        @test A(2.5) == u[3]
+        @test A(3.0) == u[3]
+        @test A(3.5) == u[4]
+        @test A(4.0) == u[4]
+        @test A(4.5) == u[4]
+
+        A = ConstantInterpolation(u, t) # dir=:left is default
+        @test A(0.5) == u[1]
+        @test A(1.0) == u[1]
+        @test A(1.5) == u[1]
+        @test A(2.0) == u[2]
+        @test A(2.5) == u[2]
+        @test A(3.0) == u[3]
+        @test A(3.5) == u[3]
+        @test A(4.0) == u[4]
+        @test A(4.5) == u[4]
+    end
 end
 
 @testset "QuadraticSpline Interpolation" begin
@@ -211,6 +323,21 @@ end
     @test A(-0.5) == P₁(-0.5)
     @test A(0.7)  == P₂( 0.7)
     @test A(2.0)  == P₂( 2.0)
+
+    u_= [0.0, 1.0, 3.0]' .* ones(4)
+    u = [u_[:,i] for i = 1:size(u_,2)]
+    A = QuadraticSpline(u,t)
+    @test A(-2.0) == P₁(-2.0) * ones(4)
+    @test A(-0.5) == P₁(-0.5) * ones(4)
+    @test A(0.7)  == P₂( 0.7) * ones(4)
+    @test A(2.0)  == P₂( 2.0) * ones(4)
+
+    u = [repeat(u[i], 1, 3) for i=1:3]
+    A = QuadraticSpline(u,t)
+    @test A(-2.0) == P₁(-2.0) * ones(4, 3)
+    @test A(-0.5) == P₁(-0.5) * ones(4, 3)
+    @test A(0.7)  == P₂( 0.7) * ones(4, 3)
+    @test A(2.0)  == P₂( 2.0) * ones(4, 3)
 end
 
 
@@ -232,6 +359,25 @@ end
     end
     for x in (0.3, 0.5, 1.5)
         @test A(x) ≈ P₂(x)
+    end
+
+    u_= [0.0, 1.0, 3.0]' .* ones(4)
+    u = [u_[:,i] for i = 1:size(u_,2)]
+    A = CubicSpline(u,t)
+    for x in (-1.5, -0.5, -0.7)
+        @test A(x) ≈ P₁(x) * ones(4)
+    end
+    for x in (0.3, 0.5, 1.5)
+        @test A(x) ≈ P₂(x) * ones(4)
+    end
+
+    u = [repeat(u[i], 1, 3) for i=1:3]
+    A = CubicSpline(u,t)
+    for x in (-1.5, -0.5, -0.7)
+        @test A(x) ≈ P₁(x) * ones(4, 3)
+    end
+    for x in (0.3, 0.5, 1.5)
+        @test A(x) ≈ P₂(x) * ones(4, 3)
     end
 end
 

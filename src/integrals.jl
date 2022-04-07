@@ -23,7 +23,7 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
 end
 
 samples(A::LinearInterpolation{<:AbstractVector}) = (0, 1)
-function _integral(A::LinearInterpolation{<:AbstractVector}, idx::Number, t::Number)
+function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}}, idx::Number, t::Number)
   t1 = A.t[idx]
   t2 = A.t[idx+1]
   u1 = A.u[idx]
@@ -43,7 +43,7 @@ function _integral(A::ConstantInterpolation{<:AbstractVector}, idx::Number, t::N
 end
 
 samples(A::QuadraticInterpolation{<:AbstractVector}) = (0, 2)
-function _integral(A::QuadraticInterpolation{<:AbstractVector}, idx::Number, t::Number)
+function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}}, idx::Number, t::Number)
   t1 = A.t[idx]
   t2 = A.t[idx+1]
   t3 = A.t[idx+2]
@@ -58,8 +58,8 @@ function _integral(A::QuadraticInterpolation{<:AbstractVector}, idx::Number, t::
   (t1^2*t2 - t1^2*t3 - t1*t2^2 + t1*t3^2 + t2^2*t3 - t2*t3^2))
 end
 
-samples(A::QuadraticSpline{<:AbstractVector}) = (0, 1)
-function _integral(A::QuadraticSpline{<:AbstractVector}, idx::Number, t::Number)
+samples(A::QuadraticSpline{<:AbstractVector{<:Number}}) = (0, 1)
+function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
   t1 = A.t[idx]
   t2 = A.t[idx+1]
   u1 = A.u[idx]
@@ -68,8 +68,8 @@ function _integral(A::QuadraticSpline{<:AbstractVector}, idx::Number, t::Number)
   t^3*(z1 - z2)/(6*t1 - 6*t2) + t^2*(t1*z2 - t2*z1)/(2*t1 - 2*t2) + t*(-t1^2*z1 - t1^2*z2 + 2*t1*t2*z1 + 2*t1*u1 - 2*t2*u1)/(2*t1 - 2*t2)
 end
 
-samples(A::CubicSpline{<:AbstractVector}) = (0, 1)
-function _integral(A::CubicSpline{<:AbstractVector}, idx::Number, t::Number)
+samples(A::CubicSpline{<:AbstractVector{<:Number}}) = (0, 1)
+function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
   t1 = A.t[idx]
   t2 = A.t[idx+1]
   u1 = A.u[idx]
