@@ -1,9 +1,13 @@
 # Linear Interpolation
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number)
-  idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
-  θ = (t - A.t[idx])/(A.t[idx + 1] - A.t[idx])
-  return (1 - θ)*A.u[idx] + θ*A.u[idx+1]
-end
+    idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
+    t1, t2 = A.t[idx], A.t[idx+1]
+    u1, u2 = A.u[idx], A.u[idx+1]
+    t == t1 && return u1 # Return exact value if no interpolation needed (eg when NaN at t2)
+    t == t2 && return u2 # ... (eg when NaN at t1)
+    θ = (t - t1)/(t2 - t1)
+    return (1 - θ)*u1 + θ*u2
+  end
 
 function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number)
   idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
