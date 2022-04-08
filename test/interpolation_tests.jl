@@ -113,7 +113,13 @@ import ForwardDiff
     end
 
     # Nan time value:
-    t = 0:3;
+    t = 0.0:3;  # Floats
+    u = [0, -2, -1, -2];
+    A = LinearInterpolation(u, t);
+    dA = t -> ForwardDiff.derivative(A, t)
+    @test isnan(dA(NaN))
+
+    t = 0:3;  # Integers
     u = [0, -2, -1, -2];
     A = LinearInterpolation(u, t);
     dA = t -> ForwardDiff.derivative(A, t)
