@@ -1,13 +1,21 @@
 # Linear Interpolation
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number)
-    idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
-    t1, t2 = A.t[idx], A.t[idx+1]
-    u1, u2 = A.u[idx], A.u[idx+1]
-    t == t1 && return u1 # Return exact value if no interpolation needed (eg when NaN at t2)
-    t == t2 && return u2 # ... (eg when NaN at t1)
+    if isnan(t)
+        # For correct derivative with NaN
+        t1 = t2 = one(eltype(A.t))
+        u1 = u2 = one(eltype(A.u))
+    else
+        idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))
+        t1, t2 = A.t[idx], A.t[idx+1]
+        u1, u2 = A.u[idx], A.u[idx+1]
+    end
     θ = (t - t1)/(t2 - t1)
-    return (1 - θ)*u1 + θ*u2
-  end
+    val = (1 - θ)*u1 + θ*u2
+    # Note: The following is limited to when val is NaN as to not change the derivative of exact points.
+    t == t1 && isnan(val) && return oftype(val, u1) # Return exact value if no interpolation needed (eg when NaN at t2)
+    t == t2 && isnan(val) && return oftype(val, u2) # ... (eg when NaN at t1)
+    val
+end
 
 function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number)
   idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 1))

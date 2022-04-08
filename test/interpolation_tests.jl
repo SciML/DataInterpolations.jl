@@ -1,5 +1,6 @@
 using DataInterpolations, Test
 using StableRNGs
+import ForwardDiff
 
 @testset "Linear Interpolation" begin
     u = 2.0collect(1:10)
@@ -22,7 +23,7 @@ using StableRNGs
     @test A(0)        == [0.0, 0.0]
     @test A(5.5)      == [11.0, 16.5]
     @test A(11)       == [22, 33]
-  
+
     x = 1:10
     y = 2:4
     u_= x' .* y
@@ -81,6 +82,54 @@ using StableRNGs
     @test A(3.0) == 2.0
     @test isnan(A(3.5))
     @test isnan(A(4.0))
+
+    # Test type stability
+    u = Float32.(1:5)
+    t = Float32.(1:5)
+    A1 = LinearInterpolation(u, t)
+    u = 1:5
+    t = 1:5
+    A2 = LinearInterpolation(u, t)
+    u = [1//i for i in 1:5]
+    t = (1:5)
+    A3 = LinearInterpolation(u, t)
+    u = [1//i for i in 1:5]
+    t = [1//(6-i) for i in 1:5]
+    A4 = LinearInterpolation(u, t)
+
+    F32 = Float32(1)
+    F64 = Float64(1)
+    I32 = Int32(1)
+    I64 = Int64(1)
+    R32 = Int32(1)//Int32(1)
+    R64 = 1//1
+    for A in [A1, A2, A3, A4]
+        @test @inferred(A(F32)) === A(F32)
+        @test @inferred(A(F64)) === A(F64)
+        @test @inferred(A(I32)) === A(I32)
+        @test @inferred(A(I64)) === A(I64)
+        @test @inferred(A(R32)) === A(R32)
+        @test @inferred(A(R64)) === A(R64)
+    end
+
+    # Nan time value:
+    t = 0.0:3;  # Floats
+    u = [0, -2, -1, -2];
+    A = LinearInterpolation(u, t);
+    dA = t -> ForwardDiff.derivative(A, t)
+    @test isnan(dA(NaN))
+
+    t = 0:3;  # Integers
+    u = [0, -2, -1, -2];
+    A = LinearInterpolation(u, t);
+    dA = t -> ForwardDiff.derivative(A, t)
+    @test isnan(dA(NaN))
+
+    # Test derivative at point gives derivative to the right (except last is to left):
+    ts = t[begin:end-1]
+    @test dA.(ts) == dA.(ts .+ 0.5)
+    # Test last derivitive is to the left:
+    @test dA(last(t)) == dA(last(t) - 0.5)
 end
 
 @testset "Quadratic Interpolation" begin
@@ -252,7 +301,7 @@ end
     end
 
     @testset "Vector of Vectors case" for u in
-        [[[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]], 
+        [[[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]],
         [["B", "C"], ["A", "B"], ["B", "C"], ["A", "B"]]]
 
         A = ConstantInterpolation(u, t, dir=:right)
@@ -279,7 +328,7 @@ end
     end
 
     @testset "Vector of Matrices case" for u in
-        [[[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]], 
+        [[[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]],
         [["B" "C"; "B" "C"], ["A" "B"; "A" "B"], ["B" "C"; "B" "C"], ["A" "B"; "A" "B"]]]
 
         A = ConstantInterpolation(u, t, dir=:right)
