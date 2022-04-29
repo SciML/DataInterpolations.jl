@@ -36,9 +36,9 @@ ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolati
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
 
-import Symbolics
-(interp::DataInterpolations.AbstractInterpolation)(t::Symbolics.Num) =
-    Symbolics.SymbolicUtils.term(interp,Symbolics.unwrap(t))
+using Symbolics: Num, unwrap, SymbolicUtils
+(interp::AbstractInterpolation)(t::Num) = SymbolicUtils.term(interp, unwrap(t))
+SymbolicUtils.promote_symtype(t::AbstractInterpolation, _...) = Real
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
