@@ -22,5 +22,5 @@ u = 2.0collect(1:10)
 t = 1.0collect(1:10)
 A = LinearInterpolation(u,t)
 
-@variables t
-A(t)
+@variables t x(t)
+substitute(A(t), Dict(t => x))
