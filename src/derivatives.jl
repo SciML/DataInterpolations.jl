@@ -119,11 +119,12 @@ function derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
 end
 
 function derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number)
+  t < A.t[1] && return zero(A.u[1])
+  t > A.t[end] && return zero(A.u[end])
   i = searchsortedlast(A.t, t)
-  i == 0 && return zero(A.u[1])
-  i == length(A.t) && return zero(A.u[end])
+  j = min(i, length(A.c))  # for smooth derivative at A.t[end]
   wj = t - A.t[i]
-  @evalpoly wj A.b[i] 2A.c[i] 3A.d[i]
+  @evalpoly wj A.b[i] 2A.c[j] 3A.d[j]
 end
 
 function derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
