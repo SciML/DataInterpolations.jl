@@ -74,6 +74,11 @@ A = AkimaInterpolation(u, t)
 
 test_derivatives(A, t, "Akima Interpolation")
 
+@testset "Akima smooth derivative at end points" begin
+    @test derivative(A, t[1]) ≈ derivative(A, nextfloat(t[1]))
+    @test derivative(A, t[end]) ≈ derivative(A, prevfloat(t[end]))
+end
+
 # QuadraticSpline Interpolation
 u = [0.0, 1.0, 3.0]
 t = [-1.0, 0.0, 1.0]
