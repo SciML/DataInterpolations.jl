@@ -160,7 +160,7 @@ end
     @test A(3.5) == 12.25
     @test A(5.0) == 25
 
-    
+    # Test both forward and backward-looking quadratic interpolation
     u = [1.0, 4.5, 6.0, 2.0]
     t = [1.0, 2.0, 3.0, 4.0]
     A_f = QuadraticInterpolation(u,t,:Forward)
