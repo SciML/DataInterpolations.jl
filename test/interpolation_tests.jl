@@ -172,11 +172,14 @@ end
     end
     l₀, l₁, l₂ = 0.375, 0.75, -0.125
     # In the first subinterval they're the same (no other option)
-    @test A_f(1.5) == l₀*u[1], l₁*u[2], l₂*u[3]
-    @test A_b(1.5) == l₀*u[1], l₁*u[2], l₂*u[3]
+    @test A_f(1.5) ≈ l₀*u[1] + l₁*u[2] + l₂*u[3]
+    @test A_b(1.5) ≈ l₀*u[1] + l₁*u[2] + l₂*u[3]
     # In the second subinterval they should be different
-    @test A_f(2.5) == l₀*u[2], l₁*u[3], l₂*u[4]
-    @test A_b(2.5) == l₂*u[1], l₁*u[2], l₀*u[3]
+    @test A_f(2.5) ≈ l₀*u[2] + l₁*u[3] + l₂*u[4]
+    @test A_b(2.5) ≈ l₂*u[1] + l₁*u[2] + l₀*u[3]
+    # In the last subinterval they should be the same again
+    @test A_f(3.5) ≈ l₂*u[2] + l₁*u[3] + l₀*u[4]
+    @test A_b(3.5) ≈ l₂*u[2] + l₁*u[3] + l₀*u[4]
 
     # Matrix interpolation test
     u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
