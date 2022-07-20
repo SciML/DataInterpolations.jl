@@ -21,12 +21,12 @@ struct QuadraticInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
   end
 end
 
-QuadraticInterpolation(u,t) = QuadraticInterpolation(u,t,:Forward)
-
-function QuadraticInterpolation(u,t)
+function QuadraticInterpolation(u,t,mode)
   u, t = munge_data(u, t)
-  QuadraticInterpolation{true}(u,t)
+  QuadraticInterpolation{true}(u,t,mode)
 end
+
+QuadraticInterpolation(u,t) = QuadraticInterpolation(u,t,:Forward)
 
 ### Lagrange Interpolation
 struct LagrangeInterpolation{uType,tType,FT,T,bcacheType} <: AbstractInterpolation{FT,T}
