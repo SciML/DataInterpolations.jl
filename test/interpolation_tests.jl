@@ -146,6 +146,39 @@ end
     @test A(3.5) == 12.25
     @test A(5.0) == 25
 
+    # backward-looking interpolation
+    u = [1.0, 4.0, 9.0, 16.0]
+    t = [1.0, 2.0, 3.0, 4.0]
+    A = QuadraticInterpolation(u,t,:Backward)
+
+    for (_t, _u) in zip(t, u)
+        @test A(_t) == _u
+    end
+    @test A(0.0) == 0.0
+    @test A(1.5) == 2.25
+    @test A(2.5) == 6.25
+    @test A(3.5) == 12.25
+    @test A(5.0) == 25
+
+    
+    u = [1.0, 4.5, 6.0, 2.0]
+    t = [1.0, 2.0, 3.0, 4.0]
+    A_f = QuadraticInterpolation(u,t,:Forward)
+    A_b = QuadraticInterpolation(u,t,:Backward)
+
+    for (_t, _u) in zip(t, u)
+        @test A_f(_t) == _u
+        @test A_b(_t) == _u
+    end
+    l₀, l₁, l₂ = 0.375, 0.75, -0.125
+    # In the first subinterval they're the same (no other option)
+    @test A_f(1.5) == l₀*u[1], l₁*u[2], l₂*u[3]
+    @test A_b(1.5) == l₀*u[1], l₁*u[2], l₂*u[3]
+    # In the second subinterval they should be different
+    @test A_f(2.5) == l₀*u[2], l₁*u[3], l₂*u[4]
+    @test A_b(2.5) == l₂*u[1], l₁*u[2], l₀*u[3]
+
+    # Matrix interpolation test
     u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
     A = QuadraticInterpolation(u,t)
 
