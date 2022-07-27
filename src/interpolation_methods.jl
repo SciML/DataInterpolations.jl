@@ -24,9 +24,15 @@ function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number)
 end
 
 # Quadratic Interpolation
+function _quad_interp_indices(A::QuadraticInterpolation, t::Number)
+  inner_idx = searchsortedlast(A.t, t)
+  A.mode == :Backward && (inner_idx -= 1)
+  idx = max(1, min(inner_idx, length(A.t) - 2))
+  idx, idx + 1, idx + 2
+end
+
 function _interpolate(A::QuadraticInterpolation{<:AbstractVector}, t::Number)
-  idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 2))
-  i₀, i₁, i₂ = idx, idx + 1, idx + 2
+  i₀, i₁, i₂ = _quad_interp_indices(A, t)
   l₀ = ((t - A.t[i₁])*(t - A.t[i₂]))/((A.t[i₀] - A.t[i₁])*(A.t[i₀] - A.t[i₂]))
   l₁ = ((t - A.t[i₀])*(t - A.t[i₂]))/((A.t[i₁] - A.t[i₀])*(A.t[i₁] - A.t[i₂]))
   l₂ = ((t - A.t[i₀])*(t - A.t[i₁]))/((A.t[i₂] - A.t[i₀])*(A.t[i₂] - A.t[i₁]))
@@ -34,8 +40,7 @@ function _interpolate(A::QuadraticInterpolation{<:AbstractVector}, t::Number)
 end
 
 function _interpolate(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number)
-  idx = max(1, min(searchsortedlast(A.t, t), length(A.t) - 2))
-  i₀, i₁, i₂ = idx, idx + 1, idx + 2
+  i₀, i₁, i₂ = _quad_interp_indices(A, t)
   l₀ = ((t - A.t[i₁])*(t - A.t[i₂]))/((A.t[i₀] - A.t[i₁])*(A.t[i₀] - A.t[i₂]))
   l₁ = ((t - A.t[i₀])*(t - A.t[i₂]))/((A.t[i₁] - A.t[i₀])*(A.t[i₁] - A.t[i₂]))
   l₂ = ((t - A.t[i₀])*(t - A.t[i₁]))/((A.t[i₂] - A.t[i₀])*(A.t[i₂] - A.t[i₁]))

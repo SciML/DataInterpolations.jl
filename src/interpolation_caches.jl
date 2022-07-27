@@ -14,13 +14,19 @@ end
 struct QuadraticInterpolation{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
   u::uType
   t::tType
-  QuadraticInterpolation{FT}(u,t) where FT = new{typeof(u),typeof(t),FT,eltype(u)}(u,t)
+  mode::Symbol
+  function QuadraticInterpolation{FT}(u,t,mode) where FT
+    mode ∈ (:Forward, :Backward) || error("mode should be :Forward or :Backward for QuadraticInterpolation")
+    new{typeof(u),typeof(t),FT,eltype(u)}(u,t,mode)
+  end
 end
 
-function QuadraticInterpolation(u,t)
+function QuadraticInterpolation(u,t,mode)
   u, t = munge_data(u, t)
-  QuadraticInterpolation{true}(u,t)
+  QuadraticInterpolation{true}(u,t,mode)
 end
+
+QuadraticInterpolation(u,t) = QuadraticInterpolation(u,t,:Forward)
 
 ### Lagrange Interpolation
 struct LagrangeInterpolation{uType,tType,FT,T,bcacheType} <: AbstractInterpolation{FT,T}

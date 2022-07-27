@@ -41,11 +41,14 @@ plot!(A)
 
 ### Quadratic Interpolation
 
-This function fits a parabola passing through three nearest points from input
-data point. It is continuous and piecewise differentiable.
+This function fits a parabola passing through the two nearest points from the input
+data point as well as the next-closest point in the right or the left, depending on
+whether the forward- or backward-looking mode is selected (default mode is 
+forward-looking). It is continuous and piecewise differentiable.
 
 ```julia
-A = QuadraticInterpolation(u,t)
+A = QuadraticInterpolation(u,t) # same as QuadraticInterpolation(u,t,:Forward)
+# alternatively: A = QuadraticInterpolation(u,t,:Backward)
 scatter(t, u, label="input data")
 plot!(A)
 ```
