@@ -19,16 +19,7 @@ function derivative(A::LinearInterpolation{<:AbstractMatrix}, t::Number)
 end
 
 function derivative(A::QuadraticInterpolation{<:AbstractVector}, t::Number)
-  idx = searchsortedfirst(A.t, t)
-  if A.t[idx] >= t
-    idx -= 1
-  end
-  idx == 0 ? idx += 1 : nothing
-  if idx == length(A.t) - 1
-    i₀ = idx - 1; i₁ = idx; i₂ = i₁ + 1;
-  else
-    i₀ = idx; i₁ = i₀ + 1; i₂ = i₁ + 1;
-  end
+  i₀, i₁, i₂ = _quad_interp_indices(A, t)
   dl₀ = (2t - A.t[i₁] - A.t[i₂]) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
   dl₁ = (2t - A.t[i₀] - A.t[i₂]) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
   dl₂ = (2t - A.t[i₀] - A.t[i₁]) / ((A.t[i₂] - A.t[i₀]) * (A.t[i₂] - A.t[i₁]))
