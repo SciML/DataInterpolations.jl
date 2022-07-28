@@ -34,10 +34,29 @@ A = QuadraticInterpolation(u,t)
 
 test_derivatives(A, t, "Quadratic Interpolation (Vector)")
 
+Ab = QuadraticInterpolation(u,t,:Backward)
+
+test_derivatives(Ab, t, "Quadratic Interpolation (Vector), backward")
+
 u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
 A = QuadraticInterpolation(u,t)
 
 test_derivatives(A, t, "Quadratic Interpolation (Matrix)")
+
+@testset "Backward Quadratic Interpolation" begin
+  u = [0.5, 0.0, 0.5, 0.0]
+  t = [1.0, 2.0, 3.0, 4.0]
+  A_f = QuadraticInterpolation(u,t)
+  A_b = QuadraticInterpolation(u,t,:Backward)
+  @test derivative(A_f, 1.5) ≈ -0.5
+  @test derivative(A_b, 1.5) ≈ -0.5
+  @test derivative(A_f, 2.25) ≈ 0.75
+  @test derivative(A_b, 2.25) ≈ 0.25
+  @test derivative(A_f, 2.75) ≈ 0.25
+  @test derivative(A_b, 2.75) ≈ 0.75
+  @test derivative(A_f, 3.5) ≈ -0.5
+  @test derivative(A_b, 3.5) ≈ -0.5
+end
 
 # Lagrange Interpolation
 u = [1.0, 4.0, 9.0]
