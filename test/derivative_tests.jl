@@ -44,7 +44,7 @@ A = QuadraticInterpolation(u,t)
 test_derivatives(A, t, "Quadratic Interpolation (Matrix)")
 
 @testset "Backward Quadratic Interpolation" begin
-  u = [1.0, 0.0, 1.0, 0.0]
+  u = [0.5, 0.0, 0.5, 0.0]
   t = [1.0, 2.0, 3.0, 4.0]
   A_f = QuadraticInterpolation(u,t)
   A_b = QuadraticInterpolation(u,t,:Backward)
