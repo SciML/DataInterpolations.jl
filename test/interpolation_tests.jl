@@ -103,7 +103,7 @@ import ForwardDiff
     I64 = Int64(1)
     R32 = Int32(1)//Int32(1)
     R64 = 1//1
-    for A in [A1, A2, A3, A4]
+    for A in Any[A1, A2, A3, A4]
         @test @inferred(A(F32)) === A(F32)
         @test @inferred(A(F64)) === A(F64)
         @test @inferred(A(I32)) === A(I32)
