@@ -16,7 +16,7 @@ locally, use the following Weave commands:
 
 ```julia
 using Weave, DataInterpolations
-weave(joinpath(dirname(pathof(DataInterpolations)), "../Example", "DataInterpolations.jmd"), out_path=:doc)
+weave(joinpath(dirname(pathof(DataInterpolations)), "../example", "DataInterpolations.jmd"), out_path=:doc)
 ```
 
 ## API
