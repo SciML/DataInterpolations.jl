@@ -144,7 +144,7 @@ demonstrate these methods.
 import StableRNGs: StableRNG
 rng = StableRNG(318)
 t = sort(10 .* rand(rng, 100))
-u = sin.(t) .+ 0.5 * randn(rng, 100);
+u = sin.(t) .+ 0.5 * randn(rng, 100)
 ```
 
 ### Curve Fits
