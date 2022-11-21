@@ -9,7 +9,6 @@ Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
-RegularizationTools = "29dad682-9a27-4bc3-9c72-016788665182"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [compat]
@@ -18,7 +17,6 @@ Optim = "0.19, 0.20, 0.21, 0.22, 1.0"
 RecipesBase = "0.8, 1.0"
 RecursiveArrayTools = "2"
 Reexport = "0.2, 1.0"
-RegularizationTools = "0.6"
 Symbolics = "4"
 julia = "1.6"
 
