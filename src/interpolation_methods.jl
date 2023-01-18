@@ -12,8 +12,8 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number)
     θ = (t - t1)/(t2 - t1)
     val = (1 - θ)*u1 + θ*u2
     # Note: The following is limited to when val is NaN as to not change the derivative of exact points.
-    t == t1 && isnan(val) && return oftype(val, u1) # Return exact value if no interpolation needed (eg when NaN at t2)
-    t == t2 && isnan(val) && return oftype(val, u2) # ... (eg when NaN at t1)
+    t == t1 && any(isnan, val) && return oftype(val, u1) # Return exact value if no interpolation needed (eg when NaN at t2)
+    t == t2 && any(isnan, val) && return oftype(val, u2) # ... (eg when NaN at t1)
     val
 end
 

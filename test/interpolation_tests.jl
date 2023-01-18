@@ -130,6 +130,14 @@ import ForwardDiff
     @test dA.(ts) == dA.(ts .+ 0.5)
     # Test last derivitive is to the left:
     @test dA(last(t)) == dA(last(t) - 0.5)
+
+    # Test array-valued interpolation
+    u = collect.(2.0collect(1:10))
+    t = 1.0collect(1:10)
+    A = LinearInterpolation(u,t)
+    @test A(0)        == fill(0.0)
+    @test A(5.5)      == fill(11.0)
+    @test A(11)       == fill(22)
 end
 
 @testset "Quadratic Interpolation" begin
