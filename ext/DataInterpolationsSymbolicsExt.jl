@@ -1,4 +1,4 @@
-module SymbolicsExt
+module DataInterpolationsSymbolicsExt
 
 using DataInterpolations: AbstractInterpolation
 using Symbolics: Num, unwrap, SymbolicUtils

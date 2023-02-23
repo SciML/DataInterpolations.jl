@@ -13,7 +13,7 @@ Base.setindex!(A::AbstractInterpolation,x,i) = A.u[i] = x
 Base.setindex!(A::AbstractInterpolation{true},x,i) =
     i <= length(A.u) ? (A.u[i] = x) : (A.t[i-length(A.u)] = x)
 
-using ChainRulesCore, LinearAlgebra, RecursiveArrayTools, RecipesBase, Reexport
+using LinearAlgebra, RecursiveArrayTools, RecipesBase, Reexport
 @reexport using Optim
 
 include("interpolation_caches.jl")
@@ -24,20 +24,11 @@ include("derivatives.jl")
 include("integrals.jl")
 include("online.jl")
 
-function ChainRulesCore.rrule(::typeof(_interpolate),
-                              A::Union{LagrangeInterpolation,AkimaInterpolation,
-                                       BSplineInterpolation,BSplineApprox}, t::Number)
-    interpolate_pullback(Δ) = (NoTangent(), NoTangent(), derivative(A, t) * Δ)
-    return _interpolate(A, t), interpolate_pullback
-end
-
-ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolation,
-                     t::Number) = _interpolate(A, t), derivative(A, t) * Δt
-
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
 
 if !isdefined(Base, :get_extension)
-    include("../ext/SymbolicsExt.jl")
+    include("../ext/DataInterpolationsChainRulesCoreExt.jl")
+    include("../ext/DataInterpolationsSymbolicsExt.jl")
 end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
