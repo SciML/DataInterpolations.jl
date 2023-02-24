@@ -1,6 +1,6 @@
 name = "DataInterpolations"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
-version = "3.11"
+version = "3.12"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -11,6 +11,14 @@ RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 RegularizationTools = "29dad682-9a27-4bc3-9c72-016788665182"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+
+[weakdeps]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+
+[extensions]
+DataInterpolationsChainRulesCoreExt = "ChainRulesCore"
+DataInterpolationsSymbolicsExt = "Symbolics"
 
 [compat]
 ChainRulesCore = "0.9.44, 0.10, 1"
@@ -26,6 +34,7 @@ julia = "1.6"
 SymbolicsExt = "Symbolics"
 
 [extras]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
@@ -33,8 +42,4 @@ StableRNGs = "860ef19b-820b-49d6-a774-d7a799459cd3"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
-[targets]
-test = ["Test", "StableRNGs", "FiniteDifferences", "QuadGK", "ForwardDiff", "Symbolics"]
-
-[weakdeps]
-Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+test = ["ChainRulesCore", "Test", "StableRNGs", "FiniteDifferences", "QuadGK", "ForwardDiff", "Symbolics"]
