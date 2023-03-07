@@ -47,7 +47,7 @@ jobs:
           # Process jmd
           julia --color=yes --code-coverage -e 'using Weave; weave("example/DataInterpolations.jmd")'
       - uses: julia-actions/julia-processcoverage@03114f09f119417c3242a9fb6e0b722676aedf38
-      - uses: codecov/codecov-action@29386c70ef20e286228c72b668a06fd0e8399192
+      - uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70
         with:
           file: lcov.info
 #   docs:
