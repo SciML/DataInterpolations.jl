@@ -28,7 +28,7 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@70655ec8323daeeaa7ef06d7c56e1b9191396cbe
+      - uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0
         env:
           cache-name: cache-artifacts
         with:
