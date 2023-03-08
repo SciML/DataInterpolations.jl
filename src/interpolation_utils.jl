@@ -114,11 +114,12 @@ function bracketstrictlymontonic(
   return lo, hi
 end
 
-for s in [:searchsortedfirstcorrelated, :searchsortedlastcorrelated]
-  @eval begin
-    function $s(v::AbstractVector, x, guess)
-      lo, hi = bracketstrictlymontonic(v, x, guess, Base.Order.Forward)
-      $s(v, x, lo, hi, Base.Order.Forward)
-    end
-  end
+function searchsortedfirstcorrelated(v::AbstractVector, x, guess)
+  lo, hi = bracketstrictlymontonic(v, x, guess, Base.Order.Forward)
+  searchsortedfirst(v, x, lo, hi, Base.Order.Forward)
+end
+
+function searchsortedlastcorrelated(v::AbstractVector, x, guess)
+  lo, hi = bracketstrictlymontonic(v, x, guess, Base.Order.Forward)
+  searchsortedlast(v, x, lo, hi, Base.Order.Forward)
 end
