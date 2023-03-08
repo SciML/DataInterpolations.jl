@@ -104,6 +104,11 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
   N/D
 end
 
+_interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, i) =
+  _interpolate(A, t), i
+_interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i) =
+  _interpolate(A, t), i
+
 function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
   i = searchsortedlast(A.t, t, iguess)
   i == 0 && return A.u[1], i
@@ -189,3 +194,5 @@ end
 function _interpolate(A::CurvefitCache{<:AbstractVector{<:Number}}, t::Union{AbstractVector{<:Number},Number})
   A.m(t,A.pmin)
 end
+_interpolate(A::CurvefitCache{<:AbstractVector{<:Number}}, t::Union{AbstractVector{<:Number},Number}, i) =
+  _interpolate(A, t), i

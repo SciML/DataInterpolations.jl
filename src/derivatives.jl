@@ -1,6 +1,5 @@
 derivative(A, t) = derivative(A, t, firstindex(A.t)-1)[1]
 
-
 function derivative(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
   idx = searchsortedfirst(A.t, t, iguess)
   if A.t[idx] >= t
@@ -111,6 +110,11 @@ function derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
   end
   @. (DG * F - G * DF) / (F ^ 2)
 end
+
+derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, i) =
+  derivative(A, t), i
+derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i) =
+  derivative(A, t), i
 
 function derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
   t < A.t[1] && return zero(A.u[1]), 1
