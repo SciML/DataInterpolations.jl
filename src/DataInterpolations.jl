@@ -28,9 +28,8 @@ include("online.jl")
 (interp::AbstractInterpolation)(t::Number, i::Integer) = _interpolate(interp, t, i)
 (interp::AbstractInterpolation)(t::AbstractVector) = interp(similar(t, eltype(interp)), t)
 function (interp::AbstractInterpolation)(u::AbstractVector, t::AbstractVector)
-  @assert length(u) == length(t)
   iguess = firstindex(interp.t)
-  @inbounds for i in eachindex(t)
+  @inbounds for i in eachindex(u, t)
     u[i], iguess = interp(t[i], iguess)
   end
   u
