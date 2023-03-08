@@ -1,7 +1,7 @@
 derivative(A, t) = derivative(A, t, firstindex(A.t)-1)[1]
 
 function derivative(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
-  idx = searchsortedfirst(A.t, t, iguess)
+  idx = searchsortedfirstcorrelated(A.t, t, iguess)
   if A.t[idx] >= t
     idx -= 1
   end
@@ -11,7 +11,7 @@ function derivative(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
 end
 
 function derivative(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
-  idx = searchsortedfirst(A.t, t, iguess)
+  idx = searchsortedfirstcorrelated(A.t, t, iguess)
   if A.t[idx] >= t
     idx -= 1
   end
@@ -29,7 +29,7 @@ function derivative(A::QuadraticInterpolation{<:AbstractVector}, t::Number, igue
 end
 
 function derivative(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number, iguess)
-  idx = searchsortedfirst(A.t, t, iguess)
+  idx = searchsortedfirstcorrelated(A.t, t, iguess)
   if A.t[idx] >= t
       idx -= 1
   end
@@ -119,7 +119,7 @@ derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i) =
 function derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
   t < A.t[1] && return zero(A.u[1]), 1
   t > A.t[end] && return zero(A.u[end]), lastindex(t)
-  i = searchsortedlast(A.t, t, iguess)
+  i = searchsortedlastcorrelated(A.t, t, iguess)
   j = min(i, length(A.c))  # for smooth derivative at A.t[end]
   wj = t - A.t[i]
   (@evalpoly wj A.b[i] 2A.c[j] 3A.d[j]), i
@@ -135,7 +135,7 @@ end
 
 # QuadraticSpline Interpolation
 function derivative(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
-  i = searchsortedfirst(A.t, t, iguess)
+  i = searchsortedfirstcorrelated(A.t, t, iguess)
   i == 1 ? i += 1 : nothing
   σ = 1//2 * (A.z[i] - A.z[i - 1]) / (A.t[i] - A.t[i - 1])
   A.z[i-1] + 2σ * (t - A.t[i-1]), i
@@ -143,7 +143,7 @@ end
 
 # CubicSpline Interpolation
 function derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
-  i = searchsortedfirst(A.t, t, iguess)
+  i = searchsortedfirstcorrelated(A.t, t, iguess)
   isnothing(i) ? i = length(A.t) - 1 : i -= 1
   i == 0 ? i += 1 : nothing
   dI = -3A.z[i] * (A.t[i + 1] - t)^2 / (6A.h[i + 1]) + 3A.z[i + 1] * (t - A.t[i])^2 / (6A.h[i + 1])
@@ -154,7 +154,7 @@ end
 
 function derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
   # change t into param [0 1]
-  idx = searchsortedlast(A.t,t, iguess)
+  idx = searchsortedlastcorrelated(A.t,t, iguess)
   idx == length(A.t) ? idx -= 1 : nothing
   n = length(A.t)
   scale = (A.p[idx+1] - A.p[idx]) / (A.t[idx+1] - A.t[idx])
@@ -170,7 +170,7 @@ end
 # BSpline Curve Approx
 function derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
   # change t into param [0 1]
-  idx = searchsortedlast(A.t,t, iguess)
+  idx = searchsortedlastcorrelated(A.t,t, iguess)
   idx == 0 ? idx += 1 : nothing
   scale = (A.p[idx+1] - A.p[idx]) / (A.t[idx+1] - A.t[idx])
   t_ = A.p[idx] + (t - A.t[idx]) * scale

@@ -114,9 +114,9 @@ function bracketstrictlymontonic(
   return lo, hi
 end
 
-for s in [:searchsortedfirst, :searchsortedlast]
+for s in [:searchsortedfirstcorrelated, :searchsortedlastcorrelated]
   @eval begin
-    function Base.$s(v::AbstractVector, x, guess)
+    function $s(v::AbstractVector, x, guess)
       lo, hi = bracketstrictlymontonic(v, x, guess, Base.Order.Forward)
       $s(v, x, lo, hi, Base.Order.Forward)
     end
