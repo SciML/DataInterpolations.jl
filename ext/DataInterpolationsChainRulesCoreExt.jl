@@ -1,8 +1,14 @@
 module DataInterpolationsChainRulesCoreExt
 
-using DataInterpolations: _interpolate, derivative, AbstractInterpolation,
-    LagrangeInterpolation, AkimaInterpolation, BSplineInterpolation, BSplineApprox
-using ChainRulesCore
+if isdefined(Base, :get_extension)
+    using DataInterpolations: _interpolate, derivative, AbstractInterpolation,
+        LagrangeInterpolation, AkimaInterpolation, BSplineInterpolation, BSplineApprox
+    using ChainRulesCore
+else
+    using ..DataInterpolations: _interpolate, derivative, AbstractInterpolation,
+        LagrangeInterpolation, AkimaInterpolation, BSplineInterpolation, BSplineApprox
+    using ..ChainRulesCore
+end
 
 function ChainRulesCore.rrule(
     ::typeof(_interpolate),

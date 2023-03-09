@@ -49,10 +49,15 @@ end
 
 export RegularizationSmooth
 
-if !isdefined(Base, :get_extension)
-    include("../ext/DataInterpolationsChainRulesCoreExt.jl")
-    include("../ext/DataInterpolationsSymbolicsExt.jl")
-    include("../ext/DataInterpolationsRegularizationToolsExt.jl")
+@static if !isdefined(Base, :get_extension)
+    using Requires
+end
+
+@static if !isdefined(Base, :get_extension)
+    function __init__()
+        Requires.@require ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4" begin include("../ext/DataInterpolationsChainRulesCoreExt.jl") end
+        Requires.@require Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7" begin include("../ext/DataInterpolationsSymbolicsExt.jl") end
+    end
 end
 
 # Deprecated April 2020
