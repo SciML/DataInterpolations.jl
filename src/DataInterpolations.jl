@@ -38,19 +38,19 @@ export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
-struct RegularizationSmooth{uType,tType,FT,T, T2} <: AbstractInterpolation{FT,T}
+struct RegularizationSmooth{uType, tType, FT, T, T2} <: AbstractInterpolation{FT,T}
     u::uType
     û::uType
     t::tType
     t̂::tType
     wls::uType
     wr::uType
-    d::Int              # derivative degree used to calculate the roughness
-    λ::T2    # regularization parameter
+    d::Int       # derivative degree used to calculate the roughness
+    λ::T2        # regularization parameter
     alg::Symbol  # how to determine λ: `:fixed`, `:gcv_svd`, `:gcv_tr`, `L_curve`
     Aitp::AbstractInterpolation{FT,T}
     RegularizationSmooth{FT}(u,û,t,t̂,wls,wr,d,λ,alg,Aitp) where FT =
-        new{typeof(u),typeof(t),FT,eltype(u)}(u,û,t,t̂,wls,wr,d,λ,alg,Aitp)
+        new{typeof(u), typeof(t), FT, eltype(u), typeof(λ)}(u,û,t,t̂,wls,wr,d,λ,alg,Aitp)
 end
 
 export RegularizationSmooth
