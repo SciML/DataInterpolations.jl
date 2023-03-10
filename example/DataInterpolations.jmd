@@ -43,7 +43,7 @@ plot!(A)
 
 This function fits a parabola passing through the two nearest points from the input
 data point as well as the next-closest point in the right or the left, depending on
-whether the forward- or backward-looking mode is selected (default mode is 
+whether the forward- or backward-looking mode is selected (default mode is
 forward-looking). It is continuous and piecewise differentiable.
 
 ```julia
@@ -140,7 +140,7 @@ plot!(A)
 Smoothing by regularization (a.k.a. ridge regression) finds a function ``\hat{u}``
 that minimizes the objective function:
 
-``Q(\hat{u}) = \int_{t_1}^{t_N} |\hat{u}(t) - u(t)|^2 \mathrm{d}t + 
+``Q(\hat{u}) = \int_{t_1}^{t_N} |\hat{u}(t) - u(t)|^2 \mathrm{d}t +
 \lambda \int_{\hat{t}_1}^{\hat{t}_N} |\hat{u}^{(d)}(\hat{t})|^2 \mathrm{d} \hat{t}``
 
 where ``(d)`` denotes derivative order and ``\lambda`` is the regularization

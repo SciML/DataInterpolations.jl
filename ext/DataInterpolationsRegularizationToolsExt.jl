@@ -1,3 +1,10 @@
+module DataInterpolationsRegularizationToolsExt
+
+using DataInterpolations: AbstractInterpolation, CubicSpline, munge_data
+import DataInterpolations: RegularizationSmooth
+using LinearAlgebra
+import RegularizationTools as RT
+
 # TODO:
 # x midpoint rule
 # x scattered/interpolation
@@ -8,7 +15,7 @@
 # - scaled λ? will need to work out equivalency with λ² formulation, and resolve with
 #   derivative rather than difference matrix
 # - optimize λ via standard deviation?
-# - relative weights? 
+# - relative weights?
 # - arbitrary weighting -- implemented but not yet tested
 # - midpoint rule with scattered?
 # x add argument types for `RegularizationSmooth` constructor methods (why isn't this done
@@ -19,22 +26,6 @@
 
 
 const LA = LinearAlgebra
-
-### Regularization data smoothing and interpolation
-struct RegularizationSmooth{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
-    u::uType
-    û::uType
-    t::tType
-    t̂::tType
-    wls::uType
-    wr::uType
-    d::Int              # derivative degree used to calculate the roughness
-    λ::AbstractFloat    # regularization parameter
-    alg::Symbol  # how to determine λ: `:fixed`, `:gcv_svd`, `:gcv_tr`, `L_curve`
-    Aitp::AbstractInterpolation{FT,T}
-    RegularizationSmooth{FT}(u,û,t,t̂,wls,wr,d,λ,alg,Aitp) where FT =
-        new{typeof(u),typeof(t),FT,eltype(u)}(u,û,t,t̂,wls,wr,d,λ,alg,Aitp)
-end
 
 """
 # Arguments
@@ -48,7 +39,7 @@ end
 - `wls::{Vector,Symbol}`: weights to use with the least-squares fitting term; if set to
                           `:midpoint`, then midpoint-rule integration weights are used for
                           _both_ `wls` and `wr`
-- `wr::Vector`: weights to use with the roughness term 
+- `wr::Vector`: weights to use with the roughness term
 - `d::Int = 2`: derivative used to calculate roughness; e.g., when `d = 2`, the 2nd
                 derivative (i.e. the curvature) of the data is used to calculate roughness.
 
@@ -79,7 +70,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
     RegularizationSmooth{true}(u,û,t,t̂,wls,wr,d,λ,alg,Aitp)
 end
 """
-Direct smoothing, no `t̂` or weights 
+Direct smoothing, no `t̂` or weights
 ```julia
 A = RegularizationSmooth(u, t, d; λ=[1.0], alg=[:gcv_svd])
 ```
@@ -96,7 +87,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int=2; λ
     RegularizationSmooth{true}(u,û,t,t̂, LA.diag(Wls½), LA.diag(Wr½), d,λ,alg,Aitp)
 end
 """
-`t̂` provided, no weights 
+`t̂` provided, no weights
 ```julia
 A = RegularizationSmooth(u, t, t̂, d; λ=[1.0], alg=[:gcv_svd])
 ```
@@ -194,7 +185,7 @@ function _reg_smooth_solve(u::AbstractVector, t̂::AbstractVector, d::Int, M::Ab
     D = _derivative_matrix(t̂,d)
     Ψ = RT.setupRegularizationProblem(Wls½*M, Wr½*D)
     Wls½u = Wls½*u
-    
+
     if alg == :fixed
         b̄ = RT.to_standard_form(Ψ, Wls½u) # via b̄
         ū = RT.solve(Ψ, b̄, λ)
@@ -209,7 +200,7 @@ function _reg_smooth_solve(u::AbstractVector, t̂::AbstractVector, d::Int, M::Ab
     Aitp = CubicSpline(û,t̂)
     # It seems logical to use B-Spline of order d+1, but I am unsure if theory supports the
     # extra computational cost, JJS 12/25/21
-    #Aitp = BSplineInterpolation(û,t̂,d+1,:ArcLen,:Average) 
+    #Aitp = BSplineInterpolation(û,t̂,d+1,:ArcLen,:Average)
     return û, λ, Aitp
 end
 
@@ -237,12 +228,12 @@ function _mapping_matrix(t̂::AbstractVector,t::AbstractVector)
     idx = searchsortedlast.(Ref(t̂),t)
     # allow for "extrapolation"; i.e. for t̂ extremum that are interior to t
     idx[idx.==0] .+= 1
-    idx[idx.==N̂] .+= -1 
+    idx[idx.==N̂] .+= -1
     # create the linear interpolation matrix
     m2 = @. (t - t̂[idx])/(t̂[idx+1] - t̂[idx])
     M = zeros(eltype(t), (N,N̂))
     for i in 1:N
-        M[i,idx[i]] = 1 - m2[i] 
+        M[i,idx[i]] = 1 - m2[i]
         M[i,idx[i]+1] = m2[i]
     end
     return M
@@ -261,7 +252,7 @@ function _weighting_by_kw(t::AbstractVector, d::Int, wls::Symbol)
         bmp[N] = -t[N-1] + t[N]
         # divide by 2 doesn't matter in the minimize step, but keeping for correctness if
         # used as a template elsewhere
-        bmp = bmp/2  
+        bmp = bmp/2
         start = floor(Int, d/2) + 1
         final = iseven(d) ? N - (start - 1)  : N - start
         b̃mp = bmp[start:final]
@@ -270,6 +261,9 @@ function _weighting_by_kw(t::AbstractVector, d::Int, wls::Symbol)
         throw("Unknown `$(wls)` keyword used for weighting, use `:midpoint`.")
     end
 end
-                               
+
 _interpolate(A::RegularizationSmooth{<:AbstractVector{<:Number}}, t::Number) =
     _interpolate(A.Aitp, t)
+
+end # module
+

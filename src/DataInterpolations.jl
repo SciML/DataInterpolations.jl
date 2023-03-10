@@ -29,6 +29,7 @@ include("online.jl")
 if !isdefined(Base, :get_extension)
     include("../ext/DataInterpolationsChainRulesCoreExt.jl")
     include("../ext/DataInterpolationsSymbolicsExt.jl")
+    include("../ext/DataInterpolationsRegularizationToolsExt.jl")
 end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
@@ -36,9 +37,22 @@ export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     BSplineInterpolation, BSplineApprox, Curvefit
 
 # added for RegularizationSmooth, JJS 11/27/21
-import RegularizationTools
-const RT = RegularizationTools
-include("regularization_smooth.jl")
+### Regularization data smoothing and interpolation
+struct RegularizationSmooth{uType,tType,FT,T} <: AbstractInterpolation{FT,T}
+    u::uType
+    û::uType
+    t::tType
+    t̂::tType
+    wls::uType
+    wr::uType
+    d::Int              # derivative degree used to calculate the roughness
+    λ::AbstractFloat    # regularization parameter
+    alg::Symbol  # how to determine λ: `:fixed`, `:gcv_svd`, `:gcv_tr`, `L_curve`
+    Aitp::AbstractInterpolation{FT,T}
+    RegularizationSmooth{FT}(u,û,t,t̂,wls,wr,d,λ,alg,Aitp) where FT =
+        new{typeof(u),typeof(t),FT,eltype(u)}(u,û,t,t̂,wls,wr,d,λ,alg,Aitp)
+end
+
 export RegularizationSmooth
 
 # Deprecated April 2020
