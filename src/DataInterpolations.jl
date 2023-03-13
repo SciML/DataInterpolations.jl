@@ -26,12 +26,6 @@ include("online.jl")
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
 
-if !isdefined(Base, :get_extension)
-    include("../ext/DataInterpolationsChainRulesCoreExt.jl")
-    include("../ext/DataInterpolationsSymbolicsExt.jl")
-    include("../ext/DataInterpolationsRegularizationToolsExt.jl")
-end
-
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
     BSplineInterpolation, BSplineApprox, Curvefit
@@ -54,6 +48,12 @@ struct RegularizationSmooth{uType, tType, FT, T, T2} <: AbstractInterpolation{FT
 end
 
 export RegularizationSmooth
+
+if !isdefined(Base, :get_extension)
+    include("../ext/DataInterpolationsChainRulesCoreExt.jl")
+    include("../ext/DataInterpolationsSymbolicsExt.jl")
+    include("../ext/DataInterpolationsRegularizationToolsExt.jl")
+end
 
 # Deprecated April 2020
 export ZeroSpline
