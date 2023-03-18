@@ -1,6 +1,6 @@
 name = "DataInterpolations"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
-version = "3.13"
+version = "4.0"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
