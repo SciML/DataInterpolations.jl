@@ -30,6 +30,20 @@ interp = LinearInterpolation(u,t)
 interp(3.5) # Gives the linear interpolation value at t=3.5
 ```
 
+We can also efficiently interpolate onto a vector of new `t` values:
+
+```julia
+t′ = 0.5:1.0:3.5
+interp(t′)
+```
+
+In-place interpolation also works:
+
+```julia
+u′ = similar(u, length(t′))
+interp(u′, t′)
+```
+
 The indexing retreives the underlying values:
 
 ```julia
