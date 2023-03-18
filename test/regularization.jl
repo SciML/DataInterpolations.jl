@@ -1,4 +1,5 @@
 import StableRNGs: StableRNG
+using RegularizationTools
 
 # create scattered data
 npts = 50
@@ -61,7 +62,7 @@ end
     @test isapprox(A.û, ans, rtol=tolerance)
 end
 
-@testset "Smoothing with t̂ provided" begin  
+@testset "Smoothing with t̂ provided" begin
     N̂ = 20
     t̂ = collect(range(xmin, xmin+xspan, length=N̂))
     # with t̂, no weights
