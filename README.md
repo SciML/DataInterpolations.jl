@@ -30,7 +30,7 @@ interp = LinearInterpolation(u,t)
 interp(3.5) # Gives the linear interpolation value at t=3.5
 ```
 
-We can also efficiently interpolate onto a vector of new `t` values:
+We can efficiently interpolate onto a vector of new `t` values:
 
 ```julia
 t′ = 0.5:1.0:3.5
@@ -44,7 +44,7 @@ u′ = similar(u, length(t′))
 interp(u′, t′)
 ```
 
-The indexing retreives the underlying values:
+Indexing retrieves the underlying values:
 
 ```julia
 interp[4] # Gives the 4th value of u
