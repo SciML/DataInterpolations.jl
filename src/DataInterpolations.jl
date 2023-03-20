@@ -13,8 +13,7 @@ Base.setindex!(A::AbstractInterpolation,x,i) = A.u[i] = x
 Base.setindex!(A::AbstractInterpolation{true},x,i) =
     i <= length(A.u) ? (A.u[i] = x) : (A.t[i-length(A.u)] = x)
 
-using LinearAlgebra, RecursiveArrayTools, RecipesBase, Reexport
-@reexport using Optim
+using LinearAlgebra, RecursiveArrayTools, RecipesBase
 
 include("interpolation_caches.jl")
 include("interpolation_utils.jl")
@@ -28,7 +27,7 @@ include("online.jl")
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
-    BSplineInterpolation, BSplineApprox, Curvefit
+    BSplineInterpolation, BSplineApprox
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
@@ -56,10 +55,16 @@ end
 @static if !isdefined(Base, :get_extension)
     function __init__()
         Requires.@require ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4" begin include("../ext/DataInterpolationsChainRulesCoreExt.jl") end
+        Requires.@require Optim = "429524aa-4258-5aef-a3af-852621145aeb" begin include("../ext/DataInterpolationsOptimExt.jl") end
         Requires.@require RegularizationTools = "29dad682-9a27-4bc3-9c72-016788665182" begin include("../ext/DataInterpolationsRegularizationToolsExt.jl") end
         Requires.@require Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7" begin include("../ext/DataInterpolationsSymbolicsExt.jl") end
     end
 end
+
+# Define an empty fucntion, so that it can be extended via `DataInterpolationsOptimExt`
+Curvefit() = nothing
+
+export Curvefit
 
 # Deprecated April 2020
 export ZeroSpline
