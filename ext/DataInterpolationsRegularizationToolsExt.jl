@@ -1,9 +1,16 @@
 module DataInterpolationsRegularizationToolsExt
 
-using DataInterpolations: AbstractInterpolation, CubicSpline, munge_data
-import DataInterpolations: RegularizationSmooth
-using LinearAlgebra
-import RegularizationTools as RT
+if isdefined(Base, :get_extension)
+    using DataInterpolations: AbstractInterpolation, CubicSpline, munge_data
+    import DataInterpolations: RegularizationSmooth
+    using LinearAlgebra
+    import RegularizationTools as RT
+else
+    using ..DataInterpolations: AbstractInterpolation, CubicSpline, munge_data
+    import ..DataInterpolations: RegularizationSmooth
+    using ..LinearAlgebra
+    import ..RegularizationTools as RT
+end
 
 # TODO:
 # x midpoint rule
