@@ -188,10 +188,3 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
   end
   ucum, idx
 end
-
-# Curvefit
-function _interpolate(A::CurvefitCache{<:AbstractVector{<:Number}}, t::Union{AbstractVector{<:Number},Number})
-  A.m(t,A.pmin)
-end
-_interpolate(A::CurvefitCache{<:AbstractVector{<:Number}}, t::Union{AbstractVector{<:Number},Number}, i) =
-  _interpolate(A, t), i
