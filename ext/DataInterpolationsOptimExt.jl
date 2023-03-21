@@ -48,4 +48,7 @@ function _interpolate(A::CurvefitCache{<:AbstractVector{<:Number}}, t::Union{Abs
     A.m(t, A.pmin)
 end
 
+_interpolate(A::CurvefitCache{<:AbstractVector{<:Number}}, t::Union{AbstractVector{<:Number},Number}, i) =
+  _interpolate(A, t), i
+    
 end # module
