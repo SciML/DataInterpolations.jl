@@ -1,5 +1,6 @@
 using DataInterpolations, Test
 using StableRNGs
+using Optim
 import ForwardDiff
 
 @testset "Linear Interpolation" begin
