@@ -25,6 +25,15 @@ include("integrals.jl")
 include("online.jl")
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
+(interp::AbstractInterpolation)(t::Number, i::Integer) = _interpolate(interp, t, i)
+(interp::AbstractInterpolation)(t::AbstractVector) = interp(similar(t, eltype(interp)), t)
+function (interp::AbstractInterpolation)(u::AbstractVector, t::AbstractVector)
+  iguess = firstindex(interp.t)
+  @inbounds for i in eachindex(u, t)
+    u[i], iguess = interp(t[i], iguess)
+  end
+  u
+end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
