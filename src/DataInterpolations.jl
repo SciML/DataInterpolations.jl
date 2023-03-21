@@ -71,7 +71,7 @@ end
 end
 
 # Define an empty fucntion, so that it can be extended via `DataInterpolationsOptimExt`
-Curvefit() = nothing
+Curvefit() = error("CurveFit requires loading Optim, e.g. `using Optim`")
 
 export Curvefit
 
