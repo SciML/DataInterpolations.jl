@@ -531,3 +531,22 @@ A = QuadraticInterpolation(u,t)
 @test A(1.5) == [2.25, 2.25]
 @test A(3.5) == [12.25,12.25]
 @test A(2.5) == [6.25, 6.25]
+
+
+# ForwardDiff compatibility with respect to cofficients
+
+function square(INTERPOLATION_TYPE, c)  # elaborate way to write f(x) = x²
+    xs = 0.0:2.0:4.0
+    ys = [c * x for x in xs]
+    itp = INTERPOLATION_TYPE(ys, xs)
+    return itp(c)
+end
+
+# generate versions of this function with different interpolators
+f_quadratic_spline = c -> square(QuadraticSpline, c)
+f_cubic_spline = c -> square(CubicSpline, c)
+
+@test ForwardDiff.derivative(f_quadratic_spline, -3.0) ≈ -6.0
+@test ForwardDiff.derivative(f_quadratic_spline, 8.0) ≈ 16.0
+@test ForwardDiff.derivative(f_cubic_spline, -3.0) ≈ -6.0
+@test ForwardDiff.derivative(f_cubic_spline, 8.0) ≈ 16.0

@@ -122,7 +122,11 @@ function QuadraticSpline(u::uType,t) where {uType<:AbstractVector{<:Number}}
   d_tmp = ones(eltype(t),s)
   du = zeros(eltype(t),s-1)
   tA = Tridiagonal(dl,d_tmp,du)
-  d = map(i -> i == 1 ? 0 : 2//1 * (u[i] - u[i-1])/(t[i] - t[i-1]), 1:s)
+
+  # zero for element type of d, which we don't know yet
+  typed_zero = zero(2//1 * (u[begin+1] - u[begin])/(t[begin+1] - t[begin]))
+
+  d = map(i -> i == 1 ? typed_zero : 2//1 * (u[i] - u[i-1])/(t[i] - t[i-1]), 1:s)
   z = tA\d
   QuadraticSpline{true}(u,t,tA,d,z)
 end
@@ -158,7 +162,11 @@ function CubicSpline(u::uType,t) where {uType<:AbstractVector{<:Number}}
   d_tmp = 2 .* (h[1:n+1] .+ h[2:n+2])
   du = h[2:n+1]
   tA = Tridiagonal(dl,d_tmp,du)
-  d = map(i -> i == 1 || i == n + 1 ? 0 : 6(u[i+1] - u[i]) / h[i+1] - 6(u[i] - u[i-1]) / h[i], 1:n+1)
+
+  # zero for element type of d, which we don't know yet
+  typed_zero = zero(6(u[begin+2] - u[begin+1]) / h[begin+2] - 6(u[begin+1] - u[begin]) / h[begin+1])
+
+  d = map(i -> i == 1 || i == n + 1 ? typed_zero : 6(u[i+1] - u[i]) / h[i+1] - 6(u[i] - u[i-1]) / h[i], 1:n+1)
   z = tA\d
   CubicSpline{true}(u,t,h[1:n+1],z)
 end
