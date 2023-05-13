@@ -533,8 +533,8 @@ A = QuadraticInterpolation(u,t)
 @test A(2.5) == [6.25, 6.25]
 
 
-## ForwardDiff compatibility with respect to cofficients
-using Test, DataInterpolations, ForwardDiff
+# ForwardDiff compatibility with respect to cofficients
+
 function square(INTERPOLATION_TYPE, c)  # elaborate way to write f(x) = x²
     xs = -4.0:2.0:4.0
     ys = [c^2 + x for x in xs]
