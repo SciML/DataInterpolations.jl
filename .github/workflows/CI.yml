@@ -39,7 +39,7 @@ jobs:
             ${{ runner.os }}-test-
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@72ddd0fcdc760e6d2ef7ef2bbb11ae5032b671a8
-      - uses: julia-actions/julia-runtest@1aec431e0235ee43e194f927a5f4c04261a10fcb
+      - uses: julia-actions/julia-runtest@79a7e100883947123f8263c5f06e6c0ea3eb972f
       - name: Test plotting recipes with Weave
         run: |
           # Install packages
