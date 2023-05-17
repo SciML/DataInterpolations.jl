@@ -171,3 +171,7 @@ A = QuadraticSpline(u, t)
 D = Symbolics.Differential(τ)
 expr = A(ω)
 @test isequal(Symbolics.derivative(expr, τ), D(ω)*DataInterpolations.derivative(A, ω))
+
+derivexpr = expand_derivatives(substitute(D(A(ω)), Dict(ω=>0.5τ)))
+symfunc = Symbolics.build_function(derivexpr, τ; expression=Val{false})
+@test symfunc(0.5) == 0.5*3
