@@ -161,3 +161,13 @@ test_derivatives(A, t, "BSpline Interpolation (Arclen, Average)")
 A = BSplineApprox(u,t,3,4,:Uniform,:Uniform)
 
 test_derivatives(A, t, "BSpline Approx (Uniform, Uniform)")
+
+using Symbolics
+
+u = [0.0, 1.5, 0.0]
+t = [0.0, 0.5, 1.0]
+A = QuadraticSpline(u, t)
+@variables τ, ω(τ)
+D = Symbolics.Differential(τ)
+expr = A(ω)
+@test isequal(Symbolics.derivative(expr, τ), D(ω)*DataInterpolations.derivative(A, ω))
