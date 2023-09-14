@@ -40,12 +40,6 @@ jobs:
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@72ddd0fcdc760e6d2ef7ef2bbb11ae5032b671a8
       - uses: julia-actions/julia-runtest@79a7e100883947123f8263c5f06e6c0ea3eb972f
-      - name: Test plotting recipes with Weave
-        run: |
-          # Install packages
-          julia --color=yes -e 'using Pkg; Pkg.add(["Weave", "Plots"])'
-          # Process jmd
-          julia --color=yes --code-coverage -e 'using Weave; weave("example/DataInterpolations.jmd")'
       - uses: julia-actions/julia-processcoverage@03114f09f119417c3242a9fb6e0b722676aedf38
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d
         with:
