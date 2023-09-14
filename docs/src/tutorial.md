@@ -1,23 +1,8 @@
-# DataInterpolations.jl
-
-This library is meant for interpolating one dimensional data by methods which
-both hit every point exactly or smooth the data into an approximate fitting
-curve. The library contains the following interpolation methods:
-
--  Linear Interpolation
--  Quadratic Interpolation
--  Lagrange Interpolation
--  Zero Spline
--  Quadratic Spline
--  Cubic Spline
--  BSpline Global Curve Interpolation
--  BSpline Global Curve Approximation
--  Curve fitting
-
-## Demonstration
+# Demonstration
 
 We will use the following data to demonstrate interpolation methods.
-```julia
+
+```@example tutorial
 using DataInterpolations, Plots
 gr()
 # Dependent variable
@@ -29,47 +14,47 @@ t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
 For each method, we will show how to perform the fit and use the plot recipe
 to show the fitting curve.
 
-### Linear Interpolation
+## Linear Interpolation
 
 This is a linear interpolation between ends points of interval of input data point.
 
-```julia
+```@example tutorial
 A = LinearInterpolation(u,t)
 scatter(t, u, label="input data")
 plot!(A)
 ```
 
-### Quadratic Interpolation
+## Quadratic Interpolation
 
 This function fits a parabola passing through the two nearest points from the input
 data point as well as the next-closest point in the right or the left, depending on
 whether the forward- or backward-looking mode is selected (default mode is
 forward-looking). It is continuous and piecewise differentiable.
 
-```julia
+```@example tutorial
 A = QuadraticInterpolation(u,t) # same as QuadraticInterpolation(u,t,:Forward)
 # alternatively: A = QuadraticInterpolation(u,t,:Backward)
 scatter(t, u, label="input data")
 plot!(A)
 ```
 
-### Lagrange Interpolation
+## Lagrange Interpolation
 
 It fits polynomial of degree d (=length(t)-1), and is thuse a continuously
 differentiable function.
 
-```julia
+```@example tutorial
 A = LagrangeInterpolation(u,t)
 scatter(t, u, label="input data")
 plot!(A)
 ```
 
-### Constant Interpolation
+## Constant Interpolation
 This function is constant between data points. By default
 it takes value at left end of the interval. One can change that behavior by
 passing the keyword argument `dir = :right`.
 
-```julia
+```@example tutorial
 A = ConstantInterpolation(u,t)
 scatter(t, u, label="input data")
 plot!(A)
@@ -77,37 +62,37 @@ plot!(A)
 
 Or using the right endpoints:
 
-```julia
+```@example tutorial
 A = ConstantInterpolation(u, t, dir=:right)
 scatter(t, u, label="input data")
 plot!(A)
 ```
 
-### Quadratic Spline
+## Quadratic Spline
 This is the quadratic spline. It is a continuously differentiable interpolation
 which hits each of the data points exactly. Splines are a local interpolation
 method, meaning that the curve in a given spot is only affected by the points
 nearest to it. It is explained in more detail at
 https://www.math.uh.edu/~jingqiu/math4364/spline.pdf .
 
-```julia
+```@example tutorial
 A = QuadraticSpline(u,t)
 scatter(t, u, label="input data")
 plot!(A)
 ```
 
-### Cubic Spline
+## Cubic Spline
 This is the cubic spline. It is a continuously twice differentiable interpolation
 which hits each of the data points exactly. It is explained in more detail at
 https://www.math.uh.edu/~jingqiu/math4364/spline.pdf .
 
-```julia
+```@example tutorial
 A = CubicSpline(u,t)
 scatter(t, u, label="input data")
 plot!(A)
 ```
 
-### B-Splines
+## B-Splines
 
 This is an interpolating B-spline. B-splines are a global method, meaning
 that every data point is taken into account for each point of the curve.
@@ -117,7 +102,7 @@ https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/INT-APP/CURVE-INT-global.html 
 Let's plot a cubic B-spline (3rd order). Since the data points are not close to
 uniformly spaced, we will use the `:ArcLen` and `:Average` choices:
 
-```julia
+```@example tutorial
 A = BSplineInterpolation(u, t, 3, :ArcLen, :Average)
 scatter(t, u, label="input data")
 plot!(A)
@@ -129,13 +114,13 @@ a global method. In this case, we need to give a number of control points
 is a least square approximation. This has a natural effect of smoothing the
 data. For example, if we use 4 control points, we get the result:
 
-```julia
+```@example tutorial
 A = BSplineApprox(u, t, 3, 4, :ArcLen, :Average)
 scatter(t, u, label="input data")
 plot!(A)
 ```
 
-### Regularization Smoothing
+## Regularization Smoothing
 
 Smoothing by regularization (a.k.a. ridge regression) finds a function ``\hat{u}``
 that minimizes the objective function:
@@ -152,7 +137,7 @@ Comput. Chem. Eng. 34:467](http://dx.doi.org/10.1016/j.compchemeng.2009.10.007)
 for details. The implementation in this package uses cubic splines to
 interpolate between the smoothed points after they are determined.
 
-```julia
+```@example tutorial
 using RegularizationTools
 d = 2
 λ = 1e3
@@ -173,14 +158,14 @@ plot!(titp,uitp, lw=lw, label="smoothed interpolation")
 Some methods are better suited for dense data. Let's generate such data to
 demonstrate these methods.
 
-```julia
+```@example tutorial
 import StableRNGs: StableRNG
 rng = StableRNG(318)
 t = sort(10 .* rand(rng, 100))
 u = sin.(t) .+ 0.5 * randn(rng, 100);
 ```
 
-### Regularization Smoothing
+## Regularization Smoothing
 
 Although smoothing by regularization can be used to interpolate sparse data as
 shown above, it is especially useful for dense and also scattered data (unequally
@@ -192,7 +177,7 @@ interpolate. In the second, we perform the smoothing for the interpolatant
 ``\hat{t}`` values directly. GCV is used to determine the regularization
 parameter for both cases.
 
-```julia
+```@example tutorial
 d = 4
 A = RegularizationSmooth(u,t, d; alg=:gcv_svd)
 û = A.û
@@ -207,14 +192,14 @@ plot!(titp,uitp, lw=lw, label="smoothed interpolation")
 plot!(titp,ûm, lw=lw, linestyle=:dash, label="smoothed, more points")
 ```
 
-### Curve Fits
+## Curve Fits
 
 A curve fit works with both dense and sparse data. We will demonstrate the curve
 fit on the dense data since we generated it based on `sin(t)`, so this is the
 curve we want to fit through it. Do do so, let's define a similar function
 with parameters. Let's choose the form:
 
-```julia
+```@example tutorial
 m(t,p) = @. p[1]*sin(p[2]*t) + p[3]*cos(p[4]*t)
 ```
 
@@ -224,7 +209,7 @@ function is of the form `p1*sin(p2*t)+p3*cos(p4*t)`. We want to find the `p` to
 match our data. Let's start with the guess of every `p` being zero, that is
 `p=ones(4)`. Then we would fit this curve using:
 
-```julia
+```@example tutorial
 using Optim
 A = Curvefit(u, t, m, ones(4), LBFGS())
 scatter(t, u, label="points", legend=:bottomright)
@@ -233,7 +218,7 @@ plot!(A)
 
 We can check what the fitted parameters are via:
 
-```julia
+```@example tutorial
 A.pmin
 ```
 
@@ -242,7 +227,7 @@ found `sin(t)`! But note that the ability to fit is dependent on the initial
 parameters. For example, with `p=zeros(4)` as the initial parameters the fit
 is not good:
 
-```julia
+```@example tutorial
 A = Curvefit(u, t, m, zeros(4), LBFGS())
 scatter(t,u,label="points",legend=:bottomright)
 plot!(A)
@@ -250,6 +235,6 @@ plot!(A)
 
 And the parameters show the issue:
 
-```julia
+```@example tutorial
 A.pmin
 ```
