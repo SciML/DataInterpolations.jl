@@ -37,3 +37,19 @@ corresponding to `(u,t)` pairs.
 The follow methods require extra dependencies and will be loaded as package extensions.
 
 - `Curvefit(u,t,m,p,alg)` - An interpolation which is done by fitting a user-given functional form `m(t,p)` where `p` is the vector of parameters. The user's input `p` is a an initial value for a least-square fitting, `alg` is the algorithm choice to use for optimize the cost function (sum of squared deviations) via `Optim.jl` and optimal `p`s are used in the interpolation. Requires `using RegularizationTools`
+
+## Plotting
+
+DataInterpolations.jl is tied into the Plots.jl ecosystem, by way of RecipesBase.  
+Any interpolation can be plotted using the `plot` command (or any other), since they have type recipes associated with them.
+
+For convenience, and to allow keyword arguments to propagate properly, DataInterpolations.jl also defines several series types, corresponding to different interpolations.
+
+The series types defined are:
+- `:linear_interp`
+- `:quadratic_interp`
+- `:lagrange_interp`
+- `:quadratic_spline`
+- `:cubic_spline`
+
+By and large, these accept the same keywords as their function counterparts.
