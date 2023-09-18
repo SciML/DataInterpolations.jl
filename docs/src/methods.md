@@ -1,12 +1,14 @@
-# Demonstration
+# Interpolation using different methods
 
 We will use the following data to demonstrate interpolation methods.
 
 ```@example tutorial
 using DataInterpolations, Plots
-gr()
+gr() # hide
+
 # Dependent variable
 u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+
 # Independent variable
 t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
 ```
@@ -72,8 +74,7 @@ plot!(A)
 This is the quadratic spline. It is a continuously differentiable interpolation
 which hits each of the data points exactly. Splines are a local interpolation
 method, meaning that the curve in a given spot is only affected by the points
-nearest to it. It is explained in more detail at
-https://www.math.uh.edu/~jingqiu/math4364/spline.pdf .
+nearest to it.
 
 ```@example tutorial
 A = QuadraticSpline(u,t)
@@ -83,8 +84,7 @@ plot!(A)
 
 ## Cubic Spline
 This is the cubic spline. It is a continuously twice differentiable interpolation
-which hits each of the data points exactly. It is explained in more detail at
-https://www.math.uh.edu/~jingqiu/math4364/spline.pdf .
+which hits each of the data points exactly.
 
 ```@example tutorial
 A = CubicSpline(u,t)
@@ -97,8 +97,7 @@ plot!(A)
 This is an interpolating B-spline. B-splines are a global method, meaning
 that every data point is taken into account for each point of the curve.
 The interpolating B-spline is the version which hits each of the points. This
-method is described in more detail at
-https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/INT-APP/CURVE-INT-global.html .
+method is described in more detail [here](https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/INT-APP/CURVE-INT-global.html).
 Let's plot a cubic B-spline (3rd order). Since the data points are not close to
 uniformly spaced, we will use the `:ArcLen` and `:Average` choices:
 
