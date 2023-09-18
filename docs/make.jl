@@ -5,11 +5,12 @@ ENV["GKSwstype"] = "100"
 makedocs(
     modules = [DataInterpolations],
     sitename = "DataInterpolations.jl",
-    strict = [:doctest, :linkcheck, :parse_error, :example_block],
+    warnonly = [:missing_docs],
     format = Documenter.HTML(),
     pages = [
-        "index.md"
-        "Tutorial" => ["tutorial.md"]
+        "index.md",
+        "Methods" => "methods.md",
+        "Interface" => "interface.md"
     ],
 )
 
