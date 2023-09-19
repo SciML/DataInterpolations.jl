@@ -6,7 +6,11 @@ makedocs(
     modules = [DataInterpolations],
     sitename = "DataInterpolations.jl",
     warnonly = [:missing_docs],
-    format = Documenter.HTML(),
+    format = Documenter.HTML(
+        analytics = "UA-90474609-3",
+        assets = ["assets/favicon.ico"],
+        canonical = "https://docs.sciml.ai/DataInterpolations/stable/",
+    ),
     pages = [
         "index.md",
         "Methods" => "methods.md",
@@ -14,4 +18,4 @@ makedocs(
     ],
 )
 
-deploydocs(repo = "github.com/PumasAI/DataInterpolations.jl"; push_preview = true)
+deploydocs(repo = "github.com/SciML/DataInterpolations.jl"; push_preview = true)
