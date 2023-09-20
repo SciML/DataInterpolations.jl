@@ -1,23 +1,20 @@
 # DataInterpolations.jl
 
-[![CI](https://github.com/PumasAI/DataInterpolations.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/PumasAI/DataInterpolations.jl/actions/workflows/CI.yml)
-[![codecov](https://codecov.io/gh/PumasAI/DataInterpolations.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/PumasAI/DataInterpolations.jl)
+[![Join the chat at https://julialang.zulipchat.com #sciml-bridged](https://img.shields.io/static/v1?label=Zulip&message=chat&color=9558b2&labelColor=389826)](https://julialang.zulipchat.com/#narrow/stream/279055-sciml-bridged)
+[![Global Docs](https://img.shields.io/badge/docs-SciML-blue.svg)](https://docs.sciml.ai/DataInterpolations/stable/)
+
+[![codecov](https://codecov.io/gh/SciML/DataInterpolations.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/SciML/DataInterpolations.jl)
+[![CI](https://github.com/SciML/DataInterpolations.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/SciML/DataInterpolations.jl/actions/workflows/CI.yml)
+
+[![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
+[![SciML Code Style](https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826)](https://github.com/SciML/SciMLStyle)
+
 
 DataInterpolations.jl is a library for performing interpolations of one-dimensional data. By
 "data interpolations" we mean techniques for interpolating possibly noisy data, and thus
 some methods are mixtures of regressions with interpolations (i.e. do not hit the data
 points exactly, smoothing out the lines). This library can be used to fill in intermediate
 data points in applications like timeseries data.
-
-## Tutorial / Demonstration
-
-A tutorial is included and can be found at [this page](https://htmlpreview.github.io/?https://github.com/PumasAI/DataInterpolations.jl/blob/v2.0.0/example/DataInterpolations.html). To run the tutorial yourself
-locally, use the following Weave commands:
-
-```julia
-using Weave, DataInterpolations
-weave(joinpath(dirname(pathof(DataInterpolations)), "../example", "DataInterpolations.jmd"), out_path=:doc)
-```
 
 ## API
 
