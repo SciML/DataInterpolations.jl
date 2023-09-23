@@ -27,6 +27,7 @@ tolerance = 1e-3
     A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
     ans = [0.6456173647252937 0.663974701324226 0.7631218523665086 0.778654700697601 0.7489958320589535 0.7319087707475104 0.6807082599508811 0.6372557895089508 0.5832859790765743 0.5021274805916013 0.3065928203396211 0.1353332321156384 -0.3260000640060584 -0.6557906092739154 -0.9204882447932498]'
     @test isapprox(A.û, ans, rtol = tolerance)
+    @test isapprox(A.(tₒ), ans, rtol = tolerance)
     # non-default d and λ
     A = RegularizationSmooth(uₒ, tₒ, 4; λ = 1e-2, alg = :fixed)
     ans = [0.19865190868740357 0.2885349151737291 0.6756699442978945 0.9165887141895426 0.9936113717653254 1.0042825002191034 0.9768118192829827 0.9184595331808411 0.8214983284892922 0.6538356458824783 0.28295521578898 0.018060767871253963 -0.5301723647977373 -0.8349855890541111 -1.1085048455468356]'
@@ -57,6 +58,7 @@ tolerance = 1e-3
         -0.9370342562716745,
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
+    @test isapprox(A.(tₒ), ans, rtol = tolerance)
 end
 
 @testset "Smoothing with weights" begin
@@ -81,6 +83,7 @@ end
         -1.0983391396173634,
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
+    @test isapprox(A.(tₒ), ans, rtol = tolerance)
     # arbitrary weights for wls (and fixed λ, GCV not working well for some of these)
     A = RegularizationSmooth(uₒ, tₒ, nothing, collect(1:npts); λ = 1e-1, alg = :fixed)
     ans = [
@@ -101,6 +104,7 @@ end
         -1.1159124134900906,
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
+    @test isapprox(A.(tₒ), ans, rtol = tolerance)
     # arbitrary weights for wls and wr
     nhalf = Int(floor(npts / 2))
     wls = vcat(ones(nhalf), 10 * ones(npts - nhalf))
@@ -124,6 +128,7 @@ end
         -1.1058428573417736,
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
+    @test isapprox(A.(tₒ), ans, rtol = tolerance)
 end
 
 @testset "Smoothing with t̂ provided" begin
@@ -134,11 +139,13 @@ end
     @test isapprox(A.λ, 0.138273889585313, rtol = tolerance)
     ans = [0.21626377852882872 0.39235926952322575 0.5573848799950002 0.7072474496656729 0.8361906119247042 0.9313473799797176 0.9809844353757837 0.9750833208625507 0.9096038940899813 0.7816929736202427 0.6052694276527628 0.4015903497629387 0.1913719025253403 -0.01979786871512895 -0.23400354001942947 -0.44481229967011127 -0.6457913359497256 -0.8405146928672158 -1.0367229293434395 -1.2334090099343238]'
     @test isapprox(A.û, ans, rtol = tolerance)
+    @test isapprox(A.(t̂), ans, rtol = tolerance)
     # t̂ and wls
     A = RegularizationSmooth(u, t, t̂, collect(1:npts))
     @test isapprox(A.λ, 0.26746430253489195, rtol = tolerance)
     ans = [0.3118247878815087 0.44275860852897864 0.5705834985506882 0.6979119448253899 0.8234189540704866 0.9289458273102476 0.9970803470992273 1.0071205506077525 0.9443157518324818 0.7954860908242515 0.5847385548859145 0.34813493129868633 0.1237494751337505 -0.0823517516424196 -0.28265170846635246 -0.4760833187699964 -0.6615795059853024 -0.844779821396189 -1.0341162283806349 -1.225270266213379]'
     @test isapprox(A.û, ans, rtol = tolerance)
+    @test isapprox(A.(t̂), ans, rtol = tolerance)
     # t̂, wls, and wr
     nhalf = Int(floor(npts / 2))
     wls = vcat(ones(nhalf), 10 * ones(npts - nhalf))
@@ -168,4 +175,5 @@ end
         -1.2309001260104093,
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
+    @test isapprox(A.(t̂), ans, rtol = tolerance)
 end
