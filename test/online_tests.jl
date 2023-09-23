@@ -1,6 +1,6 @@
 using DataInterpolations, Test
 
-t = [1,2,3]
+t = [1, 2, 3]
 u = [0, 1, 0]
 
 for di in [LinearInterpolation, QuadraticInterpolation, ConstantInterpolation]
