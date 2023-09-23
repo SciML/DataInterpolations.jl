@@ -22,15 +22,16 @@ We will use `CubicSpline` method for demonstration but the API is same for all t
 A = CubicSpline(u, t)
 
 # For interpolation do, A(t)
-A(100.0) 
+A(100.0)
 ```
 
 !!! note
+    
     The values computed beyond the range of the time points provided during interpolation will not be reliable as these methods only perform well within the range and the first/last piece polynomial fit is extrapolated on either sides which might not reflect the true nature of the data.
 
 ## Derivatives
 
-Derivatives of the interpolated curves can also be computed at any point for all the methods. 
+Derivatives of the interpolated curves can also be computed at any point for all the methods.
 
 We will continue with the above example, but the API is same for all the methods.
 
@@ -60,4 +61,5 @@ DataInterpolations.integral(A, 1.0, 5.0)
 ```
 
 !!! note
+    
     If the times provided in the integral goes beyond the range of the time points provided during interpolation, it uses extrapolation methods to compute the values and hence the integral can be misrepsentative and might not reflect the true nature of the data.
