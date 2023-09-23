@@ -1,16 +1,11 @@
 module DataInterpolationsRegularizationToolsExt
 
-if isdefined(Base, :get_extension)
-    using DataInterpolations: AbstractInterpolation, CubicSpline, munge_data
-    import DataInterpolations: RegularizationSmooth
-    using LinearAlgebra
-    import RegularizationTools as RT
-else
-    using ..DataInterpolations: AbstractInterpolation, CubicSpline, munge_data
-    import ..DataInterpolations: RegularizationSmooth
-    using ..LinearAlgebra
-    import ..RegularizationTools as RT
-end
+using DataInterpolations
+using DataInterpolations: munge_data, _interpolate, RegularizationSmooth
+using LinearAlgebra
+
+isdefined(Base, :get_extension) ? (import RegularizationTools as RT) :
+(import ..RegularizationTools as RT)
 
 # TODO:
 # x midpoint rule
@@ -267,8 +262,11 @@ function _weighting_by_kw(t::AbstractVector, d::Int, wls::Symbol)
     end
 end
 
-function _interpolate(A::RegularizationSmooth{<:AbstractVector{<:Number}}, t::Number)
-    _interpolate(A.Aitp, t)
+function DataInterpolations._interpolate(A::RegularizationSmooth{
+        <:AbstractVector{<:Number},
+    },
+    t::Number)
+    DataInterpolations._interpolate(A.Aitp, t)
 end
 
 end # module
