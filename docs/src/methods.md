@@ -147,7 +147,7 @@ û = A.û
 # interpolate using the smoothed values
 N = 200
 titp = collect(range(minimum(t), maximum(t), length = N))
-uitp = A.Aitp.(titp)
+uitp = A.(titp)
 lw = 1.5
 scatter(t, u, label = "data")
 scatter!(t, û, marker = :square, label = "smoothed data")
@@ -184,7 +184,7 @@ A = RegularizationSmooth(u, t, d; alg = :gcv_svd)
 û = A.û
 N = 200
 titp = collect(range(minimum(t), maximum(t), length = N))
-uitp = A.Aitp.(titp)
+uitp = A.(titp)
 Am = RegularizationSmooth(u, t, titp, d; alg = :gcv_svd)
 ûm = Am.û
 scatter(t, u, label = "simulated data", legend = :top)
