@@ -111,6 +111,7 @@ end
 function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, i)
     _interpolate(A, t), i
 end
+
 function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i)
     _interpolate(A, t), i
 end
@@ -170,6 +171,8 @@ end
 function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
     t::Number,
     iguess)
+    t < A.t[1] && return A.u[1], 1
+    t > A.t[end] && return A.u[end], lastindex(t)
     # change t into param [0 1]
     idx = searchsortedlastcorrelated(A.t, t, iguess)
     idx == length(A.t) ? idx -= 1 : nothing
@@ -185,6 +188,8 @@ end
 
 # BSpline Curve Approx
 function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
+    t < A.t[1] && return A.u[1], 1
+    t > A.t[end] && return A.u[end], lastindex(t)
     # change t into param [0 1]
     idx = searchsortedlastcorrelated(A.t, t, iguess)
     idx == length(A.t) ? idx -= 1 : nothing

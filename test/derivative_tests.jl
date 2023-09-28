@@ -3,11 +3,9 @@ using FiniteDifferences
 using DataInterpolations: derivative
 
 function test_derivatives(func, tspan, name::String)
-    trange = range(minimum(tspan), maximum(tspan), length = 32)[2:(end - 1)]
+    trange = range(minimum(tspan) - 5.0, maximum(tspan) + 5.0, length = 32)
     @testset "$name" begin
         for t in trange
-            # Linearly spaced points might lead to evaluations outside
-            # trange
             cdiff = central_fdm(5, 1; geom = true)(_t -> func(_t), t)
             adiff = derivative(func, t)
             @test isapprox(cdiff, adiff, atol = 1e-8)
