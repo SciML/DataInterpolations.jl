@@ -173,3 +173,13 @@ expr = A(ω)
 derivexpr = expand_derivatives(substitute(D(A(ω)), Dict(ω => 0.5τ)))
 symfunc = Symbolics.build_function(derivexpr, τ; expression = Val{false})
 @test symfunc(0.5) == 0.5 * 3
+
+u = [0.0, 1.5, 0.0]
+t = [0.0, 0.5, 1.0]
+@variables τ
+D = Symbolics.Differential(τ)
+f = LinearInterpolation(u, t)
+df = expand_derivatives(D(f(τ)))
+symfunc = Symbolics.build_function(df, τ; expression = Val{false})
+ts = 0.0:0.1:1.0
+@test all(map(ti -> symfunc(ti) == derivative(f, ti), ts))
