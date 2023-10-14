@@ -4,36 +4,41 @@ using Optim
 import ForwardDiff
 
 @testset "Linear Interpolation" begin
-    u = 2.0collect(1:10)
-    t = 1.0collect(1:10)
-    A = LinearInterpolation(u, t)
+    for t in (1.0:10.0, 1.0collect(1:10))
+        u = 2.0collect(1:10)
+        #t = 1.0collect(1:10)
+        A = LinearInterpolation(u, t)
 
-    for (_t, _u) in zip(t, u)
-        @test A(_t) == _u
+        for (_t, _u) in zip(t, u)
+            @test A(_t) == _u
+        end
+        @test A(0) == 0.0
+        @test A(5.5) == 11.0
+        @test A(11) == 22
+
+        u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
+        A = LinearInterpolation(u, t)
+
+        for (_t, _u) in zip(t, eachcol(u))
+            @test A(_t) == _u
+        end
+        @test A(0) == [0.0, 0.0]
+        @test A(5.5) == [11.0, 16.5]
+        @test A(11) == [22, 33]
+
+        x = 1:10
+        y = 2:4
+        u_ = x' .* y
+        u = [u_[:, i] for i in 1:size(u_, 2)]
+        A = LinearInterpolation(u, t)
+        @test A(0) == [0.0, 0.0, 0.0]
+        @test A(5.5) == [11.0, 16.5, 22.0]
+        @test A(11) == [22.0, 33.0, 44.0]
     end
-    @test A(0) == 0.0
-    @test A(5.5) == 11.0
-    @test A(11) == 22
-
-    u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
-    A = LinearInterpolation(u, t)
-
-    for (_t, _u) in zip(t, eachcol(u))
-        @test A(_t) == _u
-    end
-    @test A(0) == [0.0, 0.0]
-    @test A(5.5) == [11.0, 16.5]
-    @test A(11) == [22, 33]
 
     x = 1:10
     y = 2:4
     u_ = x' .* y
-    u = [u_[:, i] for i in 1:size(u_, 2)]
-    A = LinearInterpolation(u, t)
-    @test A(0) == [0.0, 0.0, 0.0]
-    @test A(5.5) == [11.0, 16.5, 22.0]
-    @test A(11) == [22.0, 33.0, 44.0]
-
     u = [u_[:, i:(i + 1)] for i in 1:2:10]
     t = 1.0collect(2:2:10)
     A = LinearInterpolation(u, t)

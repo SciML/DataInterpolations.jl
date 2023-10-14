@@ -123,3 +123,6 @@ function searchsortedlastcorrelated(v::AbstractVector, x, guess)
     lo, hi = bracketstrictlymontonic(v, x, guess, Base.Order.Forward)
     searchsortedlast(v, x, lo, hi, Base.Order.Forward)
 end
+
+searchsortedfirstcorrelated(r::AbstractRange, x, _) = searchsortedfirst(r, x)
+searchsortedlastcorrelated(r::AbstractRange, x, _) = searchsortedlast(r, x)
