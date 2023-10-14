@@ -42,7 +42,7 @@ plot!(A)
 
 ## Lagrange Interpolation
 
-It fits polynomial of degree d (=length(t)-1), and is thuse a continuously
+It fits polynomial of degree d (=length(t)-1), and is thus a continuously
 differentiable function.
 
 ```@example tutorial
@@ -174,7 +174,7 @@ spaced, unordered, and/or repeat-valued). Generalized cross validation (GCV) or
 so-called L-curve methods can be used to determine an "optimal" value for the
 smoothing parameter. In this example, we perform smoothing in two ways. In the
 first, we find smooth values at the original ``t`` values and then
-interpolate. In the second, we perform the smoothing for the interpolatant
+interpolate. In the second, we perform the smoothing for the interpolant
 ``\hat{t}`` values directly. GCV is used to determine the regularization
 parameter for both cases.
 

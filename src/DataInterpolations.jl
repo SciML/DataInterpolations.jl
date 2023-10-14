@@ -90,7 +90,7 @@ end
     end
 end
 
-# Define an empty fucntion, so that it can be extended via `DataInterpolationsOptimExt`
+# Define an empty function, so that it can be extended via `DataInterpolationsOptimExt`
 Curvefit() = error("CurveFit requires loading Optim, e.g. `using Optim`")
 
 export Curvefit

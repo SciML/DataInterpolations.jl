@@ -45,7 +45,7 @@ const LA = LinearAlgebra
                 derivative (i.e. the curvature) of the data is used to calculate roughness.
 
 # Keyword Arguments
-- `λ::{Number,Tuple} = 1.0`: regulariation parameter; larger values result in a smoother
+- `λ::{Number,Tuple} = 1.0`: regularization parameter; larger values result in a smoother
                              curve; the provided value is used directly when `alg = :fixed`;
                              otherwise it is used as an initial guess for the optimization
                              method, or as bounds if a 2-tuple is provided (TBD)
@@ -179,7 +179,7 @@ end
 # function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
 #                               wls::Symbol, d::Int=2; λ::Real=1.0, alg::Symbol=:gcv_svd)
 
-""" Solve for the smoothed depedent variables and create spline interpolator """
+""" Solve for the smoothed dependent variables and create spline interpolator """
 function _reg_smooth_solve(u::AbstractVector, t̂::AbstractVector, d::Int, M::AbstractMatrix,
     Wls½::AbstractMatrix, Wr½::AbstractMatrix, λ::Real, alg::Symbol)
     λ = float(λ) # `float` expected by RT
