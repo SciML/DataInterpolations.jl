@@ -129,7 +129,7 @@ import ForwardDiff
     # Test derivative at point gives derivative to the right (except last is to left):
     ts = t[begin:(end - 1)]
     @test dA.(ts) == dA.(ts .+ 0.5)
-    # Test last derivitive is to the left:
+    # Test last derivative is to the left:
     @test dA(last(t)) == dA(last(t) - 0.5)
 
     # Test array-valued interpolation
@@ -537,7 +537,7 @@ A = QuadraticInterpolation(u, t)
 @test A(3.5) == [12.25, 12.25]
 @test A(2.5) == [6.25, 6.25]
 
-# ForwardDiff compatibility with respect to cofficients
+# ForwardDiff compatibility with respect to coefficients
 
 function square(INTERPOLATION_TYPE, c)  # elaborate way to write f(x) = x²
     xs = -4.0:2.0:4.0

@@ -69,7 +69,7 @@ v[hi]` according to the specified order, assuming that `x` is actually within th
 values found in `v`.  If `x` is outside that range, either `lo` will be `firstindex(v)` or
 `hi` will be `lastindex(v)`.
 
-Note that the results will not typically satify `lo ≤ guess ≤ hi`.  If `x` is precisely
+Note that the results will not typically satisfy `lo ≤ guess ≤ hi`.  If `x` is precisely
 equal to a value that is not unique in the input `v`, there is no guarantee that `(lo, hi)`
 will encompass *all* indices corresponding to that value.
 

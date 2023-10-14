@@ -202,7 +202,7 @@ end
 end
 
 ########################################
-#          Akima intepolation          #
+#          Akima interpolation          #
 ########################################
 
 @recipe function f(::Type{Val{:akima}},
