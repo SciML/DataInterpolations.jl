@@ -1,4 +1,8 @@
-_interpolate(interp, t) = _interpolate(interp, t, firstindex(interp.t) - 1)[1]
+function _interpolate(interp, t)
+    ((t < interp.t[1] || t > interp.t[end]) && !interp.extrapolate) &&
+        error("Cannot extrapolate!")
+    _interpolate(interp, t, firstindex(interp.t) - 1)[1]
+end
 
 # Linear Interpolation
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
@@ -53,6 +57,7 @@ end
 
 # Lagrange Interpolation
 function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && error("Cannot extrapolate!")
     idxs = findRequiredIdxs(A, t)
     if A.t[idxs[1]] == t
         return A.u[idxs[1]]
@@ -81,6 +86,7 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
 end
 
 function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && error("Cannot extrapolate!")
     idxs = findRequiredIdxs(A, t)
     if A.t[idxs[1]] == t
         return A.u[:, idxs[1]]
