@@ -144,6 +144,16 @@ import ForwardDiff
     @test A(0) == fill(0.0)
     @test A(5.5) == fill(11.0)
     @test A(11) == fill(22)
+
+    # Test extrapolation
+    u = 2.0collect(1:10)
+    t = 1.0collect(1:10)
+    A = LinearInterpolation(u, t)
+    @test A(-1.0) == -2.0
+    @test A(11.0) == 22.0
+    A = LinearInterpolation(u, t; extrapolate = false)
+    @test_throws ErrorException A(-1.0)
+    @test_throws ErrorException A(11.0)
 end
 
 @testset "Quadratic Interpolation" begin
@@ -224,6 +234,16 @@ end
     @test A(2.5) == 6.25 * ones(5, 3)
     @test A(3.5) == 12.25 * ones(5, 3)
     @test A(5.0) == 25.0 * ones(5, 3)
+
+    # Test extrapolation
+    u = [1.0, 4.5, 6.0, 2.0]
+    t = [1.0, 2.0, 3.0, 4.0]
+    A = QuadraticInterpolation(u, t)
+    @test A(0.0) == -4.5
+    @test A(5.0) == -7.5
+    A = QuadraticInterpolation(u, t; extrapolate = false)
+    @test_throws ErrorException A(0.0)
+    @test_throws ErrorException A(5.0)
 end
 
 @testset "Lagrange Interpolation" begin
@@ -272,6 +292,16 @@ end
     @test A(2.0) == 8.0 * ones(4, 3)
     @test A(1.5) ≈ 3.375 * ones(4, 3)
     @test A(3.5) ≈ 42.875 * ones(4, 3)
+
+    # Test extrapolation
+    u = [1.0, 4.0, 9.0]
+    t = [1.0, 2.0, 3.0]
+    A = LagrangeInterpolation(u, t)
+    @test A(0.0) == 0.0
+    @test A(4.0) == 16.0
+    A = LagrangeInterpolation(u, t; extrapolate = false)
+    @test_throws ErrorException A(-1.0)
+    @test_throws ErrorException A(4.0)
 end
 
 @testset "Akima Interpolation" begin
@@ -292,6 +322,14 @@ end
     @test A(8.6) ≈ 4.1796554159017080820603951
     @test A(9.9) ≈ 3.4110386597938129327189927
     @test A(10.0) ≈ 3.0
+
+    # Test extrapolation
+    A = AkimaInterpolation(u, t)
+    @test A(-1.0) == 0.0
+    @test A(11.0) == 3.0
+    A = AkimaInterpolation(u, t; extrapolate = false)
+    @test_throws ErrorException A(-1.0)
+    @test_throws ErrorException A(11.0)
 end
 
 @testset "ConstantInterpolation" begin
@@ -399,6 +437,15 @@ end
         @test A(4.0) == u[4]
         @test A(4.5) == u[4]
     end
+
+    # Test extrapolation
+    u = [1.0, 2.0, 0.0, 1.0]
+    A = ConstantInterpolation(u, t)
+    @test A(-1.0) == 1.0
+    @test A(11.0) == 1.0
+    A = ConstantInterpolation(u, t; extrapolate = false)
+    @test_throws ErrorException A(-1.0)
+    @test_throws ErrorException A(11.0)
 end
 
 @testset "QuadraticSpline Interpolation" begin
@@ -433,6 +480,16 @@ end
     @test A(-0.5) == P₁(-0.5) * ones(4, 3)
     @test A(0.7) == P₂(0.7) * ones(4, 3)
     @test A(2.0) == P₂(2.0) * ones(4, 3)
+
+    # Test extrapolation
+    u = [0.0, 1.0, 3.0]
+    t = [-1.0, 0.0, 1.0]
+    A = QuadraticSpline(u, t)
+    @test A(-2.0) == 1.0
+    @test A(2.0) == 5.0
+    A = QuadraticSpline(u, t; extrapolate = false)
+    @test_throws ErrorException A(-2.0)
+    @test_throws ErrorException A(2.0)
 end
 
 @testset "CubicSpline Interpolation" begin
@@ -473,35 +530,66 @@ end
     for x in (0.3, 0.5, 1.5)
         @test A(x) ≈ P₂(x) * ones(4, 3)
     end
+
+    # Test extrapolation
+    u = [0.0, 1.0, 3.0]
+    t = [-1.0, 0.0, 1.0]
+    A = CubicSpline(u, t)
+    @test A(-2.0) ≈ -2.0
+    @test A(2.0) ≈ 4.0
+    A = CubicSpline(u, t; extrapolate = false)
+    @test_throws ErrorException A(-2.0)
+    @test_throws ErrorException A(2.0)
 end
 
-# BSpline Interpolation and Approximation
-t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
-u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+@testset "BSplines" begin
+    # BSpline Interpolation and Approximation
+    t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
 
-A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform)
+    @testset "BSplineInterpolation" begin
+        A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform)
 
-@test A(-1.0) == u[1]
-@test [A(25.0), A(80.0)] == [13.454197730061425, 10.305633616059845]
-@test [A(190.0), A(225.0)] == [14.07428439395079, 11.057784141519251]
-@test [A(t[1]), A(t[end])] == [u[1], u[end]]
-@test A(300.0) == u[end]
+        @test [A(25.0), A(80.0)] == [13.454197730061425, 10.305633616059845]
+        @test [A(190.0), A(225.0)] == [14.07428439395079, 11.057784141519251]
+        @test [A(t[1]), A(t[end])] == [u[1], u[end]]
 
-A = BSplineInterpolation(u, t, 2, :ArcLen, :Average)
+        # Test extrapolation
+        @test A(-1.0) == u[1]
+        @test A(300.0) == u[end]
+        A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform; extrapolate = false)
+        @test_throws ErrorException A(-1.0)
+        @test_throws ErrorException A(300.0)
 
-@test A(-1.0) == u[1]
-@test [A(25.0), A(80.0)] == [13.363814458968486, 10.685201117692609]
-@test [A(190.0), A(225.0)] == [13.437481084762863, 11.367034741256463]
-@test [A(t[1]), A(t[end])] == [u[1], u[end]]
-@test A(300.0) == u[end]
+        A = BSplineInterpolation(u, t, 2, :ArcLen, :Average)
 
-A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
+        @test [A(25.0), A(80.0)] == [13.363814458968486, 10.685201117692609]
+        @test [A(190.0), A(225.0)] == [13.437481084762863, 11.367034741256463]
+        @test [A(t[1]), A(t[end])] == [u[1], u[end]]
 
-@test A(-1.0) == u[1]
-@test [A(25.0), A(80.0)] ≈ [12.979802931218234, 10.914310609953178]
-@test [A(190.0), A(225.0)] ≈ [13.851245975109263, 12.963685868886575]
-@test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
-@test A(300.0) == u[end]
+        # Test extrapolation
+        @test A(-1.0) == u[1]
+        @test A(300.0) == u[end]
+        A = BSplineInterpolation(u, t, 2, :ArcLen, :Average; extrapolate = false)
+        @test_throws ErrorException A(-1.0)
+        @test_throws ErrorException A(300.0)
+    end
+
+    @testset "BSplineApprox" begin
+        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
+
+        @test [A(25.0), A(80.0)] ≈ [12.979802931218234, 10.914310609953178]
+        @test [A(190.0), A(225.0)] ≈ [13.851245975109263, 12.963685868886575]
+        @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
+
+        # Test extrapolation
+        @test A(-1.0) == u[1]
+        @test A(300.0) == u[end]
+        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform; extrapolate = false)
+        @test_throws ErrorException A(-1.0)
+        @test_throws ErrorException A(300.0)
+    end
+end
 
 # Curvefit Interpolation
 rng = StableRNG(12345)

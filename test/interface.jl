@@ -11,7 +11,7 @@ for i in 11:20
     @test t[i - 10] == A[i]
 end
 
-A = LinearInterpolation{false}(u, t)
+A = LinearInterpolation{false}(u, t, true)
 @test length(A) == 10
 for i in 1:10
     @test u[i] == A[i]
