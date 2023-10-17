@@ -7,7 +7,7 @@ import ForwardDiff
     for t in (1.0:10.0, 1.0collect(1:10))
         u = 2.0collect(1:10)
         #t = 1.0collect(1:10)
-        A = LinearInterpolation(u, t)
+        A = LinearInterpolation(u, t; extrapolate = true)
 
         for (_t, _u) in zip(t, u)
             @test A(_t) == _u
@@ -17,7 +17,7 @@ import ForwardDiff
         @test A(11) == 22
 
         u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
-        A = LinearInterpolation(u, t)
+        A = LinearInterpolation(u, t; extrapolate = true)
 
         for (_t, _u) in zip(t, eachcol(u))
             @test A(_t) == _u
@@ -30,7 +30,7 @@ import ForwardDiff
         y = 2:4
         u_ = x' .* y
         u = [u_[:, i] for i in 1:size(u_, 2)]
-        A = LinearInterpolation(u, t)
+        A = LinearInterpolation(u, t; extrapolate = true)
         @test A(0) == [0.0, 0.0, 0.0]
         @test A(5.5) == [11.0, 16.5, 22.0]
         @test A(11) == [22.0, 33.0, 44.0]
@@ -41,7 +41,7 @@ import ForwardDiff
     u_ = x' .* y
     u = [u_[:, i:(i + 1)] for i in 1:2:10]
     t = 1.0collect(2:2:10)
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
 
     @test A(0) == [-2.0 0.0; -3.0 0.0; -4.0 0.0]
     @test A(3) == [4.0 6.0; 6.0 9.0; 8.0 12.0]
@@ -50,7 +50,7 @@ import ForwardDiff
     # with NaNs (#113)
     u = [NaN, 1.0, 2.0, 3.0]
     t = 1:4
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
     @test isnan(A(1.0))
     @test A(2.0) == 1.0
     @test A(2.5) == 1.5
@@ -58,7 +58,7 @@ import ForwardDiff
     @test A(4.0) == 3.0
 
     u = [0.0, NaN, 2.0, 3.0]
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
     @test A(1.0) == 0.0
     @test isnan(A(2.0))
     @test isnan(A(2.5))
@@ -66,7 +66,7 @@ import ForwardDiff
     @test A(4.0) == 3.0
 
     u = [0.0, NaN, 2.0, 3.0]
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
     @test A(1.0) == 0.0
     @test isnan(A(2.0))
     @test isnan(A(2.5))
@@ -74,7 +74,7 @@ import ForwardDiff
     @test A(4.0) == 3.0
 
     u = [0.0, 1.0, NaN, 3.0]
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
     @test A(1.0) == 0.0
     @test A(2.0) == 1.0
     @test isnan(A(2.5))
@@ -82,7 +82,7 @@ import ForwardDiff
     @test A(4.0) == 3.0
 
     u = [0.0, 1.0, 2.0, NaN]
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
     @test A(1.0) == 0.0
     @test A(2.0) == 1.0
     @test A(3.0) == 2.0
@@ -92,16 +92,16 @@ import ForwardDiff
     # Test type stability
     u = Float32.(1:5)
     t = Float32.(1:5)
-    A1 = LinearInterpolation(u, t)
+    A1 = LinearInterpolation(u, t; extrapolate = true)
     u = 1:5
     t = 1:5
-    A2 = LinearInterpolation(u, t)
+    A2 = LinearInterpolation(u, t; extrapolate = true)
     u = [1 // i for i in 1:5]
     t = (1:5)
-    A3 = LinearInterpolation(u, t)
+    A3 = LinearInterpolation(u, t; extrapolate = true)
     u = [1 // i for i in 1:5]
     t = [1 // (6 - i) for i in 1:5]
-    A4 = LinearInterpolation(u, t)
+    A4 = LinearInterpolation(u, t; extrapolate = true)
 
     F32 = Float32(1)
     F64 = Float64(1)
@@ -121,13 +121,13 @@ import ForwardDiff
     # Nan time value:
     t = 0.0:3  # Floats
     u = [0, -2, -1, -2]
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
     dA = t -> ForwardDiff.derivative(A, t)
     @test isnan(dA(NaN))
 
     t = 0:3  # Integers
     u = [0, -2, -1, -2]
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
     dA = t -> ForwardDiff.derivative(A, t)
     @test isnan(dA(NaN))
 
@@ -140,7 +140,7 @@ import ForwardDiff
     # Test array-valued interpolation
     u = collect.(2.0collect(1:10))
     t = 1.0collect(1:10)
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
     @test A(0) == fill(0.0)
     @test A(5.5) == fill(11.0)
     @test A(11) == fill(22)
@@ -148,10 +148,10 @@ import ForwardDiff
     # Test extrapolation
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
     @test A(-1.0) == -2.0
     @test A(11.0) == 22.0
-    A = LinearInterpolation(u, t; extrapolate = false)
+    A = LinearInterpolation(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-1.0)
     @test_throws DataInterpolations.ExtrapolationError A(11.0)
 end
@@ -159,7 +159,7 @@ end
 @testset "Quadratic Interpolation" begin
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    A = QuadraticInterpolation(u, t)
+    A = QuadraticInterpolation(u, t; extrapolate = true)
 
     for (_t, _u) in zip(t, u)
         @test A(_t) == _u
@@ -173,7 +173,7 @@ end
     # backward-looking interpolation
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    A = QuadraticInterpolation(u, t, :Backward)
+    A = QuadraticInterpolation(u, t, :Backward; extrapolate = true)
 
     for (_t, _u) in zip(t, u)
         @test A(_t) == _u
@@ -207,7 +207,7 @@ end
 
     # Matrix interpolation test
     u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
-    A = QuadraticInterpolation(u, t)
+    A = QuadraticInterpolation(u, t; extrapolate = true)
 
     for (_t, _u) in zip(t, eachcol(u))
         @test A(_t) == _u
@@ -220,7 +220,7 @@ end
 
     u_ = [1.0, 4.0, 9.0, 16.0]' .* ones(5)
     u = [u_[:, i] for i in 1:size(u_, 2)]
-    A = QuadraticInterpolation(u, t)
+    A = QuadraticInterpolation(u, t; extrapolate = true)
     @test A(0) == zeros(5)
     @test A(1.5) == 2.25 * ones(5)
     @test A(2.5) == 6.25 * ones(5)
@@ -228,7 +228,7 @@ end
     @test A(5.0) == 25.0 * ones(5)
 
     u = [repeat(u[i], 1, 3) for i in 1:4]
-    A = QuadraticInterpolation(u, t)
+    A = QuadraticInterpolation(u, t; extrapolate = true)
     @test A(0) == zeros(5, 3)
     @test A(1.5) == 2.25 * ones(5, 3)
     @test A(2.5) == 6.25 * ones(5, 3)
@@ -238,10 +238,10 @@ end
     # Test extrapolation
     u = [1.0, 4.5, 6.0, 2.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    A = QuadraticInterpolation(u, t)
+    A = QuadraticInterpolation(u, t; extrapolate = true)
     @test A(0.0) == -4.5
     @test A(5.0) == -7.5
-    A = QuadraticInterpolation(u, t; extrapolate = false)
+    A = QuadraticInterpolation(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(0.0)
     @test_throws DataInterpolations.ExtrapolationError A(5.0)
 end
@@ -296,10 +296,10 @@ end
     # Test extrapolation
     u = [1.0, 4.0, 9.0]
     t = [1.0, 2.0, 3.0]
-    A = LagrangeInterpolation(u, t)
+    A = LagrangeInterpolation(u, t; extrapolate = true)
     @test A(0.0) == 0.0
     @test A(4.0) == 16.0
-    A = LagrangeInterpolation(u, t; extrapolate = false)
+    A = LagrangeInterpolation(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-1.0)
     @test_throws DataInterpolations.ExtrapolationError A(4.0)
 end
@@ -324,10 +324,10 @@ end
     @test A(10.0) ≈ 3.0
 
     # Test extrapolation
-    A = AkimaInterpolation(u, t)
+    A = AkimaInterpolation(u, t; extrapolate = true)
     @test A(-1.0) == 0.0
     @test A(11.0) == 3.0
-    A = AkimaInterpolation(u, t; extrapolate = false)
+    A = AkimaInterpolation(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-1.0)
     @test_throws DataInterpolations.ExtrapolationError A(11.0)
 end
@@ -336,7 +336,7 @@ end
     t = [1.0, 2.0, 3.0, 4.0]
 
     @testset "Vector case" for u in [[1.0, 2.0, 0.0, 1.0], ["B", "C", "A", "B"]]
-        A = ConstantInterpolation(u, t, dir = :right)
+        A = ConstantInterpolation(u, t, dir = :right; extrapolate = true)
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[2]
@@ -347,7 +347,7 @@ end
         @test A(4.0) == u[1]
         @test A(4.5) == u[1]
 
-        A = ConstantInterpolation(u, t) # dir=:left is default
+        A = ConstantInterpolation(u, t; extrapolate = true) # dir=:left is default
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[1]
@@ -363,7 +363,7 @@ end
         [1.0 2.0 0.0 1.0; 1.0 2.0 0.0 1.0],
         ["B" "C" "A" "B"; "B" "C" "A" "B"],
     ]
-        A = ConstantInterpolation(u, t, dir = :right)
+        A = ConstantInterpolation(u, t, dir = :right; extrapolate = true)
         @test A(0.5) == u[:, 1]
         @test A(1.0) == u[:, 1]
         @test A(1.5) == u[:, 2]
@@ -374,7 +374,7 @@ end
         @test A(4.0) == u[:, 1]
         @test A(4.5) == u[:, 1]
 
-        A = ConstantInterpolation(u, t) # dir=:left is default
+        A = ConstantInterpolation(u, t; extrapolate = true) # dir=:left is default
         @test A(0.5) == u[:, 1]
         @test A(1.0) == u[:, 1]
         @test A(1.5) == u[:, 1]
@@ -389,7 +389,7 @@ end
     @testset "Vector of Vectors case" for u in [
         [[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]],
         [["B", "C"], ["A", "B"], ["B", "C"], ["A", "B"]]]
-        A = ConstantInterpolation(u, t, dir = :right)
+        A = ConstantInterpolation(u, t, dir = :right; extrapolate = true)
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[2]
@@ -400,7 +400,7 @@ end
         @test A(4.0) == u[4]
         @test A(4.5) == u[4]
 
-        A = ConstantInterpolation(u, t) # dir=:left is default
+        A = ConstantInterpolation(u, t; extrapolate = true) # dir=:left is default
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[1]
@@ -415,7 +415,7 @@ end
     @testset "Vector of Matrices case" for u in [
         [[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]],
         [["B" "C"; "B" "C"], ["A" "B"; "A" "B"], ["B" "C"; "B" "C"], ["A" "B"; "A" "B"]]]
-        A = ConstantInterpolation(u, t, dir = :right)
+        A = ConstantInterpolation(u, t, dir = :right; extrapolate = true)
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[2]
@@ -426,7 +426,7 @@ end
         @test A(4.0) == u[4]
         @test A(4.5) == u[4]
 
-        A = ConstantInterpolation(u, t) # dir=:left is default
+        A = ConstantInterpolation(u, t; extrapolate = true) # dir=:left is default
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[1]
@@ -440,10 +440,10 @@ end
 
     # Test extrapolation
     u = [1.0, 2.0, 0.0, 1.0]
-    A = ConstantInterpolation(u, t)
+    A = ConstantInterpolation(u, t; extrapolate = true)
     @test A(-1.0) == 1.0
     @test A(11.0) == 1.0
-    A = ConstantInterpolation(u, t; extrapolate = false)
+    A = ConstantInterpolation(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-1.0)
     @test_throws DataInterpolations.ExtrapolationError A(11.0)
 end
@@ -452,7 +452,7 @@ end
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
 
-    A = QuadraticSpline(u, t)
+    A = QuadraticSpline(u, t; extrapolate = true)
 
     # Solution
     P₁ = x -> (x + 1)^2 # for x ∈ [-1, 0]
@@ -468,14 +468,14 @@ end
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
-    A = QuadraticSpline(u, t)
+    A = QuadraticSpline(u, t; extrapolate = true)
     @test A(-2.0) == P₁(-2.0) * ones(4)
     @test A(-0.5) == P₁(-0.5) * ones(4)
     @test A(0.7) == P₂(0.7) * ones(4)
     @test A(2.0) == P₂(2.0) * ones(4)
 
     u = [repeat(u[i], 1, 3) for i in 1:3]
-    A = QuadraticSpline(u, t)
+    A = QuadraticSpline(u, t; extrapolate = true)
     @test A(-2.0) == P₁(-2.0) * ones(4, 3)
     @test A(-0.5) == P₁(-0.5) * ones(4, 3)
     @test A(0.7) == P₂(0.7) * ones(4, 3)
@@ -484,10 +484,10 @@ end
     # Test extrapolation
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    A = QuadraticSpline(u, t)
+    A = QuadraticSpline(u, t; extrapolate = true)
     @test A(-2.0) == 1.0
     @test A(2.0) == 5.0
-    A = QuadraticSpline(u, t; extrapolate = false)
+    A = QuadraticSpline(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-2.0)
     @test_throws DataInterpolations.ExtrapolationError A(2.0)
 end
@@ -496,7 +496,7 @@ end
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
 
-    A = CubicSpline(u, t)
+    A = CubicSpline(u, t; extrapolate = true)
 
     # Solution
     P₁ = x -> 1 + 1.5x + x^2 + 0.5x^3 # for x ∈ [-1.0, 0.0]
@@ -514,7 +514,7 @@ end
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
-    A = CubicSpline(u, t)
+    A = CubicSpline(u, t; extrapolate = true)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4)
     end
@@ -523,7 +523,7 @@ end
     end
 
     u = [repeat(u[i], 1, 3) for i in 1:3]
-    A = CubicSpline(u, t)
+    A = CubicSpline(u, t; extrapolate = true)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4, 3)
     end
@@ -534,10 +534,10 @@ end
     # Test extrapolation
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    A = CubicSpline(u, t)
+    A = CubicSpline(u, t; extrapolate = true)
     @test A(-2.0) ≈ -2.0
     @test A(2.0) ≈ 4.0
-    A = CubicSpline(u, t; extrapolate = false)
+    A = CubicSpline(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-2.0)
     @test_throws DataInterpolations.ExtrapolationError A(2.0)
 end
@@ -555,9 +555,10 @@ end
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
 
         # Test extrapolation
+        A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform; extrapolate = true)
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform; extrapolate = false)
+        A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform)
         @test_throws DataInterpolations.ExtrapolationError A(-1.0)
         @test_throws DataInterpolations.ExtrapolationError A(300.0)
 
@@ -568,9 +569,10 @@ end
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
 
         # Test extrapolation
+        A = BSplineInterpolation(u, t, 2, :ArcLen, :Average; extrapolate = true)
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = BSplineInterpolation(u, t, 2, :ArcLen, :Average; extrapolate = false)
+        A = BSplineInterpolation(u, t, 2, :ArcLen, :Average)
         @test_throws DataInterpolations.ExtrapolationError A(-1.0)
         @test_throws DataInterpolations.ExtrapolationError A(300.0)
     end
@@ -583,9 +585,10 @@ end
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
 
         # Test extrapolation
+        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform; extrapolate = true)
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform; extrapolate = false)
+        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
         @test_throws DataInterpolations.ExtrapolationError A(-1.0)
         @test_throws DataInterpolations.ExtrapolationError A(300.0)
     end
