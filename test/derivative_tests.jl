@@ -14,8 +14,8 @@ function test_derivatives(method, u, t, args...; name::String)
         end
     end
     func = method(u, t, args...; extrapolate = false)
-    @test_throws ErrorException derivative(func, t[1] - 1.0)
-    @test_throws ErrorException derivative(func, t[end] + 1.0)
+    @test_throws DataInterpolations.ExtrapolationError derivative(func, t[1] - 1.0)
+    @test_throws DataInterpolations.ExtrapolationError derivative(func, t[end] + 1.0)
 end
 
 @testset "Linear Interpolation" begin

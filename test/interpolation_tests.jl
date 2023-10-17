@@ -152,8 +152,8 @@ import ForwardDiff
     @test A(-1.0) == -2.0
     @test A(11.0) == 22.0
     A = LinearInterpolation(u, t; extrapolate = false)
-    @test_throws ErrorException A(-1.0)
-    @test_throws ErrorException A(11.0)
+    @test_throws DataInterpolations.ExtrapolationError A(-1.0)
+    @test_throws DataInterpolations.ExtrapolationError A(11.0)
 end
 
 @testset "Quadratic Interpolation" begin
@@ -242,8 +242,8 @@ end
     @test A(0.0) == -4.5
     @test A(5.0) == -7.5
     A = QuadraticInterpolation(u, t; extrapolate = false)
-    @test_throws ErrorException A(0.0)
-    @test_throws ErrorException A(5.0)
+    @test_throws DataInterpolations.ExtrapolationError A(0.0)
+    @test_throws DataInterpolations.ExtrapolationError A(5.0)
 end
 
 @testset "Lagrange Interpolation" begin
@@ -300,8 +300,8 @@ end
     @test A(0.0) == 0.0
     @test A(4.0) == 16.0
     A = LagrangeInterpolation(u, t; extrapolate = false)
-    @test_throws ErrorException A(-1.0)
-    @test_throws ErrorException A(4.0)
+    @test_throws DataInterpolations.ExtrapolationError A(-1.0)
+    @test_throws DataInterpolations.ExtrapolationError A(4.0)
 end
 
 @testset "Akima Interpolation" begin
@@ -328,8 +328,8 @@ end
     @test A(-1.0) == 0.0
     @test A(11.0) == 3.0
     A = AkimaInterpolation(u, t; extrapolate = false)
-    @test_throws ErrorException A(-1.0)
-    @test_throws ErrorException A(11.0)
+    @test_throws DataInterpolations.ExtrapolationError A(-1.0)
+    @test_throws DataInterpolations.ExtrapolationError A(11.0)
 end
 
 @testset "ConstantInterpolation" begin
@@ -444,8 +444,8 @@ end
     @test A(-1.0) == 1.0
     @test A(11.0) == 1.0
     A = ConstantInterpolation(u, t; extrapolate = false)
-    @test_throws ErrorException A(-1.0)
-    @test_throws ErrorException A(11.0)
+    @test_throws DataInterpolations.ExtrapolationError A(-1.0)
+    @test_throws DataInterpolations.ExtrapolationError A(11.0)
 end
 
 @testset "QuadraticSpline Interpolation" begin
@@ -488,8 +488,8 @@ end
     @test A(-2.0) == 1.0
     @test A(2.0) == 5.0
     A = QuadraticSpline(u, t; extrapolate = false)
-    @test_throws ErrorException A(-2.0)
-    @test_throws ErrorException A(2.0)
+    @test_throws DataInterpolations.ExtrapolationError A(-2.0)
+    @test_throws DataInterpolations.ExtrapolationError A(2.0)
 end
 
 @testset "CubicSpline Interpolation" begin
@@ -538,8 +538,8 @@ end
     @test A(-2.0) ≈ -2.0
     @test A(2.0) ≈ 4.0
     A = CubicSpline(u, t; extrapolate = false)
-    @test_throws ErrorException A(-2.0)
-    @test_throws ErrorException A(2.0)
+    @test_throws DataInterpolations.ExtrapolationError A(-2.0)
+    @test_throws DataInterpolations.ExtrapolationError A(2.0)
 end
 
 @testset "BSplines" begin
@@ -558,8 +558,8 @@ end
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform; extrapolate = false)
-        @test_throws ErrorException A(-1.0)
-        @test_throws ErrorException A(300.0)
+        @test_throws DataInterpolations.ExtrapolationError A(-1.0)
+        @test_throws DataInterpolations.ExtrapolationError A(300.0)
 
         A = BSplineInterpolation(u, t, 2, :ArcLen, :Average)
 
@@ -571,8 +571,8 @@ end
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = BSplineInterpolation(u, t, 2, :ArcLen, :Average; extrapolate = false)
-        @test_throws ErrorException A(-1.0)
-        @test_throws ErrorException A(300.0)
+        @test_throws DataInterpolations.ExtrapolationError A(-1.0)
+        @test_throws DataInterpolations.ExtrapolationError A(300.0)
     end
 
     @testset "BSplineApprox" begin
@@ -586,8 +586,8 @@ end
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform; extrapolate = false)
-        @test_throws ErrorException A(-1.0)
-        @test_throws ErrorException A(300.0)
+        @test_throws DataInterpolations.ExtrapolationError A(-1.0)
+        @test_throws DataInterpolations.ExtrapolationError A(300.0)
     end
 end
 
