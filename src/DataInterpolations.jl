@@ -36,6 +36,12 @@ function (interp::AbstractInterpolation)(u::AbstractVector, t::AbstractVector)
     u
 end
 
+const EXTRAPOLATION_ERROR = "Cannot extrapolate as `extrapolate` keyword passed was `false`"
+struct ExtrapolationError <: Exception end
+function Base.showerror(io::IO, e::ExtrapolationError)
+    print(io, EXTRAPOLATION_ERROR)
+end
+
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
     BSplineInterpolation, BSplineApprox

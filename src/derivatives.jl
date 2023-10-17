@@ -1,4 +1,7 @@
-derivative(A, t) = derivative(A, t, firstindex(A.t) - 1)[1]
+function derivative(A, t)
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
+    derivative(A, t, firstindex(A.t) - 1)[1]
+end
 
 function derivative(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = searchsortedfirstcorrelated(A.t, t, iguess)
@@ -33,6 +36,7 @@ function derivative(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number, igue
 end
 
 function derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     idxs = findRequiredIdxs(A, t)
     if A.t[idxs[1]] == t
         return zero(A.u[idxs[1]])
@@ -68,6 +72,7 @@ function derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
 end
 
 function derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     idxs = findRequiredIdxs(A, t)
     if A.t[idxs[1]] == t
         return zero(A.u[:, idxs[1]])
@@ -115,10 +120,12 @@ function derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
 end
 
 function derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : eltype(A.u)(NaN)
 end
 
 function derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number)
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : eltype(A.u)(NaN) .* A.u[:, 1]
 end
 
