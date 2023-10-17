@@ -4,7 +4,7 @@ using DataInterpolations: derivative
 # using Symbolics
 
 function test_derivatives(method, u, t, args...; name::String)
-    func = method(u, t, args...)
+    func = method(u, t, args...; extrapolate = true)
     trange = range(minimum(t) - 5.0, maximum(t) + 5.0, length = 32)
     @testset "$name" begin
         for t in trange
@@ -13,7 +13,7 @@ function test_derivatives(method, u, t, args...; name::String)
             @test isapprox(cdiff, adiff, atol = 1e-8)
         end
     end
-    func = method(u, t, args...; extrapolate = false)
+    func = method(u, t, args...)
     @test_throws DataInterpolations.ExtrapolationError derivative(func, t[1] - 1.0)
     @test_throws DataInterpolations.ExtrapolationError derivative(func, t[end] + 1.0)
 end
@@ -23,7 +23,6 @@ end
     t = 1.0collect(1:10)
     test_derivatives(LinearInterpolation, u, t; name = "Linear Interpolation (Vector)")
     u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
-    A = LinearInterpolation(u, t)
     test_derivatives(LinearInterpolation, u, t; name = "Linear Interpolation (Matrix)")
 end
 
