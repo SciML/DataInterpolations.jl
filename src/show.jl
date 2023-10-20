@@ -11,15 +11,15 @@ function get_show(interp::AbstractInterpolation)
     return string(nameof(typeof(interp))) * " with $(length(interp.t)) points\n"
 end
 
-function get_data(u::AbstractVector) 
+function get_data(u::AbstractVector)
     return u
 end
 
-function get_data(u::AbstractVector{<:AbstractVector}) 
+function get_data(u::AbstractVector{<:AbstractVector})
     return reduce(hcat, u)'
 end
 
-function get_data(u::AbstractMatrix) 
+function get_data(u::AbstractMatrix)
     return u'
 end
 
@@ -38,28 +38,26 @@ end
 ###################### Specific Dispatches ######################
 
 function get_show(interp::QuadraticInterpolation)
-    return string(nameof(typeof(interp))) * " with $(length(interp.t)) points, $(interp.mode) mode\n"
+    return string(nameof(typeof(interp))) *
+           " with $(length(interp.t)) points, $(interp.mode) mode\n"
 end
 
 function get_show(interp::LagrangeInterpolation)
-    return string(nameof(typeof(interp))) * " with $(length(interp.t)) points, with order $(interp.n)\n"
+    return string(nameof(typeof(interp))) *
+           " with $(length(interp.t)) points, with order $(interp.n)\n"
 end
 
 function get_show(interp::ConstantInterpolation)
-    return string(nameof(typeof(interp))) * " with $(length(interp.t)) points, in $(interp.dir) direction\n"
+    return string(nameof(typeof(interp))) *
+           " with $(length(interp.t)) points, in $(interp.dir) direction\n"
 end
 
 function get_show(interp::BSplineInterpolation)
-    return string(nameof(typeof(interp))) * " with $(length(interp.t)) points, with degree $(interp.d)\n"
+    return string(nameof(typeof(interp))) *
+           " with $(length(interp.t)) points, with degree $(interp.d)\n"
 end
 
 function get_show(interp::BSplineApprox)
-    return string(nameof(typeof(interp))) * " with $(length(interp.t)) points, with degree $(interp.d), number of control points $(interp.h)\n"
+    return string(nameof(typeof(interp))) *
+           " with $(length(interp.t)) points, with degree $(interp.d), number of control points $(interp.h)\n"
 end
-
-
-
-
-
-
-

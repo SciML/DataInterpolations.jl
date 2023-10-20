@@ -270,7 +270,8 @@ function DataInterpolations._interpolate(A::RegularizationSmooth{
 end
 
 function DataInterpolations.get_show(interp::RegularizationSmooth)
-    return "RegularizationSmooth" * " with $(length(interp.t)) points, with regularization coefficient $(interp.λ)\n"
+    return "RegularizationSmooth" *
+           " with $(length(interp.t)) points, with regularization coefficient $(interp.λ)\n"
 end
 
 end # module

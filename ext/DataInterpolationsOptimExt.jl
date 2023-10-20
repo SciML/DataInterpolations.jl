@@ -76,8 +76,8 @@ function _interpolate(A::CurvefitCache{<:AbstractVector{<:Number}},
 end
 
 function get_show(interp::CurvefitCache)
-    return "Curvefit" * " with $(length(interp.t)) points, using $(nameof(typeof(interp.alg)))\n"
+    return "Curvefit" *
+           " with $(length(interp.t)) points, using $(nameof(typeof(interp.alg)))\n"
 end
- 
 
 end # module
