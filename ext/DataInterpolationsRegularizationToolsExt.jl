@@ -1,7 +1,7 @@
 module DataInterpolationsRegularizationToolsExt
 
 using DataInterpolations
-using DataInterpolations: munge_data, _interpolate, RegularizationSmooth
+using DataInterpolations: munge_data, _interpolate, RegularizationSmooth, get_show
 using LinearAlgebra
 
 isdefined(Base, :get_extension) ? (import RegularizationTools as RT) :
@@ -267,6 +267,11 @@ function DataInterpolations._interpolate(A::RegularizationSmooth{
     },
     t::Number)
     DataInterpolations._interpolate(A.Aitp, t)
+end
+
+function DataInterpolations.get_show(interp::RegularizationSmooth)
+    return "RegularizationSmooth" *
+           " with $(length(interp.t)) points, with regularization coefficient $(interp.λ)\n"
 end
 
 end # module

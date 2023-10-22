@@ -19,4 +19,7 @@ using DataInterpolations, Test
     @testset "Regularization Smoothing" begin
         include("regularization.jl")
     end
+    @testset "Show methods" begin
+        include("show.jl")
+    end
 end

@@ -2,11 +2,11 @@ module DataInterpolationsOptimExt
 
 if isdefined(Base, :get_extension)
     using DataInterpolations: AbstractInterpolation, munge_data
-    import DataInterpolations: Curvefit, _interpolate
+    import DataInterpolations: Curvefit, _interpolate, get_show
     using Reexport
 else
     using ..DataInterpolations: AbstractInterpolation, munge_data
-    import ..DataInterpolations: Curvefit, _interpolate
+    import ..DataInterpolations: Curvefit, _interpolate, get_show
     using Reexport
 end
 
@@ -73,6 +73,11 @@ function _interpolate(A::CurvefitCache{<:AbstractVector{<:Number}},
     t::Union{AbstractVector{<:Number}, Number},
     i)
     _interpolate(A, t), i
+end
+
+function get_show(interp::CurvefitCache)
+    return "Curvefit" *
+           " with $(length(interp.t)) points, using $(nameof(typeof(interp.alg)))\n"
 end
 
 end # module

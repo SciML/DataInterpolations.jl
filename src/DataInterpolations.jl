@@ -16,6 +16,7 @@ function Base.setindex!(A::AbstractInterpolation{true}, x, i)
 end
 
 using LinearAlgebra, RecursiveArrayTools, RecipesBase
+using PrettyTables
 
 include("interpolation_caches.jl")
 include("interpolation_utils.jl")
@@ -24,6 +25,7 @@ include("plot_rec.jl")
 include("derivatives.jl")
 include("integrals.jl")
 include("online.jl")
+include("show.jl")
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
 (interp::AbstractInterpolation)(t::Number, i::Integer) = _interpolate(interp, t, i)
