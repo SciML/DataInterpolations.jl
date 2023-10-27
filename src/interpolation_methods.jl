@@ -1,7 +1,20 @@
+function _generate_linear_index_guess(tt::AbstractVector, t)
+    T = typeof(firstindex(tt))
+    isnan(t) && return firstindex(tt) - T(1)
+    hi = last(tt)
+    lo = first(tt)
+    frac = (t - lo) / (hi - lo)
+    zero_based_idx = floor(T, (length(tt) - 1) * frac)
+    zero_based_idx + T(1)
+end
+
+_generate_linear_index_guess(::AbstractRange, _) = nothing
+
 function _interpolate(interp, t)
     ((t < interp.t[1] || t > interp.t[end]) && !interp.extrapolate) &&
         throw(ExtrapolationError())
-    _interpolate(interp, t, firstindex(interp.t) - 1)[1]
+    guess = _generate_linear_index_guess(interp.t, t)
+    _interpolate(interp, t, guess)[1]
 end
 
 # Linear Interpolation
