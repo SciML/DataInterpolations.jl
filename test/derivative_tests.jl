@@ -31,11 +31,11 @@ function test_derivatives(method, u, t, args...; name::String)
         adiff = derivative(func, t[1])
         if func isa BSplineInterpolation || func isa BSplineApprox
             # Bug in BSplines
-            @test isapprox(fdiff, adiff, atol = 1e-8) broken = true
+            @test_broken isapprox(fdiff, adiff, atol = 1e-8)
         else
             @test isapprox(fdiff, adiff, atol = 1e-8)
         end
-        
+
         # t = tend
         fdiff = backward_fdm(5, 1; geom = true)(func, t[end])
         adiff = derivative(func, t[end])
