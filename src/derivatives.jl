@@ -37,74 +37,70 @@ end
 
 function derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    idxs = findRequiredIdxs(A, t)
-    if A.t[idxs[1]] == t
-        return zero(A.u[idxs[1]])
-    end
-    G = zero(A.u[1])
-    F = zero(A.t[1])
-    DG = zero(A.u[1])
-    DF = zero(A.t[1])
-    tmp = G
-    for i in 1:length(idxs)
-        if isnan(A.bcache[idxs[i]])
+    der = zero(A.u[1])
+    for j in eachindex(A.t)
+        tmp = zero(A.t[1])
+        if isnan(A.bcache[j])
             mult = one(A.t[1])
-            for j in 1:(i - 1)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+            for i in 1:(j - 1)
+                mult *= (A.t[j] - A.t[i])
             end
-            for j in (i + 1):length(idxs)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+            for i in (j + 1):length(A.t)
+                mult *= (A.t[j] - A.t[i])
             end
-            A.bcache[idxs[i]] = mult
+            A.bcache[j] = mult
         else
-            mult = A.bcache[idxs[i]]
+            mult = A.bcache[j]
         end
-        wi = inv(mult)
-        tti = t - A.t[idxs[i]]
-        tmp = wi / (t - A.t[idxs[i]])
-        g = tmp * A.u[idxs[i]]
-        G += g
-        DG -= g / (t - A.t[idxs[i]])
-        F += tmp
-        DF -= tmp / (t - A.t[idxs[i]])
+        for l in eachindex(A.t)
+            if l != j
+                k = one(A.t[1])
+                for m in eachindex(A.t)
+                    if m != j && m != l
+                        k *= (t - A.t[m])
+                    end
+                end
+                k *= inv(mult)
+                tmp += k
+            end
+        end
+        der += A.u[j]*tmp
     end
-    (DG * F - G * DF) / (F^2)
+    der
 end
 
 function derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    idxs = findRequiredIdxs(A, t)
-    if A.t[idxs[1]] == t
-        return zero(A.u[:, idxs[1]])
-    end
-    G = zero(A.u[:, 1])
-    F = zero(A.t[1])
-    DG = zero(A.u[:, 1])
-    DF = zero(A.t[1])
-    tmp = G
-    for i in 1:length(idxs)
-        if isnan(A.bcache[idxs[i]])
+    der = zero(A.u[:, 1])
+    for j in eachindex(A.t)
+        tmp = zero(A.t[1])
+        if isnan(A.bcache[j])
             mult = one(A.t[1])
-            for j in 1:(i - 1)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+            for i in 1:(j - 1)
+                mult *= (A.t[j] - A.t[i])
             end
-            for j in (i + 1):length(idxs)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+            for i in (j + 1):length(A.t)
+                mult *= (A.t[j] - A.t[i])
             end
-            A.bcache[idxs[i]] = mult
+            A.bcache[j] = mult
         else
-            mult = A.bcache[idxs[i]]
+            mult = A.bcache[j]
         end
-        wi = inv(mult)
-        tti = t - A.t[idxs[i]]
-        tmp = wi / (t - A.t[idxs[i]])
-        g = tmp * A.u[:, idxs[i]]
-        @. G += g
-        @. DG -= g / (t - A.t[idxs[i]])
-        F += tmp
-        DF -= tmp / (t - A.t[idxs[i]])
+        for l in eachindex(A.t)
+            if l != j
+                k = one(A.t[1])
+                for m in eachindex(A.t)
+                    if m != j && m != l
+                        k *= (t - A.t[m])
+                    end
+                end
+                k *= inv(mult)
+                tmp += k
+            end
+        end
+        @. der += A.u[:, j]*tmp
     end
-    @. (DG * F - G * DF) / (F^2)
+    der
 end
 
 derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, i) = derivative(A, t), i
