@@ -1,17 +1,45 @@
 using DataInterpolations, Test
 using FiniteDifferences
 using DataInterpolations: derivative
-# using Symbolics
+using Symbolics
 
 function test_derivatives(method, u, t, args...; name::String)
     func = method(u, t, args...; extrapolate = true)
-    trange = range(minimum(t) - 5.0, maximum(t) + 5.0, length = 32)
+    trange = collect(range(minimum(t) - 5.0, maximum(t) + 5.0, step = 0.1))
+    trange_exclude = filter(x -> !in(x, t), trange)
     @testset "$name" begin
-        for t in trange
-            cdiff = central_fdm(5, 1; geom = true)(_t -> func(_t), t)
-            adiff = derivative(func, t)
+        # Rest of the points
+        for _t in trange_exclude
+            cdiff = central_fdm(5, 1; geom = true)(func, _t)
+            adiff = derivative(func, _t)
             @test isapprox(cdiff, adiff, atol = 1e-8)
         end
+
+        # Interpolation time points
+        for _t in t[2:end-1]
+            fdiff = if func isa BSplineInterpolation || func isa BSplineApprox
+                forward_fdm(5, 1; geom = true)(func, _t)
+            else
+                backward_fdm(5, 1; geom = true)(func, _t)
+            end
+            adiff = derivative(func, _t)
+            @test isapprox(fdiff, adiff, atol = 1e-8)
+        end
+
+        # t = t0
+        fdiff = forward_fdm(5, 1; geom = true)(func, t[1])
+        adiff = derivative(func, t[1])
+        if func isa BSplineInterpolation || func isa BSplineApprox
+            # Bug in BSplines
+            @test isapprox(fdiff, adiff, atol = 1e-8) broken = true
+        else
+            @test isapprox(fdiff, adiff, atol = 1e-8)
+        end
+        
+        # t = tend
+        fdiff = backward_fdm(5, 1; geom = true)(func, t[end])
+        adiff = derivative(func, t[end])
+        @test isapprox(fdiff, adiff, atol = 1e-8)
     end
     func = method(u, t, args...)
     @test_throws DataInterpolations.ExtrapolationError derivative(func, t[1] - 1.0)
@@ -19,7 +47,7 @@ function test_derivatives(method, u, t, args...; name::String)
 end
 
 @testset "Linear Interpolation" begin
-    u = 2.0collect(1:10)
+    u = vcat(collect(1:5), 2*collect(6:10))
     t = 1.0collect(1:10)
     test_derivatives(LinearInterpolation, u, t; name = "Linear Interpolation (Vector)")
     u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
