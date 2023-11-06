@@ -1,53 +1,22 @@
 module DataInterpolationsOptimExt
 
-if isdefined(Base, :get_extension)
-    using DataInterpolations: AbstractInterpolation, munge_data
-    import DataInterpolations: Curvefit, _interpolate, get_show
-    using Reexport
-else
-    using ..DataInterpolations: AbstractInterpolation, munge_data
-    import ..DataInterpolations: Curvefit, _interpolate, get_show
-    using Reexport
-end
+using DataInterpolations
+import DataInterpolations: munge_data,
+    Curvefit, CurvefitCache, _interpolate, get_show, derivative, ExtrapolationError
 
-isdefined(Base, :get_extension) ? (@reexport using Optim) : (@reexport using ..Optim)
+isdefined(Base, :get_extension) ? (using Optim, ForwardDiff) :
+(using ..Optim, ..ForwardDiff)
 
 ### Curvefit
-struct CurvefitCache{
-    uType,
-    tType,
-    mType,
-    p0Type,
-    ubType,
-    lbType,
-    algType,
-    pminType,
-    FT,
-    T,
-} <: AbstractInterpolation{FT, T}
-    u::uType
-    t::tType
-    m::mType        # model type
-    p0::p0Type      # intial params
-    ub::ubType      # upper bound of params
-    lb::lbType      # lower bound of params
-    alg::algType    # alg to optimize cost function
-    pmin::pminType  # optimized params
-    function CurvefitCache{FT}(u, t, m, p0, ub, lb, alg, pmin) where {FT}
-        new{typeof(u), typeof(t), typeof(m),
-            typeof(p0), typeof(ub), typeof(lb),
-            typeof(alg), typeof(pmin), FT, eltype(u)}(u,
-            t,
-            m,
-            p0,
-            ub,
-            lb,
-            alg,
-            pmin)
-    end
-end
-
-function Curvefit(u, t, model, p0, alg, box = false, lb = nothing, ub = nothing)
+function Curvefit(u,
+        t,
+        model,
+        p0,
+        alg,
+        box = false,
+        lb = nothing,
+        ub = nothing;
+        extrapolate = false)
     u, t = munge_data(u, t)
     errfun(t, u, p) = sum(abs2.(u .- model(t, p)))
     if box == false
@@ -60,19 +29,27 @@ function Curvefit(u, t, model, p0, alg, box = false, lb = nothing, ub = nothing)
         mfit = optimize(od, lb, ub, p0, Fminbox(alg))
     end
     pmin = Optim.minimizer(mfit)
-    CurvefitCache{true}(u, t, model, p0, ub, lb, alg, pmin)
+    CurvefitCache{true}(u, t, model, p0, ub, lb, alg, pmin, extrapolate)
 end
 
 # Curvefit
 function _interpolate(A::CurvefitCache{<:AbstractVector{<:Number}},
-    t::Union{AbstractVector{<:Number}, Number})
+        t::Union{AbstractVector{<:Number}, Number})
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
+        throw(ExtrapolationError())
     A.m(t, A.pmin)
 end
 
 function _interpolate(A::CurvefitCache{<:AbstractVector{<:Number}},
-    t::Union{AbstractVector{<:Number}, Number},
-    i)
+        t::Union{AbstractVector{<:Number}, Number},
+        i)
     _interpolate(A, t), i
+end
+
+function derivative(A::CurvefitCache{<:AbstractVector{<:Number}},
+        t::Union{AbstractVector{<:Number}, Number})
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
+    ForwardDiff.derivative(x -> A.m(x, A.pmin), t)
 end
 
 function get_show(interp::CurvefitCache)
