@@ -177,3 +177,10 @@ end
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(t̂), ans, rtol = tolerance)
 end
+
+@testset "Extrapolation" begin
+    A = RegularizationSmooth(uₒ, tₒ; alg = :fixed, extrapolate = true)
+    @test A(10.0) == A.Aitp(10.0)
+    A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
+    @test_throws DataInterpolations.ExtrapolationError A(10.0)
+end

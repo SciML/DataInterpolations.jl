@@ -594,26 +594,33 @@ end
     end
 end
 
-# Curvefit Interpolation
-rng = StableRNG(12345)
-model(x, p) = @. p[1] / (1 + exp(x - p[2]))
-t = range(-10, stop = 10, length = 40)
-u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
-p0 = [0.5, 0.5]
+@testset "Curvefit" begin
+    # Curvefit Interpolation
+    rng = StableRNG(12345)
+    model(x, p) = @. p[1] / (1 + exp(x - p[2]))
+    t = range(-10, stop = 10, length = 40)
+    u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
+    p0 = [0.5, 0.5]
 
-A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0, LBFGS())
 
-ts = [-7.0, -2.0, 0.0, 2.5, 5.0]
-vs = [
-    1.0013468217936277,
-    0.9836755196317837,
-    0.8833959853995836,
-    0.3810348276782708,
-    0.048062978598861855,
-]
-us = A.(ts)
+    ts = [-7.0, -2.0, 0.0, 2.5, 5.0]
+    vs = [
+        1.0013468217936277,
+        0.9836755196317837,
+        0.8833959853995836,
+        0.3810348276782708,
+        0.048062978598861855,
+    ]
+    us = A.(ts)
+    @test vs ≈ us
 
-@test vs ≈ us
+    # Test extrapolation
+    A = Curvefit(u, t, model, p0, LBFGS(); extrapolate = true)
+    @test A(15.0) == model(15.0, A.pmin)
+    A = Curvefit(u, t, model, p0, LBFGS())
+    @test_throws DataInterpolations.ExtrapolationError A(15.0)
+end
 
 # missing values handling tests
 u = [1.0, 4.0, 9.0, 16.0, 25.0, missing, missing]
