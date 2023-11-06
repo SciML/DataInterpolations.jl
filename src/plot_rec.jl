@@ -32,11 +32,11 @@ end
 ########################################
 
 @recipe function f(::Type{Val{:linear_interp}},
-    x,
-    y,
-    z;
-    plotdensity = 10_000,
-    denseplot = true)
+        x,
+        y,
+        z;
+        plotdensity = 10_000,
+        denseplot = true)
     seriestype := :path
 
     label --> "Linear fit"
@@ -54,11 +54,11 @@ end
 ########################################
 
 @recipe function f(::Type{Val{:quadratic_interp}},
-    x,
-    y,
-    z;
-    plotdensity = 10_000,
-    denseplot = true)
+        x,
+        y,
+        z;
+        plotdensity = 10_000,
+        denseplot = true)
     seriestype := :path
 
     label --> "Quadratic fit"
@@ -76,11 +76,11 @@ end
 ########################################
 
 @recipe function f(::Type{Val{:quadratic_spline}},
-    x,
-    y,
-    z;
-    plotdensity = 10_000,
-    denseplot = true)
+        x,
+        y,
+        z;
+        plotdensity = 10_000,
+        denseplot = true)
     seriestype := :path
 
     label --> "Quadratic Spline"
@@ -101,10 +101,10 @@ end
 ########################################
 
 @recipe function f(::Type{Val{:lagrange_interp}},
-    x, y, z;
-    n = length(x) - 1,
-    plotdensity = 10_000,
-    denseplot = true)
+        x, y, z;
+        n = length(x) - 1,
+        plotdensity = 10_000,
+        denseplot = true)
     seriestype := :path
 
     label --> "Lagrange Fit"
@@ -126,11 +126,11 @@ end
 ########################################
 
 @recipe function f(::Type{Val{:cubic_spline}},
-    x,
-    y,
-    z;
-    plotdensity = 10_000,
-    denseplot = true)
+        x,
+        y,
+        z;
+        plotdensity = 10_000,
+        denseplot = true)
     seriestype := :path
 
     label --> "Cubic Spline"
@@ -146,12 +146,12 @@ end
 end
 
 @recipe function f(::Type{Val{:bspline_interp}},
-    x, y, z;
-    d = 5,
-    pVec = :ArcLen,
-    knotVec = :Average,
-    plotdensity = length(x) * 6,
-    denseplot = true)
+        x, y, z;
+        d = 5,
+        pVec = :ArcLen,
+        knotVec = :Average,
+        plotdensity = length(x) * 6,
+        denseplot = true)
     seriestype := :path
 
     label --> "B-Spline"
@@ -176,13 +176,13 @@ end
 ########################################
 
 @recipe function f(::Type{Val{:bspline_approx}},
-    x, y, z;
-    d = 5,
-    h = length(x) - 1,
-    pVec = :ArcLen,
-    knotVec = :Average,
-    plotdensity = length(x) * 6,
-    denseplot = true)
+        x, y, z;
+        d = 5,
+        h = length(x) - 1,
+        pVec = :ArcLen,
+        knotVec = :Average,
+        plotdensity = length(x) * 6,
+        denseplot = true)
     seriestype := :path
 
     label --> "B-Spline"
@@ -206,11 +206,11 @@ end
 ########################################
 
 @recipe function f(::Type{Val{:akima}},
-    x,
-    y,
-    z;
-    plotdensity = length(x) * 6,
-    denseplot = true)
+        x,
+        y,
+        z;
+        plotdensity = length(x) * 6,
+        denseplot = true)
     seriestype := :path
 
     label --> "Akima"

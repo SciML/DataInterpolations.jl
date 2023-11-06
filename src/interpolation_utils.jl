@@ -82,9 +82,9 @@ this function would be the index returned by the previous call to `searchsorted`
 See [`sort!`](@ref) for an explanation of the keyword arguments `by`, `lt` and `rev`.
 """
 function bracketstrictlymontonic(v::AbstractVector,
-    x,
-    guess::T,
-    o::Base.Order.Ordering)::NTuple{2, keytype(v)} where {T <: Integer}
+        x,
+        guess::T,
+        o::Base.Order.Ordering)::NTuple{2, keytype(v)} where {T <: Integer}
     bottom = firstindex(v)
     top = lastindex(v)
     if guess < bottom || guess > top

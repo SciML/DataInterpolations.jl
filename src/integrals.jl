@@ -24,8 +24,8 @@ end
 
 samples(A::LinearInterpolation{<:AbstractVector}) = (0, 1)
 function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
-    idx::Number,
-    t::Number)
+        idx::Number,
+        t::Number)
     t1 = A.t[idx]
     t2 = A.t[idx + 1]
     u1 = A.u[idx]
@@ -46,8 +46,8 @@ end
 
 samples(A::QuadraticInterpolation{<:AbstractVector}) = (0, 1)
 function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
-    idx::Number,
-    t::Number)
+        idx::Number,
+        t::Number)
     A.mode == :Backward && idx > 1 && (idx -= 1)
     idx = min(length(A.t) - 2, idx)
     t1 = A.t[idx]
