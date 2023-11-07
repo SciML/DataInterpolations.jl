@@ -175,8 +175,8 @@ end
 
 # BSpline Curve Interpolation
 function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
-    t::Number,
-    iguess)
+        t::Number,
+        iguess)
     t < A.t[1] && return A.u[1], 1
     t > A.t[end] && return A.u[end], lastindex(t)
     # change t into param [0 1]

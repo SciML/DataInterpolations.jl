@@ -12,18 +12,20 @@ Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 
 [weakdeps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 RegularizationTools = "29dad682-9a27-4bc3-9c72-016788665182"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [extensions]
 DataInterpolationsChainRulesCoreExt = "ChainRulesCore"
-DataInterpolationsOptimExt = "Optim"
+DataInterpolationsOptimExt = ["ForwardDiff", "Optim"]
 DataInterpolationsRegularizationToolsExt = "RegularizationTools"
 DataInterpolationsSymbolicsExt = "Symbolics"
 
 [compat]
 ChainRulesCore = "0.9.44, 0.10, 1"
+ForwardDiff = "0.10"
 LinearAlgebra = "1.6"
 Optim = "0.19, 0.20, 0.21, 0.22, 1.0"
 PrettyTables = "2"

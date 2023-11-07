@@ -2,9 +2,13 @@ using DataInterpolations, Test
 using FiniteDifferences
 using DataInterpolations: derivative
 using Symbolics
+using StableRNGs
+using RegularizationTools
+using Optim
+using ForwardDiff
 
-function test_derivatives(method, u, t, args...; name::String)
-    func = method(u, t, args...; extrapolate = true)
+function test_derivatives(method, u, t; args = [], kwargs = [], name::String)
+    func = method(u, t, args...; kwargs..., extrapolate = true)
     trange = collect(range(minimum(t) - 5.0, maximum(t) + 5.0, step = 0.1))
     trange_exclude = filter(x -> !in(x, t), trange)
     @testset "$name" begin
@@ -16,7 +20,7 @@ function test_derivatives(method, u, t, args...; name::String)
         end
 
         # Interpolation time points
-        for _t in t[2:end-1]
+        for _t in t[2:(end - 1)]
             fdiff = if func isa BSplineInterpolation || func isa BSplineApprox
                 forward_fdm(5, 1; geom = true)(func, _t)
             else
@@ -47,7 +51,7 @@ function test_derivatives(method, u, t, args...; name::String)
 end
 
 @testset "Linear Interpolation" begin
-    u = vcat(collect(1:5), 2*collect(6:10))
+    u = vcat(collect(1:5), 2 * collect(6:10))
     t = 1.0collect(1:10)
     test_derivatives(LinearInterpolation, u, t; name = "Linear Interpolation (Vector)")
     u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
@@ -63,8 +67,8 @@ end
         name = "Quadratic Interpolation (Vector)")
     test_derivatives(QuadraticInterpolation,
         u,
-        t,
-        :Backward;
+        t;
+        args = [:Backward],
         name = "Quadratic Interpolation (Vector), backward")
     u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
     test_derivatives(QuadraticInterpolation,
@@ -139,26 +143,62 @@ end
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     test_derivatives(BSplineInterpolation,
         u,
-        t,
-        2,
-        :Uniform,
-        :Uniform;
+        t;
+        args = [2,
+            :Uniform,
+            :Uniform],
         name = "BSpline Interpolation (Uniform, Uniform)")
     test_derivatives(BSplineInterpolation,
         u,
-        t,
-        2,
-        :ArcLen,
-        :Average;
+        t;
+        args = [2,
+            :ArcLen,
+            :Average],
         name = "BSpline Interpolation (Arclen, Average)")
     test_derivatives(BSplineApprox,
         u,
-        t,
-        3,
-        4,
-        :Uniform,
-        :Uniform;
+        t;
+        args = [
+            3,
+            4,
+            :Uniform,
+            :Uniform],
         name = "BSpline Approx (Uniform, Uniform)")
+end
+
+@testset "RegularizationSmooth" begin
+    npts = 50
+    xmin = 0.0
+    xspan = 3 / 2 * π
+    x = collect(range(xmin, xmin + xspan, length = npts))
+    rng = StableRNG(655)
+    x = x + xspan / npts * (rand(rng, npts) .- 0.5)
+    # select a subset randomly
+    idx = unique(rand(rng, collect(eachindex(x)), 20))
+    t = x[unique(idx)]
+    npts = length(t)
+    ut = sin.(t)
+    stdev = 1e-1 * maximum(ut)
+    u = ut + stdev * randn(rng, npts)
+    # data must be ordered if t̂ is not provided
+    idx = sortperm(t)
+    tₒ = t[idx]
+    uₒ = u[idx]
+    A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
+    test_derivatives(RegularizationSmooth,
+        uₒ,
+        tₒ;
+        kwargs = [:alg => :fixed],
+        name = "RegularizationSmooth")
+end
+
+@testset "Curvefit" begin
+    rng = StableRNG(12345)
+    model(x, p) = @. p[1] / (1 + exp(x - p[2]))
+    t = range(-10, stop = 10, length = 40)
+    u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
+    p0 = [0.5, 0.5]
+    test_derivatives(Curvefit, u, t; args = [model, p0, LBFGS()], name = "Curvefit")
 end
 
 @testset "Symbolic derivatives" begin

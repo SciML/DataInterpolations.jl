@@ -149,8 +149,8 @@ struct QuadraticSpline{uType, tType, tAType, dType, zType, FT, T} <:
 end
 
 function QuadraticSpline(u::uType,
-    t;
-    extrapolate = false) where {uType <: AbstractVector{<:Number}}
+        t;
+        extrapolate = false) where {uType <: AbstractVector{<:Number}}
     u, t = munge_data(u, t)
     s = length(t)
     dl = ones(eltype(t), s - 1)
@@ -199,8 +199,8 @@ struct CubicSpline{uType, tType, hType, zType, FT, T} <: AbstractInterpolation{F
 end
 
 function CubicSpline(u::uType,
-    t;
-    extrapolate = false) where {uType <: AbstractVector{<:Number}}
+        t;
+        extrapolate = false) where {uType <: AbstractVector{<:Number}}
     u, t = munge_data(u, t)
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -250,14 +250,14 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, FT, T} <:
     knotVecType::Symbol
     extrapolate::Bool
     function BSplineInterpolation{FT}(u,
-        t,
-        d,
-        p,
-        k,
-        c,
-        pVecType,
-        knotVecType,
-        extrapolate) where {FT}
+            t,
+            d,
+            p,
+            k,
+            c,
+            pVecType,
+            knotVecType,
+            extrapolate) where {FT}
         new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), FT, eltype(u)}(u,
             t,
             d,
@@ -348,15 +348,15 @@ struct BSplineApprox{uType, tType, pType, kType, cType, FT, T} <:
     knotVecType::Symbol
     extrapolate::Bool
     function BSplineApprox{FT}(u,
-        t,
-        d,
-        h,
-        p,
-        k,
-        c,
-        pVecType,
-        knotVecType,
-        extrapolate) where {FT}
+            t,
+            d,
+            h,
+            p,
+            k,
+            c,
+            pVecType,
+            knotVecType,
+            extrapolate) where {FT}
         new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), FT, eltype(u)}(u,
             t,
             d,

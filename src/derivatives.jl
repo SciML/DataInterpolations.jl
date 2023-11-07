@@ -64,7 +64,7 @@ function derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
                 tmp += k
             end
         end
-        der += A.u[j]*tmp
+        der += A.u[j] * tmp
     end
     der
 end
@@ -98,7 +98,7 @@ function derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
                 tmp += k
             end
         end
-        @. der += A.u[:, j]*tmp
+        @. der += A.u[:, j] * tmp
     end
     der
 end
