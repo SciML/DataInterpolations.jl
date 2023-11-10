@@ -96,3 +96,6 @@ function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::N
      (h2^2 * t1 * z2 - h2^2 * t2 * z1 - t1^3 * z2 - 6 * t1 * u2 + t2^3 * z1 + 6 * t2 * u1) /
      (6 * h2))
 end
+
+integral(A::LagrangeInterpolation, t1::Number, t2::Number) = throw(IntegralNotFoundError())
+integral(A::LagrangeInterpolation, t::Number) = throw(IntegralNotFoundError())

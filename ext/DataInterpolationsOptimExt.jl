@@ -2,7 +2,8 @@ module DataInterpolationsOptimExt
 
 using DataInterpolations
 import DataInterpolations: munge_data,
-    Curvefit, CurvefitCache, _interpolate, get_show, derivative, ExtrapolationError
+    Curvefit, CurvefitCache, _interpolate, get_show, derivative, ExtrapolationError,
+    integral, IntegralNotFoundError
 
 isdefined(Base, :get_extension) ? (using Optim, ForwardDiff) :
 (using ..Optim, ..ForwardDiff)
@@ -52,9 +53,17 @@ function derivative(A::CurvefitCache{<:AbstractVector{<:Number}},
     ForwardDiff.derivative(x -> A.m(x, A.pmin), t)
 end
 
-function get_show(interp::CurvefitCache)
+function get_show(A::CurvefitCache)
     return "Curvefit" *
-           " with $(length(interp.t)) points, using $(nameof(typeof(interp.alg)))\n"
+           " with $(length(A.t)) points, using $(nameof(typeof(A.alg)))\n"
+end
+
+function integral(A::CurvefitCache{<:AbstractVector{<:Number}}, t::Number)
+    throw(IntegralNotFoundError())
+end
+
+function integral(A::CurvefitCache{<:AbstractVector{<:Number}}, t1::Number, t2::Number)
+    throw(IntegralNotFoundError())
 end
 
 end # module
