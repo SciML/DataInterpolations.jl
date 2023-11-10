@@ -44,6 +44,12 @@ function Base.showerror(io::IO, e::ExtrapolationError)
     print(io, EXTRAPOLATION_ERROR)
 end
 
+const INTEGRAL_NOT_FOUND_ERROR = "Cannot integrate it analytically. Please use Numerical Integration methods."
+struct IntegralNotFoundError <: Exception end
+function Base.showerror(io::IO, e::IntegralNotFoundError)
+    print(io, INTEGRAL_NOT_FOUND_ERROR)
+end
+
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
     BSplineInterpolation, BSplineApprox
