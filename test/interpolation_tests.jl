@@ -1,7 +1,6 @@
 using DataInterpolations, Test
 using StableRNGs
-using Optim
-import ForwardDiff
+using Optim, ForwardDiff
 
 @testset "Linear Interpolation" begin
     for t in (1.0:10.0, 1.0collect(1:10))
