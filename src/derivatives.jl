@@ -158,8 +158,12 @@ function derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Numb
     t_ = A.p[idx] + (t - A.t[idx]) * scale
     N = DataInterpolations.spline_coefficients(n, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
-    for i in 1:(n - 1)
-        ducum += N[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+    if t == A.t[1]
+        ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
+    else
+        for i in 1:(n - 1)
+            ducum += N[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+        end
     end
     ducum * A.d * scale, idx
 end
@@ -175,8 +179,12 @@ function derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, igu
     t_ = A.p[idx] + (t - A.t[idx]) * scale
     N = spline_coefficients(A.h, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
-    for i in 1:(A.h - 1)
-        ducum += N[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+    if t == A.t[1]
+        ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
+    else
+        for i in 1:(A.h - 1)
+            ducum += N[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+        end
     end
     ducum * A.d * scale, idx
 end
