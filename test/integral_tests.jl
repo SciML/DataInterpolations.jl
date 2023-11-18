@@ -3,45 +3,52 @@ using QuadGK
 using DataInterpolations: integral
 using Optim, ForwardDiff
 using RegularizationTools
+using StableRNGs
 
-function test_integral(func, tspan, name::String)
-    t1 = minimum(tspan)
-    t2 = maximum(tspan)
+function test_integral(method, u, t; args = [], kwargs = [], name::String)
+    func = method(u, t, args...; kwargs..., extrapolate = true)
+    t1 = minimum(t)
+    t2 = maximum(t)
     @testset "$name" begin
-        qint, err = quadgk(func, t1, t2)
+        # integral(A, t1, t2)
+        qint, err = quadgk(func, t1, t2; atol = 1e-12, rtol = 1e-12)
         aint = integral(func, t1, t2)
         @test isapprox(qint, aint, atol = 1e-8)
+
+        # integral(A, t)
+        qint, err = quadgk(func, t1, (t1 + t2)/2; atol = 1e-12, rtol = 1e-12)
+        aint = integral(func, (t1 + t2)/2)
+        @test isapprox(qint, aint, atol = 1e-8)
+
+        # integrals with extrapolation
+        qint, err = quadgk(func, t1-5.0, (t1 + t2)/2; atol = 1e-12, rtol = 1e-12)
+        aint = integral(func, t1-5.0, (t1 + t2)/2)
+        @test isapprox(qint, aint, atol = 1e-8)
+
+        qint, err = quadgk(func, (t1 + t2)/2, t2+5.0; atol = 1e-12, rtol = 1e-12)
+        aint = integral(func, (t1 + t2)/2, t2+5.0)
+        @test isapprox(qint, aint, atol = 1e-8)
     end
+    func = method(u, t, args...; kwargs...)
+    @test_throws DataInterpolations.ExtrapolationError integral(func, t[1] - 1.0)
+    @test_throws DataInterpolations.ExtrapolationError integral(func, t[end] + 1.0)
+    @test_throws DataInterpolations.ExtrapolationError integral(func, t[1] - 1.0, t[2])
+    @test_throws DataInterpolations.ExtrapolationError integral(func, t[1], t[end] + 1.0)
 end
 
 @testset "LinearInterpolation" begin
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
-    A = LinearInterpolation(u, t)
-    test_integral(A, t, "Linear Interpolation (Vector)")
+    test_integral(LinearInterpolation, u, t; name = "Linear Interpolation (Vector)")
 end
 
 @testset "QuadraticInterpolation" begin
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    A = QuadraticInterpolation(u, t)
-    test_integral(A, t, "Quadratic Interpolation (Vector)")
+    test_integral(QuadraticInterpolation, u, t; name = "Quadratic Interpolation (Vector)")
     u = [3.0, 0.0, 3.0, 0.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    A_f = QuadraticInterpolation(u, t)
-    A_b = QuadraticInterpolation(u, t, :Backward)
-    @test integral(A_f, 1.0, 2.0) ≈ 1.0
-    @test integral(A_f, 2.0, 3.0) ≈ 2.0
-    @test integral(A_f, 3.0, 4.0) ≈ 2.0
-    @test integral(A_f, 1.0, 3.0) ≈ 3.0
-    @test integral(A_f, 2.0, 4.0) ≈ 4.0
-    @test integral(A_f, 1.0, 4.0) ≈ 5.0
-    @test integral(A_b, 1.0, 2.0) ≈ 1.0
-    @test integral(A_b, 2.0, 3.0) ≈ 1.0
-    @test integral(A_b, 3.0, 4.0) ≈ 2.0
-    @test integral(A_b, 1.0, 3.0) ≈ 2.0
-    @test integral(A_b, 2.0, 4.0) ≈ 3.0
-    @test integral(A_b, 1.0, 4.0) ≈ 4.0
+    test_integral(QuadraticInterpolation, u, t; args = [:Backward], name = "Quadratic Interpolation (Vector)")
 end
 
 @testset "LagrangeInterpolation" begin
@@ -55,15 +62,19 @@ end
 @testset "QuadraticSpline" begin
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    A = QuadraticSpline(u, t)
-    test_integral(A, t, "Quadratic Spline (Vector)")
+    test_integral(QuadraticSpline, u, t; name = "Quadratic Spline (Vector)")
 end
 
 @testset "CubicSpline" begin
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    A = CubicSpline(u, t)
-    test_integral(A, t, "Cubic Spline Interpolation (Vector)")
+    test_integral(CubicSpline, u, t; name = "Cubic Spline Interpolation (Vector)")
+end
+
+@testset "AkimaInterpolation" begin
+    u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+    t = collect(0.0:10.0)
+    test_integral(AkimaInterpolation, u, t; name = "Akima Interpolation (Vector)")
 end
 
 @testset "RegularizationSmooth" begin
@@ -84,8 +95,7 @@ end
     idx = sortperm(t)
     tₒ = t[idx]
     uₒ = u[idx]
-    A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
-    test_integral(A, tₒ, "RegularizationSmooth")
+    test_integral(RegularizationSmooth, uₒ, tₒ; kwargs = [:alg => :fixed], name = "RegularizationSmooth")
 end
 
 @testset "Curvefit" begin
