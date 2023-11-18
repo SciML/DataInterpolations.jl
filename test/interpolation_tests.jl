@@ -324,8 +324,8 @@ end
 
     # Test extrapolation
     A = AkimaInterpolation(u, t; extrapolate = true)
-    @test A(-1.0) == 0.0
-    @test A(11.0) == 3.0
+    @test A(-1.0) ≈ -5.0
+    @test A(11.0) ≈ -3.924742268041234
     A = AkimaInterpolation(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-1.0)
     @test_throws DataInterpolations.ExtrapolationError A(11.0)

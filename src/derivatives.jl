@@ -107,9 +107,10 @@ derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, i) = derivativ
 derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i) = derivative(A, t), i
 
 function derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
-    t < A.t[1] && return zero(A.u[1]), 1
-    t > A.t[end] && return zero(A.u[end]), lastindex(t)
-    i = searchsortedlastcorrelated(A.t, t, iguess)
+    i = searchsortedfirstcorrelated(A.t, t, iguess)
+    i > length(A.t) ? i -= 1 : nothing
+    i -= 1
+    i == 0 ? i += 1 : nothing
     j = min(i, length(A.c))  # for smooth derivative at A.t[end]
     wj = t - A.t[i]
     (@evalpoly wj A.b[i] 2A.c[j] 3A.d[j]), i

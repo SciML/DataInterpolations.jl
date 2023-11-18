@@ -123,9 +123,7 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i)
 end
 
 function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
-    i = searchsortedlastcorrelated(A.t, t, iguess)
-    i == 0 && return A.u[1], i
-    i == length(A.t) && return A.u[end], i
+    i = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
     wj = t - A.t[i]
     (@evalpoly wj A.u[i] A.b[i] A.c[i] A.d[i]), i
 end
