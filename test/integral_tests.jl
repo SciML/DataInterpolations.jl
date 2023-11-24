@@ -16,17 +16,17 @@ function test_integral(method, u, t; args = [], kwargs = [], name::String)
         @test isapprox(qint, aint, atol = 1e-8)
 
         # integral(A, t)
-        qint, err = quadgk(func, t1, (t1 + t2)/2; atol = 1e-12, rtol = 1e-12)
-        aint = integral(func, (t1 + t2)/2)
+        qint, err = quadgk(func, t1, (t1 + t2) / 2; atol = 1e-12, rtol = 1e-12)
+        aint = integral(func, (t1 + t2) / 2)
         @test isapprox(qint, aint, atol = 1e-8)
 
         # integrals with extrapolation
-        qint, err = quadgk(func, t1-5.0, (t1 + t2)/2; atol = 1e-12, rtol = 1e-12)
-        aint = integral(func, t1-5.0, (t1 + t2)/2)
+        qint, err = quadgk(func, t1 - 5.0, (t1 + t2) / 2; atol = 1e-12, rtol = 1e-12)
+        aint = integral(func, t1 - 5.0, (t1 + t2) / 2)
         @test isapprox(qint, aint, atol = 1e-8)
 
-        qint, err = quadgk(func, (t1 + t2)/2, t2+5.0; atol = 1e-12, rtol = 1e-12)
-        aint = integral(func, (t1 + t2)/2, t2+5.0)
+        qint, err = quadgk(func, (t1 + t2) / 2, t2 + 5.0; atol = 1e-12, rtol = 1e-12)
+        aint = integral(func, (t1 + t2) / 2, t2 + 5.0)
         @test isapprox(qint, aint, atol = 1e-8)
     end
     func = method(u, t, args...; kwargs...)
@@ -48,7 +48,11 @@ end
     test_integral(QuadraticInterpolation, u, t; name = "Quadratic Interpolation (Vector)")
     u = [3.0, 0.0, 3.0, 0.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    test_integral(QuadraticInterpolation, u, t; args = [:Backward], name = "Quadratic Interpolation (Vector)")
+    test_integral(QuadraticInterpolation,
+        u,
+        t;
+        args = [:Backward],
+        name = "Quadratic Interpolation (Vector)")
 end
 
 @testset "LagrangeInterpolation" begin
@@ -95,7 +99,11 @@ end
     idx = sortperm(t)
     tₒ = t[idx]
     uₒ = u[idx]
-    test_integral(RegularizationSmooth, uₒ, tₒ; kwargs = [:alg => :fixed], name = "RegularizationSmooth")
+    test_integral(RegularizationSmooth,
+        uₒ,
+        tₒ;
+        kwargs = [:alg => :fixed],
+        name = "RegularizationSmooth")
 end
 
 @testset "Curvefit" begin
@@ -107,4 +115,20 @@ end
     A = Curvefit(u, t, model, p0, LBFGS())
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 0.0, 1.0)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 5.0)
+end
+
+@testset "BSplineInterpolation" begin
+    t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform)
+    @test_throws DataInterpolations.IntegralNotFoundError integral(A, 1.0, 100.0)
+    @test_throws DataInterpolations.IntegralNotFoundError integral(A, 50.0)
+end
+
+@testset "BSplineApprox" begin
+    t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
+    @test_throws DataInterpolations.IntegralNotFoundError integral(A, 1.0, 100.0)
+    @test_throws DataInterpolations.IntegralNotFoundError integral(A, 50.0)
 end
