@@ -99,10 +99,29 @@ function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::N
 end
 
 samples(A::AkimaInterpolation{<:AbstractVector{<:Number}}) = (0, 1)
-function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}}, idx::Number, t::Number)
+function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
+        idx::Number,
+        t::Number)
     t1 = A.t[idx]
-    A.u[idx]*(t - t1) + A.b[idx]*((t - t1)^2/2) + A.c[idx]*((t - t1)^3/3) + A.d[idx]*((t - t1)^4/4)
+    A.u[idx] * (t - t1) + A.b[idx] * ((t - t1)^2 / 2) + A.c[idx] * ((t - t1)^3 / 3) +
+    A.d[idx] * ((t - t1)^4 / 4)
 end
 
 integral(A::LagrangeInterpolation, t1::Number, t2::Number) = throw(IntegralNotFoundError())
 integral(A::LagrangeInterpolation, t::Number) = throw(IntegralNotFoundError())
+
+function integral(A::BSplineInterpolation{<:AbstractVector{<:Number}},
+        t1::Number,
+        t2::Number)
+    throw(IntegralNotFoundError())
+end
+function integral(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number)
+    throw(IntegralNotFoundError())
+end
+
+function integral(A::BSplineApprox{<:AbstractVector{<:Number}}, t1::Number, t2::Number)
+    throw(IntegralNotFoundError())
+end
+function integral(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
+    throw(IntegralNotFoundError())
+end
