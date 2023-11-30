@@ -1,10 +1,11 @@
 function integral(A::AbstractInterpolation, t::Number)
-    bw, fw = samples(A)
-    idx = max(1 + bw, min(searchsortedlast(A.t, t), length(A.t) - fw))
-    _integral(A, idx, t)
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
+    integral(A, A.t[1], t)
 end
 
 function integral(A::AbstractInterpolation, t1::Number, t2::Number)
+    ((t1 < A.t[1] || t1 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
+    ((t2 < A.t[1] || t2 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     bw, fw = samples(A)
     # the index less than or equal to t1
     idx1 = max(1 + bw, min(searchsortedlast(A.t, t1), length(A.t) - fw))
@@ -95,4 +96,32 @@ function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::N
      t *
      (h2^2 * t1 * z2 - h2^2 * t2 * z1 - t1^3 * z2 - 6 * t1 * u2 + t2^3 * z1 + 6 * t2 * u1) /
      (6 * h2))
+end
+
+samples(A::AkimaInterpolation{<:AbstractVector{<:Number}}) = (0, 1)
+function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
+        idx::Number,
+        t::Number)
+    t1 = A.t[idx]
+    A.u[idx] * (t - t1) + A.b[idx] * ((t - t1)^2 / 2) + A.c[idx] * ((t - t1)^3 / 3) +
+    A.d[idx] * ((t - t1)^4 / 4)
+end
+
+integral(A::LagrangeInterpolation, t1::Number, t2::Number) = throw(IntegralNotFoundError())
+integral(A::LagrangeInterpolation, t::Number) = throw(IntegralNotFoundError())
+
+function integral(A::BSplineInterpolation{<:AbstractVector{<:Number}},
+        t1::Number,
+        t2::Number)
+    throw(IntegralNotFoundError())
+end
+function integral(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number)
+    throw(IntegralNotFoundError())
+end
+
+function integral(A::BSplineApprox{<:AbstractVector{<:Number}}, t1::Number, t2::Number)
+    throw(IntegralNotFoundError())
+end
+function integral(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
+    throw(IntegralNotFoundError())
 end

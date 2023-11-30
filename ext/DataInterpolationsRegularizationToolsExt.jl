@@ -2,7 +2,7 @@ module DataInterpolationsRegularizationToolsExt
 
 using DataInterpolations
 import DataInterpolations: munge_data,
-    _interpolate, RegularizationSmooth, get_show, derivative
+    _interpolate, RegularizationSmooth, get_show, derivative, integral
 using LinearAlgebra
 
 isdefined(Base, :get_extension) ? (import RegularizationTools as RT) :
@@ -339,9 +339,19 @@ function derivative(A::RegularizationSmooth{
     derivative(A.Aitp, t)
 end
 
-function get_show(interp::RegularizationSmooth)
+function get_show(A::RegularizationSmooth)
     return "RegularizationSmooth" *
-           " with $(length(interp.t)) points, with regularization coefficient $(interp.λ)\n"
+           " with $(length(A.t)) points, with regularization coefficient $(A.λ)\n"
+end
+
+function integral(A::RegularizationSmooth{<:AbstractVector{<:Number}}, t::Number)
+    integral(A.Aitp, t)
+end
+
+function integral(A::RegularizationSmooth{<:AbstractVector{<:Number}},
+        t1::Number,
+        t2::Number)
+    integral(A.Aitp, t1, t2)
 end
 
 end # module
