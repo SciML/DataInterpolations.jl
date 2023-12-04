@@ -111,7 +111,7 @@ struct CurvefitCache{
     u::uType
     t::tType
     m::mType        # model type
-    p0::p0Type      # intial params
+    p0::p0Type      # initial params
     ub::ubType      # upper bound of params
     lb::lbType      # lower bound of params
     alg::algType    # alg to optimize cost function
