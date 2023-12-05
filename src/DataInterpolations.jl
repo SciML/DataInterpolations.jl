@@ -15,7 +15,7 @@ function Base.setindex!(A::AbstractInterpolation{true}, x, i)
     i <= length(A.u) ? (A.u[i] = x) : (A.t[i - length(A.u)] = x)
 end
 
-using LinearAlgebra, RecursiveArrayTools, RecipesBase
+using LinearAlgebra, RecipesBase
 using PrettyTables
 
 include("interpolation_caches.jl")
