@@ -16,13 +16,18 @@ t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
 
 All Interpolation methods return an object from which we can compute the value of the dependent variable at any time point.
 
-We will use `CubicSpline` method for demonstration but the API is same for all the methods.
+We will use `CubicSpline` method for demonstration but the API is same for all the methods. We can also pass `extrapolate=true` keyword if we want to allow the interpolation to go beyond the range of the timepoints. The default value is `extrapolate=false`.
 
 ```@example interface
-A = CubicSpline(u, t)
+A1 = CubicSpline(u, t)
 
 # For interpolation do, A(t)
-A(100.0)
+A1(100.0)
+
+A2 = CubicSpline(u, t; extrapolate = true)
+
+# Extrapolation
+A2(300.0)
 ```
 
 !!! note
@@ -33,31 +38,43 @@ A(100.0)
 
 Derivatives of the interpolated curves can also be computed at any point for all the methods.
 
-We will continue with the above example, but the API is same for all the methods.
+We will continue with the above example, but the API is same for all the methods. If the interpolation is defined with `extrapolate=true`, derivatives can also be extrapolated.
 
 ```@example interface
 # derivative(A, t)
-DataInterpolations.derivative(A, 1.0)
+DataInterpolations.derivative(A1, 1.0)
+
+# Extrapolation
+DataInterpolations.derivative(A2, 300.0)
 ```
 
 ## Integrals
 
 Integrals of the interpolated curves can also be computed easily.
 
-Currently, this is implemented only for a few methods - `ConstantInterpolation`, `LinearInterpolation`, `QuadraticInterpolation`, `QuadraticSpline` and `CubicSpline`.
+!!! note
+    
+    Integrals for `LagrangeInterpolation`, `BSplineInterpolation`, `BSplineApprox`, `Curvefit` will error as there are no simple analytical solutions available. Please use numerical methods for the same such as [Integrals.jl](https://docs.sciml.ai/Integrals/stable/).
 
 To compute the integrals from the start of time points provided during interpolation to any point, we can do:
 
 ```@example interface
 # integral(A, t)
-DataInterpolations.integral(A, 5.0)
+DataInterpolations.integral(A1, 5.0)
 ```
 
 If we want to compute integrals between two points, we can do:
 
 ```@example interface
 # integral(A, t1, t2)
-DataInterpolations.integral(A, 1.0, 5.0)
+DataInterpolations.integral(A1, 1.0, 5.0)
+```
+
+Again, if the interpolation is defined with `extrapolate=true`, the integral can be computed beyond the range of the timepoints.
+
+```@example interface
+# integral(A, t1, t2)
+DataInterpolations.integral(A2, 200.0, 300.0)
 ```
 
 !!! note
