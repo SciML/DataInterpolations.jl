@@ -1,6 +1,9 @@
 using DataInterpolations, Test
 
 @testset "DataInterpolations" begin
+    @testset "Quality Assurance" begin
+        include("qa.jl")
+    end
     @testset "Interface" begin
         include("interface.jl")
     end
