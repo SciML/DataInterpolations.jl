@@ -18,7 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6' # Minimum Julia version required
           - '1'
 #          - 'nightly'
         os:

@@ -7,7 +7,6 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
-Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 
 [weakdeps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -23,7 +22,9 @@ DataInterpolationsRegularizationToolsExt = "RegularizationTools"
 DataInterpolationsSymbolicsExt = "Symbolics"
 
 [compat]
+Aqua = "0.8"
 ChainRulesCore = "0.9.44, 0.10, 1"
+FiniteDifferences = "0.12"
 ForwardDiff = "0.10"
 LinearAlgebra = "1.6"
 Optim = "0.19, 0.20, 0.21, 0.22, 1.0"
@@ -32,11 +33,13 @@ QuadGK = "2.9.1"
 RecipesBase = "0.8, 1.0"
 Reexport = "0.2, 1.0"
 RegularizationTools = "0.6"
-Requires = "1"
+StableRNGs = "1"
 Symbolics = "4, 5.1"
-julia = "1.6"
+Test = "1"
+julia = "1.9"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
@@ -48,4 +51,4 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["ChainRulesCore", "Optim", "RegularizationTools", "Test", "StableRNGs", "FiniteDifferences", "QuadGK", "ForwardDiff", "Symbolics"]
+test = ["Aqua", "ChainRulesCore", "Optim", "RegularizationTools", "Test", "StableRNGs", "FiniteDifferences", "QuadGK", "ForwardDiff", "Symbolics"]
