@@ -18,7 +18,7 @@ to show the fitting curve.
 
 ## Linear Interpolation
 
-This is a linear interpolation between ends points of interval of input data point.
+This is a linear interpolation between the ends points of the interval of input data points.
 
 ```@example tutorial
 A = LinearInterpolation(u, t)
@@ -29,7 +29,7 @@ plot!(A)
 ## Quadratic Interpolation
 
 This function fits a parabola passing through the two nearest points from the input
-data point as well as the next-closest point in the right or the left, depending on
+data point as well as the next-closest point on the right or left, depending on
 whether the forward- or backward-looking mode is selected (default mode is
 forward-looking). It is continuous and piecewise differentiable.
 
@@ -42,7 +42,7 @@ plot!(A)
 
 ## Lagrange Interpolation
 
-It fits polynomial of degree d (=length(t)-1), and is thus a continuously
+It fits a polynomial of degree d (=length(t)-1), and is thus a continuously
 differentiable function.
 
 ```@example tutorial
@@ -53,8 +53,8 @@ plot!(A)
 
 ## Constant Interpolation
 
-This function is constant between data points. By default
-it takes value at left end of the interval. One can change that behavior by
+This function is constant between data points. By default,
+it takes the value at the left end of the interval. One can change that behavior by
 passing the keyword argument `dir = :right`.
 
 ```@example tutorial
@@ -133,7 +133,7 @@ where ``(d)`` denotes derivative order and ``\lambda`` is the regularization
 (smoothing) parameter. The integrals are evaluated numerically at the set of
 ``t`` values for the first term and ``\hat{t}`` values for the second term
 (equal to ``t`` if not provided). Regularization smoothing is a global method
-and creates a smooth curve directly. See [Stickel (2010)
+that creates a smooth curve directly. See [Stickel (2010)
 Comput. Chem. Eng. 34:467](http://dx.doi.org/10.1016/j.compchemeng.2009.10.007)
 for details. The implementation in this package uses cubic splines to
 interpolate between the smoothed points after they are determined.
@@ -169,7 +169,7 @@ u = sin.(t) .+ 0.5 * randn(rng, 100);
 ## Regularization Smoothing
 
 Although smoothing by regularization can be used to interpolate sparse data as
-shown above, it is especially useful for dense and also scattered data (unequally
+shown above, it is especially useful for dense as well as scattered data (unequally
 spaced, unordered, and/or repeat-valued). Generalized cross validation (GCV) or
 so-called L-curve methods can be used to determine an "optimal" value for the
 smoothing parameter. In this example, we perform smoothing in two ways. In the
@@ -197,7 +197,7 @@ plot!(titp, ûm, lw = lw, linestyle = :dash, label = "smoothed, more points")
 
 A curve fit works with both dense and sparse data. We will demonstrate the curve
 fit on the dense data since we generated it based on `sin(t)`, so this is the
-curve we want to fit through it. Do do so, let's define a similar function
+curve we want to fit through it. To do so, let's define a similar function
 with parameters. Let's choose the form:
 
 ```@example tutorial
@@ -205,7 +205,7 @@ m(t, p) = @. p[1] * sin(p[2] * t) + p[3] * cos(p[4] * t)
 ```
 
 Notice that this is a function on the whole array of `t` and expects an array
-for the predicted `u` out. This choice of `m` is the assumption that our
+for the predicted `u` out. This choice of `m` is based on the assumption that our
 function is of the form `p1*sin(p2*t)+p3*cos(p4*t)`. We want to find the `p` to
 match our data. Let's start with the guess of every `p` being zero, that is
 `p=ones(4)`. Then we would fit this curve using:
@@ -225,7 +225,7 @@ A.pmin
 
 Notice that it essentially made `p3=0` with `p1=p2=1`, meaning it approximately
 found `sin(t)`! But note that the ability to fit is dependent on the initial
-parameters. For example, with `p=zeros(4)` as the initial parameters the fit
+parameters. For example, with `p=zeros(4)` as the initial parameters, the fit
 is not good:
 
 ```@example tutorial
