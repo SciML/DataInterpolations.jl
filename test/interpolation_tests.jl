@@ -1,4 +1,4 @@
-using DataInterpolations, Test
+using DataInterpolations
 using StableRNGs
 using Optim, ForwardDiff
 

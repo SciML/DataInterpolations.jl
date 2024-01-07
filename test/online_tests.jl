@@ -1,4 +1,4 @@
-using DataInterpolations, Test
+using DataInterpolations
 
 t = [1, 2, 3]
 u = [0, 1, 0]
