@@ -1,3 +1,4 @@
+using DataInterpolations
 using Optim, StableRNGs
 using RegularizationTools
 

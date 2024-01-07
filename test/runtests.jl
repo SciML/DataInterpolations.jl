@@ -1,28 +1,10 @@
-using DataInterpolations, Test
+using SafeTestsets
 
-@testset "DataInterpolations" begin
-    @testset "Quality Assurance" begin
-        include("qa.jl")
-    end
-    @testset "Interface" begin
-        include("interface.jl")
-    end
-    @testset "Interpolation Tests" begin
-        include("interpolation_tests.jl")
-    end
-    @testset "Derivative Tests" begin
-        include("derivative_tests.jl")
-    end
-    @testset "Integral Tests" begin
-        include("integral_tests.jl")
-    end
-    @testset "Online Tests" begin
-        include("online_tests.jl")
-    end
-    @testset "Regularization Smoothing" begin
-        include("regularization.jl")
-    end
-    @testset "Show methods" begin
-        include("show.jl")
-    end
-end
+@safetestset "Quality Assurance" include("qa.jl")
+@safetestset "Interface" include("interface.jl")
+@safetestset "Interpolation Tests" include("interpolation_tests.jl")
+@safetestset "Derivative Tests" include("derivative_tests.jl")
+@safetestset "Integral Tests" include("integral_tests.jl")
+@safetestset "Online Tests" include("online_tests.jl")
+@safetestset "Regularization Smoothing" include("regularization.jl")
+@safetestset "Show methods" include("show.jl")

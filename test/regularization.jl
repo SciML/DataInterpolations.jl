@@ -1,3 +1,4 @@
+using DataInterpolations
 import StableRNGs: StableRNG
 using RegularizationTools
 
