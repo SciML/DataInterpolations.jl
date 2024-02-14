@@ -56,7 +56,7 @@ tolerance = 1e-3
         0.1392761732695201,
         -0.3312498167413961,
         -0.6673268474631847,
-        -0.9370342562716745,
+        -0.9370342562716745
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(tₒ), ans, rtol = tolerance)
@@ -81,7 +81,7 @@ end
         0.05281575111822609,
         -0.5333542714497277,
         -0.8406745098604134,
-        -1.0983391396173634,
+        -1.0983391396173634
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(tₒ), ans, rtol = tolerance)
@@ -102,7 +102,7 @@ end
         0.09102085384961625,
         -0.5640882848240228,
         -0.810519277110118,
-        -1.1159124134900906,
+        -1.1159124134900906
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(tₒ), ans, rtol = tolerance)
@@ -126,7 +126,7 @@ end
         0.04756024028728636,
         -0.5301034620974782,
         -0.8408107101140526,
-        -1.1058428573417736,
+        -1.1058428573417736
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(tₒ), ans, rtol = tolerance)
@@ -173,7 +173,7 @@ end
         -0.676806367664006,
         -0.8587832527770329,
         -1.0443430843364814,
-        -1.2309001260104093,
+        -1.2309001260104093
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(t̂), ans, rtol = tolerance)

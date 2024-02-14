@@ -173,8 +173,9 @@ function QuadraticSpline(u::uType, t; extrapolate = false) where {uType <: Abstr
     d_tmp = ones(eltype(t), s)
     du = zeros(eltype(t), s - 1)
     tA = Tridiagonal(dl, d_tmp, du)
-    d_ = map(i -> i == 1 ? zeros(eltype(t), size(u[1])) :
-                  2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]),
+    d_ = map(
+        i -> i == 1 ? zeros(eltype(t), size(u[1])) :
+             2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]),
         1:s)
     d = transpose(reshape(reduce(hcat, d_), :, s))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
@@ -213,8 +214,9 @@ function CubicSpline(u::uType,
     typed_zero = zero(6(u[begin + 2] - u[begin + 1]) / h[begin + 2] -
                       6(u[begin + 1] - u[begin]) / h[begin + 1])
 
-    d = map(i -> i == 1 || i == n + 1 ? typed_zero :
-                 6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
+    d = map(
+        i -> i == 1 || i == n + 1 ? typed_zero :
+             6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
         1:(n + 1))
     z = tA \ d
     CubicSpline{true}(u, t, h[1:(n + 1)], z, extrapolate)
@@ -228,8 +230,9 @@ function CubicSpline(u::uType, t; extrapolate = false) where {uType <: AbstractV
     d_tmp = 2 .* (h[1:(n + 1)] .+ h[2:(n + 2)])
     du = h[2:(n + 1)]
     tA = Tridiagonal(dl, d_tmp, du)
-    d_ = map(i -> i == 1 || i == n + 1 ? zeros(eltype(t), size(u[1])) :
-                  6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
+    d_ = map(
+        i -> i == 1 || i == n + 1 ? zeros(eltype(t), size(u[1])) :
+             6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
         1:(n + 1))
     d = transpose(reshape(reduce(hcat, d_), :, n + 1))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)

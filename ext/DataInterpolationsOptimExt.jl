@@ -2,8 +2,9 @@ module DataInterpolationsOptimExt
 
 using DataInterpolations
 import DataInterpolations: munge_data,
-    Curvefit, CurvefitCache, _interpolate, get_show, derivative, ExtrapolationError,
-    integral, IntegralNotFoundError
+                           Curvefit, CurvefitCache, _interpolate, get_show, derivative,
+                           ExtrapolationError,
+                           integral, IntegralNotFoundError
 
 isdefined(Base, :get_extension) ? (using Optim, ForwardDiff) :
 (using ..Optim, ..ForwardDiff)
