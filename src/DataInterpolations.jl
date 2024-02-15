@@ -51,8 +51,8 @@ function Base.showerror(io::IO, e::IntegralNotFoundError)
 end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
-    AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
-    BSplineInterpolation, BSplineApprox
+       AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
+       BSplineInterpolation, BSplineApprox
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
@@ -106,7 +106,7 @@ struct CurvefitCache{
     algType,
     pminType,
     FT,
-    T,
+    T
 } <: AbstractInterpolation{FT, T}
     u::uType
     t::tType
@@ -138,7 +138,6 @@ function Curvefit()
 end
 
 export Curvefit
-
 
 # Deprecated April 2020
 export ZeroSpline

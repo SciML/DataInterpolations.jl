@@ -16,7 +16,7 @@ x = [1.0, 2.0, 3.0, 4.0, 5.0]
         LinearInterpolation(x, t),
         AkimaInterpolation(x, t),
         QuadraticSpline(x, t),
-        CubicSpline(x, t),
+        CubicSpline(x, t)
     ]
     test_show_line.(methods)
 end

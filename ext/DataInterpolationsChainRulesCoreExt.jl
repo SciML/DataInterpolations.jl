@@ -2,11 +2,13 @@ module DataInterpolationsChainRulesCoreExt
 
 if isdefined(Base, :get_extension)
     using DataInterpolations: _interpolate, derivative, AbstractInterpolation,
-        LagrangeInterpolation, AkimaInterpolation, BSplineInterpolation, BSplineApprox
+                              LagrangeInterpolation, AkimaInterpolation,
+                              BSplineInterpolation, BSplineApprox
     using ChainRulesCore
 else
     using ..DataInterpolations: _interpolate, derivative, AbstractInterpolation,
-        LagrangeInterpolation, AkimaInterpolation, BSplineInterpolation, BSplineApprox
+                                LagrangeInterpolation, AkimaInterpolation,
+                                BSplineInterpolation, BSplineApprox
     using ..ChainRulesCore
 end
 
@@ -15,7 +17,7 @@ function ChainRulesCore.rrule(::typeof(_interpolate),
             LagrangeInterpolation,
             AkimaInterpolation,
             BSplineInterpolation,
-            BSplineApprox,
+            BSplineApprox
         },
         t::Number)
     deriv = derivative(A, t)

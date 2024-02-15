@@ -360,7 +360,7 @@ end
 
     @testset "Matrix case" for u in [
         [1.0 2.0 0.0 1.0; 1.0 2.0 0.0 1.0],
-        ["B" "C" "A" "B"; "B" "C" "A" "B"],
+        ["B" "C" "A" "B"; "B" "C" "A" "B"]
     ]
         A = ConstantInterpolation(u, t, dir = :right; extrapolate = true)
         @test A(0.5) == u[:, 1]
@@ -609,7 +609,7 @@ end
         0.9836755196317837,
         0.8833959853995836,
         0.3810348276782708,
-        0.048062978598861855,
+        0.048062978598861855
     ]
     us = A.(ts)
     @test vs ≈ us

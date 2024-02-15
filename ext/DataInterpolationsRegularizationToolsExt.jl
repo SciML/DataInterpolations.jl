@@ -2,7 +2,8 @@ module DataInterpolationsRegularizationToolsExt
 
 using DataInterpolations
 import DataInterpolations: munge_data,
-    _interpolate, RegularizationSmooth, get_show, derivative, integral
+                           _interpolate, RegularizationSmooth, get_show, derivative,
+                           integral
 using LinearAlgebra
 
 isdefined(Base, :get_extension) ? (import RegularizationTools as RT) :
@@ -243,7 +244,8 @@ end
 #                               wls::Symbol, d::Int=2; λ::Real=1.0, alg::Symbol=:gcv_svd)
 
 """ Solve for the smoothed dependent variables and create spline interpolator """
-function _reg_smooth_solve(u::AbstractVector, t̂::AbstractVector, d::Int, M::AbstractMatrix,
+function _reg_smooth_solve(
+        u::AbstractVector, t̂::AbstractVector, d::Int, M::AbstractMatrix,
         Wls½::AbstractMatrix, Wr½::AbstractMatrix, λ::Real, alg::Symbol, extrapolate::Bool)
     λ = float(λ) # `float` expected by RT
     D = _derivative_matrix(t̂, d)
