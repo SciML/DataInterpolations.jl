@@ -10,9 +10,9 @@ makedocs(modules = [DataInterpolations],
     clean = true,
     doctest = false,
     linkcheck = true,
-    warnonly = [:missing_docs],
     format = Documenter.HTML(assets = ["assets/favicon.ico"],
         canonical = "https://docs.sciml.ai/DataInterpolations/stable/"),
-    pages = ["index.md", "Methods" => "methods.md", "Interface" => "interface.md"])
+    pages = ["index.md", "Methods" => "methods.md",
+        "Interface" => "interface.md", "Manual" => "manual.md"])
 
 deploydocs(repo = "github.com/SciML/DataInterpolations.jl"; push_preview = true)
