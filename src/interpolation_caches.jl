@@ -91,11 +91,8 @@ struct LagrangeInterpolation{uType, tType, FT, T, bcacheType} <:
     end
 end
 
-function LagrangeInterpolation(u, t, n = nothing; extrapolate = false)
+function LagrangeInterpolation(u, t, n = length(t) - 1; extrapolate = false)
     u, t = munge_data(u, t)
-    if isnothing(n)
-        n = length(t) - 1 # degree
-    end
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
     end
