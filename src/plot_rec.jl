@@ -224,4 +224,3 @@ end
     x := nx
     y := ny
 end
-
