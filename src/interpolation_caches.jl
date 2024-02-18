@@ -1,4 +1,16 @@
-### Linear Interpolation
+"""
+    LinearInterpolation(u, t; extrapolate = false)
+
+It is the method of interpolating between the data points using a linear polynomial. For any point, two data points one each side are chosen and connected with a line.
+Extrapolation extends the last linear polynomial on each side.
+
+## Arguments
+- `u`: data points.
+- `t`: time points.
+
+## Keyword Arguments
+- `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
 struct LinearInterpolation{uType, tType, FT, T} <: AbstractInterpolation{FT, T}
     u::uType
     t::tType
@@ -13,7 +25,20 @@ function LinearInterpolation(u, t; extrapolate = false)
     LinearInterpolation{true}(u, t, extrapolate)
 end
 
-### Quadratic Interpolation
+"""
+    QuadraticInterpolation(u, t, mode = :Forward; extrapolate = false)
+
+It is the method of interpolating between the data points using quadratic polynomials. For any point, three data points nearby are taken to fit a quadratic polynomial.
+Extrapolation extends the last quadratic polynomial on each side.
+
+## Arguments
+- `u`: data points.
+- `t`: time points.
+- `mode`: `:Forward` or `:Backward`. If `:Forward`, two data points ahead of the point and one data point behind is taken for interpolation. If `:Backward`, two data points behind and one ahead is taken for interpolation.
+
+## Keyword Arguments
+- `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
 struct QuadraticInterpolation{uType, tType, FT, T} <: AbstractInterpolation{FT, T}
     u::uType
     t::tType
@@ -35,7 +60,19 @@ function QuadraticInterpolation(u, t; extrapolate = false)
     QuadraticInterpolation(u, t, :Forward; extrapolate)
 end
 
-### Lagrange Interpolation
+"""
+    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolate = false)
+
+It is the method of interpolation using Lagrange polynomials of (k-1)th order passing through all the data points where k is the number of data points.
+
+## Arguments
+- `u`: data points.
+- `t`: time points.
+- `n`: order of the polynomial. Currently only (k-1)th order where k is the number of data points.
+
+## Keyword Arguments
+- `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
 struct LagrangeInterpolation{uType, tType, FT, T, bcacheType} <:
        AbstractInterpolation{FT, T}
     u::uType
@@ -54,18 +91,27 @@ struct LagrangeInterpolation{uType, tType, FT, T, bcacheType} <:
     end
 end
 
-function LagrangeInterpolation(u, t, n = nothing; extrapolate = false)
+function LagrangeInterpolation(u, t, n = length(t) - 1; extrapolate = false)
     u, t = munge_data(u, t)
-    if isnothing(n)
-        n = length(t) - 1 # degree
-    end
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
     end
     LagrangeInterpolation{true}(u, t, n, extrapolate)
 end
 
-### Akima Interpolation
+"""
+    AkimaInterpolation(u, t; extrapolate = false)
+
+It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: https://en.wikipedia.org/wiki/Akima_spline.
+Extrapolation extends the last cubic polynomial on each side.
+
+## Arguments
+- `u`: data points.
+- `t`: time points.
+
+## Keyword Arguments
+- `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
 struct AkimaInterpolation{uType, tType, bType, cType, dType, FT, T} <:
        AbstractInterpolation{FT, T}
     u::uType
@@ -110,7 +156,21 @@ function AkimaInterpolation(u, t; extrapolate = false)
     AkimaInterpolation{true}(u, t, b, c, d, extrapolate)
 end
 
-### ConstantInterpolation Interpolation
+"""
+    ConstantInterpolation(u, t; dir = :left, extrapolate = false)
+
+It is the method of interpolating using a constant polynomial. For any point, two adjacent data points are found on either side (left and right). The value at that point depends on `dir`. 
+If it is `:left`, then the value at the left point is chosen and if it is `:right`, the value at the right point is chosen.
+Extrapolation extends the last constant polynomial at the end points on each side.
+
+## Arguments
+- `u`: data points.
+- `t`: time points.
+
+## Keyword Arguments
+- `dir`: indicates which value should be used for interpolation (`:left` or `:right`).
+- `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
 struct ConstantInterpolation{uType, tType, dirType, FT, T} <: AbstractInterpolation{FT, T}
     u::uType
     t::tType
@@ -128,7 +188,19 @@ end
 
 Base.@deprecate_binding ZeroSpline ConstantInterpolation
 
-### QuadraticSpline Interpolation
+"""
+    QuadraticSpline(u, t; extrapolate = false)
+
+It is a spline interpolation using piecewise quadratic polynomials between each pair of data points. Its first derivative is also continuous.
+Extrapolation extends the last quadratic polynomial on each side.
+
+## Arguments
+- `u`: data points.
+- `t`: time points.
+
+## Keyword Arguments
+- `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
 struct QuadraticSpline{uType, tType, tAType, dType, zType, FT, T} <:
        AbstractInterpolation{FT, T}
     u::uType
@@ -183,7 +255,19 @@ function QuadraticSpline(u::uType, t; extrapolate = false) where {uType <: Abstr
     QuadraticSpline{true}(u, t, tA, d, z, extrapolate)
 end
 
-# Cubic Spline Interpolation
+"""
+    QuadraticSpline(u, t; extrapolate = false)
+
+It is a spline interpolation using piecewise cubic polynomials between each pair of data points. Its first and second derivative is also continuous.
+Extrapolation extends the last cubic polynomial on each side.
+
+## Arguments
+- `u`: data points.
+- `t`: time points.
+
+## Keyword Arguments
+- `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
 struct CubicSpline{uType, tType, hType, zType, FT, T} <: AbstractInterpolation{FT, T}
     u::uType
     t::tType
@@ -240,7 +324,22 @@ function CubicSpline(u::uType, t; extrapolate = false) where {uType <: AbstractV
     CubicSpline{true}(u, t, h[1:(n + 1)], z, extrapolate)
 end
 
-### BSpline Curve Interpolation
+"""
+    BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolate = false)
+
+It is a curve defined by the linear combination of `n` basis functions of degree `d` where `n` is the number of data points. For more information, refer https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html.
+Extrapolation is a constant polynomial of the end points on each side.
+
+## Arguments
+- `u`: data points.
+- `t`: time points.
+- `d`: degree of the piecewise polynomial.
+- `pVecType`: symbol to parameters vector, `:Uniform` for uniform spaced parameters and `:ArcLen` for parameters generated by chord length method.
+- `knotVecType`: symbol to knot vector, `:Uniform` for uniform knot vector, `:Average` for average spaced knot vector.
+
+## Keyword Arguments
+- `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
 struct BSplineInterpolation{uType, tType, pType, kType, cType, FT, T} <:
        AbstractInterpolation{FT, T}
     u::uType
@@ -337,7 +436,24 @@ function BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolate = fals
     BSplineInterpolation{true}(u, t, d, p, k, c, pVecType, knotVecType, extrapolate)
 end
 
-### BSpline Curve Approx
+"""
+    BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolate = false)
+
+It is a regression based B-spline. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h < length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing. 
+For more information, refer http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf.
+Extrapolation is a constant polynomial of the end points on each side.
+
+## Arguments
+- `u`: data points.
+- `t`: time points.
+- `d`: degree of the piecewise polynomial.
+- `h`: number of control points to use.
+- `pVecType`: symbol to parameters vector, `:Uniform` for uniform spaced parameters and `:ArcLen` for parameters generated by chord length method.
+- `knotVecType`: symbol to knot vector, `:Uniform` for uniform knot vector, `:Average` for average spaced knot vector.
+
+## Keyword Arguments
+- `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
 struct BSplineApprox{uType, tType, pType, kType, cType, FT, T} <:
        AbstractInterpolation{FT, T}
     u::uType
