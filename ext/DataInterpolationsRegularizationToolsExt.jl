@@ -32,35 +32,39 @@ const LA = LinearAlgebra
 
 """
 # Arguments
-- `u::Vector`:  dependent data.
-- `t::Vector`:  independent data.
+
+  - `u::Vector`:  dependent data.
+  - `t::Vector`:  independent data.
 
 # Optional Arguments
-- `t̂::Vector`: t-values to use for the smooth curve (useful when data has missing values or
-               is "scattered"); if not provided, then `t̂ = t`; must be monotonically
-               increasing.
-- `wls::{Vector,Symbol}`: weights to use with the least-squares fitting term; if set to
-                          `:midpoint`, then midpoint-rule integration weights are used for
-                          _both_ `wls` and `wr`.
-- `wr::Vector`: weights to use with the roughness term.
-- `d::Int = 2`: derivative used to calculate roughness; e.g., when `d = 2`, the 2nd
-                derivative (i.e. the curvature) of the data is used to calculate roughness.
+
+  - `t̂::Vector`: t-values to use for the smooth curve (useful when data has missing values or
+    is "scattered"); if not provided, then `t̂ = t`; must be monotonically
+    increasing.
+  - `wls::{Vector,Symbol}`: weights to use with the least-squares fitting term; if set to
+    `:midpoint`, then midpoint-rule integration weights are used for
+    _both_ `wls` and `wr`.
+  - `wr::Vector`: weights to use with the roughness term.
+  - `d::Int = 2`: derivative used to calculate roughness; e.g., when `d = 2`, the 2nd
+    derivative (i.e. the curvature) of the data is used to calculate roughness.
 
 # Keyword Arguments
-- `λ::{Number,Tuple} = 1.0`: regularization parameter; larger values result in a smoother
-                             curve; the provided value is used directly when `alg = :fixed`;
-                             otherwise it is used as an initial guess for the optimization
-                             method, or as bounds if a 2-tuple is provided (TBD)
-- `alg::Symbol = :gcv_svd`: algorithm for determining an optimal value for λ; the provided λ
-                            value is used directly if `alg = :fixed`; otherwise `alg =
-                            [:gcv_svd, :gcv_tr, :L_curve]` is passed to the
-                            RegularizationTools solver.
--  `extrapolate::Bool` = false: flag to allow extrapolating outside the range of the time points provided.
+
+  - `λ::{Number,Tuple} = 1.0`: regularization parameter; larger values result in a smoother
+    curve; the provided value is used directly when `alg = :fixed`;
+    otherwise it is used as an initial guess for the optimization
+    method, or as bounds if a 2-tuple is provided (TBD)
+  - `alg::Symbol = :gcv_svd`: algorithm for determining an optimal value for λ; the provided λ
+    value is used directly if `alg = :fixed`; otherwise `alg = [:gcv_svd, :gcv_tr, :L_curve]` is passed to the
+    RegularizationTools solver.
+  - `extrapolate::Bool` = false: flag to allow extrapolating outside the range of the time points provided.
 
 ## Example Constructors
+
 Smoothing using all arguments
+
 ```julia
-A = RegularizationSmooth(u, t, t̂, wls, wr, d; λ=1.0, alg=:gcv_svd)
+A = RegularizationSmooth(u, t, t̂, wls, wr, d; λ = 1.0, alg = :gcv_svd)
 ```
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
@@ -75,8 +79,9 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
 end
 """
 Direct smoothing, no `t̂` or weights
+
 ```julia
-A = RegularizationSmooth(u, t, d; λ=1.0, alg=:gcv_svd, extrapolate=false)
+A = RegularizationSmooth(u, t, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int = 2;
@@ -103,8 +108,9 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int = 2;
 end
 """
 `t̂` provided, no weights
+
 ```julia
-A = RegularizationSmooth(u, t, t̂, d; λ=1.0, alg=:gcv_svd, extrapolate=false)
+A = RegularizationSmooth(u, t, t̂, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
@@ -129,8 +135,9 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
 end
 """
 `t̂` and `wls` provided
+
 ```julia
-A = RegularizationSmooth(u, t, t̂, wls, d; λ=1.0, alg=:gcv_svd, extrapolate=false)
+A = RegularizationSmooth(u, t, t̂, wls, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
@@ -156,8 +163,10 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
 end
 """
 `wls` provided, no `t̂`
+
 ```julia
-A = RegularizationSmooth(u, t, nothing, wls,d; λ=1.0, alg=:gcv_svd, extrapolate=false)
+A = RegularizationSmooth(
+    u, t, nothing, wls, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
@@ -184,8 +193,10 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
 end
 """
 `wls` and `wr` provided, no `t̂`
+
 ```julia
-A = RegularizationSmooth(u, t, nothing, wls, wr, d; λ=1.0, alg=:gcv_svd, extrapolate=false)
+A = RegularizationSmooth(
+    u, t, nothing, wls, wr, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
@@ -212,8 +223,10 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
 end
 """
 Keyword provided for `wls`, no `t̂`
+
 ```julia
-A = RegularizationSmooth(u, t, nothing, :midpoint, d; λ=1.0, alg=:gcv_svd, extrapolate=false)
+A = RegularizationSmooth(
+    u, t, nothing, :midpoint, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
@@ -243,7 +256,9 @@ end
 # function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
 #                               wls::Symbol, d::Int=2; λ::Real=1.0, alg::Symbol=:gcv_svd)
 
-""" Solve for the smoothed dependent variables and create spline interpolator """
+"""
+Solve for the smoothed dependent variables and create spline interpolator
+"""
 function _reg_smooth_solve(
         u::AbstractVector, t̂::AbstractVector, d::Int, M::AbstractMatrix,
         Wls½::AbstractMatrix, Wr½::AbstractMatrix, λ::Real, alg::Symbol, extrapolate::Bool)
@@ -285,7 +300,9 @@ function _derivative_matrix(t::AbstractVector, d::Int)
     return D
 end
 
-"""Linear interpolation mapping matrix, which maps `û` to `u`."""
+"""
+Linear interpolation mapping matrix, which maps `û` to `u`.
+"""
 function _mapping_matrix(t̂::AbstractVector, t::AbstractVector)
     N = length(t)
     N̂ = length(t̂)
@@ -304,7 +321,9 @@ function _mapping_matrix(t̂::AbstractVector, t::AbstractVector)
     return M
 end
 
-""" Common-use weighting, currently only `:midpoint` for midpoint-rule integration """
+"""
+Common-use weighting, currently only `:midpoint` for midpoint-rule integration
+"""
 function _weighting_by_kw(t::AbstractVector, d::Int, wls::Symbol)
     # `:midpoint` only for now, but plan to add functionality for `:relative` weighting
     N = length(t)
