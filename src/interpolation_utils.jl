@@ -66,8 +66,8 @@ end
 """
     bracketstrictlymontonic(v, x, guess; lt=<comparison>, by=<transform>, rev=false)
 
-Starting from an initial `guess` index, find indices `(lo, hi)` such that `v[lo] ≤ x ≤
-v[hi]` according to the specified order, assuming that `x` is actually within the range of
+Starting from an initial `guess` index, find indices `(lo, hi)` such that `v[lo] ≤ x ≤ v[hi]`
+according to the specified order, assuming that `x` is actually within the range of
 values found in `v`.  If `x` is outside that range, either `lo` will be `firstindex(v)` or
 `hi` will be `lastindex(v)`.
 
