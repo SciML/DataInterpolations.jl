@@ -219,3 +219,15 @@ end
     ts = 0.0:0.1:1.0
     @test all(map(ti -> symfunc(ti) == derivative(f, ti), ts))
 end
+
+@testset "Jacobian tests" begin
+    u = rand(5)
+    t = 0:4
+    interp = LinearInterpolation(u, t,extrapolate=true)
+    grad1 = ForwardDiff.derivative(interp,2.4)
+
+    myvec = rand(20).*4.0
+    interp(myvec)
+
+    grad = ForwardDiff.jacobian(interp,myvec)
+end
