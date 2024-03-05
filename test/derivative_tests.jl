@@ -223,11 +223,11 @@ end
 @testset "Jacobian tests" begin
     u = rand(5)
     t = 0:4
-    interp = LinearInterpolation(u, t,extrapolate=true)
-    grad1 = ForwardDiff.derivative(interp,2.4)
+    interp = LinearInterpolation(u, t, extrapolate = true)
+    grad1 = ForwardDiff.derivative(interp, 2.4)
 
-    myvec = rand(20).*4.0
+    myvec = rand(20) .* 4.0
     interp(myvec)
 
-    grad = ForwardDiff.jacobian(interp,myvec)
+    grad = ForwardDiff.jacobian(interp, myvec)
 end

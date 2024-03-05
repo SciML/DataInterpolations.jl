@@ -29,7 +29,9 @@ include("show.jl")
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
 (interp::AbstractInterpolation)(t::Number, i::Integer) = _interpolate(interp, t, i)
-(interp::AbstractInterpolation)(t::AbstractVector) = interp(similar(t, promote_type(eltype(interp), eltype(t))), t)
+function (interp::AbstractInterpolation)(t::AbstractVector)
+    interp(similar(t, promote_type(eltype(interp), eltype(t))), t)
+end
 function (interp::AbstractInterpolation)(u::AbstractVector, t::AbstractVector)
     iguess = firstindex(interp.t)
     @inbounds for i in eachindex(u, t)
