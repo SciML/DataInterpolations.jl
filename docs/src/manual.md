@@ -11,9 +11,3 @@ CubicSpline
 BSplineInterpolation
 BSplineApprox
 ```
-
-# Utility Functions
-
-```@docs
-DataInterpolations.bracketstrictlymontonic
-```
