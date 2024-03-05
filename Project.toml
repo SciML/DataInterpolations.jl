@@ -3,6 +3,7 @@ uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
 version = "4.7.0"
 
 [deps]
+FindFirstFunctions = "64ca27bc-2ba2-4a57-88aa-44e436879224"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
