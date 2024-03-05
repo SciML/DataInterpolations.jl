@@ -17,6 +17,8 @@ end
 
 using LinearAlgebra, RecipesBase
 using PrettyTables
+import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
+                           bracketstrictlymontonic
 
 include("interpolation_caches.jl")
 include("interpolation_utils.jl")
