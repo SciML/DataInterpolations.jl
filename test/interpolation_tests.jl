@@ -498,8 +498,8 @@ end
     A = CubicSpline(u, t; extrapolate = true)
 
     # Solution
-    P₁ = x -> 1 + 1.5x + x^2 + 0.5x^3 # for x ∈ [-1.0, 0.0]
-    P₂ = x -> 1 + 1.5x + x^2 - 0.5x^3 # for x ∈ [0.0, 1.0]
+    P₁ = x -> 1 + 1.5x + 0.75 * x^2 + 0.25 * x^3 # for x ∈ [-1.0, 0.0]
+    P₂ = x -> 1 + 1.5x + 0.75 * x^2 - 0.25 * x^3 # for x ∈ [0.0, 1.0]
 
     for (_t, _u) in zip(t, u)
         @test A(_t) == _u
@@ -534,8 +534,8 @@ end
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
     A = CubicSpline(u, t; extrapolate = true)
-    @test A(-2.0) ≈ -2.0
-    @test A(2.0) ≈ 4.0
+    @test A(-2.0) ≈ -1.0
+    @test A(2.0) ≈ 5.0
     A = CubicSpline(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-2.0)
     @test_throws DataInterpolations.ExtrapolationError A(2.0)
