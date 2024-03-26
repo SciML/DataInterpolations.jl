@@ -268,10 +268,10 @@ function QuadraticSpline(u::uType, t; extrapolate = false) where {uType <: Abstr
 end
 
 """
-    QuadraticSpline(u, t; extrapolate = false)
+    CubicSpline(u, t; extrapolate = false)
 
 It is a spline interpolation using piecewise cubic polynomials between each pair of data points. Its first and second derivative is also continuous.
-Extrapolation extends the last cubic polynomial on each side.
+Second derivative on both ends are zero, which are also called "natural" boundary conditions. Extrapolation extends the last cubic polynomial on each side.
 
 ## Arguments
 
@@ -303,9 +303,9 @@ function CubicSpline(u::uType,
     u, t = munge_data(u, t)
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
-    dl = h[2:(n + 1)]
+    dl = vcat(h[2:n], zero(eltype(h)))
     d_tmp = 2 .* (h[1:(n + 1)] .+ h[2:(n + 2)])
-    du = h[2:(n + 1)]
+    du = vcat(zero(eltype(h)), h[3:(n + 1)])
     tA = Tridiagonal(dl, d_tmp, du)
 
     # zero for element type of d, which we don't know yet
@@ -324,9 +324,9 @@ function CubicSpline(u::uType, t; extrapolate = false) where {uType <: AbstractV
     u, t = munge_data(u, t)
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
-    dl = h[2:(n + 1)]
+    dl = vcat(h[2:n], zero(eltype(h)))
     d_tmp = 2 .* (h[1:(n + 1)] .+ h[2:(n + 2)])
-    du = h[2:(n + 1)]
+    du = vcat(zero(eltype(h)), h[3:(n + 1)])
     tA = Tridiagonal(dl, d_tmp, du)
     d_ = map(
         i -> i == 1 || i == n + 1 ? zeros(eltype(t), size(u[1])) :
