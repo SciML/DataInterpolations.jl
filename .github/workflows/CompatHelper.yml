@@ -13,7 +13,7 @@ jobs:
   CompatHelper:
     runs-on: ubuntu-latest
     steps:
-      - uses: julia-actions/setup-julia@ac0d62164df5a47de404f4e96ce86a1a28a28d56
+      - uses: julia-actions/setup-julia@f2258781c657ad9b4b88072c5eeaf9ec8c370874
         with:
           version: 1.3
       - name: Pkg.add("CompatHelper")
