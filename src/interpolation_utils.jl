@@ -4,7 +4,7 @@ function findRequiredIdxs(A::LagrangeInterpolation, t)
 end
 
 function spline_coefficients(n, d, k, u::Number)
-    N = zeros(n)
+    N = zeros(eltype(u), n)
     if u == k[1]
         N[1] = one(u)
     elseif u == k[end]
