@@ -17,32 +17,53 @@ function test_derivatives(method, u, t; args = [], kwargs = [], name::String)
             cdiff = central_fdm(5, 1; geom = true)(func, _t)
             adiff = derivative(func, _t)
             @test isapprox(cdiff, adiff, atol = 1e-8)
+            adiff2 = derivative(func, _t, 2)
+            cdiff2 = central_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
+            @test isapprox(cdiff2, adiff2, atol = 1e-8)
         end
 
         # Interpolation time points
         for _t in t[2:(end - 1)]
-            fdiff = if func isa BSplineInterpolation || func isa BSplineApprox
-                forward_fdm(5, 1; geom = true)(func, _t)
+            if func isa BSplineInterpolation || func isa BSplineApprox
+                fdiff = forward_fdm(5, 1; geom = true)(func, _t)
+                fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
             else
-                backward_fdm(5, 1; geom = true)(func, _t)
+                fdiff = backward_fdm(5, 1; geom = true)(func, _t)
+                fdiff2 = backward_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
             end
             adiff = derivative(func, _t)
+            adiff2 = derivative(func, _t, 2)
             @test isapprox(fdiff, adiff, atol = 1e-8)
+            @test isapprox(fdiff2, adiff2, atol = 1e-8)
         end
 
         # t = t0
         fdiff = forward_fdm(5, 1; geom = true)(func, t[1])
         adiff = derivative(func, t[1])
         @test isapprox(fdiff, adiff, atol = 1e-8)
+        if !(func isa BSplineInterpolation || func isa BSplineApprox)
+            fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), t[1])
+            adiff2 = derivative(func, t[1], 2)
+            @test isapprox(fdiff2, adiff2, atol = 1e-8)
+        end
 
         # t = tend
         fdiff = backward_fdm(5, 1; geom = true)(func, t[end])
         adiff = derivative(func, t[end])
         @test isapprox(fdiff, adiff, atol = 1e-8)
+        if !(func isa BSplineInterpolation || func isa BSplineApprox)
+            fdiff2 = backward_fdm(5, 1; geom = true)(t -> derivative(func, t), t[end])
+            adiff2 = derivative(func, t[end], 2)
+            @test isapprox(fdiff2, adiff2, atol = 1e-8)
+        end
     end
+    @test_throws DataInterpolations.DerivativeNotFoundError derivative(
+        func, t[1], 3)
     func = method(u, t, args...)
     @test_throws DataInterpolations.ExtrapolationError derivative(func, t[1] - 1.0)
     @test_throws DataInterpolations.ExtrapolationError derivative(func, t[end] + 1.0)
+    @test_throws DataInterpolations.DerivativeNotFoundError derivative(
+        func, t[1], 3)
 end
 
 @testset "Linear Interpolation" begin
