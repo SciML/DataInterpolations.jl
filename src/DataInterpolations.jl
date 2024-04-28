@@ -17,6 +17,7 @@ end
 
 using LinearAlgebra, RecipesBase
 using PrettyTables
+using ForwardDiff
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            bracketstrictlymontonic
 
