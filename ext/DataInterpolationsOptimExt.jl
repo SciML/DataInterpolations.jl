@@ -4,7 +4,7 @@ using DataInterpolations
 import DataInterpolations: munge_data,
                            Curvefit, CurvefitCache, _interpolate, get_show, derivative,
                            ExtrapolationError,
-                           integral, IntegralNotFoundError
+                           integral, IntegralNotFoundError, DerivativeNotFoundError
 
 isdefined(Base, :get_extension) ? (using Optim, ForwardDiff) :
 (using ..Optim, ..ForwardDiff)
@@ -49,9 +49,11 @@ function _interpolate(A::CurvefitCache{<:AbstractVector{<:Number}},
 end
 
 function derivative(A::CurvefitCache{<:AbstractVector{<:Number}},
-        t::Union{AbstractVector{<:Number}, Number})
+        t::Union{AbstractVector{<:Number}, Number}, order = 1)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    ForwardDiff.derivative(x -> A.m(x, A.pmin), t)
+    order > 2 && throw(DerivativeNotFoundError())
+    order == 1 && return ForwardDiff.derivative(x -> A.m(x, A.pmin), t)
+    return ForwardDiff.derivative(t -> ForwardDiff.derivative(x -> A.m(x, A.pmin), t), t)
 end
 
 function get_show(A::CurvefitCache)

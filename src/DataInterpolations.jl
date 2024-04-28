@@ -54,6 +54,12 @@ function Base.showerror(io::IO, e::IntegralNotFoundError)
     print(io, INTEGRAL_NOT_FOUND_ERROR)
 end
 
+const DERIVATIVE_NOT_FOUND_ERROR = "Derivatives greater than second order is not supported."
+struct DerivativeNotFoundError <: Exception end
+function Base.showerror(io::IO, e::DerivativeNotFoundError)
+    print(io, DERIVATIVE_NOT_FOUND_ERROR)
+end
+
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
        BSplineInterpolation, BSplineApprox
