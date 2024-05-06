@@ -75,7 +75,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = LA.diagm(sqrt.(wr))
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolate)
-    RegularizationSmooth{true}(u, û, t, t̂, wls, wr, d, λ, alg, Aitp, extrapolate)
+    RegularizationSmooth(u, û, t, t̂, wls, wr, d, λ, alg, Aitp, extrapolate)
 end
 """
 Direct smoothing, no `t̂` or weights
@@ -94,7 +94,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int = 2;
     Wls½ = Array{Float64}(LA.I, N, N)
     Wr½ = Array{Float64}(LA.I, N - d, N - d)
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolate)
-    RegularizationSmooth{true}(u,
+    RegularizationSmooth(u,
         û,
         t,
         t̂,
@@ -121,7 +121,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
     Wls½ = Array{Float64}(LA.I, N, N)
     Wr½ = Array{Float64}(LA.I, N̂ - d, N̂ - d)
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolate)
-    RegularizationSmooth{true}(u,
+    RegularizationSmooth(u,
         û,
         t,
         t̂,
@@ -149,7 +149,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = Array{Float64}(LA.I, N̂ - d, N̂ - d)
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolate)
-    RegularizationSmooth{true}(u,
+    RegularizationSmooth(u,
         û,
         t,
         t̂,
@@ -179,7 +179,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = Array{Float64}(LA.I, N - d, N - d)
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolate)
-    RegularizationSmooth{true}(u,
+    RegularizationSmooth(u,
         û,
         t,
         t̂,
@@ -209,7 +209,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = LA.diagm(sqrt.(wr))
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolate)
-    RegularizationSmooth{true}(u,
+    RegularizationSmooth(u,
         û,
         t,
         t̂,
@@ -240,7 +240,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = LA.diagm(sqrt.(wr))
     û, λ, Aitp = _reg_smooth_solve(u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolate)
-    RegularizationSmooth{true}(u,
+    RegularizationSmooth(u,
         û,
         t,
         t̂,

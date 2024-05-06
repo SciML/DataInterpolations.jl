@@ -31,7 +31,7 @@ function Curvefit(u,
         mfit = optimize(od, lb, ub, p0, Fminbox(alg))
     end
     pmin = Optim.minimizer(mfit)
-    CurvefitCache{true}(u, t, model, p0, ub, lb, alg, pmin, extrapolate)
+    CurvefitCache(u, t, model, p0, ub, lb, alg, pmin, extrapolate)
 end
 
 # Curvefit

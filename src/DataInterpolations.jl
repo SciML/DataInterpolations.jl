@@ -2,18 +2,7 @@ module DataInterpolations
 
 ### Interface Functionality
 
-abstract type AbstractInterpolation{FT, T} end
-
-Base.size(A::AbstractInterpolation) = size(A.u)
-Base.size(A::AbstractInterpolation{true}) = length(A.u) .+ size(A.t)
-Base.getindex(A::AbstractInterpolation, i) = A.u[i]
-function Base.getindex(A::AbstractInterpolation{true}, i)
-    i <= length(A.u) ? A.u[i] : A.t[i - length(A.u)]
-end
-Base.setindex!(A::AbstractInterpolation, x, i) = A.u[i] = x
-function Base.setindex!(A::AbstractInterpolation{true}, x, i)
-    i <= length(A.u) ? (A.u[i] = x) : (A.t[i - length(A.u)] = x)
-end
+abstract type AbstractInterpolation{T} end
 
 using LinearAlgebra, RecipesBase
 using PrettyTables
@@ -67,7 +56,7 @@ export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
-struct RegularizationSmooth{uType, tType, FT, T, T2} <: AbstractInterpolation{FT, T}
+struct RegularizationSmooth{uType, tType, T, T2} <: AbstractInterpolation{T}
     u::uType
     û::uType
     t::tType
@@ -77,9 +66,9 @@ struct RegularizationSmooth{uType, tType, FT, T, T2} <: AbstractInterpolation{FT
     d::Int       # derivative degree used to calculate the roughness
     λ::T2        # regularization parameter
     alg::Symbol  # how to determine λ: `:fixed`, `:gcv_svd`, `:gcv_tr`, `L_curve`
-    Aitp::AbstractInterpolation{FT, T}
+    Aitp::AbstractInterpolation{T}
     extrapolate::Bool
-    function RegularizationSmooth{FT}(u,
+    function RegularizationSmooth(u,
             û,
             t,
             t̂,
@@ -89,8 +78,8 @@ struct RegularizationSmooth{uType, tType, FT, T, T2} <: AbstractInterpolation{FT
             λ,
             alg,
             Aitp,
-            extrapolate) where {FT}
-        new{typeof(u), typeof(t), FT, eltype(u), typeof(λ)}(u,
+            extrapolate)
+        new{typeof(u), typeof(t), eltype(u), typeof(λ)}(u,
             û,
             t,
             t̂,
@@ -116,9 +105,8 @@ struct CurvefitCache{
     lbType,
     algType,
     pminType,
-    FT,
     T
-} <: AbstractInterpolation{FT, T}
+} <: AbstractInterpolation{T}
     u::uType
     t::tType
     m::mType        # model type
@@ -128,10 +116,10 @@ struct CurvefitCache{
     alg::algType    # alg to optimize cost function
     pmin::pminType  # optimized params
     extrapolate::Bool
-    function CurvefitCache{FT}(u, t, m, p0, ub, lb, alg, pmin, extrapolate) where {FT}
+    function CurvefitCache(u, t, m, p0, ub, lb, alg, pmin, extrapolate)
         new{typeof(u), typeof(t), typeof(m),
             typeof(p0), typeof(ub), typeof(lb),
-            typeof(alg), typeof(pmin), FT, eltype(u)}(u,
+            typeof(alg), typeof(pmin), eltype(u)}(u,
             t,
             m,
             p0,
@@ -149,8 +137,5 @@ function Curvefit()
 end
 
 export Curvefit
-
-# Deprecated April 2020
-export ZeroSpline
 
 end # module
