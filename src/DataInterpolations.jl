@@ -2,7 +2,7 @@ module DataInterpolations
 
 ### Interface Functionality
 
-abstract type AbstractInterpolation{FT, T} <: AbstractVector{T} end
+abstract type AbstractInterpolation{FT, T} end
 
 Base.size(A::AbstractInterpolation) = size(A.u)
 Base.size(A::AbstractInterpolation{true}) = length(A.u) .+ size(A.t)
