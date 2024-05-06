@@ -13,18 +13,18 @@ Extrapolation extends the last linear polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct LinearInterpolation{uType, tType, FT, T} <: AbstractInterpolation{FT, T}
+struct LinearInterpolation{uType, tType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
     extrapolate::Bool
-    function LinearInterpolation{FT}(u, t, extrapolate) where {FT}
-        new{typeof(u), typeof(t), FT, eltype(u)}(u, t, extrapolate)
+    function LinearInterpolation(u, t, extrapolate)
+        new{typeof(u), typeof(t), eltype(u)}(u, t, extrapolate)
     end
 end
 
 function LinearInterpolation(u, t; extrapolate = false)
     u, t = munge_data(u, t)
-    LinearInterpolation{true}(u, t, extrapolate)
+    LinearInterpolation(u, t, extrapolate)
 end
 
 """
@@ -43,21 +43,21 @@ Extrapolation extends the last quadratic polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct QuadraticInterpolation{uType, tType, FT, T} <: AbstractInterpolation{FT, T}
+struct QuadraticInterpolation{uType, tType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
     mode::Symbol
     extrapolate::Bool
-    function QuadraticInterpolation{FT}(u, t, mode, extrapolate) where {FT}
+    function QuadraticInterpolation(u, t, mode, extrapolate)
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        new{typeof(u), typeof(t), FT, eltype(u)}(u, t, mode, extrapolate)
+        new{typeof(u), typeof(t), eltype(u)}(u, t, mode, extrapolate)
     end
 end
 
 function QuadraticInterpolation(u, t, mode; extrapolate = false)
     u, t = munge_data(u, t)
-    QuadraticInterpolation{true}(u, t, mode, extrapolate)
+    QuadraticInterpolation(u, t, mode, extrapolate)
 end
 
 function QuadraticInterpolation(u, t; extrapolate = false)
@@ -79,17 +79,17 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct LagrangeInterpolation{uType, tType, FT, T, bcacheType} <:
-       AbstractInterpolation{FT, T}
+struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     n::Int
     bcache::bcacheType
     extrapolate::Bool
-    function LagrangeInterpolation{FT}(u, t, n, extrapolate) where {FT}
+    function LagrangeInterpolation(u, t, n, extrapolate)
         bcache = zeros(eltype(u[1]), n + 1)
         fill!(bcache, NaN)
-        new{typeof(u), typeof(t), FT, eltype(u), typeof(bcache)}(u,
+        new{typeof(u), typeof(t), eltype(u), typeof(bcache)}(u,
             t,
             n,
             bcache,
@@ -102,7 +102,7 @@ function LagrangeInterpolation(u, t, n = length(t) - 1; extrapolate = false)
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
     end
-    LagrangeInterpolation{true}(u, t, n, extrapolate)
+    LagrangeInterpolation(u, t, n, extrapolate)
 end
 
 """
@@ -120,17 +120,17 @@ Extrapolation extends the last cubic polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct AkimaInterpolation{uType, tType, bType, cType, dType, FT, T} <:
-       AbstractInterpolation{FT, T}
+struct AkimaInterpolation{uType, tType, bType, cType, dType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     b::bType
     c::cType
     d::dType
     extrapolate::Bool
-    function AkimaInterpolation{FT}(u, t, b, c, d, extrapolate) where {FT}
+    function AkimaInterpolation(u, t, b, c, d, extrapolate)
         new{typeof(u), typeof(t), typeof(b), typeof(c),
-            typeof(d), FT, eltype(u)}(u,
+            typeof(d), eltype(u)}(u,
             t,
             b,
             c,
@@ -161,7 +161,7 @@ function AkimaInterpolation(u, t; extrapolate = false)
     c = (3.0 .* m[3:(end - 2)] .- 2.0 .* b[1:(end - 1)] .- b[2:end]) ./ dt
     d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
 
-    AkimaInterpolation{true}(u, t, b, c, d, extrapolate)
+    AkimaInterpolation(u, t, b, c, d, extrapolate)
 end
 
 """
@@ -181,22 +181,20 @@ Extrapolation extends the last constant polynomial at the end points on each sid
   - `dir`: indicates which value should be used for interpolation (`:left` or `:right`).
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct ConstantInterpolation{uType, tType, dirType, FT, T} <: AbstractInterpolation{FT, T}
+struct ConstantInterpolation{uType, tType, dirType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
     dir::Symbol # indicates if value to the $dir should be used for the interpolation
     extrapolate::Bool
-    function ConstantInterpolation{FT}(u, t, dir, extrapolate) where {FT}
-        new{typeof(u), typeof(t), typeof(dir), FT, eltype(u)}(u, t, dir, extrapolate)
+    function ConstantInterpolation(u, t, dir, extrapolate)
+        new{typeof(u), typeof(t), typeof(dir), eltype(u)}(u, t, dir, extrapolate)
     end
 end
 
 function ConstantInterpolation(u, t; dir = :left, extrapolate = false)
     u, t = munge_data(u, t)
-    ConstantInterpolation{true}(u, t, dir, extrapolate)
+    ConstantInterpolation(u, t, dir, extrapolate)
 end
-
-Base.@deprecate_binding ZeroSpline ConstantInterpolation
 
 """
     QuadraticSpline(u, t; extrapolate = false)
@@ -213,17 +211,17 @@ Extrapolation extends the last quadratic polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct QuadraticSpline{uType, tType, tAType, dType, zType, FT, T} <:
-       AbstractInterpolation{FT, T}
+struct QuadraticSpline{uType, tType, tAType, dType, zType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     tA::tAType
     d::dType
     z::zType
     extrapolate::Bool
-    function QuadraticSpline{FT}(u, t, tA, d, z, extrapolate) where {FT}
+    function QuadraticSpline(u, t, tA, d, z, extrapolate)
         new{typeof(u), typeof(t), typeof(tA),
-            typeof(d), typeof(z), FT, eltype(u)}(u,
+            typeof(d), typeof(z), eltype(u)}(u,
             t,
             tA,
             d,
@@ -247,7 +245,7 @@ function QuadraticSpline(u::uType,
 
     d = map(i -> i == 1 ? typed_zero : 2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]), 1:s)
     z = tA \ d
-    QuadraticSpline{true}(u, t, tA, d, z, extrapolate)
+    QuadraticSpline(u, t, tA, d, z, extrapolate)
 end
 
 function QuadraticSpline(u::uType, t; extrapolate = false) where {uType <: AbstractVector}
@@ -264,7 +262,7 @@ function QuadraticSpline(u::uType, t; extrapolate = false) where {uType <: Abstr
     d = transpose(reshape(reduce(hcat, d_), :, s))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
-    QuadraticSpline{true}(u, t, tA, d, z, extrapolate)
+    QuadraticSpline(u, t, tA, d, z, extrapolate)
 end
 
 """
@@ -282,14 +280,14 @@ Second derivative on both ends are zero, which are also called "natural" boundar
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct CubicSpline{uType, tType, hType, zType, FT, T} <: AbstractInterpolation{FT, T}
+struct CubicSpline{uType, tType, hType, zType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
     h::hType
     z::zType
     extrapolate::Bool
-    function CubicSpline{FT}(u, t, h, z, extrapolate) where {FT}
-        new{typeof(u), typeof(t), typeof(h), typeof(z), FT, eltype(u)}(u,
+    function CubicSpline(u, t, h, z, extrapolate)
+        new{typeof(u), typeof(t), typeof(h), typeof(z), eltype(u)}(u,
             t,
             h,
             z,
@@ -317,7 +315,7 @@ function CubicSpline(u::uType,
              6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
         1:(n + 1))
     z = tA \ d
-    CubicSpline{true}(u, t, h[1:(n + 1)], z, extrapolate)
+    CubicSpline(u, t, h[1:(n + 1)], z, extrapolate)
 end
 
 function CubicSpline(u::uType, t; extrapolate = false) where {uType <: AbstractVector}
@@ -335,7 +333,7 @@ function CubicSpline(u::uType, t; extrapolate = false) where {uType <: AbstractV
     d = transpose(reshape(reduce(hcat, d_), :, n + 1))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
-    CubicSpline{true}(u, t, h[1:(n + 1)], z, extrapolate)
+    CubicSpline(u, t, h[1:(n + 1)], z, extrapolate)
 end
 
 """
@@ -356,8 +354,8 @@ Extrapolation is a constant polynomial of the end points on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct BSplineInterpolation{uType, tType, pType, kType, cType, FT, T} <:
-       AbstractInterpolation{FT, T}
+struct BSplineInterpolation{uType, tType, pType, kType, cType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     d::Int    # degree
@@ -367,7 +365,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, FT, T} <:
     pVecType::Symbol
     knotVecType::Symbol
     extrapolate::Bool
-    function BSplineInterpolation{FT}(u,
+    function BSplineInterpolation(u,
             t,
             d,
             p,
@@ -375,8 +373,8 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, FT, T} <:
             c,
             pVecType,
             knotVecType,
-            extrapolate) where {FT}
-        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), FT, eltype(u)}(u,
+            extrapolate)
+        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), eltype(u)}(u,
             t,
             d,
             p,
@@ -449,7 +447,7 @@ function BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolate = fals
     # control points
     N = spline_coefficients(n, d, k, p)
     c = vec(N \ u[:, :])
-    BSplineInterpolation{true}(u, t, d, p, k, c, pVecType, knotVecType, extrapolate)
+    BSplineInterpolation(u, t, d, p, k, c, pVecType, knotVecType, extrapolate)
 end
 
 """
@@ -472,8 +470,8 @@ Extrapolation is a constant polynomial of the end points on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct BSplineApprox{uType, tType, pType, kType, cType, FT, T} <:
-       AbstractInterpolation{FT, T}
+struct BSplineApprox{uType, tType, pType, kType, cType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     d::Int    # degree
@@ -484,7 +482,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, FT, T} <:
     pVecType::Symbol
     knotVecType::Symbol
     extrapolate::Bool
-    function BSplineApprox{FT}(u,
+    function BSplineApprox(u,
             t,
             d,
             h,
@@ -493,8 +491,8 @@ struct BSplineApprox{uType, tType, pType, kType, cType, FT, T} <:
             c,
             pVecType,
             knotVecType,
-            extrapolate) where {FT}
-        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), FT, eltype(u)}(u,
+            extrapolate)
+        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), eltype(u)}(u,
             t,
             d,
             h,
@@ -590,5 +588,5 @@ function BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolate = false)
     M = transpose(N) * N
     P = M \ Q
     c[2:(end - 1)] .= vec(P)
-    BSplineApprox{true}(u, t, d, h, p, k, c, pVecType, knotVecType, extrapolate)
+    BSplineApprox(u, t, d, h, p, k, c, pVecType, knotVecType, extrapolate)
 end
