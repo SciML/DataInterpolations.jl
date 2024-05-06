@@ -16,8 +16,8 @@ end
 SymbolicUtils.promote_symtype(t::AbstractInterpolation, _...) = Real
 Base.nameof(interp::AbstractInterpolation) = :Interpolation
 
-function derivative(interp::AbstractInterpolation, t::Num)
-    Symbolics.wrap(SymbolicUtils.term(derivative, interp, unwrap(t)))
+function derivative(interp::AbstractInterpolation, t::Num, order = 1)
+    Symbolics.wrap(SymbolicUtils.term(derivative, interp, unwrap(t), order))
 end
 SymbolicUtils.promote_symtype(::typeof(derivative), _...) = Real
 

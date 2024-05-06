@@ -17,6 +17,7 @@ end
 
 using LinearAlgebra, RecipesBase
 using PrettyTables
+using ForwardDiff
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            bracketstrictlymontonic
 
@@ -52,6 +53,12 @@ const INTEGRAL_NOT_FOUND_ERROR = "Cannot integrate it analytically. Please use N
 struct IntegralNotFoundError <: Exception end
 function Base.showerror(io::IO, e::IntegralNotFoundError)
     print(io, INTEGRAL_NOT_FOUND_ERROR)
+end
+
+const DERIVATIVE_NOT_FOUND_ERROR = "Derivatives greater than second order is not supported."
+struct DerivativeNotFoundError <: Exception end
+function Base.showerror(io::IO, e::DerivativeNotFoundError)
+    print(io, DERIVATIVE_NOT_FOUND_ERROR)
 end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,

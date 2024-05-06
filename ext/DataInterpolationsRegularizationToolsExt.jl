@@ -356,8 +356,8 @@ end
 function derivative(A::RegularizationSmooth{
             <:AbstractVector{<:Number},
         },
-        t::Number)
-    derivative(A.Aitp, t)
+        t::Number, order = 1)
+    derivative(A.Aitp, t, order)
 end
 
 function get_show(A::RegularizationSmooth)

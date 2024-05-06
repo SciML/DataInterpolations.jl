@@ -1,9 +1,11 @@
-function derivative(A, t)
+function derivative(A, t, order = 1)
+    order > 2 && throw(DerivativeNotFoundError())
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    derivative(A, t, firstindex(A.t) - 1)[1]
+    order == 1 && return _derivative(A, t, firstindex(A.t) - 1)[1]
+    return ForwardDiff.derivative(t -> _derivative(A, t, firstindex(A.t) - 1)[1], t)
 end
 
-function derivative(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = searchsortedfirstcorrelated(A.t, t, iguess)
     idx > length(A.t) ? idx -= 1 : nothing
     idx -= 1
@@ -11,7 +13,7 @@ function derivative(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     (A.u[idx + 1] - A.u[idx]) / (A.t[idx + 1] - A.t[idx]), idx
 end
 
-function derivative(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
+function _derivative(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
     idx = searchsortedfirstcorrelated(A.t, t, iguess)
     idx > length(A.t) ? idx -= 1 : nothing
     idx -= 1
@@ -19,7 +21,7 @@ function derivative(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
     (@views @. (A.u[:, idx + 1] - A.u[:, idx]) / (A.t[idx + 1] - A.t[idx])), idx
 end
 
-function derivative(A::QuadraticInterpolation{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::QuadraticInterpolation{<:AbstractVector}, t::Number, iguess)
     i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
     dl₀ = (2t - A.t[i₁] - A.t[i₂]) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
     dl₁ = (2t - A.t[i₀] - A.t[i₂]) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
@@ -27,7 +29,7 @@ function derivative(A::QuadraticInterpolation{<:AbstractVector}, t::Number, igue
     A.u[i₀] * dl₀ + A.u[i₁] * dl₁ + A.u[i₂] * dl₂, i₀
 end
 
-function derivative(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number, iguess)
+function _derivative(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number, iguess)
     i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
     dl₀ = (2t - A.t[i₁] - A.t[i₂]) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
     dl₁ = (2t - A.t[i₀] - A.t[i₂]) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
@@ -35,7 +37,7 @@ function derivative(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number, igue
     (@views @. A.u[:, i₀] * dl₀ + A.u[:, i₁] * dl₁ + A.u[:, i₂] * dl₂), i₀
 end
 
-function derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
+function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     der = zero(A.u[1])
     for j in eachindex(A.t)
@@ -69,7 +71,7 @@ function derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
     der
 end
 
-function derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
+function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     der = zero(A.u[:, 1])
     for j in eachindex(A.t)
@@ -98,15 +100,15 @@ function derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
                 tmp += k
             end
         end
-        @. der += A.u[:, j] * tmp
+        der += A.u[:, j] * tmp
     end
     der
 end
 
-derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, i) = derivative(A, t), i
-derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i) = derivative(A, t), i
+_derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, i) = _derivative(A, t), i
+_derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i) = _derivative(A, t), i
 
-function derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     i = searchsortedfirstcorrelated(A.t, t, iguess)
     i > length(A.t) ? i -= 1 : nothing
     i -= 1
@@ -116,18 +118,18 @@ function derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     (@evalpoly wj A.b[i] 2A.c[j] 3A.d[j]), i
 end
 
-function derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
+function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : eltype(A.u)(NaN)
 end
 
-function derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number)
+function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : eltype(A.u)(NaN) .* A.u[:, 1]
 end
 
 # QuadraticSpline Interpolation
-function derivative(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     idx = searchsortedfirstcorrelated(A.t, t, iguess)
     idx > length(A.t) ? idx -= 1 : nothing
     idx == 1 ? idx += 1 : nothing
@@ -136,7 +138,7 @@ function derivative(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
 end
 
 # CubicSpline Interpolation
-function derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     i = searchsortedfirstcorrelated(A.t, t, iguess)
     i > length(A.t) ? i -= 1 : nothing
     i -= 1
@@ -148,7 +150,7 @@ function derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     dI + dC + dD, i
 end
 
-function derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
+function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
     t < A.t[1] && return zero(A.u[1]), 1
     t > A.t[end] && return zero(A.u[end]), lastindex(t)
@@ -170,7 +172,7 @@ function derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Numb
 end
 
 # BSpline Curve Approx
-function derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
+function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
     t < A.t[1] && return zero(A.u[1]), 1
     t > A.t[end] && return zero(A.u[end]), lastindex(t)
