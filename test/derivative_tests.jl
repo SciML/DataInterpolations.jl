@@ -223,22 +223,34 @@ end
     A = QuadraticSpline(u, t)
     @variables τ, ω(τ)
     D = Symbolics.Differential(τ)
+    D2 = Symbolics.Differential(τ)^2
     expr = A(ω)
     @test isequal(Symbolics.derivative(expr, τ), D(ω) * DataInterpolations.derivative(A, ω))
 
-    derivexpr = expand_derivatives(substitute(D(A(ω)), Dict(ω => 0.5τ)))
-    symfunc = Symbolics.build_function(derivexpr, τ; expression = Val{false})
-    @test symfunc(0.5) == 0.5 * 3
+    derivexpr1 = expand_derivatives(substitute(D(A(ω)), Dict(ω => 0.5τ)))
+    derivexpr2 = expand_derivatives(substitute(D2(A(ω)), Dict(ω => 0.5τ)))
+    symfunc1 = Symbolics.build_function(derivexpr1, τ; expression = Val{false})
+    symfunc2 = Symbolics.build_function(derivexpr2, τ; expression = Val{false})
+    @test symfunc1(0.5) == 0.5 * 3
+    @test symfunc2(0.5) == 0.5 * 6
 
     u = [0.0, 1.5, 0.0]
     t = [0.0, 0.5, 1.0]
     @variables τ
     D = Symbolics.Differential(τ)
+    D2 = Symbolics.Differential(τ)^2
+    D3 = Symbolics.Differential(τ)^3
     f = LinearInterpolation(u, t)
     df = expand_derivatives(D(f(τ)))
-    symfunc = Symbolics.build_function(df, τ; expression = Val{false})
+    df2 = expand_derivatives(D2(f(τ)))
+    df3 = expand_derivatives(D3(f(τ)))
+    symfunc1 = Symbolics.build_function(df, τ; expression = Val{false})
+    symfunc2 = Symbolics.build_function(df2, τ; expression = Val{false})
+    symfunc3 = Symbolics.build_function(df3, τ; expression = Val{false})
     ts = 0.0:0.1:1.0
-    @test all(map(ti -> symfunc(ti) == derivative(f, ti), ts))
+    @test all(map(ti -> symfunc1(ti) == derivative(f, ti), ts))
+    @test all(map(ti -> symfunc2(ti) == derivative(f, ti, 2), ts))
+    @test_throws DataInterpolations.DerivativeNotFoundError symfunc3(ts[1])
 end
 
 @testset "Jacobian tests" begin
