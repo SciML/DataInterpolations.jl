@@ -14,7 +14,7 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     if A.t[idx2] == t2
         idx2 -= 1
     end
-    total = zero(eltype(A))
+    total = zero(eltype(A.u))
     for idx in idx1:idx2
         lt1 = idx == idx1 ? t1 : A.t[idx]
         lt2 = idx == idx2 ? t2 : A.t[idx + 1]

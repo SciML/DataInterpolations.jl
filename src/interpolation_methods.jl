@@ -8,7 +8,7 @@ end
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     if isnan(t)
         # For correct derivative with NaN
-        idx = firstindex(A) - 1
+        idx = firstindex(A.u) - 1
         t1 = t2 = one(eltype(A.t))
         u1 = u2 = one(eltype(A.u))
     else
