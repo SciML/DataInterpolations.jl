@@ -2,7 +2,7 @@
 
 julia_version = "1.10.3"
 manifest_format = "2.0"
-project_hash = "efcfd71a0d3e42af1f180f3d4f358bd06f40b3d9"
+project_hash = "12f13ab86320b9cdbdd69466ef6a26a1d07635c3"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -181,7 +181,7 @@ version = "1.16.0"
 deps = ["FindFirstFunctions", "ForwardDiff", "LinearAlgebra", "PrettyTables", "RecipesBase", "Reexport"]
 path = "/home/runner/work/DataInterpolations.jl/DataInterpolations.jl"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
-version = "4.8.0"
+version = "5.0.0"
 
     [deps.DataInterpolations.extensions]
     DataInterpolationsChainRulesCoreExt = "ChainRulesCore"
