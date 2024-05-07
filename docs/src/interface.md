@@ -37,13 +37,14 @@ A2(300.0)
 
 ## Derivatives
 
-Derivatives of the interpolated curves can also be computed at any point for all the methods.
+Derivatives of the interpolated curves can also be computed at any point for all the methods. Derivatives upto second order is supported where first order derivative is computed analytically and second order using `ForwardDiff.jl`. Order is passed as the third argument. It is 1 by default.
 
 We will continue with the above example, but the API is the same for all the methods. If the interpolation is defined with `extrapolate=true`, derivatives can also be extrapolated.
 
 ```@example interface
 # derivative(A, t)
-DataInterpolations.derivative(A1, 1.0)
+DataInterpolations.derivative(A1, 1.0, 1)
+DataInterpolations.derivative(A1, 1.0, 2)
 
 # Extrapolation
 DataInterpolations.derivative(A2, 300.0)
