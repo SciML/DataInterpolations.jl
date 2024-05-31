@@ -621,6 +621,21 @@ end
     @test_throws DataInterpolations.ExtrapolationError A(15.0)
 end
 
+@testset "Type of vector returned" begin
+    # Issue https://github.com/SciML/DataInterpolations.jl/issues/253
+    t1 = Float32[0.1, 0.2, 0.3, 0.4, 0.5]
+    t2 = Float64[0.1, 0.2, 0.3, 0.4, 0.5]
+    interps_and_types = [
+        (LinearInterpolation(t1, t1), Float32),
+        (LinearInterpolation(t1, t2), Float32),
+        (LinearInterpolation(t2, t1), Float64),
+        (LinearInterpolation(t2, t2), Float64)
+    ]
+    for i in eachindex(interps_and_types)
+        @test eltype(interps_and_types[i][1](t1)) == interps_and_types[i][2]
+    end
+end
+
 # missing values handling tests
 u = [1.0, 4.0, 9.0, 16.0, 25.0, missing, missing]
 t = [1.0, 2.0, 3.0, 4.0, missing, 6.0, missing]
