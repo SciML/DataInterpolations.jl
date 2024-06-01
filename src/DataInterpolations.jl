@@ -56,7 +56,8 @@ export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
-struct RegularizationSmooth{uType, tType, T, T2, ITP <: AbstractInterpolation{T}} <: AbstractInterpolation{T}
+struct RegularizationSmooth{uType, tType, T, T2, ITP <: AbstractInterpolation{T}} <:
+       AbstractInterpolation{T}
     u::uType
     û::uType
     t::tType
