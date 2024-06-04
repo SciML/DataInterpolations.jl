@@ -185,3 +185,8 @@ end
     A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
     @test_throws DataInterpolations.ExtrapolationError A(10.0)
 end
+
+@testset "Type inference" begin
+    A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
+    @test @inferred(A(1.0)) == A(1.0)
+end
