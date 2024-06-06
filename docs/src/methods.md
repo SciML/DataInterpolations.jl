@@ -51,6 +51,18 @@ scatter(t, u, label = "input data")
 plot!(A)
 ```
 
+## Akima Interpolation
+
+This function fits piecewise cubic polynomials which forms a continuously differentiable function.
+This differs from Cubic Spline as coefficients are computed using only neighbouring points and hence the
+fit looks more natural.
+
+```@example tutorial
+A = AkimaInterpolation(u, t)
+scatter(t, u, label = "input data")
+plot!(A)
+```
+
 ## Constant Interpolation
 
 This function is constant between data points. By default,
