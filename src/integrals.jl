@@ -6,11 +6,10 @@ end
 function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     ((t1 < A.t[1] || t1 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     ((t2 < A.t[1] || t2 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    bw, fw = samples(A)
     # the index less than or equal to t1
-    idx1 = max(1 + bw, min(searchsortedlast(A.t, t1), length(A.t) - fw))
+    idx1 = max(1, min(searchsortedlast(A.t, t1), length(A.t) - 1))
     # the index less than t2
-    idx2 = max(2 + bw, min(searchsortedlast(A.t, t2), length(A.t) - fw))
+    idx2 = max(1, min(searchsortedlast(A.t, t2), length(A.t) - 1))
     if A.t[idx2] == t2
         idx2 -= 1
     end
@@ -23,7 +22,6 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     total
 end
 
-samples(A::LinearInterpolation{<:AbstractVector}) = (0, 1)
 function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
         idx::Number,
         t::Number)
@@ -34,7 +32,6 @@ function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
     t^2 * (u1 - u2) / (2 * t1 - 2 * t2) + t * (t1 * u2 - t2 * u1) / (t1 - t2)
 end
 
-samples(A::ConstantInterpolation{<:AbstractVector}) = (0, 1)
 function _integral(A::ConstantInterpolation{<:AbstractVector}, idx::Number, t::Number)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
@@ -45,7 +42,6 @@ function _integral(A::ConstantInterpolation{<:AbstractVector}, idx::Number, t::N
     end
 end
 
-samples(A::QuadraticInterpolation{<:AbstractVector}) = (0, 1)
 function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
         idx::Number,
         t::Number)
@@ -69,7 +65,6 @@ function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
      (t1^2 * t2 - t1^2 * t3 - t1 * t2^2 + t1 * t3^2 + t2^2 * t3 - t2 * t3^2))
 end
 
-samples(A::QuadraticSpline{<:AbstractVector{<:Number}}) = (0, 1)
 function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
     t1 = A.t[idx]
     t2 = A.t[idx + 1]
@@ -81,7 +76,6 @@ function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, 
     (2 * t1 - 2 * t2)
 end
 
-samples(A::CubicSpline{<:AbstractVector{<:Number}}) = (0, 1)
 function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
     t1 = A.t[idx]
     t2 = A.t[idx + 1]
@@ -98,7 +92,6 @@ function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::N
      (6 * h2))
 end
 
-samples(A::AkimaInterpolation{<:AbstractVector{<:Number}}) = (0, 1)
 function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
         idx::Number,
         t::Number)
