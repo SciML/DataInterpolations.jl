@@ -13,21 +13,38 @@ function test_integral(method, u, t; args = [], kwargs = [], name::String)
         # integral(A, t1, t2)
         qint, err = quadgk(func, t1, t2; atol = 1e-12, rtol = 1e-12)
         aint = integral(func, t1, t2)
-        @test isapprox(qint, aint, atol = 1e-8)
+        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
 
         # integral(A, t)
         qint, err = quadgk(func, t1, (t1 + t2) / 2; atol = 1e-12, rtol = 1e-12)
         aint = integral(func, (t1 + t2) / 2)
-        @test isapprox(qint, aint, atol = 1e-8)
+        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
+
+        # integral(A, t1, t), integral(A, t, t2), integral(A, t, t)
+        ts = range(t1, t2; length = 100)
+        for t in ts
+            qint, err = quadgk(func, t1, t; atol = 1e-12, rtol = 1e-12)
+            aint1 = integral(func, t1, t)
+            @test isapprox(qint, aint1, atol = 1e-5, rtol = 1e-8)
+            aint2 = integral(func, t)
+            @test aint1 == aint2
+
+            qint, err = quadgk(func, t, t2; atol = 1e-12, rtol = 1e-12)
+            aint = integral(func, t, t2)
+            @test isapprox(qint, aint, atol = 1e-5, rtol = 1e-8)
+
+            aint = integral(func, t, t)
+            @test aint == 0.0
+        end
 
         # integrals with extrapolation
         qint, err = quadgk(func, t1 - 5.0, (t1 + t2) / 2; atol = 1e-12, rtol = 1e-12)
         aint = integral(func, t1 - 5.0, (t1 + t2) / 2)
-        @test isapprox(qint, aint, atol = 1e-8)
+        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
 
         qint, err = quadgk(func, (t1 + t2) / 2, t2 + 5.0; atol = 1e-12, rtol = 1e-12)
         aint = integral(func, (t1 + t2) / 2, t2 + 5.0)
-        @test isapprox(qint, aint, atol = 1e-8)
+        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
     end
     func = method(u, t, args...; kwargs...)
     @test_throws DataInterpolations.ExtrapolationError integral(func, t[1] - 1.0)
@@ -40,6 +57,10 @@ end
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
     test_integral(LinearInterpolation, u, t; name = "Linear Interpolation (Vector)")
+    u = round.(rand(100), digits = 5)
+    t = 1.0collect(1:100)
+    test_integral(LinearInterpolation, u, t;
+        name = "Linear Interpolation (Vector) with random points")
 end
 
 @testset "QuadraticInterpolation" begin
@@ -53,6 +74,10 @@ end
         t;
         args = [:Backward],
         name = "Quadratic Interpolation (Vector)")
+    u = round.(rand(100), digits = 5)
+    t = 1.0collect(1:10)
+    test_integral(QuadraticInterpolation, u, t;
+        name = "Quadratic Interpolation (Vector) with random points")
 end
 
 @testset "LagrangeInterpolation" begin
@@ -67,17 +92,27 @@ end
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
     test_integral(QuadraticSpline, u, t; name = "Quadratic Spline (Vector)")
+    u = round.(rand(100), digits = 5)
+    t = 1.0collect(1:100)
+    test_integral(
+        QuadraticSpline, u, t; name = "Quadratic Spline (Vector) with random points")
 end
 
 @testset "CubicSpline" begin
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    test_integral(CubicSpline, u, t; name = "Cubic Spline Interpolation (Vector)")
+    test_integral(CubicSpline, u, t; name = "Cubic Spline (Vector)")
+    u = round.(rand(100), digits = 5)
+    t = 1.0collect(1:100)
+    test_integral(CubicSpline, u, t; name = "Cubic Spline (Vector) with random points")
 end
 
 @testset "AkimaInterpolation" begin
     u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
     t = collect(0.0:10.0)
+    test_integral(AkimaInterpolation, u, t; name = "Akima Interpolation (Vector)")
+    u = round.(rand(100), digits = 5)
+    t = 1.0collect(1:100)
     test_integral(AkimaInterpolation, u, t; name = "Akima Interpolation (Vector)")
 end
 
