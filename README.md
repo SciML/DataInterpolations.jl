@@ -40,12 +40,6 @@ u′ = similar(u, length(t′))
 interp(u′, t′)
 ```
 
-Indexing retrieves the underlying values:
-
-```julia
-interp[4] # Gives the 4th value of u
-```
-
 ## Available Interpolations
 
 In all cases, `u` an `AbstractVector` of values and `t` is an `AbstractVector` of timepoints
