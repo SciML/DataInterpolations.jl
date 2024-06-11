@@ -12,11 +12,23 @@
   abstract = { Bridging cultures that have often been distant, Julia combines expertise from the diverse fields of computer science and computational science to create a new approach to numerical computing. Julia is designed to be easy and fast and questions notions generally held to be “laws of nature" by practitioners of numerical computing: \beginlist \item High-level dynamic programs have to be slow. \item One must prototype in one language and then rewrite in another language for speed or deployment. \item There are parts of a system appropriate for the programmer, and other parts that are best left untouched as they have been built by the experts. \endlist We introduce the Julia programming language and its design---a dance between specialization and abstraction. Specialization allows for custom treatment. Multiple dispatch, a technique from computer science, picks the right algorithm for the right circumstance. Abstraction, which is what good computation is really about, recognizes what remains the same after differences are stripped away. Abstractions in mathematics are captured as code through another technique from computer science, generic programming. Julia shows that one can achieve machine performance without sacrificing human convenience. }
 }
 
-@article{gowda2021high,
-  title={High-performance symbolic-numerics via multiple dispatch},
-  author={Gowda, Shashi and Ma, Yingbo and Cheli, Alessandro and Gwozdz, Maja and Shah, Viral B and Edelman, Alan and Rackauckas, Christopher},
-  journal={arXiv preprint arXiv:2105.03949},
-  year={2021}
+@article{10.1145/3511528.3511535,
+  author = {Gowda, Shashi and Ma, Yingbo and Cheli, Alessandro and Gw\'{o}\'{z}zd\'{z}, Maja and Shah, Viral B. and Edelman, Alan and Rackauckas, Christopher},
+  title = {High-Performance Symbolic-Numerics via Multiple Dispatch},
+  year = {2022},
+  issue_date = {September 2021},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {55},
+  number = {3},
+  issn = {1932-2240},
+  url = {https://doi.org/10.1145/3511528.3511535},
+  doi = {10.1145/3511528.3511535},
+  abstract = {As mathematical computing becomes more democratized in high-level languages, high-performance symbolic-numeric systems are necessary for domain scientists and engineers to get the best performance out of their machine without deep knowledge of code optimization. Naturally, users need different term types either to have different algebraic properties for them, or to use efficient data structures. To this end, we developed Symbolics.jl, an extendable symbolic system which uses dynamic multiple dispatch to change behavior depending on the domain needs. In this work we detail an underlying abstract term interface which allows for speed without sacrificing generality. We show that by formalizing a generic API on actions independent of implementation, we can retroactively add optimized data structures to our system without changing the pre-existing term rewriters. We showcase how this can be used to optimize term construction and give a 113x acceleration on general symbolic transformations. Further, we show that such a generic API allows for complementary term-rewriting implementations. Exploiting this feature, we demonstrate the ability to swap between classical term-rewriting simplifiers and e-graph-based term-rewriting simplifiers. We illustrate how this symbolic system improves numerical computing tasks by showcasing an e-graph ruleset which minimizes the number of CPU cycles during expression evaluation, and demonstrate how it simplifies a real-world reaction-network simulation to halve the runtime. Additionally, we show a reaction-diffusion partial differential equation solver which is able to be automatically converted into symbolic expressions via multiple dispatch tracing, which is subsequently accelerated and parallelized to give a 157x simulation speedup. Together, this presents Symbolics.jl as a next-generation symbolic-numeric computing environment geared towards modeling and simulation.},
+  journal = {ACM Commun. Comput. Algebra},
+  month = {jan},
+  pages = {92–96},
+  numpages = {5}
 }
 
 @misc{ma2021modelingtoolkit,
@@ -25,6 +37,8 @@
   year={2021},
   eprint={2103.05244},
   archivePrefix={arXiv},
+  doi={10.48550/arXiv.2103.05244},
+  url={https://doi.org/10.48550/arXiv.2103.05244},
   primaryClass={cs.MS}
 }
 
@@ -38,30 +52,33 @@
   url={https://api.semanticscholar.org/CorpusID:202866372}
 }
 
-@article{Petters2021-aa,
-  title     = "Revisiting matrix-based inversion of scanning mobility particle
-               sizer ({SMPS}) and humidified tandem differential mobility
-               analyzer ({HTDMA}) data",
-  author    = "Petters, Markus D",
-  journal   = "Atmos. Meas. Tech.",
-  publisher = "Copernicus GmbH",
-  volume    =  14,
-  number    =  12,
-  pages     = "7909--7928",
-  month     =  dec,
-  year      =  2021,
-  copyright = "https://creativecommons.org/licenses/by/4.0/",
-  language  = "en"
+@Article{amt-14-7909-2021,
+  AUTHOR = {Petters, M. D.},
+  TITLE = {Revisiting matrix-based inversion of scanning mobility particle sizer (SMPS) and humidified tandem
+  differential mobility analyzer (HTDMA) data},
+  JOURNAL = {Atmospheric Measurement Techniques},
+  VOLUME = {14},
+  YEAR = {2021},
+  NUMBER = {12},
+  PAGES = {7909--7928},
+  URL = {https://amt.copernicus.org/articles/14/7909/2021/},
+  DOI = {10.5194/amt-14-7909-2021}
 }
 
-@article{Curry1966OnPF,
-  title={On P{\'o}lya frequency functions IV: The fundamental spline functions and their limits},
-  author={Haskell B. Curry and I. J. Schoenberg},
-  journal={Journal d’Analyse Math{\'e}matique},
-  year={1966},
-  volume={17},
-  pages={71-107},
-  url={https://api.semanticscholar.org/CorpusID:120740205}
+@Inbook{Curry1988,
+  author="Curry, H. B.
+  and Schoenberg, I. J.",
+  editor="de Boor, Carl",
+  title="On P{\'o}lya Frequency Functions IV: The Fundamental Spline Functions and their Limits",
+  bookTitle="I. J. Schoenberg Selected Papers",
+  year="1988",
+  publisher="Birkh{\"a}user Boston",
+  address="Boston, MA",
+  pages="347--383",
+  abstract="The present paper was written in 1945 and completed by 1947 (see the abstract [3]) but for no good reason has so far not been published. It appears now in a somewhat revised and improved form.",
+  isbn="978-1-4899-0433-1",
+  doi="10.1007/978-1-4899-0433-1_17",
+  url="https://doi.org/10.1007/978-1-4899-0433-1_17"
 }
 
 @article{DEBOOR197250,
@@ -72,7 +89,7 @@
   pages = {50-62},
   year = {1972},
   issn = {0021-9045},
-  doi = {https://doi.org/10.1016/0021-9045(72)90080-9},
+  doi = {10.1016/0021-9045(72)90080-9},
   url = {https://www.sciencedirect.com/science/article/pii/0021904572900809},
   author = {Carl {de Boor}}
 }
@@ -96,19 +113,25 @@
   numpages = {14}
 }
 
-@article{Schoenberg1946ContributionsTT,
-  title={Contributions to the problem of approximation of equidistant data by analytic functions. Part A. On the problem of smoothing or graduation. A first class of analytic approximation formulae},
-  author={I. J. Schoenberg},
-  journal={Quarterly of Applied Mathematics},
-  year={1946},
-  volume={4},
-  pages={45-99},
-  url={https://api.semanticscholar.org/CorpusID:125923957}
+@Inbook{Schoenberg1988,
+  author="Schoenberg, I. J.",
+  editor="de Boor, Carl",
+  title="Contributions to the Problem of Approximation of Equidistant Data by Analytic Functions",
+  bookTitle="I. J. Schoenberg Selected Papers",
+  year="1988",
+  publisher="Birkh{\"a}user Boston",
+  address="Boston, MA",
+  pages="3--57",
+  abstract="Introduction. Let there be given a sequence of ordinates<math display='block'><mrow><mrow><mo>{\{}</mo> <mrow><msub><mi>y</mi><mi>n</mi></msub></mrow> <mo>{\}}</mo></mrow><mtext>{\&}{\#}x2003;</mtext><mrow><mo>(</mo><mrow><mi>n</mi><mo>=</mo><mn>0</mn><mo>,</mo><mo>{\&}{\#}x00B1;</mo><mn>1</mn><mo>{\&}{\#}x00B1;</mo><mn>2</mn><mo>,</mo><mo>{\&}{\#}x2026;</mo></mrow><mo>)</mo></mrow><mo>,</mo></mrow></math>{\$}{\$}{\backslash}left{\backslash}{\{} {\{}{\{}y{\_}n{\}}{\}} {\backslash}right{\backslash}{\}}{\backslash}quad {\backslash}left( {\{}n = 0, {\backslash}pm 1 {\backslash}pm 2, {\backslash}ldots {\}} {\backslash}right),{\$}{\$}corresponding to all integral values of the variable x = n. If these ordinates are the values of a known analytic function F(x), then the problem of interpolation between these ordinates has an obvious and precise meaning: we are required to compute intermediate values F(x) to the same accuracy to which the ordinates are known. Undoubtedly, the most convenient tool for the solution of this problem is the polynomial central interpolation method. It uses the polynomial of degree k --- 1, interpolating k successive ordinates, as an approximation to F(x) only within a unit interval in x, centrally located with respect to its k defining ordinates. Assuming k fixed, successive approximating arcs for F(x) are thus obtained which present discontinuities on passing from one arc to the next if k is odd, or discontinuities in their first derivatives if k is even (see section 2.121). Actually these discontinuities are irrelevant in our present case of an analytic function F(x). Indeed, if the interpolated values obtained are sufficiently accurate, these discontinuities will be apparent only if we force the computation beyond the intrinsic accuracy of the yn.",
+  isbn="978-1-4899-0433-1",
+  doi="10.1007/978-1-4899-0433-1_1",
+  url="https://doi.org/10.1007/978-1-4899-0433-1_1"
 }
 
-@misc{lagrange,
-  title={Lectures on Elementary Mathematics},
-  author={Lagrange, J. L, and Thomas J McCormack},
+@book{lagrange1898lectures,
+  title={Lectures on elementary mathematics, by Joseph Louis Lagrange; tr. by Thomas J. McCormack},
+  author={Lagrange, J.L.},
+  url={https://books.google.co.in/books?id=7h9G0AEACAAJ},
   year={1898},
-  url={https://lccn.loc.gov/98000373},
+  publisher={Open court publishing Company}
 }
