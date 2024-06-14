@@ -62,3 +62,5 @@ DataInterpolations.derivative(A1, 1.0, 2)
 # integral
 DataInterpolations.integral(A1, 1.0, 5.0)
 ```
+
+# References
