@@ -1,7 +1,9 @@
-function _interpolate(interp, t)
-    ((t < interp.t[1] || t > interp.t[end]) && !interp.extrapolate) &&
+function _interpolate(A, t)
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
         throw(ExtrapolationError())
-    _interpolate(interp, t, firstindex(interp.t) - 1)[1]
+    val, idx_prev = _interpolate(A, t, A.idx_prev[])
+    A.idx_prev[] = idx_prev
+    return val
 end
 
 # Linear Interpolation
@@ -114,61 +116,62 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
     N / D
 end
 
-function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, i)
-    _interpolate(A, t), i
+function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)
+    _interpolate(A, t), idx
 end
 
-function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i)
-    _interpolate(A, t), i
+function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx)
+    _interpolate(A, t), idx
 end
 
 function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
-    i = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
-    wj = t - A.t[i]
-    (@evalpoly wj A.u[i] A.b[i] A.c[i] A.d[i]), i
+    idx = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
+    wj = t - A.t[idx]
+    (@evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]), idx
 end
 
 # ConstantInterpolation Interpolation
 function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
-        i = max(1, searchsortedlastcorrelated(A.t, t, iguess))
-        return A.u[i], i
+        idx = max(1, searchsortedlastcorrelated(A.t, t, iguess))
+        return A.u[idx], idx
     else
         # :right means that value to the right is used for interpolation
-        i = min(length(A.t), searchsortedfirstcorrelated(A.t, t, iguess))
-        return A.u[i], i
+        idx = min(length(A.t), searchsortedfirstcorrelated(A.t, t, iguess))
+        return A.u[idx], idx
     end
 end
 
 function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
-        i = max(1, searchsortedlastcorrelated(A.t, t, iguess))
-        return A.u[:, i], i
+        idx = max(1, searchsortedlastcorrelated(A.t, t, iguess))
+        return A.u[:, idx], idx
     else
         # :right means that value to the right is used for interpolation
-        i = min(length(A.t), searchsortedfirstcorrelated(A.t, t, iguess))
-        return A.u[:, i], i
+        idx = min(length(A.t), searchsortedfirstcorrelated(A.t, t, iguess))
+        return A.u[:, idx], idx
     end
 end
 
 # QuadraticSpline Interpolation
 function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
-    i = min(max(2, searchsortedfirstcorrelated(A.t, t, iguess)), length(A.t))
-    Cᵢ = A.u[i - 1]
-    σ = 1 // 2 * (A.z[i] - A.z[i - 1]) / (A.t[i] - A.t[i - 1])
-    return A.z[i - 1] * (t - A.t[i - 1]) + σ * (t - A.t[i - 1])^2 + Cᵢ, i
+    idx = min(max(2, searchsortedfirstcorrelated(A.t, t, iguess)), length(A.t))
+    Cᵢ = A.u[idx - 1]
+    σ = 1 // 2 * (A.z[idx] - A.z[idx - 1]) / (A.t[idx] - A.t[idx - 1])
+    return A.z[idx - 1] * (t - A.t[idx - 1]) + σ * (t - A.t[idx - 1])^2 + Cᵢ, idx
 end
 
 # CubicSpline Interpolation
 function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
-    i = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
-    I = A.z[i] * (A.t[i + 1] - t)^3 / (6A.h[i + 1]) +
-        A.z[i + 1] * (t - A.t[i])^3 / (6A.h[i + 1])
-    C = (A.u[i + 1] / A.h[i + 1] - A.z[i + 1] * A.h[i + 1] / 6) * (t - A.t[i])
-    D = (A.u[i] / A.h[i + 1] - A.z[i] * A.h[i + 1] / 6) * (A.t[i + 1] - t)
-    I + C + D, i
+    idx = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
+    A.idx_prev[] = idx
+    I = A.z[idx] * (A.t[idx + 1] - t)^3 / (6A.h[idx + 1]) +
+        A.z[idx + 1] * (t - A.t[idx])^3 / (6A.h[idx + 1])
+    C = (A.u[idx + 1] / A.h[idx + 1] - A.z[idx + 1] * A.h[idx + 1] / 6) * (t - A.t[idx])
+    D = (A.u[idx] / A.h[idx + 1] - A.z[idx] * A.h[idx + 1] / 6) * (A.t[idx + 1] - t)
+    I + C + D, idx
 end
 
 # BSpline Curve Interpolation

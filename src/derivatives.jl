@@ -1,8 +1,20 @@
 function derivative(A, t, order = 1)
-    order > 2 && throw(DerivativeNotFoundError())
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    order == 1 && return _derivative(A, t, firstindex(A.t) - 1)[1]
-    return ForwardDiff.derivative(t -> _derivative(A, t, firstindex(A.t) - 1)[1], t)
+    iguess = A.idx_prev[]
+
+    return if order == 1
+        val, idx = _derivative(A, t, iguess)
+        A.idx_prev[] = idx
+        val
+    elseif order == 2
+        ForwardDiff.derivative(t -> begin
+            val, idx = _derivative(A, t, iguess)
+            A.idx_prev[] = idx
+            val
+        end, t)
+    else
+        throw(DerivativeNotFoundError())
+    end
 end
 
 function _derivative(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
@@ -105,17 +117,17 @@ function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
     der
 end
 
-_derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, i) = _derivative(A, t), i
-_derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i) = _derivative(A, t), i
+_derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx) = _derivative(A, t), idx
+_derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx) = _derivative(A, t), idx
 
 function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
-    i = searchsortedfirstcorrelated(A.t, t, iguess)
-    i > length(A.t) ? i -= 1 : nothing
-    i -= 1
-    i == 0 ? i += 1 : nothing
-    j = min(i, length(A.c))  # for smooth derivative at A.t[end]
-    wj = t - A.t[i]
-    (@evalpoly wj A.b[i] 2A.c[j] 3A.d[j]), i
+    idx = searchsortedfirstcorrelated(A.t, t, iguess)
+    idx > length(A.t) ? idx -= 1 : nothing
+    idx -= 1
+    idx == 0 ? idx += 1 : nothing
+    j = min(idx, length(A.c))  # for smooth derivative at A.t[end]
+    wj = t - A.t[idx]
+    (@evalpoly wj A.b[idx] 2A.c[j] 3A.d[j]), idx
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
@@ -139,15 +151,15 @@ end
 
 # CubicSpline Interpolation
 function _derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
-    i = searchsortedfirstcorrelated(A.t, t, iguess)
-    i > length(A.t) ? i -= 1 : nothing
-    i -= 1
-    i == 0 ? i += 1 : nothing
-    dI = -3A.z[i] * (A.t[i + 1] - t)^2 / (6A.h[i + 1]) +
-         3A.z[i + 1] * (t - A.t[i])^2 / (6A.h[i + 1])
-    dC = A.u[i + 1] / A.h[i + 1] - A.z[i + 1] * A.h[i + 1] / 6
-    dD = -(A.u[i] / A.h[i + 1] - A.z[i] * A.h[i + 1] / 6)
-    dI + dC + dD, i
+    idx = searchsortedfirstcorrelated(A.t, t, iguess)
+    idx > length(A.t) ? idx -= 1 : nothing
+    idx -= 1
+    idx == 0 ? idx += 1 : nothing
+    dI = -3A.z[idx] * (A.t[idx + 1] - t)^2 / (6A.h[idx + 1]) +
+         3A.z[idx + 1] * (t - A.t[idx])^2 / (6A.h[idx + 1])
+    dC = A.u[idx + 1] / A.h[idx + 1] - A.z[idx + 1] * A.h[idx + 1] / 6
+    dD = -(A.u[idx] / A.h[idx + 1] - A.z[idx] * A.h[idx + 1] / 6)
+    dI + dC + dD, idx
 end
 
 function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
