@@ -51,6 +51,12 @@ function Base.showerror(io::IO, e::DerivativeNotFoundError)
     print(io, DERIVATIVE_NOT_FOUND_ERROR)
 end
 
+const MUST_COPY_ERROR = "A copy must be made of u, t to filter missing data"
+struct MustCopyError <: Exception end
+function Base.showerror(io::IO, e::MustCopyError)
+    print(io, MUST_COPY_ERROR)
+end
+
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
        BSplineInterpolation, BSplineApprox

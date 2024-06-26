@@ -33,32 +33,46 @@ function spline_coefficients(n, d, k, u::AbstractVector)
 end
 
 # helper function for data manipulation
-function munge_data(u::AbstractVector{<:Real}, t::AbstractVector{<:Real})
+function munge_data(u::AbstractVector{<:Real}, t::AbstractVector{<:Real}, safetycopy::Bool)
+    if safetycopy
+        u = copy(u)
+        t = copy(t)
+    end
     return ReadOnlyArray(u), ReadOnlyArray(t)
 end
 
-function munge_data(u::AbstractVector, t::AbstractVector)
+function munge_data(u::AbstractVector, t::AbstractVector, safetycopy::Bool)
     Tu = Base.nonmissingtype(eltype(u))
     Tt = Base.nonmissingtype(eltype(t))
     @assert length(t) == length(u)
     non_missing_indices = collect(i
     for i in 1:length(t)
     if !ismissing(u[i]) && !ismissing(t[i]))
-    newu = Tu.([u[i] for i in non_missing_indices])
-    newt = Tt.([t[i] for i in non_missing_indices])
 
-    return ReadOnlyArray(newu), ReadOnlyArray(newt)
+    if safetycopy
+        u = Tu.([u[i] for i in non_missing_indices])
+        t = Tt.([t[i] for i in non_missing_indices])
+    else
+        !isempty(non_missing_indices) && throw(MustCopyError())
+    end
+
+    return ReadOnlyArray(u), ReadOnlyArray(t)
 end
 
-function munge_data(U::StridedMatrix, t::AbstractVector)
+function munge_data(U::StridedMatrix, t::AbstractVector, safetycopy::Bool)
     TU = Base.nonmissingtype(eltype(U))
     Tt = Base.nonmissingtype(eltype(t))
     @assert length(t) == size(U, 2)
     non_missing_indices = collect(i
     for i in 1:length(t)
     if !any(ismissing, U[:, i]) && !ismissing(t[i]))
-    newUs = [TU.(U[:, i]) for i in non_missing_indices]
-    newt = Tt.([t[i] for i in non_missing_indices])
 
-    return ReadOnlyArray(hcat(newUs...)), ReadOnlyArray(newt)
+    if safetycopy
+        U = hcat([TU.(U[:, i]) for i in non_missing_indices]...)
+        t = Tt.([t[i] for i in non_missing_indices])
+    else
+        !isempty(non_missing_indices) && throw(MustCopyError())
+    end
+
+    return ReadOnlyArray(U), ReadOnlyArray(t)
 end
