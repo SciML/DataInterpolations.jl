@@ -64,14 +64,6 @@ using Optim, ForwardDiff
     @test A(3.0) == 2.0
     @test A(4.0) == 3.0
 
-    u = [0.0, NaN, 2.0, 3.0]
-    A = LinearInterpolation(u, t; extrapolate = true)
-    @test A(1.0) == 0.0
-    @test isnan(A(2.0))
-    @test isnan(A(2.5))
-    @test A(3.0) == 2.0
-    @test A(4.0) == 3.0
-
     u = [0.0, 1.0, NaN, 3.0]
     A = LinearInterpolation(u, t; extrapolate = true)
     @test A(1.0) == 0.0

@@ -11,16 +11,25 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
         idx = firstindex(A.u) - 1
         t1 = t2 = one(eltype(A.t))
         u1 = u2 = one(eltype(A.u))
+        slope = t * one(eltype(A.p.slope))
     else
         idx = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
         t1, t2 = A.t[idx], A.t[idx + 1]
         u1, u2 = A.u[idx], A.u[idx + 1]
+        slope = A.p.slope[idx]
     end
-    θ = (t - t1) / (t2 - t1)
-    val = (1 - θ) * u1 + θ * u2
-    # Note: The following is limited to when val is NaN as to not change the derivative of exact points.
-    t == t1 && any(isnan, val) && return oftype(val, u1), idx # Return exact value if no interpolation needed (eg when NaN at t2)
-    t == t2 && any(isnan, val) && return oftype(val, u2), idx # ... (eg when NaN at t1)
+
+    Δt = t - t1
+    Δu = slope * Δt
+    val = u1
+    Δu_nan = any(isnan.(Δu))
+    if t == t2 && Δu_nan
+        val = u2
+    elseif !(iszero(Δt) && Δu_nan)
+        val += Δu
+    end
+    val = oftype(Δu, val)
+
     val, idx
 end
 

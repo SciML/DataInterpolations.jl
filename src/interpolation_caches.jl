@@ -1,3 +1,14 @@
+struct LinearParameterCache{pType}
+    slope::pType
+end
+
+function LinearParameterCache(u, t)
+    Δu = diff(u; dims = 1)
+    Δt = diff(t; dims = 1)
+    slope = [ifelse(iszero(Δt_), zero(Δu_/Δt_), Δu_/Δt_) for (Δu_, Δt_) in zip(Δu, Δt)]
+    return LinearParameterCache(slope)
+end
+
 """
     LinearInterpolation(u, t; extrapolate = false)
 
@@ -13,18 +24,20 @@ Extrapolation extends the last linear polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct LinearInterpolation{uType, tType, T} <: AbstractInterpolation{T}
+struct LinearInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    p::pType
     extrapolate::Bool
-    function LinearInterpolation(u, t, extrapolate)
-        new{typeof(u), typeof(t), eltype(u)}(u, t, extrapolate)
+    function LinearInterpolation(u, t, p, extrapolate)
+        new{typeof(u), typeof(t), typeof(p), eltype(u)}(u, t, p, extrapolate)
     end
 end
 
 function LinearInterpolation(u, t; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
-    LinearInterpolation(u, t, extrapolate)
+    p = LinearParameterCache(u, t)
+    LinearInterpolation(u, t, p, extrapolate)
 end
 
 """
