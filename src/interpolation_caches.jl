@@ -96,8 +96,9 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
             t,
             n,
             bcache,
-            extrapolate, 
-            Ref(1))
+            extrapolate,
+            Ref(1)
+        )
     end
 end
 
@@ -141,8 +142,8 @@ struct AkimaInterpolation{uType, tType, bType, cType, dType, T} <:
             c,
             d,
             extrapolate,
-            Ref(1),
-            )
+            Ref(1)
+        )
     end
 end
 
@@ -236,8 +237,8 @@ struct QuadraticSpline{uType, tType, tAType, dType, zType, T} <:
             d,
             z,
             extrapolate,
-            Ref(1),
-            )
+            Ref(1)
+        )
     end
 end
 
@@ -304,8 +305,8 @@ struct CubicSpline{uType, tType, hType, zType, T} <: AbstractInterpolation{T}
             h,
             z,
             extrapolate,
-            Ref(1),
-            )
+            Ref(1)
+        )
     end
 end
 
@@ -398,8 +399,8 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, T} <:
             pVecType,
             knotVecType,
             extrapolate,
-            Ref(1),
-            )
+            Ref(1)
+        )
     end
 end
 
@@ -520,8 +521,8 @@ struct BSplineApprox{uType, tType, pType, kType, cType, T} <:
             pVecType,
             knotVecType,
             extrapolate,
-            Ref(1),
-            )
+            Ref(1)
+        )
     end
 end
 

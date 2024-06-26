@@ -43,7 +43,7 @@ function munge_data(u::AbstractVector, t::AbstractVector)
     @assert length(t) == length(u)
     non_missing_indices = collect(
         idx for idx in 1:length(t)
-        if !ismissing(u[idx]) && !ismissing(t[idx])
+    if !ismissing(u[idx]) && !ismissing(t[idx])
     )
     newu = Tu.([u[idx] for idx in non_missing_indices])
     newt = Tt.([t[idx] for idx in non_missing_indices])
@@ -57,7 +57,7 @@ function munge_data(U::StridedMatrix, t::AbstractVector)
     @assert length(t) == size(U, 2)
     non_missing_indices = collect(
         idx for idx in 1:length(t)
-        if !any(ismissing, U[:, idx]) && !ismissing(t[idx])
+    if !any(ismissing, U[:, idx]) && !ismissing(t[idx])
     )
     newUs = [TU.(U[:, idx]) for idx in non_missing_indices]
     newt = Tt.([t[idx] for idx in non_missing_indices])

@@ -8,10 +8,10 @@ function derivative(A, t, order = 1)
         val
     elseif order == 2
         ForwardDiff.derivative(t -> begin
-            val, idx = _derivative(A, t, iguess)
-            A.idx_prev[] = idx
-            val
-        end, t)
+                val, idx = _derivative(A, t, iguess)
+                A.idx_prev[] = idx
+                val
+            end, t)
     else
         throw(DerivativeNotFoundError())
     end
@@ -117,8 +117,12 @@ function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
     der
 end
 
-_derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx) = _derivative(A, t), idx
-_derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx) = _derivative(A, t), idx
+function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)
+    _derivative(A, t), idx
+end
+function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx)
+    _derivative(A, t), idx
+end
 
 function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = searchsortedfirstcorrelated(A.t, t, iguess)
