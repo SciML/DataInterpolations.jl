@@ -7,6 +7,7 @@ abstract type AbstractInterpolation{T} end
 using LinearAlgebra, RecipesBase
 using PrettyTables
 using ForwardDiff
+using ReadOnlyArrays
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            bracketstrictlymontonic
 
@@ -81,11 +82,11 @@ struct RegularizationSmooth{uType, tType, T, T2, ITP <: AbstractInterpolation{T}
             Aitp,
             extrapolate)
         new{typeof(u), typeof(t), eltype(u), typeof(λ), typeof(Aitp)}(u,
-            û,
+            ReadOnlyArray(û),
             t,
             t̂,
-            wls,
-            wr,
+            ReadOnlyArray(wls),
+            ReadOnlyArray(wr),
             d,
             λ,
             alg,

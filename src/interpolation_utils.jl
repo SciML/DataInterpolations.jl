@@ -34,7 +34,7 @@ end
 
 # helper function for data manipulation
 function munge_data(u::AbstractVector{<:Real}, t::AbstractVector{<:Real})
-    return u, t
+    return ReadOnlyArray(u), ReadOnlyArray(t)
 end
 
 function munge_data(u::AbstractVector, t::AbstractVector)
@@ -47,7 +47,7 @@ function munge_data(u::AbstractVector, t::AbstractVector)
     newu = Tu.([u[i] for i in non_missing_indices])
     newt = Tt.([t[i] for i in non_missing_indices])
 
-    return newu, newt
+    return ReadOnlyArray(newu), ReadOnlyArray(newt)
 end
 
 function munge_data(U::StridedMatrix, t::AbstractVector)
@@ -60,5 +60,5 @@ function munge_data(U::StridedMatrix, t::AbstractVector)
     newUs = [TU.(U[:, i]) for i in non_missing_indices]
     newt = Tt.([t[i] for i in non_missing_indices])
 
-    return hcat(newUs...), newt
+    return ReadOnlyArray(hcat(newUs...)), ReadOnlyArray(newt)
 end
