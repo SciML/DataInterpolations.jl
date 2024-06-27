@@ -1,14 +1,3 @@
-struct LinearParameterCache{pType}
-    slope::pType
-end
-
-function LinearParameterCache(u, t)
-    Δu = diff(u; dims = 1)
-    Δt = diff(t; dims = 1)
-    slope = [ifelse(iszero(Δt_), zero(Δu_/Δt_), Δu_/Δt_) for (Δu_, Δt_) in zip(Δu, Δt)]
-    return LinearParameterCache(slope)
-end
-
 """
     LinearInterpolation(u, t; extrapolate = false)
 
@@ -110,7 +99,8 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
     end
 end
 
-function LagrangeInterpolation(u, t, n = length(t) - 1; extrapolate = false, safetycopy = true)
+function LagrangeInterpolation(
+        u, t, n = length(t) - 1; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
@@ -261,7 +251,8 @@ function QuadraticSpline(u::uType,
     QuadraticSpline(u, t, tA, d, z, extrapolate)
 end
 
-function QuadraticSpline(u::uType, t; extrapolate = false, safetycopy = true) where {uType <: AbstractVector}
+function QuadraticSpline(
+        u::uType, t; extrapolate = false, safetycopy = true) where {uType <: AbstractVector}
     u, t = munge_data(u, t, safetycopy)
     s = length(t)
     dl = ones(eltype(t), s - 1)
@@ -331,7 +322,8 @@ function CubicSpline(u::uType,
     CubicSpline(u, t, h[1:(n + 1)], z, extrapolate)
 end
 
-function CubicSpline(u::uType, t; extrapolate = false, safetycopy = true) where {uType <: AbstractVector}
+function CubicSpline(
+        u::uType, t; extrapolate = false, safetycopy = true) where {uType <: AbstractVector}
     u, t = munge_data(u, t, safetycopy)
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -399,7 +391,8 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, T} <:
     end
 end
 
-function BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolate = false, safetycopy = true)
+function BSplineInterpolation(
+        u, t, d, pVecType, knotVecType; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     n = length(t)
     s = zero(eltype(u))
@@ -518,7 +511,8 @@ struct BSplineApprox{uType, tType, pType, kType, cType, T} <:
     end
 end
 
-function BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolate = false, safetycopy = true)
+function BSplineApprox(
+        u, t, d, h, pVecType, knotVecType; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     n = length(t)
     s = zero(eltype(u))

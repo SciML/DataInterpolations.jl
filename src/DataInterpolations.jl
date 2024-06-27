@@ -11,6 +11,7 @@ using ReadOnlyArrays
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            bracketstrictlymontonic
 
+include("parameter_caches.jl")
 include("interpolation_caches.jl")
 include("interpolation_utils.jl")
 include("interpolation_methods.jl")

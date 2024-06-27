@@ -114,7 +114,8 @@ A = RegularizationSmooth(u, t, t̂, d; λ = 1.0, alg = :gcv_svd, extrapolate = f
 ```
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
-        d::Int = 2; λ::Real = 1.0, alg::Symbol = :gcv_svd, extrapolate::Bool = false, safetycopy::Bool = true)
+        d::Int = 2; λ::Real = 1.0, alg::Symbol = :gcv_svd,
+        extrapolate::Bool = false, safetycopy::Bool = true)
     u, t = munge_data(u, t, safetycopy)
     N, N̂ = length(t), length(t̂)
     M = _mapping_matrix(t̂, t)
