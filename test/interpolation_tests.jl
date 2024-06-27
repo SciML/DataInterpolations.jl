@@ -628,6 +628,23 @@ end
     end
 end
 
+@testset "Plugging vector timepoints" begin
+    # Issue https://github.com/SciML/DataInterpolations.jl/issues/267
+    t = Float64[1.0, 2.0, 3.0, 4.0, 5.0]
+    @testset "utype - Vectors" begin
+        interp = LinearInterpolation(rand(5), t)
+        @test interp(t) isa Vector{Float64}
+    end
+    @testset "utype - Vector of Vectors" begin
+        interp = LinearInterpolation([rand(2) for _ in 1:5], t)
+        @test interp(t) isa Vector{Vector{Float64}}
+    end
+    @testset "utype - Matrix" begin
+        interp = LinearInterpolation(rand(2, 5), t)
+        @test interp(t) isa Matrix{Float64}
+    end
+end
+
 # missing values handling tests
 u = [1.0, 4.0, 9.0, 16.0, 25.0, missing, missing]
 t = [1.0, 2.0, 3.0, 4.0, missing, 6.0, missing]

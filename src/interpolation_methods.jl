@@ -1,5 +1,5 @@
 function _interpolate(interp, t)
-    ((t < interp.t[1] || t > interp.t[end]) && !interp.extrapolate) &&
+    (!interp.extrapolate && (t < interp.t[1] || t > interp.t[end])) &&
         throw(ExtrapolationError())
     _interpolate(interp, t, firstindex(interp.t) - 1)[1]
 end
