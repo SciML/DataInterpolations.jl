@@ -26,7 +26,7 @@ bibliography: paper.bib
 
 # Summary
 
-Interpolations are used to estimate values between known data points using an approximate continuous function.DataInterpolations.jl is a Julia [@Bezanson2017] package containing 1D implementations of some of the most commonly used interpolation functions. These include Constant Interpolation, Linear Interpolation, Quadratic Interpolation, Lagrange Interpolation [@lagrange], Quadratic Splines, Cubic Splines [@Schoenberg1946ContributionsTT], Akima Splines [@10.1145/321607.321609], B-Splines [@Curry1966OnPF] [@DEBOOR197250] and Regression based B-Splines. Along with these, the package also has methods to fit parameterized curves with the data points and Tikhonov regularization [@Tikhonov1943OnTS] [@Petters2021-aa] for obtaining smooth curves. The package also provides functionality to compute integrals and derivatives upto second order for those interpolations methods.
+Interpolations are used to estimate values between known data points using an approximate continuous function.DataInterpolations.jl is a Julia [@Bezanson2017] package containing 1D implementations of some of the most commonly used interpolation functions. These include Constant Interpolation, Linear Interpolation, Quadratic Interpolation, Lagrange Interpolation [@lagrange], Quadratic Splines, Cubic Splines [@Schoenberg1988], Akima Splines [@10.1145/321607.321609], B-Splines [@Curry1988] [@DEBOOR197250] and Regression based B-Splines. Along with these, the package also has methods to fit parameterized curves with the data points and Tikhonov regularization [@Tikhonov1943OnTS] [@amt-14-7909-2021] for obtaining smooth curves. The package also provides functionality to compute integrals and derivatives upto second order for those interpolations methods.
 
 # Statement of need
 
@@ -62,3 +62,5 @@ DataInterpolations.derivative(A1, 1.0, 2)
 # integral
 DataInterpolations.integral(A1, 1.0, 5.0)
 ```
+
+# References
