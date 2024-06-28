@@ -12,6 +12,7 @@ Extrapolation extends the last linear polynomial on each side.
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct LinearInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T}
     u::uType
@@ -44,6 +45,7 @@ Extrapolation extends the last quadratic polynomial on each side.
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct QuadraticInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T}
     u::uType
@@ -84,6 +86,7 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
        AbstractInterpolation{T}
@@ -126,6 +129,7 @@ Extrapolation extends the last cubic polynomial on each side.
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct AkimaInterpolation{uType, tType, bType, cType, dType, T} <:
        AbstractInterpolation{T}
@@ -187,6 +191,7 @@ Extrapolation extends the last constant polynomial at the end points on each sid
 
   - `dir`: indicates which value should be used for interpolation (`:left` or `:right`).
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct ConstantInterpolation{uType, tType, dirType, T} <: AbstractInterpolation{T}
     u::uType
@@ -218,6 +223,7 @@ Extrapolation extends the last quadratic polynomial on each side.
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct QuadraticSpline{uType, tType, tAType, dType, zType, T} <:
        AbstractInterpolation{T}
@@ -288,6 +294,7 @@ Second derivative on both ends are zero, which are also called "natural" boundar
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct CubicSpline{uType, tType, hType, zType, T} <: AbstractInterpolation{T}
     u::uType
@@ -363,6 +370,7 @@ Extrapolation is a constant polynomial of the end points on each side.
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct BSplineInterpolation{uType, tType, pType, kType, cType, T} <:
        AbstractInterpolation{T}
@@ -480,6 +488,7 @@ Extrapolation is a constant polynomial of the end points on each side.
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct BSplineApprox{uType, tType, pType, kType, cType, T} <:
        AbstractInterpolation{T}
