@@ -25,11 +25,8 @@ end
 function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
         idx::Number,
         t::Number)
-    t1 = A.t[idx]
-    t2 = A.t[idx + 1]
-    u1 = A.u[idx]
-    u2 = A.u[idx + 1]
-    t^2 * (u1 - u2) / (2 * t1 - 2 * t2) + t * (t1 * u2 - t2 * u1) / (t1 - t2)
+    Δt = t - A.t[idx]
+    Δt * (A.u[idx] + A.p.slope[idx] * Δt / 2)
 end
 
 function _integral(A::ConstantInterpolation{<:AbstractVector}, idx::Number, t::Number)
@@ -47,22 +44,15 @@ function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
         t::Number)
     A.mode == :Backward && idx > 1 && (idx -= 1)
     idx = min(length(A.t) - 2, idx)
-    t1 = A.t[idx]
-    t2 = A.t[idx + 1]
-    t3 = A.t[idx + 2]
-    u1 = A.u[idx]
-    u2 = A.u[idx + 1]
-    u3 = A.u[idx + 2]
-    (t^3 * (-t1 * u2 + t1 * u3 + t2 * u1 - t2 * u3 - t3 * u1 + t3 * u2) /
-     (3 * t1^2 * t2 - 3 * t1^2 * t3 - 3 * t1 * t2^2 + 3 * t1 * t3^2 + 3 * t2^2 * t3 -
-      3 * t2 * t3^2) +
-     t^2 * (t1^2 * u2 - t1^2 * u3 - t2^2 * u1 + t2^2 * u3 + t3^2 * u1 - t3^2 * u2) /
-     (2 * t1^2 * t2 - 2 * t1^2 * t3 - 2 * t1 * t2^2 + 2 * t1 * t3^2 + 2 * t2^2 * t3 -
-      2 * t2 * t3^2) +
-     t *
-     (t1^2 * t2 * u3 - t1^2 * t3 * u2 - t1 * t2^2 * u3 + t1 * t3^2 * u2 + t2^2 * t3 * u1 -
-      t2 * t3^2 * u1) /
-     (t1^2 * t2 - t1^2 * t3 - t1 * t2^2 + t1 * t3^2 + t2^2 * t3 - t2 * t3^2))
+    t₀ = A.t[idx]
+    t₁ = A.t[idx + 1]
+    t₂ = A.t[idx + 2]
+
+    t_sq = (t^2) / 3
+    Iu₀ = A.p.l₀[idx] * t * (t_sq - t * (t₁ + t₂) / 2 + t₁ * t₂)
+    Iu₁ = A.p.l₁[idx] * t * (t_sq - t * (t₀ + t₂) / 2 + t₀ * t₂)
+    Iu₂ = A.p.l₂[idx] * t * (t_sq - t * (t₀ + t₁) / 2 + t₀ * t₁)
+    return Iu₀ + Iu₁ + Iu₂
 end
 
 function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
