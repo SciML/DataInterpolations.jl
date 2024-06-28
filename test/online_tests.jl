@@ -21,7 +21,7 @@ for method in [LinearInterpolation, QuadraticInterpolation, ConstantInterpolatio
 
     func1 = method(u1, t1)
     push!(func1, 1.0, 4.0)
-    func2 = method(vcat(u, 1.0), vcat(t, 4.0))
+    func2 = method(vcat(u1, 1.0), vcat(t1, 4.0))
     @test func1.u == func2.u
     @test func1.t == func2.t
     for name in propertynames(func1.p)
