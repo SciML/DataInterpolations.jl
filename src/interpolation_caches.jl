@@ -187,10 +187,11 @@ Extrapolation extends the last constant polynomial at the end points on each sid
 struct ConstantInterpolation{uType, tType, dirType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    p::Nothing
     dir::Symbol # indicates if value to the $dir should be used for the interpolation
     extrapolate::Bool
     function ConstantInterpolation(u, t, dir, extrapolate)
-        new{typeof(u), typeof(t), typeof(dir), eltype(u)}(u, t, dir, extrapolate)
+        new{typeof(u), typeof(t), typeof(dir), eltype(u)}(u, t, nothing, dir, extrapolate)
     end
 end
 
