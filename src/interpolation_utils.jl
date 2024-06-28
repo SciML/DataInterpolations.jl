@@ -69,7 +69,9 @@ function get_idx(tvec, t, iguess; lb = 1, ub_shift = -1, idx_shift = 0, side = :
     ub = length(tvec) + ub_shift
     return if side == :last
         clamp(searchsortedlastcorrelated(tvec, t, iguess) + idx_shift, lb, ub)
-    else
+    elseif side == :first
         clamp(searchsortedfirstcorrelated(tvec, t, iguess) + idx_shift, lb, ub)
+    else
+        error("side must be :first or :last")
     end
 end
