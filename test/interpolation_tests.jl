@@ -6,10 +6,9 @@ using Optim, ForwardDiff
 function test_cached_index(A)
     for t in range(first(A.t), last(A.t); length = 2 * length(A.t) - 1)
         A(t)
-        if hasproperty(A, :idx_prev)
-            @test abs(A.idx_prev[] -
-                      searchsortedfirstcorrelated(A.t, t, A.idx_prev[])) <= 2
-        end
+        idx = searchsortedfirstcorrelated(A.t, t, A.idx_prev[])
+        @test abs(A.idx_prev[] -
+                  searchsortedfirstcorrelated(A.t, t, A.idx_prev[])) <= 2
     end
 end
 

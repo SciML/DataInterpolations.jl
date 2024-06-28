@@ -64,3 +64,12 @@ function munge_data(U::StridedMatrix, t::AbstractVector)
 
     return hcat(newUs...), newt
 end
+
+function get_idx(tvec, t, iguess; lb = 1, ub_shift = -1, idx_shift = 0, side = :last)
+    ub = length(tvec) + ub_shift
+    return if side == :last
+        clamp(searchsortedlastcorrelated(tvec, t, iguess) + idx_shift, lb, ub)
+    else
+        clamp(searchsortedfirstcorrelated(tvec, t, iguess) + idx_shift, lb, ub)
+    end
+end
