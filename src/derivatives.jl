@@ -21,20 +21,12 @@ function _derivative(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess
     A.p.slope[idx], idx
 end
 
-function _derivative(A::QuadraticInterpolation{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::QuadraticInterpolation, t::Number, iguess)
     i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    dl₀ = (2t - A.t[i₁] - A.t[i₂]) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
-    dl₁ = (2t - A.t[i₀] - A.t[i₂]) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
-    dl₂ = (2t - A.t[i₀] - A.t[i₁]) / ((A.t[i₂] - A.t[i₀]) * (A.t[i₂] - A.t[i₁]))
-    A.u[i₀] * dl₀ + A.u[i₁] * dl₁ + A.u[i₂] * dl₂, i₀
-end
-
-function _derivative(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    dl₀ = (2t - A.t[i₁] - A.t[i₂]) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
-    dl₁ = (2t - A.t[i₀] - A.t[i₂]) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
-    dl₂ = (2t - A.t[i₀] - A.t[i₁]) / ((A.t[i₂] - A.t[i₀]) * (A.t[i₂] - A.t[i₁]))
-    (@views @. A.u[:, i₀] * dl₀ + A.u[:, i₁] * dl₁ + A.u[:, i₂] * dl₂), i₀
+    du₀ = A.p.l₀[i₀] * (2t - A.t[i₁] - A.t[i₂])
+    du₁ = A.p.l₁[i₀] * (2t - A.t[i₀] - A.t[i₂])
+    du₂ = A.p.l₂[i₀] * (2t - A.t[i₀] - A.t[i₁])
+    return @views @. du₀ + du₁ + du₂, i₀
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)

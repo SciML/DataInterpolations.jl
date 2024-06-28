@@ -45,25 +45,29 @@ Extrapolation extends the last quadratic polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct QuadraticInterpolation{uType, tType, T} <: AbstractInterpolation{T}
+struct QuadraticInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    p::pType
     mode::Symbol
     extrapolate::Bool
-    function QuadraticInterpolation(u, t, mode, extrapolate)
+    function QuadraticInterpolation(u, t, p, mode, extrapolate)
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        new{typeof(u), typeof(t), eltype(u)}(u, t, mode, extrapolate)
+        new{typeof(u), typeof(t), typeof(p), eltype(u)}(u, t, p, mode, extrapolate)
     end
 end
 
 function QuadraticInterpolation(u, t, mode; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
-    QuadraticInterpolation(u, t, mode, extrapolate)
+    p = QuadraticParameterCache(u, t)
+    QuadraticInterpolation(u, t, p, mode, extrapolate)
 end
 
-function QuadraticInterpolation(u, t; extrapolate = false)
-    QuadraticInterpolation(u, t, :Forward; extrapolate)
+function QuadraticInterpolation(u, t; extrapolate = false, safetycopy = true)
+    u, t = munge_data(u, t, safetycopy)
+    p = QuadraticParameterCache(u, t)
+    QuadraticInterpolation(u, t, p, :Forward, extrapolate)
 end
 
 """

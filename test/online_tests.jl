@@ -15,7 +15,7 @@ for method in [LinearInterpolation, QuadraticInterpolation, ConstantInterpolatio
     @test func1.u == func2.u
     @test func1.t == func2.t
     for name in propertynames(func1.p)
-       @test getfield(func1.p, name) == getfield(func2.p, name) 
+        @test getfield(func1.p, name) == getfield(func2.p, name)
     end
     @test func1(ts) == func2(ts)
 
@@ -25,7 +25,7 @@ for method in [LinearInterpolation, QuadraticInterpolation, ConstantInterpolatio
     @test func1.u == func2.u
     @test func1.t == func2.t
     for name in propertynames(func1.p)
-        @test getfield(func1.p, name) == getfield(func2.p, name) 
-     end
+        @test getfield(func1.p, name) == getfield(func2.p, name)
+    end
     @test func1(ts) == func2(ts)
 end

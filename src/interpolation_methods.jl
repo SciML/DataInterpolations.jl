@@ -35,8 +35,8 @@ end
 
 function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
     idx = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
-    θ = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
-    return (1 - θ) * A.u[:, idx] + θ * A.u[:, idx + 1], idx
+    Δt = t - A.t[idx]
+    return A.u[:, idx] + A.p.slope[idx] * Δt, idx
 end
 
 # Quadratic Interpolation
@@ -48,20 +48,12 @@ function _quad_interp_indices(A::QuadraticInterpolation, t::Number, iguess)
     idx, idx + 1, idx + 2
 end
 
-function _interpolate(A::QuadraticInterpolation{<:AbstractVector}, t::Number, iguess)
+function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
     i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    l₀ = ((t - A.t[i₁]) * (t - A.t[i₂])) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
-    l₁ = ((t - A.t[i₀]) * (t - A.t[i₂])) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
-    l₂ = ((t - A.t[i₀]) * (t - A.t[i₁])) / ((A.t[i₂] - A.t[i₀]) * (A.t[i₂] - A.t[i₁]))
-    return A.u[i₀] * l₀ + A.u[i₁] * l₁ + A.u[i₂] * l₂, i₀
-end
-
-function _interpolate(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    l₀ = ((t - A.t[i₁]) * (t - A.t[i₂])) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
-    l₁ = ((t - A.t[i₀]) * (t - A.t[i₂])) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
-    l₂ = ((t - A.t[i₀]) * (t - A.t[i₁])) / ((A.t[i₂] - A.t[i₀]) * (A.t[i₂] - A.t[i₁]))
-    return A.u[:, i₀] * l₀ + A.u[:, i₁] * l₁ + A.u[:, i₂] * l₂, i₀
+    u₀ = A.p.l₀[i₀] * (t - A.t[i₁]) * (t - A.t[i₂])
+    u₁ = A.p.l₁[i₀] * (t - A.t[i₀]) * (t - A.t[i₂])
+    u₂ = A.p.l₂[i₀] * (t - A.t[i₀]) * (t - A.t[i₁])
+    return u₀ + u₁ + u₂, i₀
 end
 
 # Lagrange Interpolation
