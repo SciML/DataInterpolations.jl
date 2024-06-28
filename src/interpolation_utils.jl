@@ -38,7 +38,7 @@ function munge_data(u::AbstractVector{<:Real}, t::AbstractVector{<:Real}, safety
         u = copy(u)
         t = copy(t)
     end
-    return ReadOnlyArray(u), ReadOnlyArray(t)
+    return readonly_wrap(u), readonly_wrap(t)
 end
 
 function munge_data(u::AbstractVector, t::AbstractVector, safetycopy::Bool)
@@ -56,7 +56,7 @@ function munge_data(u::AbstractVector, t::AbstractVector, safetycopy::Bool)
         !isempty(non_missing_indices) && throw(MustCopyError())
     end
 
-    return ReadOnlyArray(u), ReadOnlyArray(t)
+    return readonly_wrap(u), readonly_wrap(t)
 end
 
 function munge_data(U::StridedMatrix, t::AbstractVector, safetycopy::Bool)
@@ -74,5 +74,9 @@ function munge_data(U::StridedMatrix, t::AbstractVector, safetycopy::Bool)
         !isempty(non_missing_indices) && throw(MustCopyError())
     end
 
-    return ReadOnlyArray(U), ReadOnlyArray(t)
+    return readonly_wrap(U), readonly_wrap(t)
 end
+
+# Don't nest ReadOnlyArrays
+readonly_wrap(a::AbstractArray) = ReadOnlyArray(a)
+readonly_wrap(a::ReadOnlyArray) = a
