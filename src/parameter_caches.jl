@@ -3,7 +3,7 @@ struct LinearParameterCache{pType}
 end
 
 function LinearInterpolationParameters(u, t, idx)
-    Δu = u[idx + 1] - u[idx]
+    Δu = u isa AbstractMatrix ? u[:, idx + 1] - u[:, idx] : u[idx + 1] - u[idx]
     Δt = t[idx + 1] - t[idx]
     slope = Δu / Δt
     slope = iszero(Δt) ? zero(slope) : slope

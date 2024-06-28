@@ -10,7 +10,7 @@ function _derivative(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess
     idx > length(A.t) ? idx -= 1 : nothing
     idx -= 1
     idx == 0 ? idx += 1 : nothing
-    (A.u[idx + 1] - A.u[idx]) / (A.t[idx + 1] - A.t[idx]), idx
+    A.p.slope[idx], idx
 end
 
 function _derivative(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
@@ -18,7 +18,7 @@ function _derivative(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess
     idx > length(A.t) ? idx -= 1 : nothing
     idx -= 1
     idx == 0 ? idx += 1 : nothing
-    (@views @. (A.u[:, idx + 1] - A.u[:, idx]) / (A.t[idx + 1] - A.t[idx])), idx
+    A.p.slope[idx], idx
 end
 
 function _derivative(A::QuadraticInterpolation{<:AbstractVector}, t::Number, iguess)
