@@ -1,6 +1,16 @@
 using DataInterpolations
+using FindFirstFunctions: searchsortedfirstcorrelated
 using StableRNGs
 using Optim, ForwardDiff
+
+function test_cached_index(A)
+    for t in range(first(A.t), last(A.t); length = 2 * length(A.t) - 1)
+        A(t)
+        idx = searchsortedfirstcorrelated(A.t, t, A.idx_prev[])
+        @test abs(A.idx_prev[] -
+                  searchsortedfirstcorrelated(A.t, t, A.idx_prev[])) <= 2
+    end
+end
 
 @testset "Linear Interpolation" begin
     for t in (1.0:10.0, 1.0collect(1:10))
@@ -45,6 +55,7 @@ using Optim, ForwardDiff
     @test A(0) == [-2.0 0.0; -3.0 0.0; -4.0 0.0]
     @test A(3) == [4.0 6.0; 6.0 9.0; 8.0 12.0]
     @test A(5) == [8.0 10.0; 12.0 15.0; 16.0 20.0]
+    test_cached_index(A)
 
     # with NaNs (#113)
     u = [NaN, 1.0, 2.0, 3.0]
@@ -168,6 +179,7 @@ end
     @test A(2.5) == 6.25
     @test A(3.5) == 12.25
     @test A(5.0) == 25
+    test_cached_index(A)
 
     # backward-looking interpolation
     u = [1.0, 4.0, 9.0, 16.0]
@@ -182,6 +194,7 @@ end
     @test A(2.5) == 6.25
     @test A(3.5) == 12.25
     @test A(5.0) == 25
+    test_cached_index(A)
 
     # Test both forward and backward-looking quadratic interpolation
     u = [1.0, 4.5, 6.0, 2.0]
@@ -203,6 +216,9 @@ end
     # In the last subinterval they should be the same again
     @test A_f(3.5) ≈ l₂ * u[2] + l₁ * u[3] + l₀ * u[4]
     @test A_b(3.5) ≈ l₂ * u[2] + l₁ * u[3] + l₀ * u[4]
+
+    test_cached_index(A_f)
+    test_cached_index(A_b)
 
     # Matrix interpolation test
     u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
@@ -321,6 +337,7 @@ end
     @test A(8.6) ≈ 4.1796554159017080820603951
     @test A(9.9) ≈ 3.4110386597938129327189927
     @test A(10.0) ≈ 3.0
+    test_cached_index(A)
 
     # Test extrapolation
     A = AkimaInterpolation(u, t; extrapolate = true)
@@ -345,6 +362,7 @@ end
         @test A(3.5) == u[1]
         @test A(4.0) == u[1]
         @test A(4.5) == u[1]
+        test_cached_index(A)
 
         A = ConstantInterpolation(u, t; extrapolate = true) # dir=:left is default
         @test A(0.5) == u[1]
@@ -356,6 +374,7 @@ end
         @test A(3.5) == u[3]
         @test A(4.0) == u[1]
         @test A(4.5) == u[1]
+        test_cached_index(A)
     end
 
     @testset "Matrix case" for u in [
@@ -372,6 +391,7 @@ end
         @test A(3.5) == u[:, 1]
         @test A(4.0) == u[:, 1]
         @test A(4.5) == u[:, 1]
+        test_cached_index(A)
 
         A = ConstantInterpolation(u, t; extrapolate = true) # dir=:left is default
         @test A(0.5) == u[:, 1]
@@ -383,6 +403,7 @@ end
         @test A(3.5) == u[:, 3]
         @test A(4.0) == u[:, 1]
         @test A(4.5) == u[:, 1]
+        test_cached_index(A)
     end
 
     @testset "Vector of Vectors case" for u in [
@@ -398,6 +419,7 @@ end
         @test A(3.5) == u[4]
         @test A(4.0) == u[4]
         @test A(4.5) == u[4]
+        test_cached_index(A)
 
         A = ConstantInterpolation(u, t; extrapolate = true) # dir=:left is default
         @test A(0.5) == u[1]
@@ -409,6 +431,7 @@ end
         @test A(3.5) == u[3]
         @test A(4.0) == u[4]
         @test A(4.5) == u[4]
+        test_cached_index(A)
     end
 
     @testset "Vector of Matrices case" for u in [
@@ -424,6 +447,7 @@ end
         @test A(3.5) == u[4]
         @test A(4.0) == u[4]
         @test A(4.5) == u[4]
+        test_cached_index(A)
 
         A = ConstantInterpolation(u, t; extrapolate = true) # dir=:left is default
         @test A(0.5) == u[1]
@@ -435,6 +459,7 @@ end
         @test A(3.5) == u[3]
         @test A(4.0) == u[4]
         @test A(4.5) == u[4]
+        test_cached_index(A)
     end
 
     # Test extrapolation
@@ -464,6 +489,7 @@ end
     @test A(-0.5) == P₁(-0.5)
     @test A(0.7) == P₂(0.7)
     @test A(2.0) == P₂(2.0)
+    test_cached_index(A)
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
@@ -496,6 +522,7 @@ end
     t = [-1.0, 0.0, 1.0]
 
     A = CubicSpline(u, t; extrapolate = true)
+    test_cached_index(A)
 
     # Solution
     P₁ = x -> 1 + 1.5x + 0.75 * x^2 + 0.25 * x^3 # for x ∈ [-1.0, 0.0]
@@ -552,6 +579,7 @@ end
         @test [A(25.0), A(80.0)] == [13.454197730061425, 10.305633616059845]
         @test [A(190.0), A(225.0)] == [14.07428439395079, 11.057784141519251]
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
+        test_cached_index(A)
 
         # Test extrapolation
         A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform; extrapolate = true)
@@ -582,6 +610,7 @@ end
         @test [A(25.0), A(80.0)] ≈ [12.979802931218234, 10.914310609953178]
         @test [A(190.0), A(225.0)] ≈ [13.851245975109263, 12.963685868886575]
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
+        test_cached_index(A)
 
         # Test extrapolation
         A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform; extrapolate = true)
