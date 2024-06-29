@@ -8,10 +8,10 @@ function findRequiredIdxs!(A::LagrangeInterpolation, t, idx)
     end
     for i in i_min:(n + 1)
         if idx_min == 1
-            A.idxs[i:end] .= range(idx_max+1, idx_max + (n + 2 - i))
+            A.idxs[i:end] .= range(idx_max + 1, idx_max + (n + 2 - i))
             break
         elseif idx_max == length(A.t)
-            A.idxs[i:end] .= (idx_min-1):-1:(idx_min - (n+ 2 - i))
+            A.idxs[i:end] .= (idx_min - 1):-1:(idx_min - (n + 2 - i))
             break
         else
             left_diff = abs(t - A.t[idx_min - 1])
@@ -33,8 +33,10 @@ function spline_coefficients!(N, d, k, u::Number)
     N .= 0
     if u == k[1]
         N[1] = one(u)
+        return 1:1
     elseif u == k[end]
         N[end] = one(u)
+        return length(N):length(N)
     else
         i = findfirst(x -> x > u, k) - 1
         N[i] = one(u)
@@ -46,8 +48,8 @@ function spline_coefficients!(N, d, k, u::Number)
             end
             N[i] = (u - k[i]) / (k[i + deg] - k[i]) * N[i]
         end
+        return (i - d):i
     end
-    return nothing
 end
 
 function spline_coefficients!(N, d, k, u::AbstractVector)
