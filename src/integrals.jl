@@ -56,14 +56,9 @@ function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
 end
 
 function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
-    t1 = A.t[idx]
-    t2 = A.t[idx + 1]
-    u1 = A.u[idx]
-    z1 = A.z[idx]
-    z2 = A.z[idx + 1]
-    t^3 * (z1 - z2) / (6 * t1 - 6 * t2) + t^2 * (t1 * z2 - t2 * z1) / (2 * t1 - 2 * t2) +
-    t * (-t1^2 * z1 - t1^2 * z2 + 2 * t1 * t2 * z1 + 2 * t1 * u1 - 2 * t2 * u1) /
-    (2 * t1 - 2 * t2)
+    Cᵢ = A.u[idx]
+    Δt = t - A.t[idx]
+    return A.z[idx] * Δt^2 / 2 + A.p.σ[idx] * Δt^3 / 3 + Cᵢ * Δt
 end
 
 function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)

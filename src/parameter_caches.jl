@@ -3,7 +3,7 @@ struct LinearParameterCache{pType}
 end
 
 function LinearParameterCache(u, t)
-    slope = LinearInterpolationParameters.(Ref(u), Ref(t), Base.OneTo(length(t) - 1))
+    slope = LinearInterpolationParameters.(Ref(u), Ref(t), 1:(length(t) - 1))
     return LinearParameterCache(slope)
 end
 
@@ -23,7 +23,7 @@ end
 
 function QuadraticParameterCache(u, t)
     parameters = QuadraticInterpolationParameters.(
-        Ref(u), Ref(t), Base.OneTo(length(t) - 2))
+        Ref(u), Ref(t), 1:(length(t) - 2))
     l₀, l₁, l₂ = collect.(eachrow(hcat(collect.(parameters)...)))
     return QuadraticParameterCache(l₀, l₁, l₂)
 end
@@ -48,4 +48,18 @@ function QuadraticInterpolationParameters(u, t, idx)
     l₁ = -u₁ / (Δt₀ * Δt₁)
     l₂ = u₂ / (Δt₂ * Δt₁)
     return l₀, l₁, l₂
+end
+
+struct QuadraticSplineParameterCache{pType}
+    σ::pType
+end
+
+function QuadraticSplineParameterCache(z, t)
+    σ = QuadraticSplineInterpolationParameters.(Ref(z), Ref(t), 1:(length(t) - 1))
+    return QuadraticSplineParameterCache(σ)
+end
+
+function QuadraticSplineInterpolationParameters(z, t, idx)
+    σ = 1 // 2 * (z[idx+1] - z[idx]) / (t[idx+1] - t[idx])
+    return σ
 end

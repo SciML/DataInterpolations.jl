@@ -154,10 +154,10 @@ end
 
 # QuadraticSpline Interpolation
 function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess; lb = 2, ub_shift = 0, side = :first)
-    Cᵢ = A.u[idx - 1]
-    σ = 1 // 2 * (A.z[idx] - A.z[idx - 1]) / (A.t[idx] - A.t[idx - 1])
-    return A.z[idx - 1] * (t - A.t[idx - 1]) + σ * (t - A.t[idx - 1])^2 + Cᵢ, idx
+    idx = get_idx(A.t, t, iguess)
+    Cᵢ = A.u[idx]
+    Δt = t - A.t[idx]
+    return A.z[idx] * Δt + A.p.σ[idx] * Δt^2 + Cᵢ, idx
 end
 
 # CubicSpline Interpolation

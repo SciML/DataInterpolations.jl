@@ -17,11 +17,11 @@ Extrapolation extends the last linear polynomial on each side.
 struct LinearInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
-    p::pType
+    p::LinearParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     function LinearInterpolation(u, t, p, extrapolate)
-        new{typeof(u), typeof(t), typeof(p), eltype(u)}(u, t, p, extrapolate, Ref(1))
+        new{typeof(u), typeof(t), typeof(p.slope), eltype(u)}(u, t, p, extrapolate, Ref(1))
     end
 end
 
@@ -51,14 +51,14 @@ Extrapolation extends the last quadratic polynomial on each side.
 struct QuadraticInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
-    p::pType
+    p::QuadraticParameterCache{pType}
     mode::Symbol
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     function QuadraticInterpolation(u, t, p, mode, extrapolate)
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        new{typeof(u), typeof(t), typeof(p), eltype(u)}(u, t, p, mode, extrapolate, Ref(1))
+        new{typeof(u), typeof(t), typeof(p.l₀), eltype(u)}(u, t, p, mode, extrapolate, Ref(1))
     end
 end
 
@@ -235,19 +235,21 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct QuadraticSpline{uType, tType, tAType, dType, zType, T} <:
+struct QuadraticSpline{uType, tType, pType, tAType, dType, zType, T} <:
        AbstractInterpolation{T}
     u::uType
     t::tType
+    p::QuadraticSplineParameterCache{pType}
     tA::tAType
     d::dType
     z::zType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function QuadraticSpline(u, t, tA, d, z, extrapolate)
-        new{typeof(u), typeof(t), typeof(tA),
+    function QuadraticSpline(u, t, p, tA, d, z, extrapolate)
+        new{typeof(u), typeof(t), typeof(p.σ), typeof(tA),
             typeof(d), typeof(z), eltype(u)}(u,
             t,
+            p,
             tA,
             d,
             z,
@@ -272,7 +274,8 @@ function QuadraticSpline(u::uType,
 
     d = map(i -> i == 1 ? typed_zero : 2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]), 1:s)
     z = tA \ d
-    QuadraticSpline(u, t, tA, d, z, extrapolate)
+    p = QuadraticSplineParameterCache(z, t)
+    QuadraticSpline(u, t, p, tA, d, z, extrapolate)
 end
 
 function QuadraticSpline(
@@ -290,7 +293,8 @@ function QuadraticSpline(
     d = transpose(reshape(reduce(hcat, d_), :, s))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
-    QuadraticSpline(u, t, tA, d, z, extrapolate)
+    p = QuadraticSplineParameterCache(z, t)
+    QuadraticSpline(u, t, p, tA, d, z, extrapolate)
 end
 
 """
