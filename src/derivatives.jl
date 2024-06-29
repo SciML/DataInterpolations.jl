@@ -148,7 +148,8 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
     n = length(A.t)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    N = DataInterpolations.spline_coefficients(n, A.d - 1, A.k, t_)
+    N = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.N
+    spline_coefficients!(N, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
@@ -168,7 +169,8 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
     idx = get_idx(A.t, t, iguess)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    N = spline_coefficients(A.h, A.d - 1, A.k, t_)
+    N = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.N
+    spline_coefficients!(N, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])

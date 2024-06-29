@@ -3,8 +3,8 @@ function findRequiredIdxs(A::LagrangeInterpolation, t)
     idxs[1:(A.n + 1)]
 end
 
-function spline_coefficients(n, d, k, u::Number)
-    N = zeros(eltype(u), n)
+function spline_coefficients!(N, d, k, u::Number)
+    N .= 0
     if u == k[1]
         N[1] = one(u)
     elseif u == k[end]
@@ -21,15 +21,14 @@ function spline_coefficients(n, d, k, u::Number)
             N[i] = (u - k[i]) / (k[i + deg] - k[i]) * N[i]
         end
     end
-    N
+    return nothing
 end
 
-function spline_coefficients(n, d, k, u::AbstractVector)
-    N = zeros(eltype(u), n, n)
-    for i in 1:n
-        N[i, :] .= spline_coefficients(n, d, k, u[i])
+function spline_coefficients!(N, d, k, u::AbstractVector)
+    for i in 1:size(N)[2]
+        spline_coefficients!(view(N, i, :), d, k, u[i])
     end
-    N
+    return nothing
 end
 
 # helper function for data manipulation

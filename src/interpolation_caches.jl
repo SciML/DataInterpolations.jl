@@ -397,7 +397,7 @@ Extrapolation is a constant polynomial of the end points on each side.
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct BSplineInterpolation{uType, tType, pType, kType, cType, T} <:
+struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
        AbstractInterpolation{T}
     u::uType
     t::tType
@@ -405,6 +405,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, T} <:
     p::pType  # params vector
     k::kType  # knot vector
     c::cType  # control points
+    N::NType  # Spline coefficients (preallocated memory)
     pVecType::Symbol
     knotVecType::Symbol
     extrapolate::Bool
@@ -415,15 +416,17 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, T} <:
             p,
             k,
             c,
+            N,
             pVecType,
             knotVecType,
             extrapolate)
-        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), eltype(u)}(u,
+        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(N), eltype(u)}(u,
             t,
             d,
             p,
             k,
             c,
+            N,
             pVecType,
             knotVecType,
             extrapolate,
@@ -492,9 +495,11 @@ function BSplineInterpolation(
         end
     end
     # control points
-    N = spline_coefficients(n, d, k, p)
+    N = zeros(eltype(t), n, n)
+    spline_coefficients!(N, d, k, p)
     c = vec(N \ u[:, :])
-    BSplineInterpolation(u, t, d, p, k, c, pVecType, knotVecType, extrapolate)
+    N = zeros(eltype(t), n)
+    BSplineInterpolation(u, t, d, p, k, c, N, pVecType, knotVecType, extrapolate)
 end
 
 """
@@ -518,7 +523,7 @@ Extrapolation is a constant polynomial of the end points on each side.
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct BSplineApprox{uType, tType, pType, kType, cType, T} <:
+struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
        AbstractInterpolation{T}
     u::uType
     t::tType
@@ -527,6 +532,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, T} <:
     p::pType  # params vector
     k::kType  # knot vector
     c::cType  # control points
+    N::NType  # Spline coefficients (preallocated memory)
     pVecType::Symbol
     knotVecType::Symbol
     extrapolate::Bool
@@ -538,16 +544,18 @@ struct BSplineApprox{uType, tType, pType, kType, cType, T} <:
             p,
             k,
             c,
+            N,
             pVecType,
             knotVecType,
             extrapolate)
-        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), eltype(u)}(u,
+        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(N), eltype(u)}(u,
             t,
             d,
             h,
             p,
             k,
             c,
+            N,
             pVecType,
             knotVecType,
             extrapolate,
@@ -623,7 +631,7 @@ function BSplineApprox(
     q = zeros(eltype(u), n)
     N = zeros(eltype(t), n, h)
     for i in 1:n
-        N[i, :] .= spline_coefficients(h, d, k, p[i])
+        spline_coefficients!(view(N, i, :), d, k, p[i])
     end
     for k in 2:(n - 1)
         q[k] = u[k] - N[k, 1] * u[1] - N[k, h] * u[end]
@@ -640,5 +648,6 @@ function BSplineApprox(
     M = transpose(N) * N
     P = M \ Q
     c[2:(end - 1)] .= vec(P)
-    BSplineApprox(u, t, d, h, p, k, c, pVecType, knotVecType, extrapolate)
+    N = zeros(eltype(t), h)
+    BSplineApprox(u, t, d, h, p, k, c, N, pVecType, knotVecType, extrapolate)
 end
