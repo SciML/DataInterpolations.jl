@@ -1,4 +1,5 @@
 using DataInterpolations, Test
+using FindFirstFunctions: searchsortedfirstcorrelated
 using FiniteDifferences
 using DataInterpolations: derivative
 using Symbolics
@@ -35,6 +36,11 @@ function test_derivatives(method, u, t; args = [], kwargs = [], name::String)
             adiff2 = derivative(func, _t, 2)
             @test isapprox(fdiff, adiff, atol = 1e-8)
             @test isapprox(fdiff2, adiff2, atol = 1e-8)
+            # Cached index
+            if hasproperty(func, :idx_prev)
+                @test abs(func.idx_prev[] -
+                          searchsortedfirstcorrelated(func.t, _t, func.idx_prev[])) <= 1
+            end
         end
 
         # t = t0

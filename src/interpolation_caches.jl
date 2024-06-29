@@ -19,8 +19,9 @@ struct LinearInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T}
     t::tType
     p::pType
     extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
     function LinearInterpolation(u, t, p, extrapolate)
-        new{typeof(u), typeof(t), typeof(p), eltype(u)}(u, t, p, extrapolate)
+        new{typeof(u), typeof(t), typeof(p), eltype(u)}(u, t, p, extrapolate, Ref(1))
     end
 end
 
@@ -53,10 +54,11 @@ struct QuadraticInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T
     p::pType
     mode::Symbol
     extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
     function QuadraticInterpolation(u, t, p, mode, extrapolate)
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        new{typeof(u), typeof(t), typeof(p), eltype(u)}(u, t, p, mode, extrapolate)
+        new{typeof(u), typeof(t), typeof(p), eltype(u)}(u, t, p, mode, extrapolate, Ref(1))
     end
 end
 
@@ -95,6 +97,7 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
     n::Int
     bcache::bcacheType
     extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
     function LagrangeInterpolation(u, t, n, extrapolate)
         bcache = zeros(eltype(u[1]), n + 1)
         fill!(bcache, NaN)
@@ -102,7 +105,9 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
             t,
             n,
             bcache,
-            extrapolate)
+            extrapolate,
+            Ref(1)
+        )
     end
 end
 
@@ -139,6 +144,7 @@ struct AkimaInterpolation{uType, tType, bType, cType, dType, T} <:
     c::cType
     d::dType
     extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
     function AkimaInterpolation(u, t, b, c, d, extrapolate)
         new{typeof(u), typeof(t), typeof(b), typeof(c),
             typeof(d), eltype(u)}(u,
@@ -146,7 +152,9 @@ struct AkimaInterpolation{uType, tType, bType, cType, dType, T} <:
             b,
             c,
             d,
-            extrapolate)
+            extrapolate,
+            Ref(1)
+        )
     end
 end
 
@@ -199,8 +207,10 @@ struct ConstantInterpolation{uType, tType, dirType, T} <: AbstractInterpolation{
     p::Nothing
     dir::Symbol # indicates if value to the $dir should be used for the interpolation
     extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
     function ConstantInterpolation(u, t, dir, extrapolate)
-        new{typeof(u), typeof(t), typeof(dir), eltype(u)}(u, t, nothing, dir, extrapolate)
+        new{typeof(u), typeof(t), typeof(dir), eltype(u)}(
+            u, t, nothing, dir, extrapolate, Ref(1))
     end
 end
 
@@ -233,6 +243,7 @@ struct QuadraticSpline{uType, tType, tAType, dType, zType, T} <:
     d::dType
     z::zType
     extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
     function QuadraticSpline(u, t, tA, d, z, extrapolate)
         new{typeof(u), typeof(t), typeof(tA),
             typeof(d), typeof(z), eltype(u)}(u,
@@ -240,7 +251,9 @@ struct QuadraticSpline{uType, tType, tAType, dType, zType, T} <:
             tA,
             d,
             z,
-            extrapolate)
+            extrapolate,
+            Ref(1)
+        )
     end
 end
 
@@ -302,12 +315,15 @@ struct CubicSpline{uType, tType, hType, zType, T} <: AbstractInterpolation{T}
     h::hType
     z::zType
     extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
     function CubicSpline(u, t, h, z, extrapolate)
         new{typeof(u), typeof(t), typeof(h), typeof(z), eltype(u)}(u,
             t,
             h,
             z,
-            extrapolate)
+            extrapolate,
+            Ref(1)
+        )
     end
 end
 
@@ -383,6 +399,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, T} <:
     pVecType::Symbol
     knotVecType::Symbol
     extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
     function BSplineInterpolation(u,
             t,
             d,
@@ -400,7 +417,9 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, T} <:
             c,
             pVecType,
             knotVecType,
-            extrapolate)
+            extrapolate,
+            Ref(1)
+        )
     end
 end
 
@@ -502,6 +521,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, T} <:
     pVecType::Symbol
     knotVecType::Symbol
     extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
     function BSplineApprox(u,
             t,
             d,
@@ -521,7 +541,9 @@ struct BSplineApprox{uType, tType, pType, kType, cType, T} <:
             c,
             pVecType,
             knotVecType,
-            extrapolate)
+            extrapolate,
+            Ref(1)
+        )
     end
 end
 
