@@ -57,70 +57,62 @@ function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
 end
 
 # Lagrange Interpolation
-function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    idxs = findRequiredIdxs(A, t)
-    if A.t[idxs[1]] == t
-        return A.u[idxs[1]]
+function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, iguess)
+    idx = get_idx(A.t, t, iguess)
+    findRequiredIdxs!(A, t, idx)
+    if A.t[A.idxs[1]] == t
+        return A.u[A.idxs[1]], idx
     end
     N = zero(A.u[1])
     D = zero(A.t[1])
     tmp = N
-    for i in 1:length(idxs)
-        if isnan(A.bcache[idxs[i]])
+    for i in 1:length(A.idxs)
+        if isnan(A.bcache[A.idxs[i]])
             mult = one(A.t[1])
             for j in 1:(i - 1)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
             end
-            for j in (i + 1):length(idxs)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+            for j in (i + 1):length(A.idxs)
+                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
             end
-            A.bcache[idxs[i]] = mult
+            A.bcache[A.idxs[i]] = mult
         else
-            mult = A.bcache[idxs[i]]
+            mult = A.bcache[A.idxs[i]]
         end
-        tmp = inv((t - A.t[idxs[i]]) * mult)
+        tmp = inv((t - A.t[A.idxs[i]]) * mult)
         D += tmp
-        N += (tmp * A.u[idxs[i]])
+        N += (tmp * A.u[A.idxs[i]])
     end
-    N / D
+    N / D, idx
 end
 
-function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    idxs = findRequiredIdxs(A, t)
-    if A.t[idxs[1]] == t
-        return A.u[:, idxs[1]]
+function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, iguess)
+    idx = get_idx(A.t, t, iguess)
+    findRequiredIdxs!(A, t, idx)
+    if A.t[A.idxs[1]] == t
+        return A.u[:, A.idxs[1]], idx
     end
     N = zero(A.u[:, 1])
     D = zero(A.t[1])
     tmp = D
-    for i in 1:length(idxs)
-        if isnan(A.bcache[idxs[i]])
+    for i in 1:length(A.idxs)
+        if isnan(A.bcache[A.idxs[i]])
             mult = one(A.t[1])
             for j in 1:(i - 1)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
             end
-            for j in (i + 1):length(idxs)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+            for j in (i + 1):length(A.idxs)
+                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
             end
-            A.bcache[idxs[i]] = mult
+            A.bcache[A.idxs[i]] = mult
         else
-            mult = A.bcache[idxs[i]]
+            mult = A.bcache[A.idxs[i]]
         end
-        tmp = inv((t - A.t[idxs[i]]) * mult)
+        tmp = inv((t - A.t[A.idxs[i]]) * mult)
         D += tmp
-        @. N += (tmp * A.u[:, idxs[i]])
+        @. N += (tmp * A.u[:, A.idxs[i]])
     end
-    N / D
-end
-
-function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)
-    _interpolate(A, t), idx
-end
-
-function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx)
-    _interpolate(A, t), idx
+    N / D, idx
 end
 
 function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)

@@ -1,6 +1,32 @@
-function findRequiredIdxs(A::LagrangeInterpolation, t)
-    idxs = sortperm(A.t, by = x -> abs(t - x))
-    idxs[1:(A.n + 1)]
+function findRequiredIdxs!(A::LagrangeInterpolation, t, idx)
+    n = length(A.t) - 1
+    i_min, idx_min, idx_max = if t == A.t[idx]
+        A.idxs[1] = idx
+        2, idx, idx
+    else
+        1, idx + 1, idx
+    end
+    for i in i_min:(n + 1)
+        if idx_min == 1
+            A.idxs[i:end] .= range(idx_max+1, idx_max + (n + 2 - i))
+            break
+        elseif idx_max == length(A.t)
+            A.idxs[i:end] .= (idx_min-1):-1:(idx_min - (n+ 2 - i))
+            break
+        else
+            left_diff = abs(t - A.t[idx_min - 1])
+            right_diff = abs(t - A.t[idx_max + 1])
+            left_expand = left_diff <= right_diff
+        end
+        if left_expand
+            idx_min -= 1
+            A.idxs[i] = idx_min
+        else
+            idx_max += 1
+            A.idxs[i] = idx_max
+        end
+    end
+    return idx
 end
 
 function spline_coefficients!(N, d, k, u::Number)

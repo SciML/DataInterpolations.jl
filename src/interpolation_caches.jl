@@ -97,15 +97,18 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
     t::tType
     n::Int
     bcache::bcacheType
+    idxs::Vector{Int}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     function LagrangeInterpolation(u, t, n, extrapolate)
         bcache = zeros(eltype(u[1]), n + 1)
+        idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
         new{typeof(u), typeof(t), eltype(u), typeof(bcache)}(u,
             t,
             n,
             bcache,
+            idxs,
             extrapolate,
             Ref(1)
         )
