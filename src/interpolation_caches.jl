@@ -58,7 +58,8 @@ struct QuadraticInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T
     function QuadraticInterpolation(u, t, p, mode, extrapolate)
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        new{typeof(u), typeof(t), typeof(p.l₀), eltype(u)}(u, t, p, mode, extrapolate, Ref(1))
+        new{typeof(u), typeof(t), typeof(p.l₀), eltype(u)}(
+            u, t, p, mode, extrapolate, Ref(1))
     end
 end
 
@@ -313,16 +314,18 @@ Second derivative on both ends are zero, which are also called "natural" boundar
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct CubicSpline{uType, tType, hType, zType, T} <: AbstractInterpolation{T}
+struct CubicSpline{uType, tType, pType, hType, zType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    p::CubicSplineParameterCache{pType}
     h::hType
     z::zType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function CubicSpline(u, t, h, z, extrapolate)
-        new{typeof(u), typeof(t), typeof(h), typeof(z), eltype(u)}(u,
+    function CubicSpline(u, t, p, h, z, extrapolate)
+        new{typeof(u), typeof(t), typeof(p.c₁), typeof(h), typeof(z), eltype(u)}(u,
             t,
+            p,
             h,
             z,
             extrapolate,
@@ -351,7 +354,8 @@ function CubicSpline(u::uType,
              6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
         1:(n + 1))
     z = tA \ d
-    CubicSpline(u, t, h[1:(n + 1)], z, extrapolate)
+    p = CubicSplineParameterCache(u, h, z)
+    CubicSpline(u, t, p, h[1:(n + 1)], z, extrapolate)
 end
 
 function CubicSpline(
@@ -370,7 +374,8 @@ function CubicSpline(
     d = transpose(reshape(reduce(hcat, d_), :, n + 1))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
-    CubicSpline(u, t, h[1:(n + 1)], z, extrapolate)
+    p = CubicSplineParameterCache(u, h, z)
+    CubicSpline(u, t, p, h[1:(n + 1)], z, extrapolate)
 end
 
 """

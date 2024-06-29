@@ -62,19 +62,12 @@ function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, 
 end
 
 function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
-    t1 = A.t[idx]
-    t2 = A.t[idx + 1]
-    u1 = A.u[idx]
-    u2 = A.u[idx + 1]
-    z1 = A.z[idx]
-    z2 = A.z[idx + 1]
-    h2 = A.h[idx + 1]
-    (t^4 * (-z1 + z2) / (24 * h2) + t^3 * (-t1 * z2 + t2 * z1) / (6 * h2) +
-     t^2 * (h2^2 * z1 - h2^2 * z2 + 3 * t1^2 * z2 - 3 * t2^2 * z1 - 6 * u1 + 6 * u2) /
-     (12 * h2) +
-     t *
-     (h2^2 * t1 * z2 - h2^2 * t2 * z1 - t1^3 * z2 - 6 * t1 * u2 + t2^3 * z1 + 6 * t2 * u1) /
-     (6 * h2))
+    Δt₁sq = (t - A.t[idx])^2 / 2
+    Δt₂sq = (A.t[idx + 1] - t)^2 / 2
+    II = (-A.z[idx] * Δt₂sq^2 + A.z[idx + 1] * Δt₁sq^2) / (6A.h[idx + 1])
+    IC = A.p.c₁[idx] * Δt₁sq
+    ID = -A.p.c₂[idx] * Δt₂sq
+    II + IC + ID
 end
 
 function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},

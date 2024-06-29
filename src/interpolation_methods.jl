@@ -163,10 +163,11 @@ end
 # CubicSpline Interpolation
 function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess)
-    I = A.z[idx] * (A.t[idx + 1] - t)^3 / (6A.h[idx + 1]) +
-        A.z[idx + 1] * (t - A.t[idx])^3 / (6A.h[idx + 1])
-    C = (A.u[idx + 1] / A.h[idx + 1] - A.z[idx + 1] * A.h[idx + 1] / 6) * (t - A.t[idx])
-    D = (A.u[idx] / A.h[idx + 1] - A.z[idx] * A.h[idx + 1] / 6) * (A.t[idx + 1] - t)
+    Δt₁ = t - A.t[idx]
+    Δt₂ = A.t[idx + 1] - t
+    I = (A.z[idx] * Δt₂^3 + A.z[idx + 1] * Δt₁^3) / (6A.h[idx + 1])
+    C = A.p.c₁[idx] * Δt₁
+    D = A.p.c₂[idx] * Δt₂
     I + C + D, idx
 end
 

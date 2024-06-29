@@ -60,6 +60,24 @@ function QuadraticSplineParameterCache(z, t)
 end
 
 function QuadraticSplineInterpolationParameters(z, t, idx)
-    σ = 1 // 2 * (z[idx+1] - z[idx]) / (t[idx+1] - t[idx])
+    σ = 1 // 2 * (z[idx + 1] - z[idx]) / (t[idx + 1] - t[idx])
     return σ
+end
+
+struct CubicSplineParameterCache{pType}
+    c₁::pType
+    c₂::pType
+end
+
+function CubicSplineParameterCache(u, h, z)
+    parameters = CubicSplineInterpolationParameters.(
+        Ref(u), Ref(h), Ref(z), 1:(size(u)[end] - 1))
+    c₁, c₂ = collect.(eachrow(hcat(collect.(parameters)...)))
+    return CubicSplineParameterCache(c₁, c₂)
+end
+
+function CubicSplineInterpolationParameters(u, h, z, idx)
+    c₁ = (u[idx + 1] / h[idx + 1] - z[idx + 1] * h[idx + 1] / 6)
+    c₂ = (u[idx] / h[idx + 1] - z[idx] * h[idx + 1] / 6)
+    return c₁, c₂
 end
