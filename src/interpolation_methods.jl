@@ -1,7 +1,9 @@
-function _interpolate(interp, t)
-    ((t < interp.t[1] || t > interp.t[end]) && !interp.extrapolate) &&
+function _interpolate(A, t)
+    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
         throw(ExtrapolationError())
-    _interpolate(interp, t, firstindex(interp.t) - 1)[1]
+    val, idx_prev = _interpolate(A, t, A.idx_prev[])
+    A.idx_prev[] = idx_prev
+    return val
 end
 
 # Linear Interpolation
@@ -12,7 +14,7 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
         t1 = t2 = one(eltype(A.t))
         u1 = u2 = one(eltype(A.u))
     else
-        idx = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
+        idx = get_idx(A.t, t, iguess)
         t1, t2 = A.t[idx], A.t[idx + 1]
         u1, u2 = A.u[idx], A.u[idx + 1]
     end
@@ -25,7 +27,7 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
 end
 
 function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    idx = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
+    idx = get_idx(A.t, t, iguess)
     θ = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
     return (1 - θ) * A.u[:, idx] + θ * A.u[:, idx + 1], idx
 end
@@ -33,9 +35,7 @@ end
 # Quadratic Interpolation
 _quad_interp_indices(A, t) = _quad_interp_indices(A, t, firstindex(A.t) - 1)
 function _quad_interp_indices(A::QuadraticInterpolation, t::Number, iguess)
-    inner_idx = searchsortedlastcorrelated(A.t, t, iguess)
-    A.mode == :Backward && (inner_idx -= 1)
-    idx = max(1, min(inner_idx, length(A.t) - 2))
+    idx = get_idx(A.t, t, iguess; idx_shift = A.mode == :Backward ? -1 : 0, ub_shift = -2)
     idx, idx + 1, idx + 2
 end
 
@@ -114,61 +114,59 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
     N / D
 end
 
-function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, i)
-    _interpolate(A, t), i
+function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)
+    _interpolate(A, t), idx
 end
 
-function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, i)
-    _interpolate(A, t), i
+function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx)
+    _interpolate(A, t), idx
 end
 
 function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
-    i = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
-    wj = t - A.t[i]
-    (@evalpoly wj A.u[i] A.b[i] A.c[i] A.d[i]), i
+    idx = get_idx(A.t, t, iguess)
+    wj = t - A.t[idx]
+    (@evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]), idx
 end
 
 # ConstantInterpolation Interpolation
 function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
-        i = max(1, searchsortedlastcorrelated(A.t, t, iguess))
-        return A.u[i], i
+        idx = get_idx(A.t, t, iguess; lb = 1, ub_shift = 0)
     else
         # :right means that value to the right is used for interpolation
-        i = min(length(A.t), searchsortedfirstcorrelated(A.t, t, iguess))
-        return A.u[i], i
+        idx = get_idx(A.t, t, iguess; side = :first, lb = 1, ub_shift = 0)
     end
+    A.u[idx], idx
 end
 
 function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
-        i = max(1, searchsortedlastcorrelated(A.t, t, iguess))
-        return A.u[:, i], i
+        idx = get_idx(A.t, t, iguess; lb = 1, ub_shift = 0)
     else
         # :right means that value to the right is used for interpolation
-        i = min(length(A.t), searchsortedfirstcorrelated(A.t, t, iguess))
-        return A.u[:, i], i
+        idx = get_idx(A.t, t, iguess; side = :first, lb = 1, ub_shift = 0)
     end
+    A.u[:, idx], idx
 end
 
 # QuadraticSpline Interpolation
 function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
-    i = min(max(2, searchsortedfirstcorrelated(A.t, t, iguess)), length(A.t))
-    Cᵢ = A.u[i - 1]
-    σ = 1 // 2 * (A.z[i] - A.z[i - 1]) / (A.t[i] - A.t[i - 1])
-    return A.z[i - 1] * (t - A.t[i - 1]) + σ * (t - A.t[i - 1])^2 + Cᵢ, i
+    idx = get_idx(A.t, t, iguess; lb = 2, ub_shift = 0, side = :first)
+    Cᵢ = A.u[idx - 1]
+    σ = 1 // 2 * (A.z[idx] - A.z[idx - 1]) / (A.t[idx] - A.t[idx - 1])
+    return A.z[idx - 1] * (t - A.t[idx - 1]) + σ * (t - A.t[idx - 1])^2 + Cᵢ, idx
 end
 
 # CubicSpline Interpolation
 function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
-    i = max(1, min(searchsortedlastcorrelated(A.t, t, iguess), length(A.t) - 1))
-    I = A.z[i] * (A.t[i + 1] - t)^3 / (6A.h[i + 1]) +
-        A.z[i + 1] * (t - A.t[i])^3 / (6A.h[i + 1])
-    C = (A.u[i + 1] / A.h[i + 1] - A.z[i + 1] * A.h[i + 1] / 6) * (t - A.t[i])
-    D = (A.u[i] / A.h[i + 1] - A.z[i] * A.h[i + 1] / 6) * (A.t[i + 1] - t)
-    I + C + D, i
+    idx = get_idx(A.t, t, iguess)
+    I = A.z[idx] * (A.t[idx + 1] - t)^3 / (6A.h[idx + 1]) +
+        A.z[idx + 1] * (t - A.t[idx])^3 / (6A.h[idx + 1])
+    C = (A.u[idx + 1] / A.h[idx + 1] - A.z[idx + 1] * A.h[idx + 1] / 6) * (t - A.t[idx])
+    D = (A.u[idx] / A.h[idx + 1] - A.z[idx] * A.h[idx + 1] / 6) * (A.t[idx + 1] - t)
+    I + C + D, idx
 end
 
 # BSpline Curve Interpolation
@@ -178,8 +176,7 @@ function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
     t < A.t[1] && return A.u[1], 1
     t > A.t[end] && return A.u[end], lastindex(t)
     # change t into param [0 1]
-    idx = searchsortedlastcorrelated(A.t, t, iguess)
-    idx == length(A.t) ? idx -= 1 : nothing
+    idx = get_idx(A.t, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
     N = spline_coefficients(n, A.d, A.k, t)
@@ -195,10 +192,8 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
     t < A.t[1] && return A.u[1], 1
     t > A.t[end] && return A.u[end], lastindex(t)
     # change t into param [0 1]
-    idx = searchsortedlastcorrelated(A.t, t, iguess)
-    idx == length(A.t) ? idx -= 1 : nothing
+    idx = get_idx(A.t, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
-    n = length(A.t)
     N = spline_coefficients(A.h, A.d, A.k, t)
     ucum = zero(eltype(A.u))
     for i in 1:(A.h)
