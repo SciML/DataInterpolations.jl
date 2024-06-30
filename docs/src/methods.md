@@ -134,6 +134,18 @@ scatter(t, u, label = "input data")
 plot!(A)
 ```
 
+## Quintic Hermite Interpolation
+
+This is the quintic (fifth order) Hermite interpolation. It matches the values and first and second order derivatives in the data points exactly.
+
+```@example tutorial
+du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0011]
+ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
+A = QuinticHermiteInterpolation(u, t, du, ddu)
+scatter(t, u, label = "input data")
+plot!(A)
+```
+
 ## Regularization Smoothing
 
 Smoothing by regularization (a.k.a. ridge regression) finds a function ``\hat{u}``

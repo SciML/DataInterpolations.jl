@@ -622,6 +622,18 @@ end
     end
 end
 
+@testset "Quintic Hermite Interpolation" begin
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
+    ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
+    t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    A = QuinticHermiteInterpolation(u, t, du, ddu; extrapolate = true)
+    @test A.(t) ≈ u
+    @test A(100.0)≈10.107996 rtol=1e-5
+    @test A(300.0)≈11.364162 rtol=1e-5
+    test_cached_index(A)
+end
+
 @testset "Curvefit" begin
     # Curvefit Interpolation
     rng = StableRNG(12345)

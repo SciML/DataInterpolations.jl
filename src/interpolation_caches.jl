@@ -611,3 +611,41 @@ function BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolate = false)
     c[2:(end - 1)] .= vec(P)
     BSplineApprox(u, t, d, h, p, k, c, pVecType, knotVecType, extrapolate)
 end
+
+"""
+    QuinticHermiteInterpolation(u, t, du, ddu; extrapolate = false)
+
+It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polynomial such that the value and the first and second derivative are equal to given values in the data points.
+
+## Arguments
+
+  - `u`: data points.
+  - `du`: the derivative at the data points.
+  - `ddu`: the second derivative at the data points.
+  - `t`: time points.
+
+## Keyword Arguments
+
+  - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
+struct QuinticHermiteInterpolation{uType, tType, duType, dduType, pType, T} <:
+       AbstractInterpolation{T}
+    u::uType
+    t::tType
+    du::duType
+    ddu::dduType
+    p::QuinticHermiteParameterCache{pType}
+    extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
+    function QuinticHermiteInterpolation(u, t, du, ddu, p, extrapolate)
+        new{typeof(u), typeof(t), typeof(du), typeof(ddu), typeof(p.c₁), eltype(u)}(
+            u, t, du, ddu, p, extrapolate, Ref(1))
+    end
+end
+
+function QuinticHermiteInterpolation(u, t, du, ddu; extrapolate = false)
+    @assert length(u) == length(du) == length(ddu)
+    u, t = munge_data(u, t)
+    p = QuinticHermiteParameterCache(u, t, du, ddu)
+    return QuinticHermiteInterpolation(u, t, du, ddu, p, extrapolate)
+end

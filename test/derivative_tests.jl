@@ -188,6 +188,20 @@ end
         name = "BSpline Approx (Uniform, Uniform)")
 end
 
+@testset "Quintic Hermite Interpolation" begin
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
+    ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
+    t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    test_derivatives(QuinticHermiteInterpolation, u, t; args = [du, ddu],
+        name = "Quintic Hermite Interpolation")
+    A = QuinticHermiteInterpolation(u, t, du, ddu; extrapolate = true)
+    @test derivative.(Ref(A), t) ≈ du
+    @test derivative.(Ref(A), t, 2) ≈ ddu
+    @test derivative(A, 100.0)≈0.0103916 rtol=1e-5
+    @test derivative(A, 300.0)≈0.0331361 rtol=1e-5
+end
+
 @testset "RegularizationSmooth" begin
     npts = 50
     xmin = 0.0
