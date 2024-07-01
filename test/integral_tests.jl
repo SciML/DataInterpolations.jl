@@ -5,8 +5,9 @@ using Optim, ForwardDiff
 using RegularizationTools
 using StableRNGs
 
-function test_integral(method, u, t; args = [], kwargs = [], name::String)
-    func = method(u, t, args...; kwargs..., extrapolate = true)
+function test_integral(method; args = [], kwargs = [], name::String)
+    func = method(args...; kwargs..., extrapolate = true)
+    (; t) = func
     t1 = minimum(t)
     t2 = maximum(t)
     @testset "$name" begin
@@ -46,7 +47,7 @@ function test_integral(method, u, t; args = [], kwargs = [], name::String)
         aint = integral(func, (t1 + t2) / 2, t2 + 5.0)
         @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
     end
-    func = method(u, t, args...; kwargs...)
+    func = method(args...; kwargs...)
     @test_throws DataInterpolations.ExtrapolationError integral(func, t[1] - 1.0)
     @test_throws DataInterpolations.ExtrapolationError integral(func, t[end] + 1.0)
     @test_throws DataInterpolations.ExtrapolationError integral(func, t[1] - 1.0, t[2])
@@ -56,27 +57,27 @@ end
 @testset "LinearInterpolation" begin
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
-    test_integral(LinearInterpolation, u, t; name = "Linear Interpolation (Vector)")
+    test_integral(
+        LinearInterpolation; args = [u, t], name = "Linear Interpolation (Vector)")
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
-    test_integral(LinearInterpolation, u, t;
+    test_integral(LinearInterpolation; args = [u, t],
         name = "Linear Interpolation (Vector) with random points")
 end
 
 @testset "QuadraticInterpolation" begin
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    test_integral(QuadraticInterpolation, u, t; name = "Quadratic Interpolation (Vector)")
+    test_integral(
+        QuadraticInterpolation; args = [u, t], name = "Quadratic Interpolation (Vector)")
     u = [3.0, 0.0, 3.0, 0.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    test_integral(QuadraticInterpolation,
-        u,
-        t;
-        args = [:Backward],
+    test_integral(QuadraticInterpolation;
+        args = [u, t, :Backward],
         name = "Quadratic Interpolation (Vector)")
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:10)
-    test_integral(QuadraticInterpolation, u, t;
+    test_integral(QuadraticInterpolation; args = [u, t],
         name = "Quadratic Interpolation (Vector) with random points")
 end
 
@@ -91,38 +92,53 @@ end
 @testset "QuadraticSpline" begin
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    test_integral(QuadraticSpline, u, t; name = "Quadratic Spline (Vector)")
+    test_integral(QuadraticSpline; args = [u, t], name = "Quadratic Spline (Vector)")
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     test_integral(
-        QuadraticSpline, u, t; name = "Quadratic Spline (Vector) with random points")
+        QuadraticSpline; args = [u, t], name = "Quadratic Spline (Vector) with random points")
 end
 
 @testset "CubicSpline" begin
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    test_integral(CubicSpline, u, t; name = "Cubic Spline (Vector)")
+    test_integral(CubicSpline; args = [u, t], name = "Cubic Spline (Vector)")
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
-    test_integral(CubicSpline, u, t; name = "Cubic Spline (Vector) with random points")
+    test_integral(CubicSpline; args = [u, t], name = "Cubic Spline (Vector) with random points")
 end
 
 @testset "AkimaInterpolation" begin
     u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
     t = collect(0.0:10.0)
-    test_integral(AkimaInterpolation, u, t; name = "Akima Interpolation (Vector)")
+    test_integral(AkimaInterpolation; args = [u, t], name = "Akima Interpolation (Vector)")
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     test_integral(
-        AkimaInterpolation, u, t; name = "Akima Interpolation (Vector) with random points")
+        AkimaInterpolation; args = [u, t], name = "Akima Interpolation (Vector) with random points")
+end
+
+@testset "CubicHermiteInterpolation" begin
+    du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    test_integral(CubicHermiteInterpolation; args = [du, u, t],
+        name = "Cubic Hermite Interpolation (Vector)")
+
+    u = round.(rand(100), digits = 5)
+    t = 1.0collect(1:100)
+    du = diff(u) ./ diff(t)
+    push!(du, 0)
+    test_integral(CubicHermiteInterpolation; args = [du, u, t],
+        name = "Cubic Hermite Interpolation (Vector) with random points")
 end
 
 @testset "QuinticHermiteInterpolation" begin
+    ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
+    du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
-    ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
-    test_integral(QuinticHermiteInterpolation, u, t; args = [du, ddu],
+    test_integral(QuinticHermiteInterpolation; args = [ddu, du, u, t],
         name = "Quintic Hermite Interpolation (Vector)")
 
     u = round.(rand(100), digits = 5)
@@ -131,7 +147,7 @@ end
     push!(du, 0)
     ddu = diff(du) ./ diff(t)
     push!(ddu, 0)
-    test_integral(QuinticHermiteInterpolation, u, t; args = [du, ddu],
+    test_integral(QuinticHermiteInterpolation; args = [ddu, du, u, t],
         name = "Quintic Hermite Interpolation (Vector) with random points")
 end
 
@@ -153,9 +169,8 @@ end
     idx = sortperm(t)
     tₒ = t[idx]
     uₒ = u[idx]
-    test_integral(RegularizationSmooth,
-        uₒ,
-        tₒ;
+    test_integral(RegularizationSmooth;
+        args = [uₒ, tₒ],
         kwargs = [:alg => :fixed],
         name = "RegularizationSmooth")
 end
