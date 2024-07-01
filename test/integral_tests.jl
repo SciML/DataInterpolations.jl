@@ -105,7 +105,8 @@ end
     test_integral(CubicSpline; args = [u, t], name = "Cubic Spline (Vector)")
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
-    test_integral(CubicSpline; args = [u, t], name = "Cubic Spline (Vector) with random points")
+    test_integral(
+        CubicSpline; args = [u, t], name = "Cubic Spline (Vector) with random points")
 end
 
 @testset "AkimaInterpolation" begin

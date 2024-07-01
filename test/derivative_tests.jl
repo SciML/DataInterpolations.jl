@@ -26,7 +26,8 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
 
         # Interpolation time points
         for _t in t[2:(end - 1)]
-            if func isa BSplineInterpolation || func isa BSplineApprox || func isa CubicHermiteInterpolation
+            if func isa BSplineInterpolation || func isa BSplineApprox ||
+               func isa CubicHermiteInterpolation
                 fdiff = forward_fdm(5, 1; geom = true)(func, _t)
                 fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
             else
@@ -127,7 +128,8 @@ end
 @testset "Quadratic Spline" begin
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    test_derivatives(QuadraticSpline; args = [u, t], name = "Quadratic Interpolation (Vector)")
+    test_derivatives(
+        QuadraticSpline; args = [u, t], name = "Quadratic Interpolation (Vector)")
     u = [[1.0, 2.0, 9.0], [3.0, 7.0, 5.0], [5.0, 4.0, 1.0]]
     test_derivatives(QuadraticSpline; args = [u, t],
         name = "Quadratic Interpolation (Vector of Vectors)")
