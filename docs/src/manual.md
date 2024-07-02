@@ -10,6 +10,6 @@ QuadraticSpline
 CubicSpline
 BSplineInterpolation
 BSplineApprox
-CubicHermiteInterpolation
-QuinticHermiteInterpolation
+CubicHermiteSpline
+QuinticHermiteSpline
 ```

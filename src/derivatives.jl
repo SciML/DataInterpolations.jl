@@ -192,9 +192,9 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
     ducum * A.d * scale, idx
 end
 
-# Cubic Hermite Interpolation
+# Cubic Hermite Spline
 function _derivative(
-        A::CubicHermiteInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
+        A::CubicHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
@@ -203,9 +203,9 @@ function _derivative(
     out, idx
 end
 
-# Quintic Hermite Interpolation
+# Quintic Hermite Spline
 function _derivative(
-        A::QuinticHermiteInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
+        A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]

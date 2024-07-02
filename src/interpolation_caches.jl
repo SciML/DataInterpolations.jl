@@ -613,7 +613,7 @@ function BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolate = false)
 end
 
 """
-    CubicHermiteInterpolation(du, u, t; extrapolate = false)
+    CubicHermiteSpline(du, u, t; extrapolate = false)
 
 It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomial such that the value and the first derivative are equal to given values in the data points.
 
@@ -627,28 +627,28 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct CubicHermiteInterpolation{uType, tType, duType, pType, T} <: AbstractInterpolation{T}
+struct CubicHermiteSpline{uType, tType, duType, pType, T} <: AbstractInterpolation{T}
     du::uType
     u::uType
     t::tType
     p::CubicHermiteParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function CubicHermiteInterpolation(du, u, t, p, extrapolate)
+    function CubicHermiteSpline(du, u, t, p, extrapolate)
         new{typeof(u), typeof(t), typeof(du), typeof(p.c₁), eltype(u)}(
             du, u, t, p, extrapolate, Ref(1))
     end
 end
 
-function CubicHermiteInterpolation(du, u, t; extrapolate = false)
-    @assert length(u) == length(du)
+function CubicHermiteSpline(du, u, t; extrapolate = false)
+    @assert length(u) == length(du) "Length of `u` is not equal to length of `du`."
     u, t = munge_data(u, t)
     p = CubicHermiteParameterCache(du, u, t)
-    return CubicHermiteInterpolation(du, u, t, p, extrapolate)
+    return CubicHermiteSpline(du, u, t, p, extrapolate)
 end
 
 """
-    QuinticHermiteInterpolation(ddu, du, u, t; extrapolate = false)
+    QuinticHermiteSpline(ddu, du, u, t; extrapolate = false)
 
 It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polynomial such that the value and the first and second derivative are equal to given values in the data points.
 
@@ -663,7 +663,7 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct QuinticHermiteInterpolation{uType, tType, duType, dduType, pType, T} <:
+struct QuinticHermiteSpline{uType, tType, duType, dduType, pType, T} <:
        AbstractInterpolation{T}
     ddu::uType
     du::uType
@@ -672,15 +672,15 @@ struct QuinticHermiteInterpolation{uType, tType, duType, dduType, pType, T} <:
     p::QuinticHermiteParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function QuinticHermiteInterpolation(ddu, du, u, t, p, extrapolate)
+    function QuinticHermiteSpline(ddu, du, u, t, p, extrapolate)
         new{typeof(u), typeof(t), typeof(du), typeof(ddu), typeof(p.c₁), eltype(u)}(
             ddu, du, u, t, p, extrapolate, Ref(1))
     end
 end
 
-function QuinticHermiteInterpolation(ddu, du, u, t; extrapolate = false)
-    @assert length(u) == length(du) == length(ddu)
+function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false)
+    @assert length(u) == length(du) == length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     u, t = munge_data(u, t)
     p = QuinticHermiteParameterCache(ddu, du, u, t)
-    return QuinticHermiteInterpolation(ddu, du, u, t, p, extrapolate)
+    return QuinticHermiteSpline(ddu, du, u, t, p, extrapolate)
 end

@@ -119,28 +119,28 @@ end
         AkimaInterpolation; args = [u, t], name = "Akima Interpolation (Vector) with random points")
 end
 
-@testset "CubicHermiteInterpolation" begin
+@testset "CubicHermiteSpline" begin
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    test_integral(CubicHermiteInterpolation; args = [du, u, t],
-        name = "Cubic Hermite Interpolation (Vector)")
+    test_integral(CubicHermiteSpline; args = [du, u, t],
+        name = "Cubic Hermite Spline (Vector)")
 
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     du = diff(u) ./ diff(t)
     push!(du, 0)
-    test_integral(CubicHermiteInterpolation; args = [du, u, t],
-        name = "Cubic Hermite Interpolation (Vector) with random points")
+    test_integral(CubicHermiteSpline; args = [du, u, t],
+        name = "Cubic Hermite Spline (Vector) with random points")
 end
 
-@testset "QuinticHermiteInterpolation" begin
+@testset "QuinticHermiteSpline" begin
     ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    test_integral(QuinticHermiteInterpolation; args = [ddu, du, u, t],
-        name = "Quintic Hermite Interpolation (Vector)")
+    test_integral(QuinticHermiteSpline; args = [ddu, du, u, t],
+        name = "Quintic Hermite Spline (Vector)")
 
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
@@ -148,8 +148,8 @@ end
     push!(du, 0)
     ddu = diff(du) ./ diff(t)
     push!(ddu, 0)
-    test_integral(QuinticHermiteInterpolation; args = [ddu, du, u, t],
-        name = "Quintic Hermite Interpolation (Vector) with random points")
+    test_integral(QuinticHermiteSpline; args = [ddu, du, u, t],
+        name = "Quintic Hermite Spline (Vector) with random points")
 end
 
 @testset "RegularizationSmooth" begin

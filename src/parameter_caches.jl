@@ -4,13 +4,13 @@ struct CubicHermiteParameterCache{pType}
 end
 
 function CubicHermiteParameterCache(du, u, t)
-    parameters = CubicHermiteInterpolationParameters.(
+    parameters = CubicHermiteSplineParameters.(
         Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
     c₁, c₂ = collect.(eachrow(hcat(collect.(parameters)...)))
     return CubicHermiteParameterCache(c₁, c₂)
 end
 
-function CubicHermiteInterpolationParameters(du, u, t, idx)
+function CubicHermiteSplineParameters(du, u, t, idx)
     Δt = t[idx + 1] - t[idx]
     u₀ = u[idx]
     u₁ = u[idx + 1]
@@ -28,13 +28,13 @@ struct QuinticHermiteParameterCache{pType}
 end
 
 function QuinticHermiteParameterCache(ddu, du, u, t)
-    parameters = QuinticHermiteInterpolationParameters.(
+    parameters = QuinticHermiteSplineParameters.(
         Ref(ddu), Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
     c₁, c₂, c₃ = collect.(eachrow(hcat(collect.(parameters)...)))
     return QuinticHermiteParameterCache(c₁, c₂, c₃)
 end
 
-function QuinticHermiteInterpolationParameters(ddu, du, u, t, idx)
+function QuinticHermiteSplineParameters(ddu, du, u, t, idx)
     Δt = t[idx + 1] - t[idx]
     u₀ = u[idx]
     u₁ = u[idx + 1]

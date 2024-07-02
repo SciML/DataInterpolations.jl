@@ -119,9 +119,9 @@ function integral(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
     throw(IntegralNotFoundError())
 end
 
-# Cubic Hermite Interpolation
+# Cubic Hermite Spline
 function _integral(
-        A::CubicHermiteInterpolation{<:AbstractVector{<:Number}}, idx::Number, t::Number)
+        A::CubicHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
     out = Δt₀ * (A.u[idx] + Δt₀ * A.du[idx] / 2)
@@ -131,9 +131,9 @@ function _integral(
     out
 end
 
-# Quintic Hermite Interpolation
+# Quintic Hermite Spline
 function _integral(
-        A::QuinticHermiteInterpolation{<:AbstractVector{<:Number}}, idx::Number, t::Number)
+        A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
     out = Δt₀ * (A.u[idx] + A.du[idx] * Δt₀ / 2 + A.ddu[idx] * Δt₀^2 / 6)

@@ -27,7 +27,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
         # Interpolation time points
         for _t in t[2:(end - 1)]
             if func isa BSplineInterpolation || func isa BSplineApprox ||
-               func isa CubicHermiteInterpolation
+               func isa CubicHermiteSpline
                 fdiff = forward_fdm(5, 1; geom = true)(func, _t)
                 fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
             else
@@ -173,26 +173,26 @@ end
         name = "BSpline Approx (Uniform, Uniform)")
 end
 
-@testset "Cubic Hermite Interpolation" begin
+@testset "Cubic Hermite Spline" begin
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    test_derivatives(CubicHermiteInterpolation; args = [du, u, t],
-        name = "Cubic Hermite Interpolation")
-    A = CubicHermiteInterpolation(du, u, t; extrapolate = true)
+    test_derivatives(CubicHermiteSpline; args = [du, u, t],
+        name = "Cubic Hermite Spline")
+    A = CubicHermiteSpline(du, u, t; extrapolate = true)
     @test derivative.(Ref(A), t) ≈ du
     @test derivative(A, 100.0)≈0.0105409 rtol=1e-5
     @test derivative(A, 300.0)≈-0.0806717 rtol=1e-5
 end
 
-@testset "Quintic Hermite Interpolation" begin
+@testset "Quintic Hermite Spline" begin
     ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    test_derivatives(QuinticHermiteInterpolation; args = [ddu, du, u, t],
-        name = "Quintic Hermite Interpolation")
-    A = QuinticHermiteInterpolation(ddu, du, u, t; extrapolate = true)
+    test_derivatives(QuinticHermiteSpline; args = [ddu, du, u, t],
+        name = "Quintic Hermite Spline")
+    A = QuinticHermiteSpline(ddu, du, u, t; extrapolate = true)
     @test derivative.(Ref(A), t) ≈ du
     @test derivative.(Ref(A), t, 2) ≈ ddu
     @test derivative(A, 100.0)≈0.0103916 rtol=1e-5
