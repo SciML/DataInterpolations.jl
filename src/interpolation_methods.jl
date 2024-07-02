@@ -13,23 +13,32 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
         idx = firstindex(A.u) - 1
         t1 = t2 = one(eltype(A.t))
         u1 = u2 = one(eltype(A.u))
+        slope = t * one(eltype(A.p.slope))
     else
         idx = get_idx(A.t, t, iguess)
         t1, t2 = A.t[idx], A.t[idx + 1]
         u1, u2 = A.u[idx], A.u[idx + 1]
+        slope = A.p.slope[idx]
     end
-    θ = (t - t1) / (t2 - t1)
-    val = (1 - θ) * u1 + θ * u2
-    # Note: The following is limited to when val is NaN as to not change the derivative of exact points.
-    t == t1 && any(isnan, val) && return oftype(val, u1), idx # Return exact value if no interpolation needed (eg when NaN at t2)
-    t == t2 && any(isnan, val) && return oftype(val, u2), idx # ... (eg when NaN at t1)
+
+    Δt = t - t1
+    Δu = slope * Δt
+    val = u1
+    Δu_nan = any(isnan.(Δu))
+    if t == t2 && Δu_nan
+        val = u2
+    elseif !(iszero(Δt) && Δu_nan)
+        val += Δu
+    end
+    val = oftype(Δu, val)
+
     val, idx
 end
 
 function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess)
-    θ = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
-    return (1 - θ) * A.u[:, idx] + θ * A.u[:, idx + 1], idx
+    Δt = t - A.t[idx]
+    return A.u[:, idx] + A.p.slope[idx] * Δt, idx
 end
 
 # Quadratic Interpolation
@@ -39,87 +48,71 @@ function _quad_interp_indices(A::QuadraticInterpolation, t::Number, iguess)
     idx, idx + 1, idx + 2
 end
 
-function _interpolate(A::QuadraticInterpolation{<:AbstractVector}, t::Number, iguess)
+function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
     i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    l₀ = ((t - A.t[i₁]) * (t - A.t[i₂])) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
-    l₁ = ((t - A.t[i₀]) * (t - A.t[i₂])) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
-    l₂ = ((t - A.t[i₀]) * (t - A.t[i₁])) / ((A.t[i₂] - A.t[i₀]) * (A.t[i₂] - A.t[i₁]))
-    return A.u[i₀] * l₀ + A.u[i₁] * l₁ + A.u[i₂] * l₂, i₀
-end
-
-function _interpolate(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    l₀ = ((t - A.t[i₁]) * (t - A.t[i₂])) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
-    l₁ = ((t - A.t[i₀]) * (t - A.t[i₂])) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
-    l₂ = ((t - A.t[i₀]) * (t - A.t[i₁])) / ((A.t[i₂] - A.t[i₀]) * (A.t[i₂] - A.t[i₁]))
-    return A.u[:, i₀] * l₀ + A.u[:, i₁] * l₁ + A.u[:, i₂] * l₂, i₀
+    u₀ = A.p.l₀[i₀] * (t - A.t[i₁]) * (t - A.t[i₂])
+    u₁ = A.p.l₁[i₀] * (t - A.t[i₀]) * (t - A.t[i₂])
+    u₂ = A.p.l₂[i₀] * (t - A.t[i₀]) * (t - A.t[i₁])
+    return u₀ + u₁ + u₂, i₀
 end
 
 # Lagrange Interpolation
-function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    idxs = findRequiredIdxs(A, t)
-    if A.t[idxs[1]] == t
-        return A.u[idxs[1]]
+function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, iguess)
+    idx = get_idx(A.t, t, iguess)
+    findRequiredIdxs!(A, t, idx)
+    if A.t[A.idxs[1]] == t
+        return A.u[A.idxs[1]], idx
     end
     N = zero(A.u[1])
     D = zero(A.t[1])
     tmp = N
-    for i in 1:length(idxs)
-        if isnan(A.bcache[idxs[i]])
+    for i in 1:length(A.idxs)
+        if isnan(A.bcache[A.idxs[i]])
             mult = one(A.t[1])
             for j in 1:(i - 1)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
             end
-            for j in (i + 1):length(idxs)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+            for j in (i + 1):length(A.idxs)
+                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
             end
-            A.bcache[idxs[i]] = mult
+            A.bcache[A.idxs[i]] = mult
         else
-            mult = A.bcache[idxs[i]]
+            mult = A.bcache[A.idxs[i]]
         end
-        tmp = inv((t - A.t[idxs[i]]) * mult)
+        tmp = inv((t - A.t[A.idxs[i]]) * mult)
         D += tmp
-        N += (tmp * A.u[idxs[i]])
+        N += (tmp * A.u[A.idxs[i]])
     end
-    N / D
+    N / D, idx
 end
 
-function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    idxs = findRequiredIdxs(A, t)
-    if A.t[idxs[1]] == t
-        return A.u[:, idxs[1]]
+function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, iguess)
+    idx = get_idx(A.t, t, iguess)
+    findRequiredIdxs!(A, t, idx)
+    if A.t[A.idxs[1]] == t
+        return A.u[:, A.idxs[1]], idx
     end
     N = zero(A.u[:, 1])
     D = zero(A.t[1])
     tmp = D
-    for i in 1:length(idxs)
-        if isnan(A.bcache[idxs[i]])
+    for i in 1:length(A.idxs)
+        if isnan(A.bcache[A.idxs[i]])
             mult = one(A.t[1])
             for j in 1:(i - 1)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
             end
-            for j in (i + 1):length(idxs)
-                mult *= (A.t[idxs[i]] - A.t[idxs[j]])
+            for j in (i + 1):length(A.idxs)
+                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
             end
-            A.bcache[idxs[i]] = mult
+            A.bcache[A.idxs[i]] = mult
         else
-            mult = A.bcache[idxs[i]]
+            mult = A.bcache[A.idxs[i]]
         end
-        tmp = inv((t - A.t[idxs[i]]) * mult)
+        tmp = inv((t - A.t[A.idxs[i]]) * mult)
         D += tmp
-        @. N += (tmp * A.u[:, idxs[i]])
+        @. N += (tmp * A.u[:, A.idxs[i]])
     end
-    N / D
-end
-
-function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)
-    _interpolate(A, t), idx
-end
-
-function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx)
-    _interpolate(A, t), idx
+    N / D, idx
 end
 
 function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
@@ -153,19 +146,20 @@ end
 
 # QuadraticSpline Interpolation
 function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess; lb = 2, ub_shift = 0, side = :first)
-    Cᵢ = A.u[idx - 1]
-    σ = 1 // 2 * (A.z[idx] - A.z[idx - 1]) / (A.t[idx] - A.t[idx - 1])
-    return A.z[idx - 1] * (t - A.t[idx - 1]) + σ * (t - A.t[idx - 1])^2 + Cᵢ, idx
+    idx = get_idx(A.t, t, iguess)
+    Cᵢ = A.u[idx]
+    Δt = t - A.t[idx]
+    return A.z[idx] * Δt + A.p.σ[idx] * Δt^2 + Cᵢ, idx
 end
 
 # CubicSpline Interpolation
 function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess)
-    I = A.z[idx] * (A.t[idx + 1] - t)^3 / (6A.h[idx + 1]) +
-        A.z[idx + 1] * (t - A.t[idx])^3 / (6A.h[idx + 1])
-    C = (A.u[idx + 1] / A.h[idx + 1] - A.z[idx + 1] * A.h[idx + 1] / 6) * (t - A.t[idx])
-    D = (A.u[idx] / A.h[idx + 1] - A.z[idx] * A.h[idx + 1] / 6) * (A.t[idx + 1] - t)
+    Δt₁ = t - A.t[idx]
+    Δt₂ = A.t[idx + 1] - t
+    I = (A.z[idx] * Δt₂^3 + A.z[idx + 1] * Δt₁^3) / (6A.h[idx + 1])
+    C = A.p.c₁[idx] * Δt₁
+    D = A.p.c₂[idx] * Δt₂
     I + C + D, idx
 end
 
@@ -179,9 +173,10 @@ function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
     idx = get_idx(A.t, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
-    N = spline_coefficients(n, A.d, A.k, t)
+    N = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.N
+    nonzero_coefficient_idxs = spline_coefficients!(N, A.d, A.k, t)
     ucum = zero(eltype(A.u))
-    for i in 1:n
+    for i in nonzero_coefficient_idxs
         ucum += N[i] * A.c[i]
     end
     ucum, idx
@@ -194,9 +189,10 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
     # change t into param [0 1]
     idx = get_idx(A.t, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
-    N = spline_coefficients(A.h, A.d, A.k, t)
+    N = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.N
+    nonzero_coefficient_idxs = spline_coefficients!(N, A.d, A.k, t)
     ucum = zero(eltype(A.u))
-    for i in 1:(A.h)
+    for i in nonzero_coefficient_idxs
         ucum += N[i] * A.c[i]
     end
     ucum, idx

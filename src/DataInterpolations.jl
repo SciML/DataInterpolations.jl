@@ -7,9 +7,11 @@ abstract type AbstractInterpolation{T} end
 using LinearAlgebra, RecipesBase
 using PrettyTables
 using ForwardDiff
+using ReadOnlyArrays
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            bracketstrictlymontonic
 
+include("parameter_caches.jl")
 include("interpolation_caches.jl")
 include("interpolation_utils.jl")
 include("interpolation_methods.jl")
@@ -73,6 +75,12 @@ function Base.showerror(io::IO, e::DerivativeNotFoundError)
     print(io, DERIVATIVE_NOT_FOUND_ERROR)
 end
 
+const MUST_COPY_ERROR = "A copy must be made of u, t to filter missing data"
+struct MustCopyError <: Exception end
+function Base.showerror(io::IO, e::MustCopyError)
+    print(io, MUST_COPY_ERROR)
+end
+
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
        BSplineInterpolation, BSplineApprox
@@ -103,12 +111,13 @@ struct RegularizationSmooth{uType, tType, T, T2, ITP <: AbstractInterpolation{T}
             alg,
             Aitp,
             extrapolate)
-        new{typeof(u), typeof(t), eltype(u), typeof(λ), typeof(Aitp)}(u,
-            û,
-            t,
-            t̂,
-            wls,
-            wr,
+        new{typeof(u), typeof(t), eltype(u), typeof(λ), typeof(Aitp)}(
+            readonly_wrap(u),
+            readonly_wrap(û),
+            readonly_wrap(t),
+            readonly_wrap(t̂),
+            readonly_wrap(oftype(u.parent, wls)),
+            readonly_wrap(oftype(u.parent, wr)),
             d,
             λ,
             alg,
