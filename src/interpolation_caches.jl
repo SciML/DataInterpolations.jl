@@ -611,3 +611,76 @@ function BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolate = false)
     c[2:(end - 1)] .= vec(P)
     BSplineApprox(u, t, d, h, p, k, c, pVecType, knotVecType, extrapolate)
 end
+
+"""
+    CubicHermiteSpline(du, u, t; extrapolate = false)
+
+It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomial such that the value and the first derivative are equal to given values in the data points.
+
+## Arguments
+
+  - `du`: the derivative at the data points.
+  - `u`: data points.
+  - `t`: time points.
+
+## Keyword Arguments
+
+  - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
+struct CubicHermiteSpline{uType, tType, duType, pType, T} <: AbstractInterpolation{T}
+    du::uType
+    u::uType
+    t::tType
+    p::CubicHermiteParameterCache{pType}
+    extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
+    function CubicHermiteSpline(du, u, t, p, extrapolate)
+        new{typeof(u), typeof(t), typeof(du), typeof(p.c₁), eltype(u)}(
+            du, u, t, p, extrapolate, Ref(1))
+    end
+end
+
+function CubicHermiteSpline(du, u, t; extrapolate = false)
+    @assert length(u)==length(du) "Length of `u` is not equal to length of `du`."
+    u, t = munge_data(u, t)
+    p = CubicHermiteParameterCache(du, u, t)
+    return CubicHermiteSpline(du, u, t, p, extrapolate)
+end
+
+"""
+    QuinticHermiteSpline(ddu, du, u, t; extrapolate = false)
+
+It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polynomial such that the value and the first and second derivative are equal to given values in the data points.
+
+## Arguments
+
+  - `ddu`: the second derivative at the data points.
+  - `du`: the derivative at the data points.
+  - `u`: data points.
+  - `t`: time points.
+
+## Keyword Arguments
+
+  - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+"""
+struct QuinticHermiteSpline{uType, tType, duType, dduType, pType, T} <:
+       AbstractInterpolation{T}
+    ddu::uType
+    du::uType
+    u::uType
+    t::tType
+    p::QuinticHermiteParameterCache{pType}
+    extrapolate::Bool
+    idx_prev::Base.RefValue{Int}
+    function QuinticHermiteSpline(ddu, du, u, t, p, extrapolate)
+        new{typeof(u), typeof(t), typeof(du), typeof(ddu), typeof(p.c₁), eltype(u)}(
+            ddu, du, u, t, p, extrapolate, Ref(1))
+    end
+end
+
+function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false)
+    @assert length(u)==length(du)==length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
+    u, t = munge_data(u, t)
+    p = QuinticHermiteParameterCache(ddu, du, u, t)
+    return QuinticHermiteSpline(ddu, du, u, t, p, extrapolate)
+end
