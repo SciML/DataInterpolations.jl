@@ -641,7 +641,7 @@ struct CubicHermiteSpline{uType, tType, duType, pType, T} <: AbstractInterpolati
 end
 
 function CubicHermiteSpline(du, u, t; extrapolate = false)
-    @assert length(u) == length(du) "Length of `u` is not equal to length of `du`."
+    @assert length(u)==length(du) "Length of `u` is not equal to length of `du`."
     u, t = munge_data(u, t)
     p = CubicHermiteParameterCache(du, u, t)
     return CubicHermiteSpline(du, u, t, p, extrapolate)
@@ -679,7 +679,7 @@ struct QuinticHermiteSpline{uType, tType, duType, dduType, pType, T} <:
 end
 
 function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false)
-    @assert length(u) == length(du) == length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
+    @assert length(u)==length(du)==length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     u, t = munge_data(u, t)
     p = QuinticHermiteParameterCache(ddu, du, u, t)
     return QuinticHermiteSpline(ddu, du, u, t, p, extrapolate)
