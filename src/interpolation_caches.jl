@@ -689,25 +689,27 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct CubicHermiteSpline{uType, tType, duType, pType, T} <: AbstractInterpolation{T}
-    du::uType
+    du::duType
     u::uType
     t::tType
     p::CubicHermiteParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function CubicHermiteSpline(du, u, t, p, extrapolate)
+    safetycopy::Bool
+    function CubicHermiteSpline(du, u, t, p, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(du), typeof(p.c₁), eltype(u)}(
-            du, u, t, p, extrapolate, Ref(1))
+            du, u, t, p, extrapolate, Ref(1), safetycopy)
     end
 end
 
-function CubicHermiteSpline(du, u, t; extrapolate = false)
+function CubicHermiteSpline(du, u, t; extrapolate = false, safetycopy = true)
     @assert length(u)==length(du) "Length of `u` is not equal to length of `du`."
-    u, t = munge_data(u, t)
+    u, t = munge_data(u, t, safetycopy)
     p = CubicHermiteParameterCache(du, u, t)
-    return CubicHermiteSpline(du, u, t, p, extrapolate)
+    return CubicHermiteSpline(du, u, t, p, extrapolate, safetycopy)
 end
 
 """
@@ -725,25 +727,27 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
 struct QuinticHermiteSpline{uType, tType, duType, dduType, pType, T} <:
        AbstractInterpolation{T}
-    ddu::uType
-    du::uType
+    ddu::dduType
+    du::duType
     u::uType
     t::tType
     p::QuinticHermiteParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function QuinticHermiteSpline(ddu, du, u, t, p, extrapolate)
+    safetycopy::Bool
+    function QuinticHermiteSpline(ddu, du, u, t, p, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(du), typeof(ddu), typeof(p.c₁), eltype(u)}(
-            ddu, du, u, t, p, extrapolate, Ref(1))
+            ddu, du, u, t, p, extrapolate, Ref(1), safetycopy)
     end
 end
 
-function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false)
+function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false, safetycopy = true)
     @assert length(u)==length(du)==length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
-    u, t = munge_data(u, t)
+    u, t = munge_data(u, t, safetycopy)
     p = QuinticHermiteParameterCache(ddu, du, u, t)
-    return QuinticHermiteSpline(ddu, du, u, t, p, extrapolate)
+    return QuinticHermiteSpline(ddu, du, u, t, p, extrapolate, safetycopy)
 end
