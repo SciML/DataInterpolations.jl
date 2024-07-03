@@ -201,3 +201,25 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
     end
     ucum, idx
 end
+
+# Cubic Hermite Spline
+function _interpolate(
+        A::CubicHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
+    idx = get_idx(A.t, t, iguess)
+    Δt₀ = t - A.t[idx]
+    Δt₁ = t - A.t[idx + 1]
+    out = A.u[idx] + Δt₀ * A.du[idx]
+    out += Δt₀^2 * (A.p.c₁[idx] + Δt₁ * A.p.c₂[idx])
+    out, idx
+end
+
+# Quintic Hermite Spline
+function _interpolate(
+        A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
+    idx = get_idx(A.t, t, iguess)
+    Δt₀ = t - A.t[idx]
+    Δt₁ = t - A.t[idx + 1]
+    out = A.u[idx] + Δt₀ * (A.du[idx] + A.ddu[idx] * Δt₀ / 2)
+    out += Δt₀^3 * (A.p.c₁[idx] + Δt₁ * (A.p.c₂[idx] + A.p.c₃[idx] * Δt₁))
+    out, idx
+end

@@ -8,8 +8,9 @@ using RegularizationTools
 using Optim
 using ForwardDiff
 
-function test_derivatives(method, u, t; args = [], kwargs = [], name::String)
-    func = method(u, t, args...; kwargs..., extrapolate = true)
+function test_derivatives(method; args = [], kwargs = [], name::String)
+    func = method(args...; kwargs..., extrapolate = true)
+    (; t) = func
     trange = collect(range(minimum(t) - 5.0, maximum(t) + 5.0, step = 0.1))
     trange_exclude = filter(x -> !in(x, t), trange)
     @testset "$name" begin
@@ -25,7 +26,8 @@ function test_derivatives(method, u, t; args = [], kwargs = [], name::String)
 
         # Interpolation time points
         for _t in t[2:(end - 1)]
-            if func isa BSplineInterpolation || func isa BSplineApprox
+            if func isa BSplineInterpolation || func isa BSplineApprox ||
+               func isa CubicHermiteSpline
                 fdiff = forward_fdm(5, 1; geom = true)(func, _t)
                 fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
             else
@@ -65,7 +67,7 @@ function test_derivatives(method, u, t; args = [], kwargs = [], name::String)
     end
     @test_throws DataInterpolations.DerivativeNotFoundError derivative(
         func, t[1], 3)
-    func = method(u, t, args...)
+    func = method(args...)
     @test_throws DataInterpolations.ExtrapolationError derivative(func, t[1] - 1.0)
     @test_throws DataInterpolations.ExtrapolationError derivative(func, t[end] + 1.0)
     @test_throws DataInterpolations.DerivativeNotFoundError derivative(
@@ -75,52 +77,47 @@ end
 @testset "Linear Interpolation" begin
     u = vcat(collect(1:5), 2 * collect(6:10))
     t = 1.0collect(1:10)
-    test_derivatives(LinearInterpolation, u, t; name = "Linear Interpolation (Vector)")
+    test_derivatives(
+        LinearInterpolation; args = [u, t], name = "Linear Interpolation (Vector)")
     u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
-    test_derivatives(LinearInterpolation, u, t; name = "Linear Interpolation (Matrix)")
+    test_derivatives(
+        LinearInterpolation; args = [u, t], name = "Linear Interpolation (Matrix)")
 end
 
 @testset "Quadratic Interpolation" begin
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    test_derivatives(QuadraticInterpolation,
-        u,
-        t;
+    test_derivatives(QuadraticInterpolation, args = [u, t],
         name = "Quadratic Interpolation (Vector)")
-    test_derivatives(QuadraticInterpolation,
-        u,
-        t;
-        args = [:Backward],
+    test_derivatives(QuadraticInterpolation;
+        args = [u, t, :Backward],
         name = "Quadratic Interpolation (Vector), backward")
     u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
-    test_derivatives(QuadraticInterpolation,
-        u,
-        t;
+    test_derivatives(QuadraticInterpolation;
+        args = [u, t],
         name = "Quadratic Interpolation (Matrix)")
 end
 
 @testset "Lagrange Interpolation" begin
     u = [1.0, 4.0, 9.0]
     t = [1.0, 2.0, 3.0]
-    test_derivatives(LagrangeInterpolation, u, t; name = "Lagrange Interpolation (Vector)")
+    test_derivatives(
+        LagrangeInterpolation; args = [u, t], name = "Lagrange Interpolation (Vector)")
     u = [1.0 4.0 9.0; 1.0 2.0 3.0]
-    test_derivatives(LagrangeInterpolation, u, t; name = "Lagrange Interpolation (Matrix)")
+    test_derivatives(
+        LagrangeInterpolation; args = [u, t], name = "Lagrange Interpolation (Matrix)")
     u = [[1.0, 4.0, 9.0], [3.0, 7.0, 4.0], [5.0, 4.0, 1.0]]
-    test_derivatives(LagrangeInterpolation,
-        u,
-        t;
+    test_derivatives(LagrangeInterpolation; args = [u, t],
         name = "Lagrange Interpolation (Vector of Vectors)")
     u = [[3.0 1.0 4.0; 1.0 5.0 9.0], [2.0 6.0 5.0; 3.0 5.0 8.0], [9.0 7.0 9.0; 3.0 2.0 3.0]]
-    test_derivatives(LagrangeInterpolation,
-        u,
-        t;
+    test_derivatives(LagrangeInterpolation; args = [u, t],
         name = "Lagrange Interpolation (Vector of Matrices)")
 end
 
 @testset "Akima Interpolation" begin
     u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
     t = collect(0.0:10.0)
-    test_derivatives(AkimaInterpolation, u, t; name = "Akima Interpolation")
+    test_derivatives(AkimaInterpolation; args = [u, t], name = "Akima Interpolation")
     @testset "Akima smooth derivative at end points" begin
         A = AkimaInterpolation(u, t)
         @test derivative(A, t[1]) ≈ derivative(A, nextfloat(t[1]))
@@ -131,61 +128,75 @@ end
 @testset "Quadratic Spline" begin
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    test_derivatives(QuadraticSpline, u, t; name = "Quadratic Interpolation (Vector)")
+    test_derivatives(
+        QuadraticSpline; args = [u, t], name = "Quadratic Interpolation (Vector)")
     u = [[1.0, 2.0, 9.0], [3.0, 7.0, 5.0], [5.0, 4.0, 1.0]]
-    test_derivatives(QuadraticSpline,
-        u,
-        t;
+    test_derivatives(QuadraticSpline; args = [u, t],
         name = "Quadratic Interpolation (Vector of Vectors)")
     u = [[1.0 4.0 9.0; 5.0 9.0 2.0], [3.0 7.0 4.0; 6.0 5.0 3.0], [5.0 4.0 1.0; 2.0 3.0 8.0]]
-    test_derivatives(QuadraticSpline,
-        u,
-        t;
+    test_derivatives(QuadraticSpline; args = [u, t],
         name = "Quadratic Interpolation (Vector of Matrices)")
 end
 
 @testset "Cubic Spline" begin
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    test_derivatives(CubicSpline, u, t; name = "Cubic Spline Interpolation (Vector)")
+    test_derivatives(
+        CubicSpline; args = [u, t], name = "Cubic Spline Interpolation (Vector)")
     u = [[1.0, 2.0, 9.0], [3.0, 7.0, 5.0], [5.0, 4.0, 1.0]]
-    test_derivatives(CubicSpline,
-        u,
-        t;
+    test_derivatives(CubicSpline; args = [u, t],
         name = "Cubic Spline Interpolation (Vector of Vectors)")
     u = [[1.0 4.0 9.0; 5.0 9.0 2.0], [3.0 7.0 4.0; 6.0 5.0 3.0], [5.0 4.0 1.0; 2.0 3.0 8.0]]
-    test_derivatives(CubicSpline,
-        u,
-        t;
+    test_derivatives(CubicSpline; args = [u, t],
         name = "Cubic Spline Interpolation (Vector of Matrices)")
 end
 
 @testset "BSplines" begin
     t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
-    test_derivatives(BSplineInterpolation,
-        u,
-        t;
-        args = [2,
+    test_derivatives(BSplineInterpolation;
+        args = [u, t, 2,
             :Uniform,
             :Uniform],
         name = "BSpline Interpolation (Uniform, Uniform)")
-    test_derivatives(BSplineInterpolation,
-        u,
-        t;
-        args = [2,
+    test_derivatives(BSplineInterpolation;
+        args = [u, t, 2,
             :ArcLen,
             :Average],
         name = "BSpline Interpolation (Arclen, Average)")
-    test_derivatives(BSplineApprox,
-        u,
-        t;
-        args = [
+    test_derivatives(BSplineApprox;
+        args = [u, t,
             3,
             4,
             :Uniform,
             :Uniform],
         name = "BSpline Approx (Uniform, Uniform)")
+end
+
+@testset "Cubic Hermite Spline" begin
+    du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    test_derivatives(CubicHermiteSpline; args = [du, u, t],
+        name = "Cubic Hermite Spline")
+    A = CubicHermiteSpline(du, u, t; extrapolate = true)
+    @test derivative.(Ref(A), t) ≈ du
+    @test derivative(A, 100.0)≈0.0105409 rtol=1e-5
+    @test derivative(A, 300.0)≈-0.0806717 rtol=1e-5
+end
+
+@testset "Quintic Hermite Spline" begin
+    ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
+    du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    test_derivatives(QuinticHermiteSpline; args = [ddu, du, u, t],
+        name = "Quintic Hermite Spline")
+    A = QuinticHermiteSpline(ddu, du, u, t; extrapolate = true)
+    @test derivative.(Ref(A), t) ≈ du
+    @test derivative.(Ref(A), t, 2) ≈ ddu
+    @test derivative(A, 100.0)≈0.0103916 rtol=1e-5
+    @test derivative(A, 300.0)≈0.0331361 rtol=1e-5
 end
 
 @testset "RegularizationSmooth" begin
@@ -207,9 +218,7 @@ end
     tₒ = t[idx]
     uₒ = u[idx]
     A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
-    test_derivatives(RegularizationSmooth,
-        uₒ,
-        tₒ;
+    test_derivatives(RegularizationSmooth; args = [uₒ, tₒ],
         kwargs = [:alg => :fixed],
         name = "RegularizationSmooth")
 end
@@ -220,7 +229,7 @@ end
     t = range(-10, stop = 10, length = 40)
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
-    test_derivatives(Curvefit, u, t; args = [model, p0, LBFGS()], name = "Curvefit")
+    test_derivatives(Curvefit; args = [u, t, model, p0, LBFGS()], name = "Curvefit")
 end
 
 @testset "Symbolic derivatives" begin

@@ -10,6 +10,7 @@ using ForwardDiff
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            bracketstrictlymontonic
 
+include("parameter_caches.jl")
 include("interpolation_caches.jl")
 include("interpolation_utils.jl")
 include("interpolation_methods.jl")
@@ -75,7 +76,8 @@ end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
-       BSplineInterpolation, BSplineApprox
+       BSplineInterpolation, BSplineApprox, CubicHermiteSpline,
+       QuinticHermiteSpline
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
