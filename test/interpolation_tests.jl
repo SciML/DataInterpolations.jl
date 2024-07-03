@@ -614,6 +614,33 @@ end
     end
 end
 
+@testset "Cubic Hermite Spline" begin
+    du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    A = CubicHermiteSpline(du, u, t; extrapolate = true)
+    @test A.(t) ≈ u
+    @test A(100.0)≈10.106770 rtol=1e-5
+    @test A(300.0)≈9.901542 rtol=1e-5
+    test_cached_index(A)
+    push!(u, 1.0)
+    @test_throws AssertionError CubicHermiteSpline(du, u, t)
+end
+
+@testset "Quintic Hermite Spline" begin
+    ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
+    du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    A = QuinticHermiteSpline(ddu, du, u, t; extrapolate = true)
+    @test A.(t) ≈ u
+    @test A(100.0)≈10.107996 rtol=1e-5
+    @test A(300.0)≈11.364162 rtol=1e-5
+    test_cached_index(A)
+    push!(u, 1.0)
+    @test_throws AssertionError QuinticHermiteSpline(ddu, du, u, t)
+end
+
 @testset "Curvefit" begin
     # Curvefit Interpolation
     rng = StableRNG(12345)
