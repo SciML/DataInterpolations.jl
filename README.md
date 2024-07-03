@@ -60,7 +60,7 @@ corresponding to `(u,t)` pairs.
       + `knotVec` - Symbol to Knot Vector, `knotVec = :Uniform` for uniform knot vector, `knotVec = :Average` for average spaced knot vector.
   - `BSplineApprox(u,t,d,h,pVec,knotVec)` - A regression B-spline which smooths the fitting curve. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h<length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing.
   - `CubicHermiteSpline(du, u, t)` - A third order Hermite interpolation, which matches the values and first (`du`) order derivatives in the data points exactly.
-  - `QuinticSplineInterpolation(ddu, du, u, t)` - A fifth order Hermite interpolation, which matches the values and first (`du`) and second (`ddu`) order derivatives in the data points exactly.
+  - `QuinticHermiteSpline(ddu, du, u, t)` - A fifth order Hermite interpolation, which matches the values and first (`du`) and second (`ddu`) order derivatives in the data points exactly.
 
 ## Extension Methods
 
