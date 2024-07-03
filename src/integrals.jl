@@ -7,9 +7,9 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     ((t1 < A.t[1] || t1 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     ((t2 < A.t[1] || t2 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     # the index less than or equal to t1
-    idx1 = max(1, min(searchsortedlast(A.t, t1), length(A.t) - 1))
+    idx1 = get_idx(A.t, t1, 0)
     # the index less than t2
-    idx2 = max(1, min(searchsortedlast(A.t, t2), length(A.t) - 1))
+    idx2 = get_idx(A.t, t2, 0)
     if A.t[idx2] == t2
         idx2 -= 1
     end

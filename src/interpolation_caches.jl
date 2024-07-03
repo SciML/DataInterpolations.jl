@@ -13,19 +13,23 @@ Extrapolation extends the last linear polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct LinearInterpolation{uType, tType, T} <: AbstractInterpolation{T}
+struct LinearInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function LinearInterpolation(u, t, extrapolate)
-        new{typeof(u), typeof(t), eltype(u)}(u, t, extrapolate, Ref(1))
+    function LinearInterpolation(u, t, I, extrapolate)
+        new{typeof(u), typeof(t), typeof(I), eltype(u)}(u, t, I, extrapolate, Ref(1))
     end
 end
 
 function LinearInterpolation(u, t; extrapolate = false)
     u, t = munge_data(u, t)
-    LinearInterpolation(u, t, extrapolate)
+    # TODO: Bad workaround, this computes the cached parameters twice
+    A = LinearInterpolation(u, t, nothing, extrapolate)
+    I = cumulative_integral(A)
+    LinearInterpolation(u, t, I, extrapolate)
 end
 
 """

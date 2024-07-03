@@ -17,6 +17,7 @@ include("interpolation_methods.jl")
 include("plot_rec.jl")
 include("derivatives.jl")
 include("integrals.jl")
+include("integral_inverses.jl")
 include("online.jl")
 include("show.jl")
 
@@ -72,6 +73,18 @@ const DERIVATIVE_NOT_FOUND_ERROR = "Derivatives greater than second order is not
 struct DerivativeNotFoundError <: Exception end
 function Base.showerror(io::IO, e::DerivativeNotFoundError)
     print(io, DERIVATIVE_NOT_FOUND_ERROR)
+end
+
+const INTEGRAL_INVERSE_NOT_FOUND_ERROR = "Cannot invert the integral analytically. Please use Numerical methods."
+struct IntegralInverseNotFoundError <: Exception end
+function Base.showerror(io::IO, e::IntegralInverseNotFoundError)
+    print(io, INTEGRAL_INVERSE_NOT_FOUND_ERROR)
+end
+
+const INTEGRAL_NOT_INVERTIBLE_ERROR = "The Interpolation is not positive everywhere so its integral is not invertible."
+struct IntegralNotInvertibleError <: Exception end
+function Base.showerror(io::IO, e::IntegralNotInvertibleError)
+    print(io, INTEGRAL_NOT_INVERTIBLE_ERROR)
 end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
