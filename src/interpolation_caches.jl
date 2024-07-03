@@ -20,15 +20,17 @@ struct LinearInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T}
     p::LinearParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function LinearInterpolation(u, t, p, extrapolate)
-        new{typeof(u), typeof(t), typeof(p.slope), eltype(u)}(u, t, p, extrapolate, Ref(1))
+    safetycopy::Bool
+    function LinearInterpolation(u, t, p, extrapolate, safetycopy)
+        new{typeof(u), typeof(t), typeof(p.slope), eltype(u)}(
+            u, t, p, extrapolate, Ref(1), safetycopy)
     end
 end
 
 function LinearInterpolation(u, t; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     p = LinearParameterCache(u, t)
-    LinearInterpolation(u, t, p, extrapolate)
+    LinearInterpolation(u, t, p, extrapolate, safetycopy)
 end
 
 """
@@ -55,24 +57,25 @@ struct QuadraticInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T
     mode::Symbol
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function QuadraticInterpolation(u, t, p, mode, extrapolate)
+    safetycopy::Bool
+    function QuadraticInterpolation(u, t, p, mode, extrapolate, safetycopy)
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
         new{typeof(u), typeof(t), typeof(p.l₀), eltype(u)}(
-            u, t, p, mode, extrapolate, Ref(1))
+            u, t, p, mode, extrapolate, Ref(1), safetycopy)
     end
 end
 
 function QuadraticInterpolation(u, t, mode; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     p = QuadraticParameterCache(u, t)
-    QuadraticInterpolation(u, t, p, mode, extrapolate)
+    QuadraticInterpolation(u, t, p, mode, extrapolate, safetycopy)
 end
 
 function QuadraticInterpolation(u, t; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     p = QuadraticParameterCache(u, t)
-    QuadraticInterpolation(u, t, p, :Forward, extrapolate)
+    QuadraticInterpolation(u, t, p, :Forward, extrapolate, safetycopy)
 end
 
 """
@@ -100,7 +103,8 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
     idxs::Vector{Int}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function LagrangeInterpolation(u, t, n, extrapolate)
+    safetycopy::Bool
+    function LagrangeInterpolation(u, t, n, extrapolate, safetycopy)
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
@@ -110,7 +114,8 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
             bcache,
             idxs,
             extrapolate,
-            Ref(1)
+            Ref(1),
+            safetycopy
         )
     end
 end
@@ -121,7 +126,7 @@ function LagrangeInterpolation(
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
     end
-    LagrangeInterpolation(u, t, n, extrapolate)
+    LagrangeInterpolation(u, t, n, extrapolate, safetycopy)
 end
 
 """
@@ -149,7 +154,8 @@ struct AkimaInterpolation{uType, tType, bType, cType, dType, T} <:
     d::dType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function AkimaInterpolation(u, t, b, c, d, extrapolate)
+    safetycopy::Bool
+    function AkimaInterpolation(u, t, b, c, d, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(b), typeof(c),
             typeof(d), eltype(u)}(u,
             t,
@@ -157,7 +163,8 @@ struct AkimaInterpolation{uType, tType, bType, cType, dType, T} <:
             c,
             d,
             extrapolate,
-            Ref(1)
+            Ref(1),
+            safetycopy
         )
     end
 end
@@ -184,7 +191,7 @@ function AkimaInterpolation(u, t; extrapolate = false, safetycopy = true)
     c = (3.0 .* m[3:(end - 2)] .- 2.0 .* b[1:(end - 1)] .- b[2:end]) ./ dt
     d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
 
-    AkimaInterpolation(u, t, b, c, d, extrapolate)
+    AkimaInterpolation(u, t, b, c, d, extrapolate, safetycopy)
 end
 
 """
@@ -212,15 +219,16 @@ struct ConstantInterpolation{uType, tType, dirType, T} <: AbstractInterpolation{
     dir::Symbol # indicates if value to the $dir should be used for the interpolation
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function ConstantInterpolation(u, t, dir, extrapolate)
+    safetycopy::Bool
+    function ConstantInterpolation(u, t, dir, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(dir), eltype(u)}(
-            u, t, nothing, dir, extrapolate, Ref(1))
+            u, t, nothing, dir, extrapolate, Ref(1), safetycopy)
     end
 end
 
 function ConstantInterpolation(u, t; dir = :left, extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
-    ConstantInterpolation(u, t, dir, extrapolate)
+    ConstantInterpolation(u, t, dir, extrapolate, safetycopy)
 end
 
 """
@@ -249,7 +257,8 @@ struct QuadraticSpline{uType, tType, pType, tAType, dType, zType, T} <:
     z::zType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function QuadraticSpline(u, t, p, tA, d, z, extrapolate)
+    safetycopy::Bool
+    function QuadraticSpline(u, t, p, tA, d, z, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(p.σ), typeof(tA),
             typeof(d), typeof(z), eltype(u)}(u,
             t,
@@ -258,7 +267,8 @@ struct QuadraticSpline{uType, tType, pType, tAType, dType, zType, T} <:
             d,
             z,
             extrapolate,
-            Ref(1)
+            Ref(1),
+            safetycopy
         )
     end
 end
@@ -279,7 +289,7 @@ function QuadraticSpline(u::uType,
     d = map(i -> i == 1 ? typed_zero : 2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]), 1:s)
     z = tA \ d
     p = QuadraticSplineParameterCache(z, t)
-    QuadraticSpline(u, t, p, tA, d, z, extrapolate)
+    QuadraticSpline(u, t, p, tA, d, z, extrapolate, safetycopy)
 end
 
 function QuadraticSpline(
@@ -298,7 +308,7 @@ function QuadraticSpline(
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
     p = QuadraticSplineParameterCache(z, t)
-    QuadraticSpline(u, t, p, tA, d, z, extrapolate)
+    QuadraticSpline(u, t, p, tA, d, z, extrapolate, safetycopy)
 end
 
 """
@@ -325,14 +335,16 @@ struct CubicSpline{uType, tType, pType, hType, zType, T} <: AbstractInterpolatio
     z::zType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function CubicSpline(u, t, p, h, z, extrapolate)
+    safetycopy::Bool
+    function CubicSpline(u, t, p, h, z, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(p.c₁), typeof(h), typeof(z), eltype(u)}(u,
             t,
             p,
             h,
             z,
             extrapolate,
-            Ref(1)
+            Ref(1),
+            safetycopy
         )
     end
 end
@@ -358,7 +370,7 @@ function CubicSpline(u::uType,
         1:(n + 1))
     z = tA \ d
     p = CubicSplineParameterCache(u, h, z)
-    CubicSpline(u, t, p, h[1:(n + 1)], z, extrapolate)
+    CubicSpline(u, t, p, h[1:(n + 1)], z, extrapolate, safetycopy)
 end
 
 function CubicSpline(
@@ -378,7 +390,7 @@ function CubicSpline(
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
     p = CubicSplineParameterCache(u, h, z)
-    CubicSpline(u, t, p, h[1:(n + 1)], z, extrapolate)
+    CubicSpline(u, t, p, h[1:(n + 1)], z, extrapolate, safetycopy)
 end
 
 """
@@ -413,6 +425,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
     knotVecType::Symbol
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
+    safetycopy::Bool
     function BSplineInterpolation(u,
             t,
             d,
@@ -422,7 +435,8 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
             N,
             pVecType,
             knotVecType,
-            extrapolate)
+            extrapolate,
+            safetycopy)
         new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(N), eltype(u)}(u,
             t,
             d,
@@ -433,7 +447,8 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
             pVecType,
             knotVecType,
             extrapolate,
-            Ref(1)
+            Ref(1),
+            safetycopy
         )
     end
 end
@@ -502,7 +517,8 @@ function BSplineInterpolation(
     spline_coefficients!(N, d, k, p)
     c = vec(N \ u[:, :])
     N = zeros(eltype(t), n)
-    BSplineInterpolation(u, t, d, p, k, c, N, pVecType, knotVecType, extrapolate)
+    BSplineInterpolation(
+        u, t, d, p, k, c, N, pVecType, knotVecType, extrapolate, safetycopy)
 end
 
 """
@@ -540,6 +556,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
     knotVecType::Symbol
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
+    safetycopy::Bool
     function BSplineApprox(u,
             t,
             d,
@@ -550,7 +567,9 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
             N,
             pVecType,
             knotVecType,
-            extrapolate)
+            extrapolate,
+            safetycopy
+    )
         new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(N), eltype(u)}(u,
             t,
             d,
@@ -562,7 +581,8 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
             pVecType,
             knotVecType,
             extrapolate,
-            Ref(1)
+            Ref(1),
+            safetycopy::Bool
         )
     end
 end
@@ -652,5 +672,5 @@ function BSplineApprox(
     P = M \ Q
     c[2:(end - 1)] .= vec(P)
     N = zeros(eltype(t), h)
-    BSplineApprox(u, t, d, h, p, k, c, N, pVecType, knotVecType, extrapolate)
+    BSplineApprox(u, t, d, h, p, k, c, N, pVecType, knotVecType, extrapolate, safetycopy)
 end
