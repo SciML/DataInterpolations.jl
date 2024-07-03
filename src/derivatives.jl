@@ -112,6 +112,10 @@ function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     (@evalpoly wj A.b[idx] 2A.c[j] 3A.d[j]), idx
 end
 
+function _derivative(A::ConstantInterpolation, t::Number, iguess)
+    return zero(first(A.u)), iguess
+end
+
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : eltype(A.u)(NaN)

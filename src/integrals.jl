@@ -78,24 +78,9 @@ function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
     A.d[idx] * ((t - t1)^4 / 4)
 end
 
-integral(A::LagrangeInterpolation, t1::Number, t2::Number) = throw(IntegralNotFoundError())
-integral(A::LagrangeInterpolation, t::Number) = throw(IntegralNotFoundError())
-
-function integral(A::BSplineInterpolation{<:AbstractVector{<:Number}},
-        t1::Number,
-        t2::Number)
-    throw(IntegralNotFoundError())
-end
-function integral(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number)
-    throw(IntegralNotFoundError())
-end
-
-function integral(A::BSplineApprox{<:AbstractVector{<:Number}}, t1::Number, t2::Number)
-    throw(IntegralNotFoundError())
-end
-function integral(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
-    throw(IntegralNotFoundError())
-end
+_integral(A::LagrangeInterpolation, idx::Number, t::Number) = throw(IntegralNotFoundError())
+_integral(A::BSplineInterpolation, idx::Number, t::Number) = throw(IntegralNotFoundError())
+_integral(A::BSplineApprox, idx::Number, t::Number) = throw(IntegralNotFoundError())
 
 # Cubic Hermite Spline
 function _integral(
