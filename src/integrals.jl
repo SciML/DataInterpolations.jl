@@ -33,7 +33,8 @@ function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
     t^2 * (u1 - u2) / (2 * t1 - 2 * t2) + t * (t1 * u2 - t2 * u1) / (t1 - t2)
 end
 
-function _integral(A::ConstantInterpolation{<:AbstractVector{<:Number}}, idx::Number, t::Number)
+function _integral(
+        A::ConstantInterpolation{<:AbstractVector{<:Number}}, idx::Number, t::Number)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
         return A.u[idx] * t

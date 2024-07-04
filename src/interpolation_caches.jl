@@ -701,7 +701,8 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     function QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate)
-        new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(ddu), typeof(p.c₁), eltype(u)}(
+        new{typeof(u), typeof(t), typeof(I), typeof(du),
+            typeof(ddu), typeof(p.c₁), eltype(u)}(
             ddu, du, u, t, I, p, extrapolate, Ref(1))
     end
 end
