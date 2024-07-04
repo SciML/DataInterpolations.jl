@@ -9,17 +9,18 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     # the index less than or equal to t1
     idx1 = get_idx(A.t, t1, 0)
     # the index less than t2
-    idx2 = get_idx(A.t, t2, 0)
-    if A.t[idx2] == t2
-        idx2 -= 1
+    idx2 = get_idx(A.t, t2, 0; idx_shift = -1, side = :first)
+
+    total = A.I[idx2] - A.I[idx1]
+    return if t1 == t2
+        zero(total)
+    else
+        total += _integral(A, idx1, A.t[idx1])
+        total -= _integral(A, idx1, t1)
+        total += _integral(A, idx2, t2)
+        total -= _integral(A, idx2, A.t[idx2])
+        total
     end
-    total = zero(eltype(A.u))
-    for idx in idx1:idx2
-        lt1 = idx == idx1 ? t1 : A.t[idx]
-        lt2 = idx == idx2 ? t2 : A.t[idx + 1]
-        total += _integral(A, idx, lt2) - _integral(A, idx, lt1)
-    end
-    total
 end
 
 function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
@@ -32,7 +33,7 @@ function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
     t^2 * (u1 - u2) / (2 * t1 - 2 * t2) + t * (t1 * u2 - t2 * u1) / (t1 - t2)
 end
 
-function _integral(A::ConstantInterpolation{<:AbstractVector}, idx::Number, t::Number)
+function _integral(A::ConstantInterpolation{<:AbstractVector{<:Number}}, idx::Number, t::Number)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
         return A.u[idx] * t

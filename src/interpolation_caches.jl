@@ -26,7 +26,6 @@ end
 
 function LinearInterpolation(u, t; extrapolate = false)
     u, t = munge_data(u, t)
-    # TODO: Bad workaround, this computes the cached parameters twice
     A = LinearInterpolation(u, t, nothing, extrapolate)
     I = cumulative_integral(A)
     LinearInterpolation(u, t, I, extrapolate)
@@ -48,22 +47,25 @@ Extrapolation extends the last quadratic polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct QuadraticInterpolation{uType, tType, T} <: AbstractInterpolation{T}
+struct QuadraticInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     mode::Symbol
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function QuadraticInterpolation(u, t, mode, extrapolate)
+    function QuadraticInterpolation(u, t, I, mode, extrapolate)
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        new{typeof(u), typeof(t), eltype(u)}(u, t, mode, extrapolate, Ref(1))
+        new{typeof(u), typeof(t), typeof(I), eltype(u)}(u, t, I, mode, extrapolate, Ref(1))
     end
 end
 
 function QuadraticInterpolation(u, t, mode; extrapolate = false)
     u, t = munge_data(u, t)
-    QuadraticInterpolation(u, t, mode, extrapolate)
+    A = QuadraticInterpolation(u, t, nothing, mode, extrapolate)
+    I = cumulative_integral(A)
+    QuadraticInterpolation(u, t, I, mode, extrapolate)
 end
 
 function QuadraticInterpolation(u, t; extrapolate = false)
@@ -129,19 +131,21 @@ Extrapolation extends the last cubic polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct AkimaInterpolation{uType, tType, bType, cType, dType, T} <:
+struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
        AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     b::bType
     c::cType
     d::dType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function AkimaInterpolation(u, t, b, c, d, extrapolate)
-        new{typeof(u), typeof(t), typeof(b), typeof(c),
+    function AkimaInterpolation(u, t, I, b, c, d, extrapolate)
+        new{typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
             typeof(d), eltype(u)}(u,
             t,
+            I,
             b,
             c,
             d,
@@ -173,7 +177,9 @@ function AkimaInterpolation(u, t; extrapolate = false)
     c = (3.0 .* m[3:(end - 2)] .- 2.0 .* b[1:(end - 1)] .- b[2:end]) ./ dt
     d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
 
-    AkimaInterpolation(u, t, b, c, d, extrapolate)
+    A = AkimaInterpolation(u, t, nothing, b, c, d, extrapolate)
+    I = cumulative_integral(A)
+    AkimaInterpolation(u, t, I, b, c, d, extrapolate)
 end
 
 """
@@ -193,20 +199,23 @@ Extrapolation extends the last constant polynomial at the end points on each sid
   - `dir`: indicates which value should be used for interpolation (`:left` or `:right`).
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct ConstantInterpolation{uType, tType, dirType, T} <: AbstractInterpolation{T}
+struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     dir::Symbol # indicates if value to the $dir should be used for the interpolation
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function ConstantInterpolation(u, t, dir, extrapolate)
-        new{typeof(u), typeof(t), typeof(dir), eltype(u)}(u, t, dir, extrapolate, Ref(1))
+    function ConstantInterpolation(u, t, I, dir, extrapolate)
+        new{typeof(u), typeof(t), typeof(I), eltype(u)}(u, t, I, dir, extrapolate, Ref(1))
     end
 end
 
 function ConstantInterpolation(u, t; dir = :left, extrapolate = false)
     u, t = munge_data(u, t)
-    ConstantInterpolation(u, t, dir, extrapolate)
+    A = ConstantInterpolation(u, t, nothing, dir, extrapolate)
+    I = cumulative_integral(A)
+    ConstantInterpolation(u, t, I, dir, extrapolate)
 end
 
 """
@@ -224,19 +233,21 @@ Extrapolation extends the last quadratic polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct QuadraticSpline{uType, tType, tAType, dType, zType, T} <:
+struct QuadraticSpline{uType, tType, IType, tAType, dType, zType, T} <:
        AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     tA::tAType
     d::dType
     z::zType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function QuadraticSpline(u, t, tA, d, z, extrapolate)
-        new{typeof(u), typeof(t), typeof(tA),
+    function QuadraticSpline(u, t, I, tA, d, z, extrapolate)
+        new{typeof(u), typeof(t), typeof(I), typeof(tA),
             typeof(d), typeof(z), eltype(u)}(u,
             t,
+            I,
             tA,
             d,
             z,
@@ -246,9 +257,8 @@ struct QuadraticSpline{uType, tType, tAType, dType, zType, T} <:
     end
 end
 
-function QuadraticSpline(u::uType,
-        t;
-        extrapolate = false) where {uType <: AbstractVector{<:Number}}
+function QuadraticSpline(
+        u::uType, t; extrapolate = false) where {uType <: AbstractVector{<:Number}}
     u, t = munge_data(u, t)
     s = length(t)
     dl = ones(eltype(t), s - 1)
@@ -261,7 +271,9 @@ function QuadraticSpline(u::uType,
 
     d = map(i -> i == 1 ? typed_zero : 2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]), 1:s)
     z = tA \ d
-    QuadraticSpline(u, t, tA, d, z, extrapolate)
+    A = QuadraticSpline(u, t, nothing, tA, d, z, extrapolate)
+    I = cumulative_integral(A)
+    QuadraticSpline(u, t, I, tA, d, z, extrapolate)
 end
 
 function QuadraticSpline(u::uType, t; extrapolate = false) where {uType <: AbstractVector}
@@ -278,7 +290,9 @@ function QuadraticSpline(u::uType, t; extrapolate = false) where {uType <: Abstr
     d = transpose(reshape(reduce(hcat, d_), :, s))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
-    QuadraticSpline(u, t, tA, d, z, extrapolate)
+    A = QuadraticSpline(u, t, nothing, tA, d, z, extrapolate)
+    I = cumulative_integral(A)
+    QuadraticSpline(u, t, I, tA, d, z, extrapolate)
 end
 
 """
@@ -296,16 +310,18 @@ Second derivative on both ends are zero, which are also called "natural" boundar
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct CubicSpline{uType, tType, hType, zType, T} <: AbstractInterpolation{T}
+struct CubicSpline{uType, tType, IType, hType, zType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     h::hType
     z::zType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function CubicSpline(u, t, h, z, extrapolate)
-        new{typeof(u), typeof(t), typeof(h), typeof(z), eltype(u)}(u,
+    function CubicSpline(u, t, I, h, z, extrapolate)
+        new{typeof(u), typeof(t), typeof(I), typeof(h), typeof(z), eltype(u)}(u,
             t,
+            I,
             h,
             z,
             extrapolate,
@@ -334,7 +350,9 @@ function CubicSpline(u::uType,
              6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
         1:(n + 1))
     z = tA \ d
-    CubicSpline(u, t, h[1:(n + 1)], z, extrapolate)
+    A = CubicSpline(u, t, nothing, h[1:(n + 1)], z, extrapolate)
+    I = cumulative_integral(A)
+    CubicSpline(u, t, I, h[1:(n + 1)], z, extrapolate)
 end
 
 function CubicSpline(u::uType, t; extrapolate = false) where {uType <: AbstractVector}
@@ -352,7 +370,9 @@ function CubicSpline(u::uType, t; extrapolate = false) where {uType <: AbstractV
     d = transpose(reshape(reduce(hcat, d_), :, n + 1))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
-    CubicSpline(u, t, h[1:(n + 1)], z, extrapolate)
+    A = CubicSpline(u, t, nothing, h[1:(n + 1)], z, extrapolate)
+    I = cumulative_integral(A)
+    CubicSpline(u, t, I, h[1:(n + 1)], z, extrapolate)
 end
 
 """
@@ -631,16 +651,17 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct CubicHermiteSpline{uType, tType, duType, pType, T} <: AbstractInterpolation{T}
+struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <: AbstractInterpolation{T}
     du::uType
     u::uType
     t::tType
+    I::IType
     p::CubicHermiteParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function CubicHermiteSpline(du, u, t, p, extrapolate)
-        new{typeof(u), typeof(t), typeof(du), typeof(p.c₁), eltype(u)}(
-            du, u, t, p, extrapolate, Ref(1))
+    function CubicHermiteSpline(du, u, t, I, p, extrapolate)
+        new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u)}(
+            du, u, t, I, p, extrapolate, Ref(1))
     end
 end
 
@@ -648,7 +669,9 @@ function CubicHermiteSpline(du, u, t; extrapolate = false)
     @assert length(u)==length(du) "Length of `u` is not equal to length of `du`."
     u, t = munge_data(u, t)
     p = CubicHermiteParameterCache(du, u, t)
-    return CubicHermiteSpline(du, u, t, p, extrapolate)
+    A = CubicHermiteSpline(du, u, t, nothing, p, extrapolate)
+    I = cumulative_integral(A)
+    CubicHermiteSpline(du, u, t, I, p, extrapolate)
 end
 
 """
@@ -667,18 +690,19 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct QuinticHermiteSpline{uType, tType, duType, dduType, pType, T} <:
+struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
        AbstractInterpolation{T}
     ddu::uType
     du::uType
     u::uType
     t::tType
+    I::IType
     p::QuinticHermiteParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
-    function QuinticHermiteSpline(ddu, du, u, t, p, extrapolate)
-        new{typeof(u), typeof(t), typeof(du), typeof(ddu), typeof(p.c₁), eltype(u)}(
-            ddu, du, u, t, p, extrapolate, Ref(1))
+    function QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate)
+        new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(ddu), typeof(p.c₁), eltype(u)}(
+            ddu, du, u, t, I, p, extrapolate, Ref(1))
     end
 end
 
@@ -686,5 +710,7 @@ function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false)
     @assert length(u)==length(du)==length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     u, t = munge_data(u, t)
     p = QuinticHermiteParameterCache(ddu, du, u, t)
-    return QuinticHermiteSpline(ddu, du, u, t, p, extrapolate)
+    A = QuinticHermiteSpline(ddu, du, u, t, nothing, p, extrapolate)
+    I = cumulative_integral(A)
+    QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate)
 end
