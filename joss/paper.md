@@ -13,6 +13,9 @@ authors:
     affiliation: "1, 2, 3"
   - name: Shubham Maddhashiya
     affiliation: 3
+  - name: Bart de Koning
+    orcid: 0009-0005-6134-6608
+    affiliation: 4
 affiliations:
  - name: JuliaHub
    index: 1
@@ -20,6 +23,8 @@ affiliations:
    index: 2
  - name: Pumas-AI
    index: 3
+ - name: Deltares
+   index: 4
 date: 6 June 2024
 bibliography: paper.bib
 ---
