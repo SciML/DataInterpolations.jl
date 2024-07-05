@@ -1,8 +1,23 @@
 abstract type AbstractIntegralInverseInterpolation{T} <: AbstractInterpolation{T} end
 
 _integral(A::AbstractIntegralInverseInterpolation, idx, t) = throw(IntegralNotFoundError())
+
+"""
+    invert_integral(A::AbstractInterpolation)::AbstractIntegralInverseInterpolation
+
+Creates the inverted integral interpolation object from the given interpolation. Conditions:
+  - The range of `A` must be strictly positive
+  - There must be an ordering defined on the data type of `A.u`
+  - This is currently only supported for ConstantInterpolation and LinearInterpolation
+
+## Arguments
+  - `A`: interpolation object satisfying the above requirements
+"""
 invert_integral(A::AbstractInterpolation) = throw(IntegralInverseNotFoundError())
 
+"""
+    some stuff
+"""
 struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
        AbstractIntegralInverseInterpolation{T}
     u::uType
@@ -36,6 +51,9 @@ function _interpolate(
     u, idx
 end
 
+"""
+    some stuff
+"""
 struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
        AbstractIntegralInverseInterpolation{T}
     u::uType
