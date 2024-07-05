@@ -9,7 +9,7 @@ u2 = Float64[1, 2, 1]
 ts = 1.0:0.5:6.0
 
 for method in [LinearInterpolation, QuadraticInterpolation, ConstantInterpolation]
-    func1 = method(u1, t1; safetycopy = false)
+    func1 = method(u1, t1)
     append!(func1, u2, t2)
     func2 = method(vcat(u1, u2), vcat(t1, t2))
     @test func1.u == func2.u

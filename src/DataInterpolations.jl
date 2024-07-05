@@ -81,10 +81,10 @@ function Base.showerror(io::IO, e::MustCopyError)
     print(io, MUST_COPY_ERROR)
 end
 
-const UNSAFE_ADD_DATA_ERROR = "Can only add data to the interpolation if safetycopy = false."
+const UNSAFE_ADD_DATA_ERROR = "Can only add data to the interpolation if safetycopy = true."
 struct UnsafeAddDataError <: Exception end
 function Base.showerror(io::IO, e::UnsafeAddDataError)
-    print(io, UNSAFE_ADD_DATA_ERROR) 
+    print(io, UNSAFE_ADD_DATA_ERROR)
 end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,

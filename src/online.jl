@@ -1,7 +1,7 @@
 import Base: append!, push!
 
 function push!(A::LinearInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {U, T}
-    A.safetycopy && throw(UnsafeAddDataError())
+    !A.safetycopy && throw(UnsafeAddDataError())
     push!(A.u.parent, u)
     push!(A.t.parent, t)
     slope = LinearInterpolationParameters(A.u, A.t, length(A.t) - 1)
@@ -10,7 +10,7 @@ function push!(A::LinearInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {
 end
 
 function push!(A::QuadraticInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {U, T}
-    A.safetycopy && throw(UnsafeAddDataError())
+    !A.safetycopy && throw(UnsafeAddDataError())
     push!(A.u.parent, u)
     push!(A.t.parent, t)
     l₀, l₁, l₂ = QuadraticInterpolationParameters(A.u, A.t, length(A.t) - 2)
@@ -21,7 +21,7 @@ function push!(A::QuadraticInterpolation{U, T}, u::eltype(U), t::eltype(T)) wher
 end
 
 function push!(A::ConstantInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {U, T}
-    A.safetycopy && throw(UnsafeAddDataError())
+    !A.safetycopy && throw(UnsafeAddDataError())
     push!(A.u.parent, u)
     push!(A.t.parent, t)
     A
@@ -30,7 +30,7 @@ end
 function append!(
         A::LinearInterpolation{ReadOnlyVector{eltypeU, U}, ReadOnlyVector{eltypeT, T}}, u::U, t::T) where {
         eltypeU, U, eltypeT, T}
-    A.safetycopy && throw(UnsafeAddDataError())
+    !A.safetycopy && throw(UnsafeAddDataError())
     length_old = length(A.t)
     u, t = munge_data(u, t, true)
     append!(A.u.parent, u)
@@ -44,7 +44,7 @@ end
 function append!(
         A::ConstantInterpolation{ReadOnlyVector{eltypeU, U}, ReadOnlyVector{eltypeT, T}}, u::U, t::T) where {
         eltypeU, U, eltypeT, T}
-    A.safetycopy && throw(UnsafeAddDataError())
+    !A.safetycopy && throw(UnsafeAddDataError())
     u, t = munge_data(u, t, true)
     append!(A.u.parent, u)
     append!(A.t.parent, t)
@@ -54,7 +54,7 @@ end
 function append!(
         A::QuadraticInterpolation{ReadOnlyVector{eltypeU, U}, ReadOnlyVector{eltypeT, T}}, u::U, t::T) where {
         eltypeU, U, eltypeT, T}
-    A.safetycopy && throw(UnsafeAddDataError())
+    !A.safetycopy && throw(UnsafeAddDataError())
     length_old = length(A.t)
     u, t = munge_data(u, t, true)
     append!(A.u.parent, u)
