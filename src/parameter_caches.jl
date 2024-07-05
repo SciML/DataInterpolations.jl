@@ -3,11 +3,11 @@ struct LinearParameterCache{pType}
 end
 
 function LinearParameterCache(u, t)
-    slope = LinearInterpolationParameters.(Ref(u), Ref(t), 1:(length(t) - 1))
+    slope = linear_interpolation_parameters.(Ref(u), Ref(t), 1:(length(t) - 1))
     return LinearParameterCache(slope)
 end
 
-function LinearInterpolationParameters(u, t, idx)
+function linear_interpolation_parameters(u, t, idx)
     Δu = u isa AbstractMatrix ? u[:, idx + 1] - u[:, idx] : u[idx + 1] - u[idx]
     Δt = t[idx + 1] - t[idx]
     slope = Δu / Δt
@@ -22,13 +22,13 @@ struct QuadraticParameterCache{pType}
 end
 
 function QuadraticParameterCache(u, t)
-    parameters = QuadraticInterpolationParameters.(
+    parameters = quadratic_interpolation_parameters.(
         Ref(u), Ref(t), 1:(length(t) - 2))
     l₀, l₁, l₂ = collect.(eachrow(hcat(collect.(parameters)...)))
     return QuadraticParameterCache(l₀, l₁, l₂)
 end
 
-function QuadraticInterpolationParameters(u, t, idx)
+function quadratic_interpolation_parameters(u, t, idx)
     if u isa AbstractMatrix
         u₀ = u[:, idx]
         u₁ = u[:, idx + 1]
@@ -55,11 +55,11 @@ struct QuadraticSplineParameterCache{pType}
 end
 
 function QuadraticSplineParameterCache(z, t)
-    σ = QuadraticSplineInterpolationParameters.(Ref(z), Ref(t), 1:(length(t) - 1))
+    σ = quadratic_spline_parameters.(Ref(z), Ref(t), 1:(length(t) - 1))
     return QuadraticSplineParameterCache(σ)
 end
 
-function QuadraticSplineInterpolationParameters(z, t, idx)
+function quadratic_spline_parameters(z, t, idx)
     σ = 1 // 2 * (z[idx + 1] - z[idx]) / (t[idx + 1] - t[idx])
     return σ
 end
@@ -70,13 +70,13 @@ struct CubicSplineParameterCache{pType}
 end
 
 function CubicSplineParameterCache(u, h, z)
-    parameters = CubicSplineInterpolationParameters.(
+    parameters = cubic_spline_parameters.(
         Ref(u), Ref(h), Ref(z), 1:(size(u)[end] - 1))
     c₁, c₂ = collect.(eachrow(hcat(collect.(parameters)...)))
     return CubicSplineParameterCache(c₁, c₂)
 end
 
-function CubicSplineInterpolationParameters(u, h, z, idx)
+function cubic_spline_parameters(u, h, z, idx)
     c₁ = (u[idx + 1] / h[idx + 1] - z[idx + 1] * h[idx + 1] / 6)
     c₂ = (u[idx] / h[idx + 1] - z[idx] * h[idx + 1] / 6)
     return c₁, c₂
@@ -88,13 +88,13 @@ struct CubicHermiteParameterCache{pType}
 end
 
 function CubicHermiteParameterCache(du, u, t)
-    parameters = CubicHermiteSplineParameters.(
+    parameters = cubic_hermite_spline_parameters.(
         Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
     c₁, c₂ = collect.(eachrow(hcat(collect.(parameters)...)))
     return CubicHermiteParameterCache(c₁, c₂)
 end
 
-function CubicHermiteSplineParameters(du, u, t, idx)
+function cubic_hermite_spline_parameters(du, u, t, idx)
     Δt = t[idx + 1] - t[idx]
     u₀ = u[idx]
     u₁ = u[idx + 1]
@@ -112,13 +112,13 @@ struct QuinticHermiteParameterCache{pType}
 end
 
 function QuinticHermiteParameterCache(ddu, du, u, t)
-    parameters = QuinticHermiteSplineParameters.(
+    parameters = quintic_hermite_spline_parameters.(
         Ref(ddu), Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
     c₁, c₂, c₃ = collect.(eachrow(hcat(collect.(parameters)...)))
     return QuinticHermiteParameterCache(c₁, c₂, c₃)
 end
 
-function QuinticHermiteSplineParameters(ddu, du, u, t, idx)
+function quintic_hermite_spline_parameters(ddu, du, u, t, idx)
     Δt = t[idx + 1] - t[idx]
     u₀ = u[idx]
     u₁ = u[idx + 1]
