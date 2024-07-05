@@ -44,9 +44,9 @@ A3 = QuadraticInterpolation(u, t; safetycopy = false)
 u === A3.u.parent
 ```
 
-Note that this does not prevent allocation in every interpolation constructor call, because parameter values are cached for all interpolation types except `ConstantInterpolation`.
+Note that this does not prevent allocation in every interpolation constructor call, because parameter values are cached for all interpolation types except [`ConstantInterpolation`](@ref).
 
-Because of the caching of parameters which depend on `u` and `t`, this data should not be mutated. Therefore `u` and `t` are wrapped in a `ReadOnlyArray`.
+Because of the caching of parameters which depend on `u` and `t`, this data should not be mutated. Therefore `u` and `t` are wrapped in a `ReadOnlyArray` from [ReadOnlyArrays.jl](https://github.com/JuliaArrays/ReadOnlyArrays.jl).
 
 ```@repl interface
 A3.t[2] = 3.14

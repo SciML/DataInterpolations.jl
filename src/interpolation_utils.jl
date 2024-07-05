@@ -30,7 +30,7 @@ function findRequiredIdxs!(A::LagrangeInterpolation, t, idx)
 end
 
 function spline_coefficients!(N, d, k, u::Number)
-    N .= 0
+    N .= zero(u)
     if u == k[1]
         N[1] = one(u)
         return 1:1
