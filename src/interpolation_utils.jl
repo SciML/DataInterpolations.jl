@@ -120,3 +120,13 @@ function get_idx(tvec, t, iguess; lb = 1, ub_shift = -1, idx_shift = 0, side = :
         error("side must be :first or :last")
     end
 end
+
+function cumulative_integral(A)
+    if isempty(methods(_integral, (typeof(A), Any, Any)))
+        return nothing
+    end
+    integral_values = [_integral(A, idx, A.t[idx + 1]) - _integral(A, idx, A.t[idx])
+                       for idx in 1:(length(A.t) - 1)]
+    pushfirst!(integral_values, zero(first(integral_values)))
+    return cumsum(integral_values)
+end

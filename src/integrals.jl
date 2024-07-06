@@ -6,20 +6,22 @@ end
 function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     ((t1 < A.t[1] || t1 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     ((t2 < A.t[1] || t2 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
+    !hasfield(typeof(A), :I) && throw(IntegralNotFoundError())
     # the index less than or equal to t1
-    idx1 = max(1, min(searchsortedlast(A.t, t1), length(A.t) - 1))
+    idx1 = get_idx(A.t, t1, 0)
     # the index less than t2
-    idx2 = max(1, min(searchsortedlast(A.t, t2), length(A.t) - 1))
-    if A.t[idx2] == t2
-        idx2 -= 1
+    idx2 = get_idx(A.t, t2, 0; idx_shift = -1, side = :first)
+
+    total = A.I[idx2] - A.I[idx1]
+    return if t1 == t2
+        zero(total)
+    else
+        total += _integral(A, idx1, A.t[idx1])
+        total -= _integral(A, idx1, t1)
+        total += _integral(A, idx2, t2)
+        total -= _integral(A, idx2, A.t[idx2])
+        total
     end
-    total = zero(eltype(A.u))
-    for idx in idx1:idx2
-        lt1 = idx == idx1 ? t1 : A.t[idx]
-        lt2 = idx == idx2 ? t2 : A.t[idx + 1]
-        total += _integral(A, idx, lt2) - _integral(A, idx, lt1)
-    end
-    total
 end
 
 function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
@@ -29,7 +31,8 @@ function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
     Δt * (A.u[idx] + A.p.slope[idx] * Δt / 2)
 end
 
-function _integral(A::ConstantInterpolation{<:AbstractVector}, idx::Number, t::Number)
+function _integral(
+        A::ConstantInterpolation{<:AbstractVector{<:Number}}, idx::Number, t::Number)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
         return A.u[idx] * t

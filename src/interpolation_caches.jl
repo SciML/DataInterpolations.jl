@@ -14,23 +14,26 @@ Extrapolation extends the last linear polynomial on each side.
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct LinearInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T}
+struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     p::LinearParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function LinearInterpolation(u, t, p, extrapolate, safetycopy)
-        new{typeof(u), typeof(t), typeof(p.slope), eltype(u)}(
-            u, t, p, extrapolate, Ref(1), safetycopy)
+    function LinearInterpolation(u, t, I, p, extrapolate, safetycopy)
+        new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
+            u, t, I, p, extrapolate, Ref(1), safetycopy)
     end
 end
 
 function LinearInterpolation(u, t; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     p = LinearParameterCache(u, t)
-    LinearInterpolation(u, t, p, extrapolate, safetycopy)
+    A = LinearInterpolation(u, t, nothing, p, extrapolate, safetycopy)
+    I = cumulative_integral(A)
+    LinearInterpolation(u, t, I, p, extrapolate, safetycopy)
 end
 
 """
@@ -50,32 +53,33 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct QuadraticInterpolation{uType, tType, pType, T} <: AbstractInterpolation{T}
+struct QuadraticInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     p::QuadraticParameterCache{pType}
     mode::Symbol
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function QuadraticInterpolation(u, t, p, mode, extrapolate, safetycopy)
+    function QuadraticInterpolation(u, t, I, p, mode, extrapolate, safetycopy)
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        new{typeof(u), typeof(t), typeof(p.l₀), eltype(u)}(
-            u, t, p, mode, extrapolate, Ref(1), safetycopy)
+        new{typeof(u), typeof(t), typeof(I), typeof(p.l₀), eltype(u)}(
+            u, t, I, p, mode, extrapolate, Ref(1), safetycopy)
     end
 end
 
 function QuadraticInterpolation(u, t, mode; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     p = QuadraticParameterCache(u, t)
-    QuadraticInterpolation(u, t, p, mode, extrapolate, safetycopy)
+    A = QuadraticInterpolation(u, t, nothing, p, mode, extrapolate, safetycopy)
+    I = cumulative_integral(A)
+    QuadraticInterpolation(u, t, I, p, mode, extrapolate, safetycopy)
 end
 
 function QuadraticInterpolation(u, t; extrapolate = false, safetycopy = true)
-    u, t = munge_data(u, t, safetycopy)
-    p = QuadraticParameterCache(u, t)
-    QuadraticInterpolation(u, t, p, :Forward, extrapolate, safetycopy)
+    QuadraticInterpolation(u, t, :Forward; extrapolate, safetycopy)
 end
 
 """
@@ -145,20 +149,22 @@ Extrapolation extends the last cubic polynomial on each side.
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct AkimaInterpolation{uType, tType, bType, cType, dType, T} <:
+struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
        AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     b::bType
     c::cType
     d::dType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function AkimaInterpolation(u, t, b, c, d, extrapolate, safetycopy)
-        new{typeof(u), typeof(t), typeof(b), typeof(c),
+    function AkimaInterpolation(u, t, I, b, c, d, extrapolate, safetycopy)
+        new{typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
             typeof(d), eltype(u)}(u,
             t,
+            I,
             b,
             c,
             d,
@@ -191,7 +197,9 @@ function AkimaInterpolation(u, t; extrapolate = false, safetycopy = true)
     c = (3.0 .* m[3:(end - 2)] .- 2.0 .* b[1:(end - 1)] .- b[2:end]) ./ dt
     d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
 
-    AkimaInterpolation(u, t, b, c, d, extrapolate, safetycopy)
+    A = AkimaInterpolation(u, t, nothing, b, c, d, extrapolate, safetycopy)
+    I = cumulative_integral(A)
+    AkimaInterpolation(u, t, I, b, c, d, extrapolate, safetycopy)
 end
 
 """
@@ -212,23 +220,26 @@ Extrapolation extends the last constant polynomial at the end points on each sid
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct ConstantInterpolation{uType, tType, dirType, T} <: AbstractInterpolation{T}
+struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     p::Nothing
     dir::Symbol # indicates if value to the $dir should be used for the interpolation
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function ConstantInterpolation(u, t, dir, extrapolate, safetycopy)
-        new{typeof(u), typeof(t), typeof(dir), eltype(u)}(
-            u, t, nothing, dir, extrapolate, Ref(1), safetycopy)
+    function ConstantInterpolation(u, t, I, dir, extrapolate, safetycopy)
+        new{typeof(u), typeof(t), typeof(I), eltype(u)}(
+            u, t, I, nothing, dir, extrapolate, Ref(1), safetycopy)
     end
 end
 
 function ConstantInterpolation(u, t; dir = :left, extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
-    ConstantInterpolation(u, t, dir, extrapolate, safetycopy)
+    A = ConstantInterpolation(u, t, nothing, dir, extrapolate, safetycopy)
+    I = cumulative_integral(A)
+    ConstantInterpolation(u, t, I, dir, extrapolate, safetycopy)
 end
 
 """
@@ -247,10 +258,11 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct QuadraticSpline{uType, tType, pType, tAType, dType, zType, T} <:
+struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
        AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     p::QuadraticSplineParameterCache{pType}
     tA::tAType
     d::dType
@@ -258,10 +270,11 @@ struct QuadraticSpline{uType, tType, pType, tAType, dType, zType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function QuadraticSpline(u, t, p, tA, d, z, extrapolate, safetycopy)
-        new{typeof(u), typeof(t), typeof(p.σ), typeof(tA),
+    function QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, safetycopy)
+        new{typeof(u), typeof(t), typeof(I), typeof(p.σ), typeof(tA),
             typeof(d), typeof(z), eltype(u)}(u,
             t,
+            I,
             p,
             tA,
             d,
@@ -273,9 +286,9 @@ struct QuadraticSpline{uType, tType, pType, tAType, dType, zType, T} <:
     end
 end
 
-function QuadraticSpline(u::uType,
-        t;
-        extrapolate = false, safetycopy = true) where {uType <: AbstractVector{<:Number}}
+function QuadraticSpline(
+        u::uType, t; extrapolate = false,
+        safetycopy = true) where {uType <: AbstractVector{<:Number}}
     u, t = munge_data(u, t, safetycopy)
     s = length(t)
     dl = ones(eltype(t), s - 1)
@@ -289,7 +302,9 @@ function QuadraticSpline(u::uType,
     d = map(i -> i == 1 ? typed_zero : 2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]), 1:s)
     z = tA \ d
     p = QuadraticSplineParameterCache(z, t)
-    QuadraticSpline(u, t, p, tA, d, z, extrapolate, safetycopy)
+    A = QuadraticSpline(u, t, nothing, p, tA, d, z, extrapolate, safetycopy)
+    I = cumulative_integral(A)
+    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, safetycopy)
 end
 
 function QuadraticSpline(
@@ -308,7 +323,9 @@ function QuadraticSpline(
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
     p = QuadraticSplineParameterCache(z, t)
-    QuadraticSpline(u, t, p, tA, d, z, extrapolate, safetycopy)
+    A = QuadraticSpline(u, t, nothing, p, tA, d, z, extrapolate, safetycopy)
+    I = cumulative_integral(A)
+    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, safetycopy)
 end
 
 """
@@ -327,18 +344,21 @@ Second derivative on both ends are zero, which are also called "natural" boundar
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct CubicSpline{uType, tType, pType, hType, zType, T} <: AbstractInterpolation{T}
+struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
+    I::IType
     p::CubicSplineParameterCache{pType}
     h::hType
     z::zType
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function CubicSpline(u, t, p, h, z, extrapolate, safetycopy)
-        new{typeof(u), typeof(t), typeof(p.c₁), typeof(h), typeof(z), eltype(u)}(u,
+    function CubicSpline(u, t, I, p, h, z, extrapolate, safetycopy)
+        new{typeof(u), typeof(t), typeof(I), typeof(p.c₁), typeof(h), typeof(z), eltype(u)}(
+            u,
             t,
+            I,
             p,
             h,
             z,
@@ -370,7 +390,9 @@ function CubicSpline(u::uType,
         1:(n + 1))
     z = tA \ d
     p = CubicSplineParameterCache(u, h, z)
-    CubicSpline(u, t, p, h[1:(n + 1)], z, extrapolate, safetycopy)
+    A = CubicSpline(u, t, nothing, p, h[1:(n + 1)], z, extrapolate, safetycopy)
+    I = cumulative_integral(A)
+    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, safetycopy)
 end
 
 function CubicSpline(
@@ -390,7 +412,9 @@ function CubicSpline(
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
     p = CubicSplineParameterCache(u, h, z)
-    CubicSpline(u, t, p, h[1:(n + 1)], z, extrapolate, safetycopy)
+    A = CubicSpline(u, t, nothing, p, h[1:(n + 1)], z, extrapolate, safetycopy)
+    I = cumulative_integral(A)
+    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, safetycopy)
 end
 
 """
@@ -691,17 +715,18 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct CubicHermiteSpline{uType, tType, duType, pType, T} <: AbstractInterpolation{T}
+struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <: AbstractInterpolation{T}
     du::duType
     u::uType
     t::tType
+    I::IType
     p::CubicHermiteParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function CubicHermiteSpline(du, u, t, p, extrapolate, safetycopy)
-        new{typeof(u), typeof(t), typeof(du), typeof(p.c₁), eltype(u)}(
-            du, u, t, p, extrapolate, Ref(1), safetycopy)
+    function CubicHermiteSpline(du, u, t, I, p, extrapolate, safetycopy)
+        new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u)}(
+            du, u, t, I, p, extrapolate, Ref(1), safetycopy)
     end
 end
 
@@ -709,7 +734,9 @@ function CubicHermiteSpline(du, u, t; extrapolate = false, safetycopy = true)
     @assert length(u)==length(du) "Length of `u` is not equal to length of `du`."
     u, t = munge_data(u, t, safetycopy)
     p = CubicHermiteParameterCache(du, u, t)
-    return CubicHermiteSpline(du, u, t, p, extrapolate, safetycopy)
+    A = CubicHermiteSpline(du, u, t, nothing, p, extrapolate, safetycopy)
+    I = cumulative_integral(A)
+    CubicHermiteSpline(du, u, t, I, p, extrapolate, safetycopy)
 end
 
 """
@@ -729,19 +756,21 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct QuinticHermiteSpline{uType, tType, duType, dduType, pType, T} <:
+struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
        AbstractInterpolation{T}
     ddu::dduType
     du::duType
     u::uType
     t::tType
+    I::IType
     p::QuinticHermiteParameterCache{pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function QuinticHermiteSpline(ddu, du, u, t, p, extrapolate, safetycopy)
-        new{typeof(u), typeof(t), typeof(du), typeof(ddu), typeof(p.c₁), eltype(u)}(
-            ddu, du, u, t, p, extrapolate, Ref(1), safetycopy)
+    function QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate, safetycopy)
+        new{typeof(u), typeof(t), typeof(I), typeof(du),
+            typeof(ddu), typeof(p.c₁), eltype(u)}(
+            ddu, du, u, t, I, p, extrapolate, Ref(1), safetycopy)
     end
 end
 
@@ -749,5 +778,7 @@ function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false, safetycopy = t
     @assert length(u)==length(du)==length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     u, t = munge_data(u, t, safetycopy)
     p = QuinticHermiteParameterCache(ddu, du, u, t)
-    return QuinticHermiteSpline(ddu, du, u, t, p, extrapolate, safetycopy)
+    A = QuinticHermiteSpline(ddu, du, u, t, nothing, p, extrapolate, safetycopy)
+    I = cumulative_integral(A)
+    QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate, safetycopy)
 end

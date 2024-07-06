@@ -18,6 +18,7 @@ include("interpolation_methods.jl")
 include("plot_rec.jl")
 include("derivatives.jl")
 include("integrals.jl")
+include("integral_inverses.jl")
 include("online.jl")
 include("show.jl")
 
@@ -75,6 +76,18 @@ function Base.showerror(io::IO, e::DerivativeNotFoundError)
     print(io, DERIVATIVE_NOT_FOUND_ERROR)
 end
 
+const INTEGRAL_INVERSE_NOT_FOUND_ERROR = "Cannot invert the integral analytically. Please use Numerical methods."
+struct IntegralInverseNotFoundError <: Exception end
+function Base.showerror(io::IO, e::IntegralInverseNotFoundError)
+    print(io, INTEGRAL_INVERSE_NOT_FOUND_ERROR)
+end
+
+const INTEGRAL_NOT_INVERTIBLE_ERROR = "The Interpolation is not positive everywhere so its integral is not invertible."
+struct IntegralNotInvertibleError <: Exception end
+function Base.showerror(io::IO, e::IntegralNotInvertibleError)
+    print(io, INTEGRAL_NOT_INVERTIBLE_ERROR)
+end
+
 const MUST_COPY_ERROR = "A copy must be made of u, t to filter missing data"
 struct MustCopyError <: Exception end
 function Base.showerror(io::IO, e::MustCopyError)
@@ -84,7 +97,7 @@ end
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
        BSplineInterpolation, BSplineApprox, CubicHermiteSpline,
-       QuinticHermiteSpline
+       QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
