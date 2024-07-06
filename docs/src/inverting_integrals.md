@@ -1,19 +1,19 @@
 # Inverting integrals
 
-Solving implicit integral problems of the form:
+Solving implicit integral problems of the following form is supported:
 
 ```math
 \begin{equation}
-    \text{find $t$ such that } \int_{t_1}^t f(\tau)\text{d}\tau = V \ge 0
+    \text{find $t$ such that } \int_{t_1}^t f(\tau)\text{d}\tau = V \ge 0,
 \end{equation}
 ```
 
-is supported for interpolations $f$ that are strictly positive and of one of these types:
+where $t_1$ is given by `first(A.t)`. This is supported for interpolations $f$ that are strictly positive and of one of these types:
 
   - `ConstantInterpolation`
   - `LinearInterpolation`
 
-This is done by creating an 'integral inverse' interpolation object which can efficiently compute $t$ for a given value of $V$, see the example below.
+This is achieved by creating an 'integral inverse' interpolation object which can efficiently compute $t$ for a given value of $V$, see the example below.
 
 ```@example inverting_integrals
 using Random #hide

@@ -6,8 +6,8 @@ abstract type AbstractIntegralInverseInterpolation{T} <: AbstractInterpolation{T
 Creates the inverted integral interpolation object from the given interpolation. Conditions:
 
   - The range of `A` must be strictly positive
-  - There must be an ordering defined on the data type of `A.u`
-  - This is currently only supported for ConstantInterpolation and LinearInterpolation
+  - `A.u` must be a number type (on which an ordering is defined)
+  - This is currently only supported for `ConstantInterpolation` and `LinearInterpolation`
 
 ## Arguments
 
@@ -22,7 +22,16 @@ function _derivative(A::AbstractIntegralInverseInterpolation, t::Number, iguess)
 end
 
 """
-    some stuff
+    LinearInterpolationIntInv(u, t, A)
+
+It is the interpolation of the inverse of the integral of a `LinearInterpolation`.
+Can be easily constructed with `invert_integral(A::LinearInterpolation{<:AbstractVector{<:Number}})`
+
+## Arguments
+
+  - `u` : Given by `A.t`
+  - `t` : Given by `A.I` (the cumulative integral of `A`)
+  - `A` : The `LinearInterpolation` object
 """
 struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
        AbstractIntegralInverseInterpolation{T}
@@ -31,9 +40,10 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     itp::itpType
+    safetycopy::Bool
     function LinearInterpolationIntInv(u, t, A)
         new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, A.extrapolate, Ref(1), A)
+            u, t, A.extrapolate, Ref(1), A, A.safetycopy)
     end
 end
 
@@ -56,7 +66,16 @@ function _interpolate(
 end
 
 """
-    some stuff
+    ConstantInterpolationIntInv(u, t, A)
+
+It is the interpolation of the inverse of the integral of a `ConstantInterpolation`.
+Can be easily constructed with `invert_integral(A::ConstantInterpolation{<:AbstractVector{<:Number}})`
+
+## Arguments
+
+  - `u` : Given by `A.t`
+  - `t` : Given by `A.I` (the cumulative integral of `A`)
+  - `A` : The `ConstantInterpolation` object
 """
 struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
        AbstractIntegralInverseInterpolation{T}
@@ -65,9 +84,10 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     itp::itpType
+    safetycopy::Bool
     function ConstantInterpolationIntInv(u, t, A)
         new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, A.extrapolate, Ref(1), A
+            u, t, A.extrapolate, Ref(1), A, A.safetycopy
         )
     end
 end
