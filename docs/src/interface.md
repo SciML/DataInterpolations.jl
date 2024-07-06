@@ -17,7 +17,7 @@ t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
 
 All interpolation methods return an object from which we can compute the value of the dependent variable at any time point.
 
-We will use the `CubicSpline` method for demonstration, but the API is the same for all the methods. We can also pass the `extrapolate=true` keyword if we want to allow the interpolation to go beyond the range of the timepoints. The default value is `extrapolate=false`.
+We will use the `CubicSpline` method for demonstration, but the API is the same for all the methods. We can also pass the `extrapolate = true` keyword if we want to allow the interpolation to go beyond the range of the timepoints. The default value is `extrapolate = false`.
 
 ```@example interface
 A1 = CubicSpline(u, t)
@@ -34,6 +34,23 @@ A2(300.0)
 !!! note
     
     The values computed beyond the range of the time points provided during interpolation will not be reliable, as these methods only perform well within the range and the first/last piece polynomial fit is extrapolated on either side which might not reflect the true nature of the data.
+
+The keyword `safetycopy = false` can be passed to make sure no copies of `u` and `t` are made when initializing the interpolation object.
+
+```@example interface
+A3 = QuadraticInterpolation(u, t; safetycopy = false)
+
+# Check for same memory
+u === A3.u.parent
+```
+
+Note that this does not prevent allocation in every interpolation constructor call, because parameter values are cached for all interpolation types except [`ConstantInterpolation`](@ref).
+
+Because of the caching of parameters which depend on `u` and `t`, this data should not be mutated. Therefore `u` and `t` are wrapped in a `ReadOnlyArray` from [ReadOnlyArrays.jl](https://github.com/JuliaArrays/ReadOnlyArrays.jl).
+
+```@repl interface
+A3.t[2] = 3.14
+```
 
 ## Derivatives
 

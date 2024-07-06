@@ -50,10 +50,8 @@ function _interpolate(
         A::LinearInterpolationIntInv{<:AbstractVector{<:Number}}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess)
     Δt = t - A.t[idx]
-    # TODO: Get from parameter cache: itp.p.slope[idx]
-    slope = (A.itp.u[idx + 1] - A.itp.u[idx]) / (A.itp.t[idx + 1] - A.itp.t[idx])
     x = A.itp.u[idx]
-    u = A.u[idx] + 2Δt / (x + sqrt(x^2 + 2slope * Δt))
+    u = A.u[idx] + 2Δt / (x + sqrt(x^2 + A.itp.p.slope[idx] * 2Δt))
     u, idx
 end
 
