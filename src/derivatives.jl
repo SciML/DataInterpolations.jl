@@ -32,70 +32,62 @@ end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    der = zero(A.u[1])
-    for j in eachindex(A.t)
-        tmp = zero(A.t[1])
-        if isnan(A.bcache[j])
-            mult = one(A.t[1])
-            for i in 1:(j - 1)
-                mult *= (A.t[j] - A.t[i])
+    if all(isnan.(A.derp.w))
+        for i in eachindex(A.u)
+            deru1 = zero(A.du[1])
+            deru2 = zero(A.t.parent[1])
+            for j in eachindex(A.t)
+                i == j && continue
+                val = (A.p.w[j] / A.p.w[i]) / (A.t[i] - A.t[j])
+                deru1 += val * A.u[j]
+                deru2 += val
             end
-            for i in (j + 1):length(A.t)
-                mult *= (A.t[j] - A.t[i])
-            end
-            A.bcache[j] = mult
-        else
-            mult = A.bcache[j]
+            A.du[i] = deru1 - deru2 * A.u[i]
         end
-        for l in eachindex(A.t)
-            if l != j
-                k = one(A.t[1])
-                for m in eachindex(A.t)
-                    if m != j && m != l
-                        k *= (t - A.t[m])
-                    end
-                end
-                k *= inv(mult)
-                tmp += k
-            end
-        end
-        der += A.u[j] * tmp
+        der_temp_p = lagrange_parameter_cache(A.du, A.t.parent)
+        A.derp.w .= der_temp_p.w
+        A.derp.wu .= der_temp_p.wu
     end
-    der
+    idx = _searchsortedfirst(A.t, t)
+    !isnothing(idx) && return A.du[idx]
+    N = zero(A.du[1])
+    D = zero(A.t[1])
+    for i in 1:(A.n + 1)
+        ti = t - A.t[i]
+        N += (A.derp.wu[i]) / ti
+        D += (A.derp.w[i]) / ti
+    end
+    N / D
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    der = zero(A.u[:, 1])
-    for j in eachindex(A.t)
-        tmp = zero(A.t[1])
-        if isnan(A.bcache[j])
-            mult = one(A.t[1])
-            for i in 1:(j - 1)
-                mult *= (A.t[j] - A.t[i])
+    if all(isnan.(A.derp.w))
+        for i in 1:size(A.u, 2)
+            deru1 = zero(A.du[:, 1])
+            deru2 = zero(A.t.parent[1])
+            for j in eachindex(A.t)
+                i == j && continue
+                val = (A.p.w[j] / A.p.w[i]) / (A.t[i] - A.t[j])
+                @. deru1 += val * A.u[:, j]
+                deru2 += val
             end
-            for i in (j + 1):length(A.t)
-                mult *= (A.t[j] - A.t[i])
-            end
-            A.bcache[j] = mult
-        else
-            mult = A.bcache[j]
+            @. A.du[:, i] = deru1 - deru2 * A.u[:, i]
         end
-        for l in eachindex(A.t)
-            if l != j
-                k = one(A.t[1])
-                for m in eachindex(A.t)
-                    if m != j && m != l
-                        k *= (t - A.t[m])
-                    end
-                end
-                k *= inv(mult)
-                tmp += k
-            end
-        end
-        der += A.u[:, j] * tmp
+        der_temp_p = lagrange_parameter_cache(A.du, A.t.parent)
+        A.derp.w .= der_temp_p.w
+        A.derp.wu .= der_temp_p.wu
     end
-    der
+    idx = _searchsortedfirst(A.t, t)
+    !isnothing(idx) && return A.du[:, idx]
+    N = zeros(promote_type(eltype(A.u), eltype(t)), length(A.u[:, 1]))
+    D = zero(A.t[1])
+    for i in 1:(A.n + 1)
+        ti = t - A.t[i]
+        @. N += (A.derp.wu[:, i]) / ti
+        D += (A.derp.w[i]) / ti
+    end
+    N / D
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)
