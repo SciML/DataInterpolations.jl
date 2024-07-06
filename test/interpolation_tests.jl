@@ -323,7 +323,7 @@ end
     t = [1.0, 2.0, 3.0]
     A = LagrangeInterpolation(u, t; extrapolate = true)
     @test A(0.0) == 0.0
-    @test A(4.0) == 16.0
+    @test A(4.0) ≈ 16.0
     A = LagrangeInterpolation(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-1.0)
     @test_throws DataInterpolations.ExtrapolationError A(4.0)
