@@ -50,4 +50,3 @@ DataInterpolations.invert_integral
 ConstantInterpolationIntInv
 LinearInterpolationIntInv
 ```
-

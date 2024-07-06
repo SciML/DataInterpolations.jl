@@ -1,8 +1,9 @@
 using DataInterpolations
-using DataInterpolations: integral, invert_integral
+using DataInterpolations: integral, derivative, invert_integral
+using FiniteDifferences
 
 function test_integral_inverses(method; args = [], kwargs = [])
-    A = method(args...; kwargs...)
+    A = method(args...; kwargs..., extrapolate = true)
     @test hasfield(typeof(A), :I)
     A_intinv = invert_integral(A)
     @test A_intinv isa DataInterpolations.AbstractIntegralInverseInterpolation
@@ -10,6 +11,12 @@ function test_integral_inverses(method; args = [], kwargs = [])
     Is = integral.(Ref(A), ts)
     ts_ = A_intinv.(Is)
     @test ts ≈ ts_
+
+    for I in Is
+        cdiff = forward_fdm(5, 1; geom = true)(A_intinv, I)
+        adiff = derivative(A_intinv, I)
+        @test cdiff ≈ adiff
+    end
 end
 
 @testset "Linear Interpolation" begin
