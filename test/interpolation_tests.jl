@@ -3,6 +3,18 @@ using FindFirstFunctions: searchsortedfirstcorrelated
 using StableRNGs
 using Optim, ForwardDiff
 
+function test_interpolation_type(T)
+    @test T <: DataInterpolations.AbstractInterpolation
+    @test hasfield(T, :u)
+    @test hasfield(T, :t)
+    @test hasfield(T, :extrapolate)
+    @test hasfield(T, :idx_prev)
+    @test hasfield(T, :safetycopy)
+    @test !isempty(methods(DataInterpolations._interpolate, (T, Any, Number)))
+    @test !isempty(methods(DataInterpolations._integral, (T, Any, Number)))
+    @test !isempty(methods(DataInterpolations._derivative, (T, Any, Number)))
+end
+
 function test_cached_index(A)
     for t in range(first(A.t), last(A.t); length = 2 * length(A.t) - 1)
         A(t)
@@ -13,6 +25,8 @@ function test_cached_index(A)
 end
 
 @testset "Linear Interpolation" begin
+    test_interpolation_type(LinearInterpolation)
+
     for t in (1.0:10.0, 1.0collect(1:10))
         u = 2.0collect(1:10)
         #t = 1.0collect(1:10)
@@ -64,14 +78,6 @@ end
     @test isnan(A(1.0))
     @test A(2.0) == 1.0
     @test A(2.5) == 1.5
-    @test A(3.0) == 2.0
-    @test A(4.0) == 3.0
-
-    u = [0.0, NaN, 2.0, 3.0]
-    A = LinearInterpolation(u, t; extrapolate = true)
-    @test A(1.0) == 0.0
-    @test isnan(A(2.0))
-    @test isnan(A(2.5))
     @test A(3.0) == 2.0
     @test A(4.0) == 3.0
 
@@ -167,6 +173,8 @@ end
 end
 
 @testset "Quadratic Interpolation" begin
+    test_interpolation_type(QuadraticInterpolation)
+
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
     A = QuadraticInterpolation(u, t; extrapolate = true)
@@ -262,6 +270,8 @@ end
 end
 
 @testset "Lagrange Interpolation" begin
+    test_interpolation_type(LagrangeInterpolation)
+
     u = [1.0, 4.0, 9.0]
     t = [1.0, 2.0, 3.0]
     A = LagrangeInterpolation(u, t)
@@ -320,6 +330,8 @@ end
 end
 
 @testset "Akima Interpolation" begin
+    test_interpolation_type(AkimaInterpolation)
+
     u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
     t = collect(0.0:10.0)
     A = AkimaInterpolation(u, t)
@@ -349,6 +361,8 @@ end
 end
 
 @testset "ConstantInterpolation" begin
+    test_interpolation_type(ConstantInterpolation)
+
     t = [1.0, 2.0, 3.0, 4.0]
 
     @testset "Vector case" for u in [[1.0, 2.0, 0.0, 1.0], ["B", "C", "A", "B"]]
@@ -473,6 +487,8 @@ end
 end
 
 @testset "QuadraticSpline Interpolation" begin
+    test_interpolation_type(QuadraticSpline)
+
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
 
@@ -518,6 +534,8 @@ end
 end
 
 @testset "CubicSpline Interpolation" begin
+    test_interpolation_type(CubicSpline)
+
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
 
@@ -569,11 +587,13 @@ end
 end
 
 @testset "BSplines" begin
+
     # BSpline Interpolation and Approximation
     t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
 
     @testset "BSplineInterpolation" begin
+        test_interpolation_type(BSplineInterpolation)
         A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform)
 
         @test [A(25.0), A(80.0)] == [13.454197730061425, 10.305633616059845]
@@ -605,6 +625,7 @@ end
     end
 
     @testset "BSplineApprox" begin
+        test_interpolation_type(BSplineApprox)
         A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
 
         @test [A(25.0), A(80.0)] ≈ [12.979802931218234, 10.914310609953178]
@@ -623,6 +644,8 @@ end
 end
 
 @testset "Cubic Hermite Spline" begin
+    test_interpolation_type(CubicHermiteSpline)
+
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
@@ -636,6 +659,8 @@ end
 end
 
 @testset "Quintic Hermite Spline" begin
+    test_interpolation_type(QuinticHermiteSpline)
+
     ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]

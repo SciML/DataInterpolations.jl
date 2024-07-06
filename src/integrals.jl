@@ -25,11 +25,8 @@ end
 function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
         idx::Number,
         t::Number)
-    t1 = A.t[idx]
-    t2 = A.t[idx + 1]
-    u1 = A.u[idx]
-    u2 = A.u[idx + 1]
-    t^2 * (u1 - u2) / (2 * t1 - 2 * t2) + t * (t1 * u2 - t2 * u1) / (t1 - t2)
+    Δt = t - A.t[idx]
+    Δt * (A.u[idx] + A.p.slope[idx] * Δt / 2)
 end
 
 function _integral(A::ConstantInterpolation{<:AbstractVector}, idx::Number, t::Number)
@@ -47,49 +44,30 @@ function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
         t::Number)
     A.mode == :Backward && idx > 1 && (idx -= 1)
     idx = min(length(A.t) - 2, idx)
-    t1 = A.t[idx]
-    t2 = A.t[idx + 1]
-    t3 = A.t[idx + 2]
-    u1 = A.u[idx]
-    u2 = A.u[idx + 1]
-    u3 = A.u[idx + 2]
-    (t^3 * (-t1 * u2 + t1 * u3 + t2 * u1 - t2 * u3 - t3 * u1 + t3 * u2) /
-     (3 * t1^2 * t2 - 3 * t1^2 * t3 - 3 * t1 * t2^2 + 3 * t1 * t3^2 + 3 * t2^2 * t3 -
-      3 * t2 * t3^2) +
-     t^2 * (t1^2 * u2 - t1^2 * u3 - t2^2 * u1 + t2^2 * u3 + t3^2 * u1 - t3^2 * u2) /
-     (2 * t1^2 * t2 - 2 * t1^2 * t3 - 2 * t1 * t2^2 + 2 * t1 * t3^2 + 2 * t2^2 * t3 -
-      2 * t2 * t3^2) +
-     t *
-     (t1^2 * t2 * u3 - t1^2 * t3 * u2 - t1 * t2^2 * u3 + t1 * t3^2 * u2 + t2^2 * t3 * u1 -
-      t2 * t3^2 * u1) /
-     (t1^2 * t2 - t1^2 * t3 - t1 * t2^2 + t1 * t3^2 + t2^2 * t3 - t2 * t3^2))
+    t₀ = A.t[idx]
+    t₁ = A.t[idx + 1]
+    t₂ = A.t[idx + 2]
+
+    t_sq = (t^2) / 3
+    Iu₀ = A.p.l₀[idx] * t * (t_sq - t * (t₁ + t₂) / 2 + t₁ * t₂)
+    Iu₁ = A.p.l₁[idx] * t * (t_sq - t * (t₀ + t₂) / 2 + t₀ * t₂)
+    Iu₂ = A.p.l₂[idx] * t * (t_sq - t * (t₀ + t₁) / 2 + t₀ * t₁)
+    return Iu₀ + Iu₁ + Iu₂
 end
 
 function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
-    t1 = A.t[idx]
-    t2 = A.t[idx + 1]
-    u1 = A.u[idx]
-    z1 = A.z[idx]
-    z2 = A.z[idx + 1]
-    t^3 * (z1 - z2) / (6 * t1 - 6 * t2) + t^2 * (t1 * z2 - t2 * z1) / (2 * t1 - 2 * t2) +
-    t * (-t1^2 * z1 - t1^2 * z2 + 2 * t1 * t2 * z1 + 2 * t1 * u1 - 2 * t2 * u1) /
-    (2 * t1 - 2 * t2)
+    Cᵢ = A.u[idx]
+    Δt = t - A.t[idx]
+    return A.z[idx] * Δt^2 / 2 + A.p.σ[idx] * Δt^3 / 3 + Cᵢ * Δt
 end
 
 function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
-    t1 = A.t[idx]
-    t2 = A.t[idx + 1]
-    u1 = A.u[idx]
-    u2 = A.u[idx + 1]
-    z1 = A.z[idx]
-    z2 = A.z[idx + 1]
-    h2 = A.h[idx + 1]
-    (t^4 * (-z1 + z2) / (24 * h2) + t^3 * (-t1 * z2 + t2 * z1) / (6 * h2) +
-     t^2 * (h2^2 * z1 - h2^2 * z2 + 3 * t1^2 * z2 - 3 * t2^2 * z1 - 6 * u1 + 6 * u2) /
-     (12 * h2) +
-     t *
-     (h2^2 * t1 * z2 - h2^2 * t2 * z1 - t1^3 * z2 - 6 * t1 * u2 + t2^3 * z1 + 6 * t2 * u1) /
-     (6 * h2))
+    Δt₁sq = (t - A.t[idx])^2 / 2
+    Δt₂sq = (A.t[idx + 1] - t)^2 / 2
+    II = (-A.z[idx] * Δt₂sq^2 + A.z[idx + 1] * Δt₁sq^2) / (6A.h[idx + 1])
+    IC = A.p.c₁[idx] * Δt₁sq
+    ID = -A.p.c₂[idx] * Δt₂sq
+    II + IC + ID
 end
 
 function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
@@ -100,24 +78,9 @@ function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
     A.d[idx] * ((t - t1)^4 / 4)
 end
 
-integral(A::LagrangeInterpolation, t1::Number, t2::Number) = throw(IntegralNotFoundError())
-integral(A::LagrangeInterpolation, t::Number) = throw(IntegralNotFoundError())
-
-function integral(A::BSplineInterpolation{<:AbstractVector{<:Number}},
-        t1::Number,
-        t2::Number)
-    throw(IntegralNotFoundError())
-end
-function integral(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number)
-    throw(IntegralNotFoundError())
-end
-
-function integral(A::BSplineApprox{<:AbstractVector{<:Number}}, t1::Number, t2::Number)
-    throw(IntegralNotFoundError())
-end
-function integral(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number)
-    throw(IntegralNotFoundError())
-end
+_integral(A::LagrangeInterpolation, idx::Number, t::Number) = throw(IntegralNotFoundError())
+_integral(A::BSplineInterpolation, idx::Number, t::Number) = throw(IntegralNotFoundError())
+_integral(A::BSplineApprox, idx::Number, t::Number) = throw(IntegralNotFoundError())
 
 # Cubic Hermite Spline
 function _integral(

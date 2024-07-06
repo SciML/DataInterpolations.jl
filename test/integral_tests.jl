@@ -83,7 +83,7 @@ end
 
 @testset "LagrangeInterpolation" begin
     u = [1.0, 4.0, 9.0]
-    t = [1.0, 2.0, 3.0]
+    t = [1.0, 2.0, 6.0]
     A = LagrangeInterpolation(u, t)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 1.0, 2.0)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 5.0)

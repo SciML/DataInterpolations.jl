@@ -125,6 +125,13 @@ end
     end
 end
 
+@testset "Constant Interpolation" begin
+    u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+    t = collect(0.0:10.0)
+    A = ConstantInterpolation(u, t)
+    @test all(derivative.(Ref(A), t) .== 0.0)
+end
+
 @testset "Quadratic Spline" begin
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]

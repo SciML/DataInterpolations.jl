@@ -17,30 +17,17 @@ function derivative(A, t, order = 1)
     end
 end
 
-function _derivative(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::LinearInterpolation, t::Number, iguess)
     idx = get_idx(A.t, t, iguess; idx_shift = -1, ub_shift = -2, side = :first)
-    (A.u[idx + 1] - A.u[idx]) / (A.t[idx + 1] - A.t[idx]), idx
+    A.p.slope[idx], idx
 end
 
-function _derivative(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess; idx_shift = -1, ub_shift = -2, side = :first)
-    (@views @. (A.u[:, idx + 1] - A.u[:, idx]) / (A.t[idx + 1] - A.t[idx])), idx
-end
-
-function _derivative(A::QuadraticInterpolation{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::QuadraticInterpolation, t::Number, iguess)
     i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    dl₀ = (2t - A.t[i₁] - A.t[i₂]) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
-    dl₁ = (2t - A.t[i₀] - A.t[i₂]) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
-    dl₂ = (2t - A.t[i₀] - A.t[i₁]) / ((A.t[i₂] - A.t[i₀]) * (A.t[i₂] - A.t[i₁]))
-    A.u[i₀] * dl₀ + A.u[i₁] * dl₁ + A.u[i₂] * dl₂, i₀
-end
-
-function _derivative(A::QuadraticInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    dl₀ = (2t - A.t[i₁] - A.t[i₂]) / ((A.t[i₀] - A.t[i₁]) * (A.t[i₀] - A.t[i₂]))
-    dl₁ = (2t - A.t[i₀] - A.t[i₂]) / ((A.t[i₁] - A.t[i₀]) * (A.t[i₁] - A.t[i₂]))
-    dl₂ = (2t - A.t[i₀] - A.t[i₁]) / ((A.t[i₂] - A.t[i₀]) * (A.t[i₂] - A.t[i₁]))
-    (@views @. A.u[:, i₀] * dl₀ + A.u[:, i₁] * dl₁ + A.u[:, i₂] * dl₂), i₀
+    du₀ = A.p.l₀[i₀] * (2t - A.t[i₁] - A.t[i₂])
+    du₁ = A.p.l₁[i₀] * (2t - A.t[i₀] - A.t[i₂])
+    du₂ = A.p.l₂[i₀] * (2t - A.t[i₀] - A.t[i₁])
+    return @views @. du₀ + du₁ + du₂, i₀
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
@@ -125,6 +112,10 @@ function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     (@evalpoly wj A.b[idx] 2A.c[j] 3A.d[j]), idx
 end
 
+function _derivative(A::ConstantInterpolation, t::Number, iguess)
+    return zero(first(A.u)), iguess
+end
+
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : eltype(A.u)(NaN)
@@ -138,17 +129,18 @@ end
 # QuadraticSpline Interpolation
 function _derivative(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess; lb = 2, ub_shift = 0, side = :first)
-    σ = 1 // 2 * (A.z[idx] - A.z[idx - 1]) / (A.t[idx] - A.t[idx - 1])
+    σ = A.p.σ[idx - 1]
     A.z[idx - 1] + 2σ * (t - A.t[idx - 1]), idx
 end
 
 # CubicSpline Interpolation
 function _derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess)
-    dI = -3A.z[idx] * (A.t[idx + 1] - t)^2 / (6A.h[idx + 1]) +
-         3A.z[idx + 1] * (t - A.t[idx])^2 / (6A.h[idx + 1])
-    dC = A.u[idx + 1] / A.h[idx + 1] - A.z[idx + 1] * A.h[idx + 1] / 6
-    dD = -(A.u[idx] / A.h[idx + 1] - A.z[idx] * A.h[idx + 1] / 6)
+    Δt₁ = t - A.t[idx]
+    Δt₂ = A.t[idx + 1] - t
+    dI = (-A.z[idx] * Δt₂^2 + A.z[idx + 1] * Δt₁^2) / (2A.h[idx + 1])
+    dC = A.p.c₁[idx]
+    dD = -A.p.c₂[idx]
     dI + dC + dD, idx
 end
 
@@ -160,7 +152,8 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
     n = length(A.t)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    N = DataInterpolations.spline_coefficients(n, A.d - 1, A.k, t_)
+    N = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.N
+    spline_coefficients!(N, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
@@ -180,7 +173,8 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
     idx = get_idx(A.t, t, iguess)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    N = spline_coefficients(A.h, A.d - 1, A.k, t_)
+    N = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.N
+    spline_coefficients!(N, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
