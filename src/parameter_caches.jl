@@ -50,6 +50,30 @@ function quadratic_interpolation_parameters(u, t, idx)
     return l₀, l₁, l₂
 end
 
+struct LagrangeParameterCache{wType, wuType}
+    w::wType
+    wu::wuType
+end
+
+function lagrange_parameter_cache(u, t)
+    w = similar(t)
+    wu = similar(u)
+    for i in eachindex(w)
+        mul = one(eltype(t))
+        for j in eachindex(t)
+            i != j && (mul *= (t[i] - t[j]))
+        end
+        w[i] = inv(mul)
+        val = u isa Matrix ? w[i] .* u[:, i] : w[i] * u[i]
+        if u isa Matrix
+            wu[:, i] .= val
+        else
+            wu[i] = val
+        end
+    end
+    return LagrangeParameterCache(w, wu)
+end
+
 struct QuadraticSplineParameterCache{pType}
     σ::pType
 end
