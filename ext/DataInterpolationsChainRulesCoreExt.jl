@@ -14,7 +14,8 @@ else
     using ..ChainRulesCore
 end
 
-function ChainRulesCore.rrule(::typeof(linear_interpolation_parameters), u::AbstractVector, t::AbstractVector, idx::Integer)
+function ChainRulesCore.rrule(::typeof(linear_interpolation_parameters),
+        u::AbstractVector, t::AbstractVector, idx::Integer)
     slope = linear_interpolation_parameters(u, t, idx)
     Δt = t[idx + 1] - t[idx]
     Δu = u[idx + 1] - t[idx]
@@ -25,11 +26,11 @@ function ChainRulesCore.rrule(::typeof(linear_interpolation_parameters), u::Abst
     function linear_interpolation_parameters_pullback(Δ)
         df = NoTangent()
         du .= zero(eltype(u))
-        du[idx] = - Δ / Δt
-        du[idx + 1] = Δslope / Δt
+        du[idx] = -Δ / Δt
+        du[idx + 1] = Δ / Δt
         dt .= zero(eltype(t))
         dt[idx] = Δ * Δu / Δt^2
-        dt[idx + 1] = - Δ * Δu / Δt^2
+        dt[idx + 1] = -Δ * Δu / Δt^2
         didx = NoTangent()
         return (df, du, dt, didx)
     end
@@ -64,6 +65,14 @@ function ChainRulesCore.rrule(::typeof(_interpolate), A::AType, t, iguess) where
     end
 
     u, _interpolate_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(_interpolate),
+        A::AbstractInterpolation,
+        t::Number)
+    deriv = derivative(A, t)
+    interpolate_pullback(Δ) = (NoTangent(), NoTangent(), deriv * Δ)
+    return _interpolate(A, t), interpolate_pullback
 end
 
 function ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolation,

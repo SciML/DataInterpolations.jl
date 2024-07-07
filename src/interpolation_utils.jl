@@ -122,11 +122,10 @@ function get_idx(tvec, t, iguess; lb = 1, ub_shift = -1, idx_shift = 0, side = :
 end
 
 function cumulative_integral(A)
-    if isempty(methods(_integral, (typeof(A), Any, Any)))
-        return nothing
-    end
-    integral_values = [_integral(A, idx, A.t[idx + 1]) - _integral(A, idx, A.t[idx])
-                       for idx in 1:(length(A.t) - 1)]
-    pushfirst!(integral_values, zero(first(integral_values)))
+    integral_prototype = _integral(A, 1, A.t[2])
+
+    integral_values = [zero(integral_prototype),
+        (_integral(A, idx, A.t[idx + 1]) - _integral(A, idx, A.t[idx])
+        for idx in 1:(length(A.t) - 1))...]
     return cumsum(integral_values)
 end
