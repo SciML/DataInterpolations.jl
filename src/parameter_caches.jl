@@ -3,11 +3,16 @@ struct LinearParameterCache{pType}
 end
 
 function LinearParameterCache(u, t)
-    slope = linear_interpolation_parameters.(Ref(u), Ref(t), 1:(length(t) - 1))
+    slope_prototype = linear_interpolation_parameters(u, t, 1)
+    idxs = 1:(length(t) - 1)
+    slope = [zero(slope_prototype) for i in idxs]
+    for idx in idxs
+        slope[idx] = linear_interpolation_parameters(u, t, idx)
+    end
     return LinearParameterCache(slope)
 end
 
-function linear_interpolation_parameters(u, t, idx)
+function linear_interpolation_parameters(u, t, idx::Integer)
     Δu = u isa AbstractMatrix ? u[:, idx + 1] - u[:, idx] : u[idx + 1] - u[idx]
     Δt = t[idx + 1] - t[idx]
     slope = Δu / Δt
