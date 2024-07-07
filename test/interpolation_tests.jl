@@ -615,6 +615,12 @@ end
         @test [A(190.0), A(225.0)] == [13.437481084762863, 11.367034741256463]
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
 
+        @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
+            u[1:3], t[1:3], 3, :Uniform, :Uniform)
+        @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 5 points.") BSplineInterpolation(
+            u[1:4], t[1:4], 4, :ArcLen, :Average)
+        @test_nowarn BSplineInterpolation(u[1:3], t[1:3], 2, :Uniform, :Uniform)
+
         # Test extrapolation
         A = BSplineInterpolation(u, t, 2, :ArcLen, :Average; extrapolate = true)
         @test A(-1.0) == u[1]
@@ -632,6 +638,12 @@ end
         @test [A(190.0), A(225.0)] ≈ [13.851245975109263, 12.963685868886575]
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
         test_cached_index(A)
+
+        @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 3 control points.") BSplineApprox(
+            u, t, 2, 2, :Uniform, :Uniform)
+        @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 4 control points.") BSplineApprox(
+            u, t, 3, 3, :ArcLen, :Average)
+        @test_nowarn BSplineApprox(u, t, 2, 3, :Uniform, :Uniform)
 
         # Test extrapolation
         A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform; extrapolate = true)
