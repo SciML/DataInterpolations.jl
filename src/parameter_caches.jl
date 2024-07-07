@@ -12,7 +12,7 @@ function LinearParameterCache(u, t)
     return LinearParameterCache(slope)
 end
 
-function linear_interpolation_parameters(u, t, idx::Integer)
+function linear_interpolation_parameters(u::AbstractVector, t::AbstractVector, idx::Integer)::Number
     Δu = u isa AbstractMatrix ? u[:, idx + 1] - u[:, idx] : u[idx + 1] - u[idx]
     Δt = t[idx + 1] - t[idx]
     slope = Δu / Δt
