@@ -128,9 +128,8 @@ function LagrangeInterpolation(
     p = lagrange_parameter_cache(u.parent, t.parent)
     derpw = similar(t.parent)
     derpw .= NaN
-    # Vector{Union{eltype(u), Missing}}(missing, s)
     derp = LagrangeParameterCache(derpw, similar(u.parent))
-    du = similar(u.parent)
+    du = !(u.parent[1] isa AbstractVector || u.parent[1] isa AbstractMatrix) ? similar(u.parent) : similar.(u.parent)
     LagrangeInterpolation(u, t, n, p, du, derp, extrapolate, safetycopy)
 end
 
