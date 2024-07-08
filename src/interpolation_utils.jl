@@ -122,6 +122,10 @@ function get_idx(tvec, t, iguess; lb = 1, ub_shift = -1, idx_shift = 0, side = :
 end
 
 function cumulative_integral(A)
+    if !(A.u isa AbstractVector{<:Number})
+        return nothing
+    end
+
     integral_prototype = _integral(A, 1, A.t[2])
 
     integral_values = [zero(integral_prototype),

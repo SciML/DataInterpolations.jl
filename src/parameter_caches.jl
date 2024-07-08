@@ -2,15 +2,14 @@ struct LinearParameterCache{pType}
     slope::pType
 end
 
-function LinearParameterCache(u, t)
-    slope_prototype = linear_interpolation_parameters(u, t, 1)
+function LinearParameterCache(u, t)::LinearParameterCache
     idxs = 1:(length(t) - 1)
     slope = [linear_interpolation_parameters(u, t, idx) for idx in idxs]
     return LinearParameterCache(slope)
 end
 
 function linear_interpolation_parameters(
-        u::AbstractVector, t::AbstractVector, idx::Integer)::Number
+        u::AbstractArray, t::AbstractVector, idx::Integer)
     Δu = u isa AbstractMatrix ? u[:, idx + 1] - u[:, idx] : u[idx + 1] - u[idx]
     Δt = t[idx + 1] - t[idx]
     slope = Δu / Δt

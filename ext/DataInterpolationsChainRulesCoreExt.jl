@@ -38,7 +38,6 @@ end
 
 function _tangent_u!(Δu::AbstractVector, A::LinearInterpolation, Δ)
     idx = A.idx_prev[]
-    Δu .= zero(eltype(A.u))
     Δu[idx] = Δ
     Δu
 end
@@ -53,6 +52,10 @@ end
 function allocate_parameter_tangents(A::LinearInterpolation)
     return (; slope = zero(A.p.slope))
 end
+
+## Quadratic Spline 
+
+
 
 ## generic
 
