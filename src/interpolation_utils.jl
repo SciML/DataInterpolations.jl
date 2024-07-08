@@ -107,7 +107,7 @@ function munge_data(U::StridedMatrix, t::AbstractVector, safetycopy::Bool)
 end
 
 # Don't nest ReadOnlyArrays
-readonly_wrap(a::AbstractArray) = ReadOnlyArray(a)
+readonly_wrap(a::AbstractArray) = a
 readonly_wrap(a::ReadOnlyArray) = a
 
 function get_idx(tvec, t, iguess; lb = 1, ub_shift = -1, idx_shift = 0, side = :last)

@@ -38,41 +38,42 @@ function ChainRulesCore.rrule(::typeof(linear_interpolation_parameters),
     return slope, linear_interpolation_parameters_pullback
 end
 
-function _tangent_u!(Δu::AbstractVector, A::LinearInterpolation)
+function _tangent_u!(Δu::AbstractVector, A::LinearInterpolation, Δ)
+    idx = A.idx_prev[]
     Δu .= zero(eltype(A.u))
+    Δu[idx] = Δ
     Δu
 end
 
-function _tangent_t!(Δt::AbstractVector, A::LinearInterpolation)
-    idx = A.idx_prev[]
+function _tangent_t!(Δt::AbstractVector, A::LinearInterpolation, Δ)
     Δt .= zero(eltype(Δt))
-    Δt[idx] = one(eltype(Δt))
     Δt
 end
 
-function ChainRulesCore.rrule(::typeof(_interpolate), A::AType, t, iguess) where {AType}
+function _tangent_p!(Δslope, A::LinearInterpolation, t, Δ)::Nothing
+    idx = A.idx_prev[]
+    Δslope .= zero(eltype(A.p.slope))
+    Δslope[idx] = t * Δ
+    return nothing
+end
+
+function ChainRulesCore.rrule(::typeof(_interpolate), A::AType, t) where {AType}
     u = _interpolate(A, t)
     # TODO: use sparse arrays
     Δu = zero(A.u)
     Δt = zero(A.t)
+    Δslope = zero(A.p.slope)
 
     function _interpolate_pullback(Δ)
         df = NoTangent()
-        dA = Tangent{AType}(; u = _tangent_u!(Δu, A), t = _tangent_t!(Δt, A))
+        _tangent_p!(Δslope, A, t, Δ)
+        dA = Tangent{AType}(; u = _tangent_u!(Δu, A, Δ), t = _tangent_t!(Δt, A, Δ),
+            p = Tangent{typeof(A.p)}(; slope = Δslope))
         dt = @thunk(derivative(A, t)*Δ)
-        diguess = NoTangent()
-        return df, dA, dt, diguess
+        return df, dA, dt
     end
 
     u, _interpolate_pullback
-end
-
-function ChainRulesCore.rrule(::typeof(_interpolate),
-        A::AbstractInterpolation,
-        t::Number)
-    deriv = derivative(A, t)
-    interpolate_pullback(Δ) = (NoTangent(), NoTangent(), deriv * Δ)
-    return _interpolate(A, t), interpolate_pullback
 end
 
 function ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolation,
