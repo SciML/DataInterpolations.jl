@@ -16,14 +16,15 @@ else
     using ..ChainRulesCore
 end
 
+using SparseArrays
+
 ## Linear interpolation
 
 function ChainRulesCore.rrule(::typeof(interpolation_parameters),
         ::Val{:LinearInterpolation},
         u::AbstractVector, t::AbstractVector, idx::Integer)
     slope = interpolation_parameters(Val(:LinearInterpolation), u, t, idx)
-    # TODO: use sparse arrays
-    du = zero(u)
+    du = SparseVector(length(u), [idx, idx + 1], zeros(2))
     Δt = t[idx + 1] - t[idx]
 
     function interpolation_parameters_pullback(Δ)
@@ -40,11 +41,15 @@ function ChainRulesCore.rrule(::typeof(interpolation_parameters),
 end
 
 function allocate_direct_field_tangents(A::LinearInterpolation)
-    (; u = zero(A.u))
+    idx = A.idx_prev[]
+    u = SparseVector(length(A.u), [idx], zeros(1))
+    (; u)
 end
 
 function allocate_parameter_tangents(A::LinearInterpolation)
-    return (; slope = zero(A.p.slope))
+    idx = A.idx_prev[]
+    slope = SparseVector(length(A.p.slope), [idx], zeros(1))
+    return (; slope)
 end
 
 function _tangent_direct_fields!(
@@ -65,9 +70,8 @@ end
 function ChainRulesCore.rrule(::typeof(interpolation_parameters),
         ::Val{:QuadraticSpline},
         z::AbstractVector, t::AbstractVector, idx::Integer)
-    σ = interpolation_parameters(Val(:QuadraticSpline), z, t, idx)
-    # TODO: use sparse arrays
-    dz = zero(z)
+    σ = interpolation_parameters(Val(:QuadraticSpline), z, t, idx)s
+    dz = SparseVector(length(z), [idx, idx + 1], zeros(2))
     Δt = t[idx + 1] - t[idx]
 
     function interpolation_parameters_pullback(Δ)
@@ -84,11 +88,16 @@ function ChainRulesCore.rrule(::typeof(interpolation_parameters),
 end
 
 function allocate_direct_field_tangents(A::QuadraticSpline)
-    (; u = zero(A.u), z = zero(A.z))
+    idx = A.idx_prev[]
+    u = SparseVector(length(A.u), [idx], zeros(1))
+    z = SparseVector(length(A.z), [idx], zeros(1))
+    (; u, z)
 end
 
 function allocate_parameter_tangents(A::QuadraticSpline)
-    return (; σ = zero(A.p.σ))
+    idx = A.idx_prev[]
+    σ = SparseVector(length(A.p.σ), [idx], zeros(1))
+    return (; σ)
 end
 
 function _tangent_direct_fields!(
@@ -109,12 +118,11 @@ end
 
 function ChainRulesCore.rrule(::typeof(_interpolate), A::AType, t) where {AType}
     u = _interpolate(A, t)
-    # TODO: use sparse arrays
+    idx = get_idx(A.t, t, A.idx_prev[])
     direct_field_tangents = allocate_direct_field_tangents(A)
     parameter_tangents = allocate_parameter_tangents(A)
 
     function _interpolate_pullback(Δ)
-        idx = get_idx(A.t, t, A.idx_prev[])
         A.idx_prev[] = idx
         Δt = t - A.t[idx]
         df = NoTangent()
