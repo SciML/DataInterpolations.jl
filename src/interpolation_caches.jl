@@ -299,7 +299,7 @@ function QuadraticSpline(
     # zero for element type of d, which we don't know yet
     typed_zero = zero(2 // 1 * (u[begin + 1] - u[begin]) / (t[begin + 1] - t[begin]))
 
-    d = map(i -> i == 1 ? typed_zero : 2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]), 1:s)
+    d = [2 // 1 * (u[i] - u[max(1, i - 1)]) / (t[i] - t[1 + abs(i - 2)]) for i in eachindex(t)]
     z = tA \ d
     p = QuadraticSplineParameterCache(z, t)
     A = QuadraticSpline(u, t, nothing, p, tA, d, z, extrapolate, safetycopy)

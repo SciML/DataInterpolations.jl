@@ -70,7 +70,7 @@ end
 function ChainRulesCore.rrule(::typeof(interpolation_parameters),
         ::Val{:QuadraticSpline},
         z::AbstractVector, t::AbstractVector, idx::Integer)
-    σ = interpolation_parameters(Val(:QuadraticSpline), z, t, idx)s
+    σ = interpolation_parameters(Val(:QuadraticSpline), z, t, idx)
     dz = SparseVector(length(z), [idx, idx + 1], zeros(2))
     Δt = t[idx + 1] - t[idx]
 
