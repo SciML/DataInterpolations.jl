@@ -170,6 +170,7 @@ end
     A = LinearInterpolation(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-1.0)
     @test_throws DataInterpolations.ExtrapolationError A(11.0)
+    @test_throws DataInterpolations.ExtrapolationError A([-1.0, 11.0])
 end
 
 @testset "Quadratic Interpolation" begin
