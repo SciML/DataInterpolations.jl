@@ -130,3 +130,30 @@ function cumulative_integral(A)
     pushfirst!(integral_values, zero(first(integral_values)))
     return cumsum(integral_values)
 end
+
+function du_PCHIP(u, t)
+    h = diff(u)
+    δ = h ./ diff(t)
+
+    function _du(k)
+        if k == 1
+            return ((2 * h[1] + h[2]) * δ[1] - h[1] * δ[2]) / (h[1] + h[2])
+        elseif k == length(t)
+            return ((2 * h[end] + h[end - 1]) * δ[end] - h[end] * δ[end - 1]) /
+                   (h[end] + h[end - 1])
+        end
+        sₖ₋₁ = sign(δ[k - 1])
+        sₖ = sign(δ[k])
+        if sₖ₋₁ == 0 && sₖ == 0
+            zero(eltype(δ))
+        elseif sₖ₋₁ == sₖ
+            w₁ = 2h[k] + h[k - 1]
+            w₂ = h[k] + 2h[k - 1]
+            δ[k - 1] * δ[k] * (w₁ + w₂) / (w₁ * δ[k] + w₂ * δ[k - 1])
+        else
+            zero(eltype(δ))
+        end
+    end
+
+    return _du.(eachindex(t))
+end

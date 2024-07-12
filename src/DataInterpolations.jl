@@ -96,7 +96,7 @@ end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
-       BSplineInterpolation, BSplineApprox, CubicHermiteSpline,
+       BSplineInterpolation, BSplineApprox, CubicHermiteSpline, PCHIPInterpolation,
        QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv
 
 # added for RegularizationSmooth, JJS 11/27/21

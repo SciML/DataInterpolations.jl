@@ -145,6 +145,16 @@ scatter(t, u, label = "input data")
 plot!(A)
 ```
 
+## PCHIP Interpolation
+
+This is a type of `CubicHermiteSpline` where the derivative values `du` are derived from the input data in such a way that the interpolation never overshoots the data.
+
+```@example tutorial
+A = PCHIPInterpolation(u, t)
+scatter(t, u, label = "input data")
+plot!(A)
+```
+
 ## Quintic Hermite Spline
 
 This is the quintic (fifth order) Hermite interpolation. It matches the values and first and second order derivatives in the data points exactly.

@@ -670,6 +670,18 @@ end
     @test_throws AssertionError CubicHermiteSpline(du, u, t)
 end
 
+@testset "PCHIPInterpolation" begin
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    t = [0.0, 62.25, 109.66, 162.66, 205.8, 250.0]
+    A = PCHIPInterpolation(u, t)
+    @test A isa CubicHermiteSpline
+    ts = 0.0:0.1:250.0
+    us = A(ts)
+    @test all(minimum(u) .<= us)
+    @test all(maximum(u) .>= us)
+    @test all(A.du[3:4] .== 0.0)
+end
+
 @testset "Quintic Hermite Spline" begin
     test_interpolation_type(QuinticHermiteSpline)
 
