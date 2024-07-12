@@ -23,7 +23,7 @@ include("online.jl")
 include("show.jl")
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
-function (interp::AbstractInterpolation)(t::Number, i::Integer) 
+function (interp::AbstractInterpolation)(t::Number, i::Integer)
     interp.idx_prev[] = i
     _interpolate(interp, t)
 end

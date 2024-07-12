@@ -19,6 +19,7 @@ for method in [LinearInterpolation, QuadraticInterpolation, ConstantInterpolatio
         @test getfield(func1.p, name) == getfield(func2.p, name)
     end
     @test func1(ts_append) == func2(ts_append)
+    @test func1.I == func2.I
 
     func1 = method(u1, t1)
     push!(func1, 1.0, 4.0)
@@ -29,4 +30,5 @@ for method in [LinearInterpolation, QuadraticInterpolation, ConstantInterpolatio
         @test getfield(func1.p, name) == getfield(func2.p, name)
     end
     @test func1(ts_push) == func2(ts_push)
+    @test func1.I == func2.I
 end
