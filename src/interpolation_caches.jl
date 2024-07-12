@@ -203,7 +203,7 @@ function AkimaInterpolation(u, t; extrapolate = false, safetycopy = true)
 end
 
 """
-    ConstantInterpolation(u, t; dir = :left, extrapolate = falseç safetycopy = true)
+    ConstantInterpolation(u, t; dir = :left, extrapolate = false, safetycopy = true)
 
 It is the method of interpolating using a constant polynomial. For any point, two adjacent data points are found on either side (left and right). The value at that point depends on `dir`.
 If it is `:left`, then the value at the left point is chosen and if it is `:right`, the value at the right point is chosen.
