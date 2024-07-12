@@ -136,7 +136,7 @@ end
 """
     AkimaInterpolation(u, t; extrapolate = false, safetycopy = true)
 
-It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: <https://en.wikipedia.org/wiki/Akima_spline>.
+It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: [https://en.wikipedia.org/wiki/Akima_spline](https://en.wikipedia.org/wiki/Akima_spline).
 Extrapolation extends the last cubic polynomial on each side.
 
 ## Arguments
@@ -420,7 +420,7 @@ end
 """
     BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolate = false, safetycopy = true)
 
-It is a curve defined by the linear combination of `n` basis functions of degree `d` where `n` is the number of data points. For more information, refer <https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html>.
+It is a curve defined by the linear combination of `n` basis functions of degree `d` where `n` is the number of data points. For more information, refer [https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html](https://pages.mtu.edu/%7Eshene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html).
 Extrapolation is a constant polynomial of the end points on each side.
 
 ## Arguments
@@ -550,7 +550,7 @@ end
     BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolate = false, safetycopy = true)
 
 It is a regression based B-spline. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h < length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing.
-For more information, refer <http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf>.
+For more information, refer [http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf](http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf).
 Extrapolation is a constant polynomial of the end points on each side.
 
 ## Arguments
@@ -745,7 +745,7 @@ end
     PCHIPInterpolation(u, t; extrapolate = false, safetycopy = true)
 
 It is a PCHIP Interpolation, which is a type of `CubicHermiteSpline` where
-the derivative values `du` are derived from the input data in such a way that 
+the derivative values `du` are derived from the input data in such a way that
 the interpolation never overshoots the data. See also [here](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf),
 section 3.4.
 

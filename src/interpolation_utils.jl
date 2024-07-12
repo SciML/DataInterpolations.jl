@@ -142,7 +142,7 @@ function du_PCHIP(u, t)
         elseif k == lastindex(t)
             s[end - 1], s[end]
         else
-           s[k - 1], s[k] 
+            s[k - 1], s[k]
         end
 
         if sₖ₋₁ == 0 && sₖ == 0
@@ -152,7 +152,7 @@ function du_PCHIP(u, t)
                 ((2 * h[1] + h[2]) * δ[1] - h[1] * δ[2]) / (h[1] + h[2])
             elseif k == lastindex(t)
                 ((2 * h[end] + h[end - 1]) * δ[end] - h[end] * δ[end - 1]) /
-                   (h[end] + h[end - 1])
+                (h[end] + h[end - 1])
             else
                 w₁ = 2h[k] + h[k - 1]
                 w₂ = h[k] + 2h[k - 1]
