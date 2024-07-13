@@ -10,16 +10,16 @@ PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 ReadOnlyArrays = "988b38a3-91fc-5605-94a2-ee2116b3bd83"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
-SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [weakdeps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 RegularizationTools = "29dad682-9a27-4bc3-9c72-016788665182"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [extensions]
-DataInterpolationsChainRulesCoreExt = "ChainRulesCore"
+DataInterpolationsChainRulesCoreExt = ["ChainRulesCore", "SparseArrays"]
 DataInterpolationsOptimExt = "Optim"
 DataInterpolationsRegularizationToolsExt = "RegularizationTools"
 DataInterpolationsSymbolicsExt = "Symbolics"

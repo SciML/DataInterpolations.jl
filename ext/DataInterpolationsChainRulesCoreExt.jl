@@ -92,7 +92,8 @@ function ChainRulesCore.rrule(::Type{QuadraticSplineParameterCache}, u, t)
     n = length(u)
 
     Δt = diff(t)
-    diagonal_main = [zero(eltype(Δt)), 2 ./ Δt...]
+    diagonal_main = 2 ./ Δt
+    pushfirst!(diagonal_main, zero(eltype(diagonal_main)))
     diagonal_down = -diagonal_main[2:end]
     diagonal_up = zero(diagonal_down)
     ∂d_∂u = Tridiagonal(diagonal_down, diagonal_main, diagonal_up)
