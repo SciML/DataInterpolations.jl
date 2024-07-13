@@ -8,6 +8,7 @@ using LinearAlgebra, RecipesBase
 using PrettyTables
 using ForwardDiff
 using ReadOnlyArrays
+using SparseArrays # Only used in DataInterpolationsChainRulesCoreExt.jl, but otherwise Aqua complains
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            bracketstrictlymontonic
 

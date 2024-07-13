@@ -6,7 +6,8 @@ end
 function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     ((t1 < A.t[1] || t1 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     ((t2 < A.t[1] || t2 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    !hasfield(typeof(A), :I) && throw(IntegralNotFoundError())
+    has_I = hasfield(typeof(A), :I)
+    (!has_I || (has_I && isnothing(A.I))) && throw(IntegralNotFoundError())
     # the index less than or equal to t1
     idx1 = get_idx(A.t, t1, 0)
     # the index less than t2
@@ -61,7 +62,7 @@ end
 function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
     Cᵢ = A.u[idx]
     Δt = t - A.t[idx]
-    return A.z[idx] * Δt^2 / 2 + A.p.σ[idx] * Δt^3 / 3 + Cᵢ * Δt
+    return A.p.z[idx] * Δt^2 / 2 + A.p.σ[idx] * Δt^3 / 3 + Cᵢ * Δt
 end
 
 function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)

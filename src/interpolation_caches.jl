@@ -32,7 +32,7 @@ function LinearInterpolation(u, t; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     p = LinearParameterCache(u, t)
     A = LinearInterpolation(u, t, nothing, p, extrapolate, safetycopy)
-    I = cumulative_integral(A)
+    I = cumulative_integral(A, A.u)
     LinearInterpolation(u, t, I, p, extrapolate, safetycopy)
 end
 
@@ -74,7 +74,7 @@ function QuadraticInterpolation(u, t, mode; extrapolate = false, safetycopy = tr
     u, t = munge_data(u, t, safetycopy)
     p = QuadraticParameterCache(u, t)
     A = QuadraticInterpolation(u, t, nothing, p, mode, extrapolate, safetycopy)
-    I = cumulative_integral(A)
+    I = cumulative_integral(A, A.u)
     QuadraticInterpolation(u, t, I, p, mode, extrapolate, safetycopy)
 end
 
@@ -198,7 +198,7 @@ function AkimaInterpolation(u, t; extrapolate = false, safetycopy = true)
     d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
 
     A = AkimaInterpolation(u, t, nothing, b, c, d, extrapolate, safetycopy)
-    I = cumulative_integral(A)
+    I = cumulative_integral(A, A.u)
     AkimaInterpolation(u, t, I, b, c, d, extrapolate, safetycopy)
 end
 
@@ -238,7 +238,7 @@ end
 function ConstantInterpolation(u, t; dir = :left, extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     A = ConstantInterpolation(u, t, nothing, dir, extrapolate, safetycopy)
-    I = cumulative_integral(A)
+    I = cumulative_integral(A, A.u)
     ConstantInterpolation(u, t, I, dir, extrapolate, safetycopy)
 end
 
@@ -263,22 +263,16 @@ struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
     u::uType
     t::tType
     I::IType
-    p::QuadraticSplineParameterCache{pType}
-    tA::tAType
-    d::dType
-    z::zType
+    p::QuadraticSplineParameterCache{tAType, dType, zType, pType}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, safetycopy)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.σ), typeof(tA),
-            typeof(d), typeof(z), eltype(u)}(u,
+    function QuadraticSpline(u, t, I, p, extrapolate, safetycopy)
+        new{typeof(u), typeof(t), typeof(I), typeof(p.σ), typeof(p.tA),
+            typeof(p.d), typeof(p.z), eltype(u)}(u,
             t,
             I,
             p,
-            tA,
-            d,
-            z,
             extrapolate,
             Ref(1),
             safetycopy
@@ -287,45 +281,13 @@ struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
 end
 
 function QuadraticSpline(
-        u::uType, t; extrapolate = false,
-        safetycopy = true) where {uType <: AbstractVector{<:Number}}
+        u, t; extrapolate = false,
+        safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
-    s = length(t)
-    dl = ones(eltype(t), s - 1)
-    d_tmp = ones(eltype(t), s)
-    du = zeros(eltype(t), s - 1)
-    tA = Tridiagonal(dl, d_tmp, du)
-
-    # zero for element type of d, which we don't know yet
-    typed_zero = zero(2 // 1 * (u[begin + 1] - u[begin]) / (t[begin + 1] - t[begin]))
-
-    d = [2 // 1 * (u[i] - u[max(1, i - 1)]) / (t[i] - t[1 + abs(i - 2)]) for i in eachindex(t)]
-    z = tA \ d
-    p = QuadraticSplineParameterCache(z, t)
-    A = QuadraticSpline(u, t, nothing, p, tA, d, z, extrapolate, safetycopy)
-    I = cumulative_integral(A)
-    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, safetycopy)
-end
-
-function QuadraticSpline(
-        u::uType, t; extrapolate = false, safetycopy = true) where {uType <: AbstractVector}
-    u, t = munge_data(u, t, safetycopy)
-    s = length(t)
-    dl = ones(eltype(t), s - 1)
-    d_tmp = ones(eltype(t), s)
-    du = zeros(eltype(t), s - 1)
-    tA = Tridiagonal(dl, d_tmp, du)
-    d_ = map(
-        i -> i == 1 ? zeros(eltype(t), size(u[1])) :
-             2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]),
-        1:s)
-    d = transpose(reshape(reduce(hcat, d_), :, s))
-    z_ = reshape(transpose(tA \ d), size(u[1])..., :)
-    z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
-    p = QuadraticSplineParameterCache(z, t)
-    A = QuadraticSpline(u, t, nothing, p, tA, d, z, extrapolate, safetycopy)
-    I = cumulative_integral(A)
-    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, safetycopy)
+    p = QuadraticSplineParameterCache(u, t)
+    A = QuadraticSpline(u, t, nothing, p, extrapolate, safetycopy)
+    I = cumulative_integral(A, A.u)
+    QuadraticSpline(u, t, I, p, extrapolate, safetycopy)
 end
 
 """
@@ -391,7 +353,7 @@ function CubicSpline(u::uType,
     z = tA \ d
     p = CubicSplineParameterCache(u, h, z)
     A = CubicSpline(u, t, nothing, p, h[1:(n + 1)], z, extrapolate, safetycopy)
-    I = cumulative_integral(A)
+    I = cumulative_integral(A, A.u)
     CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, safetycopy)
 end
 
@@ -413,7 +375,7 @@ function CubicSpline(
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
     p = CubicSplineParameterCache(u, h, z)
     A = CubicSpline(u, t, nothing, p, h[1:(n + 1)], z, extrapolate, safetycopy)
-    I = cumulative_integral(A)
+    I = cumulative_integral(A, A.u)
     CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, safetycopy)
 end
 
@@ -735,7 +697,7 @@ function CubicHermiteSpline(du, u, t; extrapolate = false, safetycopy = true)
     u, t = munge_data(u, t, safetycopy)
     p = CubicHermiteParameterCache(du, u, t)
     A = CubicHermiteSpline(du, u, t, nothing, p, extrapolate, safetycopy)
-    I = cumulative_integral(A)
+    I = cumulative_integral(A, A.u)
     CubicHermiteSpline(du, u, t, I, p, extrapolate, safetycopy)
 end
 
@@ -779,6 +741,6 @@ function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false, safetycopy = t
     u, t = munge_data(u, t, safetycopy)
     p = QuinticHermiteParameterCache(ddu, du, u, t)
     A = QuinticHermiteSpline(ddu, du, u, t, nothing, p, extrapolate, safetycopy)
-    I = cumulative_integral(A)
+    I = cumulative_integral(A, A.u)
     QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate, safetycopy)
 end

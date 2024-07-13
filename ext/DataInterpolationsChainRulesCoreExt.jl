@@ -2,42 +2,53 @@ module DataInterpolationsChainRulesCoreExt
 
 if isdefined(Base, :get_extension)
     using DataInterpolations: _interpolate, derivative, AbstractInterpolation, get_idx,
-                              interpolation_parameters,
+                              interpolation_parameters, LinearParameterCache,
+                              QuadraticSplineParameterCache,
                               LagrangeInterpolation, AkimaInterpolation,
                               BSplineInterpolation, BSplineApprox, LinearInterpolation,
                               QuadraticSpline
     using ChainRulesCore
+    using LinearAlgebra
+    using SparseArrays
 else
     using ..DataInterpolations: _interpolate, derivative, AbstractInterpolation, get_idx,
-                                interpolation_parameters,
+                                interpolation_parameters, LinearParameterCache,
+                                QuadraticSplineParameterCache,
                                 LagrangeInterpolation, AkimaInterpolation,
                                 BSplineInterpolation, BSplineApprox, LinearInterpolation,
                                 QuadraticSpline
     using ..ChainRulesCore
+    using ..LinearAlgebra
+    using ..SparseArrays
 end
-
-using SparseArrays
 
 ## Linear interpolation
 
-function ChainRulesCore.rrule(::typeof(interpolation_parameters),
-        ::Val{:LinearInterpolation},
-        u::AbstractVector, t::AbstractVector, idx::Integer)
-    slope = interpolation_parameters(Val(:LinearInterpolation), u, t, idx)
-    du = SparseVector(length(u), [idx, idx + 1], zeros(2))
-    Δt = t[idx + 1] - t[idx]
+function ChainRulesCore.rrule(
+        ::Type{LinearParameterCache}, u::AbstractArray, t::AbstractVector)
+    p = LinearParameterCache(u, t)
+    du = zeros(eltype(p.slope), length(u))
 
-    function interpolation_parameters_pullback(Δ)
+    function LinearParameterCache_pullback(Δp)
         df = NoTangent()
-        dmethod = NoTangent()
-        du[idx] = -Δ / Δt
-        du[idx + 1] = Δ / Δt
+        du[2:end] += Δp.slope
+        du[1:(end - 1)] -= Δp.slope
         dt = NoTangent()
-        didx = NoTangent()
-        return (df, dmethod, du, dt, didx)
+        return (df, du, dt)
     end
 
-    return slope, interpolation_parameters_pullback
+    p, LinearParameterCache_pullback
+end
+
+function ChainRulesCore.rrule(
+        ::Type{LinearInterpolation}, u, t, I, p, extrapolate, safetycopy)
+    A = LinearInterpolation(u, t, I, p, extrapolate, safetycopy)
+
+    function LinearInterpolation_pullback(ΔA)
+        return ΔA.u, NoTangent(), NoTangent(), ΔA.p, NoTangent(), NoTangent(), NoTangent()
+    end
+
+    A, LinearInterpolation_pullback
 end
 
 function allocate_direct_field_tangents(A::LinearInterpolation)
@@ -67,50 +78,68 @@ end
 
 ## Quadratic Spline 
 
-function ChainRulesCore.rrule(::typeof(interpolation_parameters),
-        ::Val{:QuadraticSpline},
-        z::AbstractVector, t::AbstractVector, idx::Integer)
-    σ = interpolation_parameters(Val(:QuadraticSpline), z, t, idx)
-    dz = SparseVector(length(z), [idx, idx + 1], zeros(2))
-    Δt = t[idx + 1] - t[idx]
+function ChainRulesCore.rrule(::Type{QuadraticSplineParameterCache}, u, t)
+    p = QuadraticSplineParameterCache(u, t)
+    n = length(u)
 
-    function interpolation_parameters_pullback(Δ)
-        df = NoTangent()
-        dmethod = NoTangent()
-        dz[idx] = -1 // 2 * Δ / Δt
-        dz[idx + 1] = 1 // 2 * Δ / Δt
-        dt = NoTangent()
-        didx = NoTangent()
-        return (df, dmethod, dz, dt, didx)
+    ∂z_∂d = inv(p.tA)
+
+    Δt = diff(t)
+    diagonal_main = [zero(eltype(Δt)), 2 ./ Δt...]
+    diagonal_down = -diagonal_main[2:end]
+    diagonal_up = zero(diagonal_down)
+    ∂d_∂u = Tridiagonal(diagonal_down, diagonal_main, diagonal_up)
+
+    ∂σ_∂z = spzeros(n, n - 1)
+    for i in 1:(n - 1)
+        ∂σ_∂z[i, i] = -0.5 / Δt[i]
+        ∂σ_∂z[i + 1, i] = 0.5 / Δt[i]
     end
 
-    return σ, interpolation_parameters_pullback
+    function QuadraticSplineParameterCache_pullback(Δp)
+        df = NoTangent()
+        du = (Δp.z + ∂σ_∂z * Δp.σ)' * ∂z_∂d * ∂d_∂u
+        dt = NoTangent()
+        return (df, du, dt)
+    end
+
+    p, QuadraticSplineParameterCache_pullback
+end
+
+function ChainRulesCore.rrule(::Type{QuadraticSpline}, u, t, I, p, extrapolate, safetycopy)
+    A = QuadraticSpline(u, t, I, p, extrapolate, safetycopy)
+
+    function LinearInterpolation_pullback(ΔA)
+        return ΔA.u, NoTangent(), NoTangent(), ΔA.p, NoTangent(), NoTangent(), NoTangent()
+    end
+
+    A, LinearInterpolation_pullback
 end
 
 function allocate_direct_field_tangents(A::QuadraticSpline)
     idx = A.idx_prev[]
     u = SparseVector(length(A.u), [idx], zeros(1))
-    z = SparseVector(length(A.z), [idx], zeros(1))
-    (; u, z)
+    (; u)
 end
 
 function allocate_parameter_tangents(A::QuadraticSpline)
     idx = A.idx_prev[]
+    z = SparseVector(length(A.p.z), [idx], zeros(1))
     σ = SparseVector(length(A.p.σ), [idx], zeros(1))
-    return (; σ)
+    return (; z, σ)
 end
 
 function _tangent_direct_fields!(
         direct_field_tangents::NamedTuple, A::QuadraticSpline, Δt, Δ)
-    (; u, z) = direct_field_tangents
+    (; u) = direct_field_tangents
     idx = A.idx_prev[]
     u[idx] = Δ
-    z[idx] = Δt * Δ
 end
 
 function _tangent_p!(parameter_tangents::NamedTuple, A::QuadraticSpline, Δt, Δ)
-    (; σ) = parameter_tangents
+    (; z, σ) = parameter_tangents
     idx = A.idx_prev[]
+    z[idx] = Δ * Δt
     σ[idx] = Δ * Δt^2
 end
 

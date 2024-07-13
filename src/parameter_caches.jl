@@ -52,13 +52,42 @@ function interpolation_parameters(::Val{:QuadraticInterpolation}, u, t, idx)
     return l₀, l₁, l₂
 end
 
-struct QuadraticSplineParameterCache{pType}
-    σ::pType
+struct QuadraticSplineParameterCache{tAType, dType, zType, σType}
+    tA::tAType
+    d::dType
+    z::zType
+    σ::σType
 end
 
-function QuadraticSplineParameterCache(z, t)
+function QuadraticSplineParameterCache(u::AbstractVector{<:Number}, t)
+    s = length(t)
+    dl = ones(eltype(t), s - 1)
+    d_tmp = ones(eltype(t), s)
+    du = zeros(eltype(t), s - 1)
+    tA = Tridiagonal(dl, d_tmp, du)
+
+    d = [2 // 1 * (u[i] - u[max(1, i - 1)]) / (t[i] - t[1 + abs(i - 2)])
+         for i in eachindex(t)]
+    z = tA \ d
     σ = interpolation_parameters.(Val(:QuadraticSpline), Ref(z), Ref(t), 1:(length(t) - 1))
-    return QuadraticSplineParameterCache(σ)
+    return QuadraticSplineParameterCache(tA, d, z, σ)
+end
+
+function QuadraticSplineParameterCache(u::AbstractVector{<:AbstractArray{<:Number}}, t)
+    s = length(t)
+    dl = ones(eltype(t), s - 1)
+    d_tmp = ones(eltype(t), s)
+    du = zeros(eltype(t), s - 1)
+    tA = Tridiagonal(dl, d_tmp, du)
+    d_ = map(
+        i -> i == 1 ? zeros(eltype(t), size(u[1])) :
+             2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]),
+        1:s)
+    d = transpose(reshape(reduce(hcat, d_), :, s))
+    z_ = reshape(transpose(tA \ d), size(u[1])..., :)
+    z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
+    σ = interpolation_parameters.(Val(:QuadraticSpline), Ref(z), Ref(t), 1:(length(t) - 1))
+    return QuadraticSplineParameterCache(tA, d, z, σ)
 end
 
 function interpolation_parameters(::Val{:QuadraticSpline}, z, t, idx)
