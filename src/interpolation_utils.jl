@@ -106,6 +106,19 @@ function munge_data(U::StridedMatrix, t::AbstractVector, safetycopy::Bool)
     return readonly_wrap(U), readonly_wrap(t)
 end
 
+"""
+Determine if the abscissae are distributed in almost linear fashion, using as a cheap
+criterion to determine whether the middle element is close to the average of the first and
+last elements of the abscissae array, with a relative threshold of 10% by default
+"""
+function looks_quasilinear(t; threshold = 0.1)
+    length(t) <= 2 && return true
+    i_0, i_f = firstindex(t), lastindex(t)
+    t_0, t_f = first(t), last(t)
+    middle_index = round(typeof(i_0), 0.5 * (i_0 + i_f))
+    abs(0.5 * (t_0 + t_f) - t[middle_index]) < threshold * abs(t_0 - t_f)
+end
+
 # Don't nest ReadOnlyArrays
 readonly_wrap(a::AbstractArray) = ReadOnlyArray(a)
 readonly_wrap(a::ReadOnlyArray) = a

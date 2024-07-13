@@ -22,9 +22,10 @@ struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolati
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
+    seems_linear::Bool
     function LinearInterpolation(u, t, I, p, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
-            u, t, I, p, extrapolate, Ref(1), safetycopy)
+            u, t, I, p, extrapolate, Ref(1), safetycopy, looks_quasilinear(t))
     end
 end
 

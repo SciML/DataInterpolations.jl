@@ -1,7 +1,14 @@
 function _interpolate(A, t)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
         throw(ExtrapolationError())
-    val, idx_prev = _interpolate(A, t, A.idx_prev[])
+    idx_guess = if hasfield(typeof(A), :seems_linear) && A.seems_linear
+        f = (t - first(A.t)) / (last(A.t) - first(A.t))
+        i_0, i_f = firstindex(A.t), lastindex(A.t)
+        round(typeof(firstindex(A.t)), f * (i_f - i_0) + i_0)
+    else
+        A.idx_prev[]
+    end
+    val, idx_prev = _interpolate(A, t, idx_guess)
     A.idx_prev[] = idx_prev
     return val
 end
