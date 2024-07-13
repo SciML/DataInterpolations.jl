@@ -2,7 +2,7 @@ module DataInterpolationsChainRulesCoreExt
 
 if isdefined(Base, :get_extension)
     using DataInterpolations: _interpolate, derivative, AbstractInterpolation, get_idx,
-                              interpolation_parameters, LinearParameterCache,
+                              cumulative_integral, LinearParameterCache,
                               QuadraticSplineParameterCache,
                               LagrangeInterpolation, AkimaInterpolation,
                               BSplineInterpolation, BSplineApprox, LinearInterpolation,
@@ -10,9 +10,10 @@ if isdefined(Base, :get_extension)
     using ChainRulesCore
     using LinearAlgebra
     using SparseArrays
+    using ReadOnlyArrays
 else
     using ..DataInterpolations: _interpolate, derivative, AbstractInterpolation, get_idx,
-                                interpolation_parameters, LinearParameterCache,
+                                cumulative_integral, LinearParameterCache,
                                 QuadraticSplineParameterCache,
                                 LagrangeInterpolation, AkimaInterpolation,
                                 BSplineInterpolation, BSplineApprox, LinearInterpolation,
@@ -20,6 +21,7 @@ else
     using ..ChainRulesCore
     using ..LinearAlgebra
     using ..SparseArrays
+    using ..ReadOnlyArrays
 end
 
 ## Linear interpolation
@@ -45,7 +47,14 @@ function ChainRulesCore.rrule(
     A = LinearInterpolation(u, t, I, p, extrapolate, safetycopy)
 
     function LinearInterpolation_pullback(ΔA)
-        return ΔA.u, NoTangent(), NoTangent(), ΔA.p, NoTangent(), NoTangent(), NoTangent()
+        df = NoTangent()
+        du = ΔA.u
+        dt = NoTangent()
+        dI = NoTangent()
+        dp = ΔA.p
+        dextrapolate = NoTangent()
+        dsafetycopy = NoTangent()
+        return df, du, dt, dI, dp, dextrapolate, dsafetycopy
     end
 
     A, LinearInterpolation_pullback
@@ -82,8 +91,6 @@ function ChainRulesCore.rrule(::Type{QuadraticSplineParameterCache}, u, t)
     p = QuadraticSplineParameterCache(u, t)
     n = length(u)
 
-    ∂z_∂d = inv(p.tA)
-
     Δt = diff(t)
     diagonal_main = [zero(eltype(Δt)), 2 ./ Δt...]
     diagonal_down = -diagonal_main[2:end]
@@ -98,7 +105,9 @@ function ChainRulesCore.rrule(::Type{QuadraticSplineParameterCache}, u, t)
 
     function QuadraticSplineParameterCache_pullback(Δp)
         df = NoTangent()
-        du = (Δp.z + ∂σ_∂z * Δp.σ)' * ∂z_∂d * ∂d_∂u
+        temp1 = Δp.z + ∂σ_∂z * Δp.σ
+        temp2 = p.tA' \ temp1
+        du = ∂d_∂u' * temp2
         dt = NoTangent()
         return (df, du, dt)
     end
@@ -109,11 +118,18 @@ end
 function ChainRulesCore.rrule(::Type{QuadraticSpline}, u, t, I, p, extrapolate, safetycopy)
     A = QuadraticSpline(u, t, I, p, extrapolate, safetycopy)
 
-    function LinearInterpolation_pullback(ΔA)
-        return ΔA.u, NoTangent(), NoTangent(), ΔA.p, NoTangent(), NoTangent(), NoTangent()
+    function QuadraticSpline_pullback(ΔA)
+        df = NoTangent()
+        du = ΔA.u
+        dt = NoTangent()
+        dI = NoTangent()
+        dp = ΔA.p
+        dextrapolate = NoTangent()
+        dsafetycopy = NoTangent()
+        return df, du, dt, dI, dp, dextrapolate, dsafetycopy
     end
 
-    A, LinearInterpolation_pullback
+    A, QuadraticSpline_pullback
 end
 
 function allocate_direct_field_tangents(A::QuadraticSpline)
@@ -145,8 +161,8 @@ end
 
 ## generic
 
-function ChainRulesCore.rrule(::typeof(_interpolate), A::AType, t) where {AType}
-    u = _interpolate(A, t)
+function ChainRulesCore.rrule(A::AType, t::Number) where {AType <: AbstractInterpolation}
+    u = A(t)
     idx = get_idx(A.t, t, A.idx_prev[])
     direct_field_tangents = allocate_direct_field_tangents(A)
     parameter_tangents = allocate_parameter_tangents(A)
@@ -154,13 +170,12 @@ function ChainRulesCore.rrule(::typeof(_interpolate), A::AType, t) where {AType}
     function _interpolate_pullback(Δ)
         A.idx_prev[] = idx
         Δt = t - A.t[idx]
-        df = NoTangent()
         _tangent_direct_fields!(direct_field_tangents, A, Δt, Δ)
         _tangent_p!(parameter_tangents, A, Δt, Δ)
         dA = Tangent{AType}(; direct_field_tangents...,
             p = Tangent{typeof(A.p)}(; parameter_tangents...))
         dt = @thunk(derivative(A, t)*Δ)
-        return df, dA, dt
+        return dA, dt
     end
 
     u, _interpolate_pullback
@@ -169,6 +184,12 @@ end
 function ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolation,
         t::Number)
     return _interpolate(A, t), derivative(A, t) * Δt
+end
+
+function ChainRulesCore.rrule(::Type{ReadOnlyArray}, parent)
+    read_only_array = ReadOnlyArray(parent)
+    ReadOnlyArray_pullback(Δ) = NoTangent(), Δ
+    read_only_array, ReadOnlyArray_pullback
 end
 
 end # module
