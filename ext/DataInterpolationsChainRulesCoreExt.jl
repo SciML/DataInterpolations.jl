@@ -192,4 +192,10 @@ function ChainRulesCore.rrule(::Type{ReadOnlyArray}, parent)
     read_only_array, ReadOnlyArray_pullback
 end
 
+function ChainRulesCore.rrule(::typeof(cumulative_integral), A, u)
+    I = cumulative_integral(A, u)
+    cumulative_integral_pullback(Δ) = NoTangent(), NoTangent()
+    I, cumulative_integral_pullback
+end
+
 end # module
