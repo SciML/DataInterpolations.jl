@@ -744,10 +744,9 @@ end
 """
     PCHIPInterpolation(u, t; extrapolate = false, safetycopy = true)
 
-It is a PCHIP Interpolation, which is a type of `CubicHermiteSpline` where
-the derivative values `du` are derived from the input data in such a way that
-the interpolation never overshoots the data. See also [here](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf),
-section 3.4.
+It is a PCHIP Interpolation, which is a type of [`CubicHermiteSpline`](@ref) where the derivative values `du` are derived from the input data
+in such a way that the interpolation never overshoots the data. See [here](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf),
+section 3.4 for more details.
 
 ## Arguments
 
