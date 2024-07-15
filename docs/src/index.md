@@ -60,6 +60,12 @@ The series types defined are:
   - `:lagrange_interp`
   - `:quadratic_spline`
   - `:cubic_spline`
+  - `:akima_interp`
+  - `:bspline_interp`
+  - `:bspline_approx`
+  - `:cubic_hermite_spline`
+  - `:pchip_interp`
+  - `:quintic_hermite_spline`
 
 By and large, these accept the same keywords as their function counterparts.
 
