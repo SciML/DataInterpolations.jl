@@ -1,5 +1,5 @@
 """
-    LinearInterpolation(u, t; extrapolate = false)
+    LinearInterpolation(u, t; extrapolate = false, safetycopy = true)
 
 It is the method of interpolating between the data points using a linear polynomial. For any point, two data points one each side are chosen and connected with a line.
 Extrapolation extends the last linear polynomial on each side.
@@ -37,7 +37,7 @@ function LinearInterpolation(u, t; extrapolate = false, safetycopy = true)
 end
 
 """
-    QuadraticInterpolation(u, t, mode = :Forward; extrapolate = false)
+    QuadraticInterpolation(u, t, mode = :Forward; extrapolate = false, safetycopy = true)
 
 It is the method of interpolating between the data points using quadratic polynomials. For any point, three data points nearby are taken to fit a quadratic polynomial.
 Extrapolation extends the last quadratic polynomial on each side.
@@ -83,7 +83,7 @@ function QuadraticInterpolation(u, t; extrapolate = false, safetycopy = true)
 end
 
 """
-    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolate = false)
+    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolate = false, safetycopy = true)
 
 It is the method of interpolation using Lagrange polynomials of (k-1)th order passing through all the data points where k is the number of data points.
 
@@ -134,9 +134,9 @@ function LagrangeInterpolation(
 end
 
 """
-    AkimaInterpolation(u, t; extrapolate = false)
+    AkimaInterpolation(u, t; extrapolate = false, safetycopy = true)
 
-It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: https://en.wikipedia.org/wiki/Akima_spline.
+It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: [https://en.wikipedia.org/wiki/Akima_spline](https://en.wikipedia.org/wiki/Akima_spline).
 Extrapolation extends the last cubic polynomial on each side.
 
 ## Arguments
@@ -203,7 +203,7 @@ function AkimaInterpolation(u, t; extrapolate = false, safetycopy = true)
 end
 
 """
-    ConstantInterpolation(u, t; dir = :left, extrapolate = false)
+    ConstantInterpolation(u, t; dir = :left, extrapolate = false, safetycopy = true)
 
 It is the method of interpolating using a constant polynomial. For any point, two adjacent data points are found on either side (left and right). The value at that point depends on `dir`.
 If it is `:left`, then the value at the left point is chosen and if it is `:right`, the value at the right point is chosen.
@@ -243,7 +243,7 @@ function ConstantInterpolation(u, t; dir = :left, extrapolate = false, safetycop
 end
 
 """
-    QuadraticSpline(u, t; extrapolate = false)
+    QuadraticSpline(u, t; extrapolate = false, safetycopy = true)
 
 It is a spline interpolation using piecewise quadratic polynomials between each pair of data points. Its first derivative is also continuous.
 Extrapolation extends the last quadratic polynomial on each side.
@@ -329,7 +329,7 @@ function QuadraticSpline(
 end
 
 """
-    CubicSpline(u, t; extrapolate = false)
+    CubicSpline(u, t; extrapolate = false, safetycopy = true)
 
 It is a spline interpolation using piecewise cubic polynomials between each pair of data points. Its first and second derivative is also continuous.
 Second derivative on both ends are zero, which are also called "natural" boundary conditions. Extrapolation extends the last cubic polynomial on each side.
@@ -418,9 +418,9 @@ function CubicSpline(
 end
 
 """
-    BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolate = false)
+    BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolate = false, safetycopy = true)
 
-It is a curve defined by the linear combination of `n` basis functions of degree `d` where `n` is the number of data points. For more information, refer https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html.
+It is a curve defined by the linear combination of `n` basis functions of degree `d` where `n` is the number of data points. For more information, refer [https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html](https://pages.mtu.edu/%7Eshene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html).
 Extrapolation is a constant polynomial of the end points on each side.
 
 ## Arguments
@@ -547,10 +547,10 @@ function BSplineInterpolation(
 end
 
 """
-    BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolate = false)
+    BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolate = false, safetycopy = true)
 
 It is a regression based B-spline. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h < length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing.
-For more information, refer http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf.
+For more information, refer [http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf](http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf).
 Extrapolation is a constant polynomial of the end points on each side.
 
 ## Arguments
@@ -702,7 +702,7 @@ function BSplineApprox(
 end
 
 """
-    CubicHermiteSpline(du, u, t; extrapolate = false)
+    CubicHermiteSpline(du, u, t; extrapolate = false, safetycopy = true)
 
 It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomial such that the value and the first derivative are equal to given values in the data points.
 
@@ -742,7 +742,31 @@ function CubicHermiteSpline(du, u, t; extrapolate = false, safetycopy = true)
 end
 
 """
-    QuinticHermiteSpline(ddu, du, u, t; extrapolate = false)
+    PCHIPInterpolation(u, t; extrapolate = false, safetycopy = true)
+
+It is a PCHIP Interpolation, which is a type of `CubicHermiteSpline` where
+the derivative values `du` are derived from the input data in such a way that
+the interpolation never overshoots the data. See also [here](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf),
+section 3.4.
+
+## Arguments
+
+  - `u`: data points.
+  - `t`: time points.
+
+## Keyword Arguments
+
+  - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
+"""
+function PCHIPInterpolation(u, t; extrapolate = false, safetycopy = true)
+    u, t = munge_data(u, t, safetycopy)
+    du = du_PCHIP(u, t)
+    CubicHermiteSpline(du, u, t; extrapolate, safetycopy)
+end
+
+"""
+    QuinticHermiteSpline(ddu, du, u, t; extrapolate = false, safetycopy = true)
 
 It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polynomial such that the value and the first and second derivative are equal to given values in the data points.
 

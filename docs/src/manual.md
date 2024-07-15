@@ -11,5 +11,6 @@ CubicSpline
 BSplineInterpolation
 BSplineApprox
 CubicHermiteSpline
+PCHIPInterpolation
 QuinticHermiteSpline
 ```
