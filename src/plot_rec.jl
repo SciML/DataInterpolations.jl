@@ -16,7 +16,16 @@ function to_plottable(A::AbstractInterpolation; plotdensity = 10_000, denseplot 
 end
 
 @recipe function f(A::AbstractInterpolation; plotdensity = 10_000, denseplot = true)
-    to_plottable(A; plotdensity = plotdensity, denseplot = denseplot)
+    @series begin
+        seriestype := :path
+        label --> string(nameof(typeof(A)))
+        to_plottable(A; plotdensity = plotdensity, denseplot = denseplot)
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        A.t, A.u
+    end
 end
 
 ################################################################################
@@ -35,18 +44,26 @@ end
         x,
         y,
         z;
+        extrapolate = false,
+        safetycopy = false,
         plotdensity = 10_000,
         denseplot = true)
-    seriestype := :path
-
-    label --> "Linear fit"
-
-    nx, ny = to_plottable(LinearInterpolation(y, x);
+    T = promote_type(eltype(y), eltype(x))
+    nx, ny = to_plottable(LinearInterpolation(T.(y), T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
-
-    x := nx
-    y := ny
+    @series begin
+        seriestype := :path
+        label --> "LinearInterpolation"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
 end
 
 ########################################
@@ -57,18 +74,60 @@ end
         x,
         y,
         z;
+        mode = :Forward,
+        extrapolate = false,
+        safetycopy = false,
         plotdensity = 10_000,
         denseplot = true)
-    seriestype := :path
-
-    label --> "Quadratic fit"
-
-    nx, ny = to_plottable(QuadraticInterpolation(T.(y),
-            T.(x));
+    T = promote_type(eltype(y), eltype(x))
+    nx, ny = to_plottable(
+        QuadraticInterpolation(T.(y),
+            T.(x), mode; extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
-    x := nx
-    y := ny
+    @series begin
+        seriestype := :path
+        label --> "QuadraticInterpolation"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
+end
+
+########################################
+#        Lagrange Interpolation        #
+########################################
+
+@recipe function f(::Type{Val{:lagrange_interp}},
+        x, y, z;
+        n = length(x) - 1,
+        extrapolate = false,
+        safetycopy = false,
+        plotdensity = 10_000,
+        denseplot = true)
+    T = promote_type(eltype(y), eltype(x))
+    nx, ny = to_plottable(LagrangeInterpolation(T.(y),
+            T.(x),
+            n; extrapolate, safetycopy);
+        plotdensity = plotdensity,
+        denseplot = denseplot)
+    @series begin
+        seriestype := :path
+        label --> "LagrangeInterpolation"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
 end
 
 ########################################
@@ -79,46 +138,27 @@ end
         x,
         y,
         z;
+        extrapolate = false,
+        safetycopy = false,
         plotdensity = 10_000,
         denseplot = true)
-    seriestype := :path
-
-    label --> "Quadratic Spline"
-
     T = promote_type(eltype(y), eltype(x))
-
     nx, ny = to_plottable(QuadraticSpline(T.(y),
-            T.(x));
+            T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
-
-    x := nx
-    y := ny
-end
-
-########################################
-#        Lagrange Interpolation        #
-########################################
-
-@recipe function f(::Type{Val{:lagrange_interp}},
-        x, y, z;
-        n = length(x) - 1,
-        plotdensity = 10_000,
-        denseplot = true)
-    seriestype := :path
-
-    label --> "Lagrange Fit"
-
-    T = promote_type(eltype(y), eltype(x))
-
-    nx, ny = to_plottable(LagrangeInterpolation(T.(y),
-            T.(x),
-            n);
-        plotdensity = plotdensity,
-        denseplot = denseplot)
-
-    x := nx
-    y := ny
+    @series begin
+        seriestype := :path
+        label --> "QuadraticSpline"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
 end
 
 ########################################
@@ -129,46 +169,94 @@ end
         x,
         y,
         z;
+        extrapolate = false,
+        safetycopy = false,
         plotdensity = 10_000,
         denseplot = true)
-    seriestype := :path
-
-    label --> "Cubic Spline"
-
     T = promote_type(eltype(y), eltype(x))
-
     nx, ny = to_plottable(CubicSpline(T.(y),
-            T.(x));
+            T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
-    x := nx
-    y := ny
+    @series begin
+        seriestype := :path
+        label --> "CubicSpline"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
 end
+
+########################################
+#          Akima interpolation          #
+########################################
+
+@recipe function f(::Type{Val{:akima_interp}},
+        x,
+        y,
+        z;
+        extrapolate = false,
+        safetycopy = false,
+        plotdensity = 10_000,
+        denseplot = true)
+    T = promote_type(eltype(y), eltype(x))
+    nx, ny = to_plottable(AkimaInterpolation(T.(y),
+            T.(x); extrapolate, safetycopy);
+        plotdensity = plotdensity,
+        denseplot = denseplot)
+    @series begin
+        seriestype := :path
+        label --> "AkimaInterpolation"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
+end
+
+########################################
+#       B-spline Interpolation       #
+########################################
 
 @recipe function f(::Type{Val{:bspline_interp}},
         x, y, z;
         d = 5,
-        pVec = :ArcLen,
-        knotVec = :Average,
-        plotdensity = length(x) * 6,
+        pVecType = :ArcLen,
+        knotVecType = :Average,
+        extrapolate = false,
+        safetycopy = false,
+        plotdensity = 10_000,
         denseplot = true)
-    seriestype := :path
-
-    label --> "B-Spline"
-
-    @show x y eltype(x)
-
-    # T = promote_type(eltype(y), eltype(x))
-
-    nx, ny = to_plottable(BSplineInterpolation(T.(y),
+    T = promote_type(eltype(y), eltype(x))
+    nx, ny = to_plottable(
+        BSplineInterpolation(T.(y),
             T.(x),
             d,
-            pVec,
-            knotVec);
+            pVecType,
+            knotVecType; extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
-    x := nx
-    y := ny
+    @series begin
+        seriestype := :path
+        label --> "BSplineInterpolation"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
 end
 
 ########################################
@@ -179,48 +267,133 @@ end
         x, y, z;
         d = 5,
         h = length(x) - 1,
-        pVec = :ArcLen,
-        knotVec = :Average,
-        plotdensity = length(x) * 6,
+        pVecType = :ArcLen,
+        knotVecType = :Average,
+        extrapolate = false,
+        safetycopy = false,
+        plotdensity = 10_000,
         denseplot = true)
-    seriestype := :path
-
-    label --> "B-Spline"
-
     T = promote_type(eltype(y), eltype(x))
-
-    nx, ny = to_plottable(BSplineApprox(T.(y),
+    nx, ny = to_plottable(
+        BSplineApprox(T.(y),
             T.(x),
             d,
             h,
-            pVec,
-            knotVec);
+            pVecType,
+            knotVecType; extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
-    x := nx
-    y := ny
+    @series begin
+        seriestype := :path
+        label --> "BSplineApprox"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
 end
 
 ########################################
-#          Akima interpolation          #
+#          Cubic Hermite Spline          #
 ########################################
 
-@recipe function f(::Type{Val{:akima}},
+@recipe function f(::Type{Val{:cubic_hermite_spline}},
         x,
         y,
         z;
-        plotdensity = length(x) * 6,
+        du = nothing,
+        extrapolate = false,
+        safetycopy = false,
+        plotdensity = 10_000,
         denseplot = true)
-    seriestype := :path
-
-    label --> "Akima"
-
+    isnothing(du) && error("Provide `du` as a keyword argument.")
     T = promote_type(eltype(y), eltype(x))
-
-    nx, ny = to_plottable(AkimaInterpolation(T.(y),
-            T.(x));
+    nx, ny = to_plottable(
+        CubicHermiteSpline(T.(du), T.(y),
+            T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
-    x := nx
-    y := ny
+    @series begin
+        seriestype := :path
+        label --> "CubicHermiteSpline"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
+end
+
+########################################
+#        PCHIP Interpolation           #
+########################################
+
+@recipe function f(::Type{Val{:pchip_interp}},
+        x,
+        y,
+        z;
+        extrapolate = false,
+        safetycopy = false,
+        plotdensity = 10_000,
+        denseplot = true)
+    T = promote_type(eltype(y), eltype(x))
+    nx, ny = to_plottable(PCHIPInterpolation(T.(y),
+            T.(x); extrapolate, safetycopy);
+        plotdensity = plotdensity,
+        denseplot = denseplot)
+    @series begin
+        seriestype := :path
+        label --> "PCHIP Interpolation"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
+end
+
+########################################
+#          Quintic Hermite Spline          #
+########################################
+
+@recipe function f(::Type{Val{:quintic_hermite_spline}},
+        x,
+        y,
+        z;
+        du = nothing,
+        ddu = nothing,
+        extrapolate = false,
+        safetycopy = false,
+        plotdensity = 10_000,
+        denseplot = true)
+    (isnothing(du) || isnothing(ddu)) &&
+        error("Provide `du` and `ddu` as keyword arguments.")
+    T = promote_type(eltype(y), eltype(x))
+    nx, ny = to_plottable(
+        QuinticHermiteSpline(T.(ddu), T.(du), T.(y),
+            T.(x); extrapolate, safetycopy);
+        plotdensity = plotdensity,
+        denseplot = denseplot)
+    @series begin
+        seriestype := :path
+        label --> "QuinticHermiteSpline"
+        x := nx
+        y := ny
+    end
+    @series begin
+        seriestype := :scatter
+        label --> "Data points"
+        x := x
+        y := y
+    end
 end

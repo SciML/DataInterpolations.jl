@@ -23,7 +23,11 @@ include("online.jl")
 include("show.jl")
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
-(interp::AbstractInterpolation)(t::Number, i::Integer) = _interpolate(interp, t, i)
+function (interp::AbstractInterpolation)(t::Number, i::Integer)
+    interp.idx_prev[] = i
+    _interpolate(interp, t)
+end
+
 function (interp::AbstractInterpolation)(t::AbstractVector)
     u = get_u(interp.u, t)
     interp(u, t)
@@ -44,16 +48,14 @@ function get_u(u::AbstractMatrix, t)
 end
 
 function (interp::AbstractInterpolation)(u::AbstractMatrix, t::AbstractVector)
-    iguess = firstindex(interp.t)
     @inbounds for i in eachindex(t)
-        u[:, i], iguess = interp(t[i], iguess)
+        u[:, i] = interp(t[i])
     end
     u
 end
 function (interp::AbstractInterpolation)(u::AbstractVector, t::AbstractVector)
-    iguess = firstindex(interp.t)
     @inbounds for i in eachindex(u, t)
-        u[i], iguess = interp(t[i], iguess)
+        u[i] = interp(t[i])
     end
     u
 end
@@ -96,7 +98,7 @@ end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
-       BSplineInterpolation, BSplineApprox, CubicHermiteSpline,
+       BSplineInterpolation, BSplineApprox, CubicHermiteSpline, PCHIPInterpolation,
        QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv
 
 # added for RegularizationSmooth, JJS 11/27/21
