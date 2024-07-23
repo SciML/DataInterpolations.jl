@@ -68,7 +68,7 @@ function append!(
     append!(A.t.parent, t)
     parameters = quadratic_interpolation_parameters.(
         Ref(A.u), Ref(A.t), (length_old - 1):(length(A.t) - 2))
-    l₀, l₁, l₂ = collect.(eachrow(hcat(collect.(parameters)...)))
+    l₀, l₁, l₂ = collect.(eachrow(reduce(hcat, collect.(parameters))))
     append!(A.p.l₀, l₀)
     append!(A.p.l₁, l₁)
     append!(A.p.l₂, l₂)
