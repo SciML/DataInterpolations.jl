@@ -161,6 +161,13 @@ end
     @test A(5.5) == fill(11.0)
     @test A(11) == fill(22)
 
+    # Test constant -Inf interpolation
+    u = [-Inf, -Inf]
+    t = [0.0, 1.0]
+    A = LinearInterpolation(u, t)
+    @test A(0.0) == -Inf
+    @test A(0.5) == -Inf
+
     # Test extrapolation
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
