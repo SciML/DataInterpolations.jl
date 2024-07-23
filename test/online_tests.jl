@@ -9,7 +9,8 @@ u2 = [1.0, 2.0, 1.0]
 ts_append = 1.0:0.5:6.0
 ts_push = 1.0:0.5:4.0
 
-for method in [LinearInterpolation, QuadraticInterpolation, ConstantInterpolation]
+@testset "$method" for method in [
+    LinearInterpolation, QuadraticInterpolation, ConstantInterpolation]
     func1 = method(u1, t1)
     append!(func1, u2, t2)
     func2 = method(vcat(u1, u2), vcat(t1, t2))
