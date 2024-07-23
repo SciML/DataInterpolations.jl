@@ -33,7 +33,7 @@ end
 function QuadraticParameterCache(u, t)
     parameters = quadratic_interpolation_parameters.(
         Ref(u), Ref(t), 1:(length(t) - 2))
-    l₀, l₁, l₂ = collect.(eachrow(hcat(collect.(parameters)...)))
+    l₀, l₁, l₂ = collect.(eachrow(stack(collect.(parameters))))
     return QuadraticParameterCache(l₀, l₁, l₂)
 end
 
@@ -81,7 +81,7 @@ end
 function CubicSplineParameterCache(u, h, z)
     parameters = cubic_spline_parameters.(
         Ref(u), Ref(h), Ref(z), 1:(size(u)[end] - 1))
-    c₁, c₂ = collect.(eachrow(hcat(collect.(parameters)...)))
+    c₁, c₂ = collect.(eachrow(stack(collect.(parameters))))
     return CubicSplineParameterCache(c₁, c₂)
 end
 
@@ -99,7 +99,7 @@ end
 function CubicHermiteParameterCache(du, u, t)
     parameters = cubic_hermite_spline_parameters.(
         Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
-    c₁, c₂ = collect.(eachrow(hcat(collect.(parameters)...)))
+    c₁, c₂ = collect.(eachrow(stack(collect.(parameters))))
     return CubicHermiteParameterCache(c₁, c₂)
 end
 
@@ -123,7 +123,7 @@ end
 function QuinticHermiteParameterCache(ddu, du, u, t)
     parameters = quintic_hermite_spline_parameters.(
         Ref(ddu), Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
-    c₁, c₂, c₃ = collect.(eachrow(hcat(collect.(parameters)...)))
+    c₁, c₂, c₃ = collect.(eachrow(stack(collect.(parameters))))
     return QuinticHermiteParameterCache(c₁, c₂, c₃)
 end
 
