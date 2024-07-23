@@ -82,6 +82,12 @@ end
     u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
     test_derivatives(
         LinearInterpolation; args = [u, t], name = "Linear Interpolation (Matrix)")
+
+    # Issue: https://github.com/SciML/DataInterpolations.jl/issues/303
+    u = [3.0, 3.0]
+    t = [0.0, 2.0]
+    test_derivatives(
+        LinearInterpolation; args = [u, t], name = "Linear Interpolation with two points")
 end
 
 @testset "Quadratic Interpolation" begin
