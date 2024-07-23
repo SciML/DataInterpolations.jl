@@ -1,10 +1,6 @@
 # DataInterpolations.jl
 
-DataInterpolations.jl is a library for performing interpolations of one-dimensional data. By
-"data interpolations" we mean techniques for interpolating possibly noisy data, and thus
-some methods are mixtures of regressions with interpolations (i.e. do not hit the data
-points exactly, smoothing out the lines). This library can be used to fill in intermediate
-data points in applications like timeseries data.
+DataInterpolations.jl is a library for performing interpolations of one-dimensional data. Interpolations are a very important component of many modeling workflows. Often, sampled or measured inputs need to be transformed into continuous functions or smooth curves for simulation purposes. In many scientific machine learning workflows, interpolating data is essential to learn continuous models. DataInterpolations.jl can be used for facilitating these types of workflows. By "data interpolations" we mean techniques for interpolating possibly noisy data, and thus some methods are mixtures of regressions with interpolations (i.e. do not hit the data points exactly, smoothing out the lines).
 
 ## Installation
 
