@@ -10,15 +10,15 @@ end
 """
 Prevent e.g. Inf - Inf = NaN
 """
-function safe_diff(b, a::T) where T
-    b == a ? zero(T) : b - a 
+function safe_diff(b, a::T) where {T}
+    b == a ? zero(T) : b - a
 end
 
-function linear_interpolation_parameters(u::AbstractArray{T}, t, idx) where T
+function linear_interpolation_parameters(u::AbstractArray{T}, t, idx) where {T}
     Δu = if u isa AbstractMatrix
         [safe_diff(u[j, idx + 1], u[j, idx]) for j in 1:size(u)[1]]
     else
-        safe_diff(u[idx + 1], u[idx]) 
+        safe_diff(u[idx + 1], u[idx])
     end
     Δt = t[idx + 1] - t[idx]
     slope = Δu / Δt
