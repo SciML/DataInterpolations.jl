@@ -7,9 +7,7 @@ function LinearParameterCache(u, t)
     return LinearParameterCache(slope)
 end
 
-"""
-Prevent e.g. Inf - Inf = NaN
-"""
+# Prevent e.g. Inf - Inf = NaN
 function safe_diff(b, a::T) where {T}
     b == a ? zero(T) : b - a
 end
