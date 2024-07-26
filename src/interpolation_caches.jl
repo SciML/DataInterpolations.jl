@@ -98,25 +98,24 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
 """
-struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
+struct LagrangeInterpolation{uType, tType, duType, T} <:
        AbstractInterpolation{T}
     u::uType
     t::tType
     n::Int
-    bcache::bcacheType
-    idxs::Vector{Int}
+    p::LagrangeParameterCache
+    du::duType
+    derp::LagrangeParameterCache
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function LagrangeInterpolation(u, t, n, extrapolate, safetycopy)
-        bcache = zeros(eltype(u[1]), n + 1)
-        idxs = zeros(Int, n + 1)
-        fill!(bcache, NaN)
-        new{typeof(u), typeof(t), eltype(u), typeof(bcache)}(u,
+    function LagrangeInterpolation(u, t, n, p, du, derp, extrapolate, safetycopy)
+        new{typeof(u), typeof(t), typeof(du), eltype(u)}(u,
             t,
             n,
-            bcache,
-            idxs,
+            p,
+            du,
+            derp,
             extrapolate,
             Ref(1),
             safetycopy
@@ -130,7 +129,12 @@ function LagrangeInterpolation(
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
     end
-    LagrangeInterpolation(u, t, n, extrapolate, safetycopy)
+    p = lagrange_parameter_cache(u.parent, t.parent)
+    derpw = similar(t.parent)
+    derpw .= NaN
+    derp = LagrangeParameterCache(derpw, similar(u.parent))
+    du = !(u.parent[1] isa AbstractVector || u.parent[1] isa AbstractMatrix) ? similar(u.parent) : similar.(u.parent)
+    LagrangeInterpolation(u, t, n, p, du, derp, extrapolate, safetycopy)
 end
 
 """
