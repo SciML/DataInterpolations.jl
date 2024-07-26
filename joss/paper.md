@@ -54,7 +54,7 @@ Interpolations are a very important component of many modeling workflows. Often,
 
 # Example
 
-The following tutorials in the documentation [1](https://docs.sciml.ai/DataInterpolations/stable/methods/) provides how to define each of the interpolation methods and compute the value at any point. [2](https://docs.sciml.ai/DataInterpolations/stable/interface/) provides explanation for using the interface and interpolated objects for evaluating at any point, computing the derivative at any point and computing the integral between any two points.
+The following tutorials in the documentation [1](https://docs.sciml.ai/DataInterpolations/stable/methods/) provides how to define each of the interpolation methods and compute the value at any point. [2](https://docs.sciml.ai/DataInterpolations/stable/interface/) provides explanation for using the interface and interpolated objects for evaluating at any point, computing the derivative at any point and computing the integral between any two points. [3](https://docs.sciml.ai/DataInterpolations/stable/symbolics/) provides how to use interpolation objects with Symbolics.jl and ModelingToolkit.jl.
 
 A simple demonstration here:
 
