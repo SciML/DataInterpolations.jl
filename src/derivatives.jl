@@ -18,7 +18,7 @@ function derivative(A, t, order = 1)
 end
 
 function _derivative(A::LinearInterpolation, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess; idx_shift = -1, ub_shift = -2, side = :first)
+    idx = get_idx(A.t, t, iguess; idx_shift = -1, ub_shift = -1, side = :first)
     slope = get_parameters(A, idx)
     slope, idx
 end

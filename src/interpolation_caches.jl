@@ -30,24 +30,14 @@ end
 
 function LinearInterpolation(u, t; extrapolate = false, cache_parameters = false)
     u, t = munge_data(u, t)
-    p = if cache_parameters
-        LinearParameterCache(u, t)
-    else
-        LinearParameterCache(nothing)
-    end
-
+    p = LinearParameterCache(u, t, cache_parameters)
     A = LinearInterpolation(u, t, nothing, p, extrapolate, cache_parameters)
-
-    if cache_parameters
-        I = cumulative_integral(A)
-        A = LinearInterpolation(u, t, I, p, extrapolate, cache_parameters)
-    end
-
-    A
+    I = cumulative_integral(A, cache_parameters)
+    LinearInterpolation(u, t, I, p, extrapolate, cache_parameters)
 end
 
 """
-    QuadraticInterpolation(u, t, mode = :Forward; cache_parameters = false)
+    QuadraticInterpolation(u, t, mode = :Forward; extrapolate = false, cache_parameters = false)
 
 It is the method of interpolating between the data points using quadratic polynomials. For any point, three data points nearby are taken to fit a quadratic polynomial.
 Extrapolation extends the last quadratic polynomial on each side.
@@ -82,20 +72,10 @@ end
 
 function QuadraticInterpolation(u, t, mode; extrapolate = false, cache_parameters = false)
     u, t = munge_data(u, t)
-    p = if cache_parameters
-        QuadraticParameterCache(u, t)
-    else
-        QuadraticParameterCache(nothing, nothing, nothing)
-    end
-
+    p = QuadraticParameterCache(u, t, cache_parameters)
     A = QuadraticInterpolation(u, t, nothing, p, mode, extrapolate, cache_parameters)
-
-    if cache_parameters
-        I = cumulative_integral(A)
-        A = QuadraticInterpolation(u, t, I, p, mode, extrapolate, cache_parameters)
-    end
-
-    A
+    I = cumulative_integral(A, cache_parameters)
+    QuadraticInterpolation(u, t, I, p, mode, extrapolate, cache_parameters)
 end
 
 function QuadraticInterpolation(u, t; extrapolate = false, cache_parameters = false)
@@ -103,7 +83,7 @@ function QuadraticInterpolation(u, t; extrapolate = false, cache_parameters = fa
 end
 
 """
-    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolate = false)
+    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolate = false, safetycopy = true)
 
 It is the method of interpolation using Lagrange polynomials of (k-1)th order passing through all the data points where k is the number of data points.
 
@@ -153,7 +133,7 @@ end
 """
     AkimaInterpolation(u, t; extrapolate = false, cache_parameters = false)
 
-It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: https://en.wikipedia.org/wiki/Akima_spline.
+It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: [https://en.wikipedia.org/wiki/Akima_spline](https://en.wikipedia.org/wiki/Akima_spline).
 Extrapolation extends the last cubic polynomial on each side.
 
 ## Arguments
@@ -215,13 +195,8 @@ function AkimaInterpolation(u, t; extrapolate = false, cache_parameters = false)
     d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
 
     A = AkimaInterpolation(u, t, nothing, b, c, d, extrapolate, cache_parameters)
-
-    if cache_parameters
-        I = cumulative_integral(A)
-        A = AkimaInterpolation(u, t, I, b, c, d, extrapolate, cache_parameters)
-    end
-
-    A
+    I = cumulative_integral(A, cache_parameters)
+    AkimaInterpolation(u, t, I, b, c, d, extrapolate, cache_parameters)
 end
 
 """
@@ -261,13 +236,8 @@ function ConstantInterpolation(
         u, t; dir = :left, extrapolate = false, cache_parameters = false)
     u, t = munge_data(u, t)
     A = ConstantInterpolation(u, t, nothing, dir, extrapolate, cache_parameters)
-
-    if cache_parameters
-        I = cumulative_integral(A)
-        A = ConstantInterpolation(u, t, I, dir, extrapolate, cache_parameters)
-    end
-
-    A
+    I = cumulative_integral(A, cache_parameters)
+    ConstantInterpolation(u, t, I, dir, extrapolate, cache_parameters)
 end
 
 """
@@ -330,20 +300,10 @@ function QuadraticSpline(
     d = map(i -> i == 1 ? typed_zero : 2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]), 1:s)
     z = tA \ d
 
-    p = if cache_parameters
-        QuadraticSplineParameterCache(z, t)
-    else
-        QuadraticSplineParameterCache(nothing)
-    end
-
+    p = QuadraticSplineParameterCache(z, t, cache_parameters)
     A = QuadraticSpline(u, t, nothing, p, tA, d, z, extrapolate, cache_parameters)
-
-    if cache_parameters
-        I = cumulative_integral(A)
-        A = QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters)
-    end
-
-    A
+    I = cumulative_integral(A, cache_parameters)
+    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters)
 end
 
 function QuadraticSpline(
@@ -362,19 +322,11 @@ function QuadraticSpline(
     d = transpose(reshape(reduce(hcat, d_), :, s))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
-    p = if cache_parameters
-        QuadraticSplineParameterCache(z, t)
-    else
-        QuadraticSplineParameterCache(nothing)
-    end
+
+    p = QuadraticSplineParameterCache(z, t, cache_parameters)
     A = QuadraticSpline(u, t, nothing, p, tA, d, z, extrapolate, cache_parameters)
-
-    if cache_parameters
-        I = cumulative_integral(A)
-        A = QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters)
-    end
-
-    A
+    I = cumulative_integral(A, cache_parameters)
+    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters)
 end
 
 """
@@ -439,19 +391,11 @@ function CubicSpline(u::uType,
              6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
         1:(n + 1))
     z = tA \ d
-    p = if cache_parameters
-        CubicSplineParameterCache(u, h, z)
-    else
-        CubicSplineParameterCache(nothing, nothing)
-    end
+
+    p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(u, t, nothing, p, h[1:(n + 1)], z, extrapolate, cache_parameters)
-
-    if cache_parameters
-        I = cumulative_integral(A)
-        A = CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, cache_parameters)
-    end
-
-    A
+    I = cumulative_integral(A, cache_parameters)
+    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, cache_parameters)
 end
 
 function CubicSpline(
@@ -471,26 +415,17 @@ function CubicSpline(
     d = transpose(reshape(reduce(hcat, d_), :, n + 1))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
-    p = if cache_parameters
-        CubicSplineParameterCache(u, h, z)
-    else
-        CubicSplineParameterCache(nothing, nothing)
-    end
 
+    p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(u, t, nothing, p, h[1:(n + 1)], z, extrapolate, cache_parameters)
-
-    if cache_parameters
-        I = cumulative_integral(A)
-        A = CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, cache_parameters)
-    end
-
-    A
+    I = cumulative_integral(A, cache_parameters)
+    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, cache_parameters)
 end
 
 """
-    BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolate = false)
+    BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolate = false, safetycopy = true)
 
-It is a curve defined by the linear combination of `n` basis functions of degree `d` where `n` is the number of data points. For more information, refer https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html.
+It is a curve defined by the linear combination of `n` basis functions of degree `d` where `n` is the number of data points. For more information, refer [https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html](https://pages.mtu.edu/%7Eshene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html).
 Extrapolation is a constant polynomial of the end points on each side.
 
 ## Arguments
@@ -613,10 +548,10 @@ function BSplineInterpolation(
 end
 
 """
-    BSplineApprox(u, t, d, h, pVecType, knotVecType)
+    BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolate = false)
 
 It is a regression based B-spline. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h < length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing.
-For more information, refer http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf.
+For more information, refer [http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf](http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf).
 Extrapolation is a constant polynomial of the end points on each side.
 
 ## Arguments
@@ -798,23 +733,37 @@ end
 function CubicHermiteSpline(du, u, t; extrapolate = false, cache_parameters = false)
     @assert length(u)==length(du) "Length of `u` is not equal to length of `du`."
     u, t = munge_data(u, t)
-    p = if cache_parameters
-        CubicHermiteParameterCache(du, u, t)
-    else
-        CubicHermiteParameterCache(nothing, nothing)
-    end
+    p = CubicHermiteParameterCache(du, u, t, cache_parameters)
     A = CubicHermiteSpline(du, u, t, nothing, p, extrapolate, cache_parameters)
-
-    if cache_parameters
-        I = cumulative_integral(A)
-        A = CubicHermiteSpline(du, u, t, I, p, extrapolate, cache_parameters)
-    end
-
-    A
+    I = cumulative_integral(A, cache_parameters)
+    CubicHermiteSpline(du, u, t, I, p, extrapolate, cache_parameters)
 end
 
 """
-    QuinticHermiteSpline(ddu, du, u, t; extrapolate = false, cache_parameters = false)
+    PCHIPInterpolation(u, t; extrapolate = false, safetycopy = true)
+
+It is a PCHIP Interpolation, which is a type of [`CubicHermiteSpline`](@ref) where the derivative values `du` are derived from the input data
+in such a way that the interpolation never overshoots the data. See [here](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf),
+section 3.4 for more details.
+
+## Arguments
+
+  - `u`: data points.
+  - `t`: time points.
+
+## Keyword Arguments
+
+  - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+"""
+function PCHIPInterpolation(u, t; extrapolate = false, cache_parameters = false)
+    u, t = munge_data(u, t)
+    du = du_PCHIP(u, t)
+    CubicHermiteSpline(du, u, t; extrapolate, cache_parameters)
+end
+
+"""
+    QuinticHermiteSpline(ddu, du, u, t; extrapolate = false, safetycopy = true)
 
 It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polynomial such that the value and the first and second derivative are equal to given values in the data points.
 
@@ -851,17 +800,8 @@ end
 function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false, cache_parameters = false)
     @assert length(u)==length(du)==length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     u, t = munge_data(u, t)
-    p = if cache_parameters
-        QuinticHermiteParameterCache(ddu, du, u, t)
-    else
-        QuinticHermiteParameterCache(nothing, nothing, nothing)
-    end
+    p = QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
     A = QuinticHermiteSpline(ddu, du, u, t, nothing, p, extrapolate, cache_parameters)
-
-    if cache_parameters
-        I = cumulative_integral(A)
-        A = QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate, cache_parameters)
-    end
-
-    A
+    I = cumulative_integral(A, cache_parameters)
+    QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate, cache_parameters)
 end

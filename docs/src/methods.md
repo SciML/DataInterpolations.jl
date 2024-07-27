@@ -22,8 +22,7 @@ This is a linear interpolation between the ends points of the interval of input 
 
 ```@example tutorial
 A = LinearInterpolation(u, t)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 ## Quadratic Interpolation
@@ -36,8 +35,7 @@ forward-looking). It is continuous and piecewise differentiable.
 ```@example tutorial
 A = QuadraticInterpolation(u, t) # same as QuadraticInterpolation(u,t,:Forward)
 # alternatively: A = QuadraticInterpolation(u,t,:Backward)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 ## Lagrange Interpolation
@@ -47,8 +45,7 @@ differentiable function.
 
 ```@example tutorial
 A = LagrangeInterpolation(u, t)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 ## Akima Interpolation
@@ -59,8 +56,7 @@ fit looks more natural.
 
 ```@example tutorial
 A = AkimaInterpolation(u, t)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 ## Constant Interpolation
@@ -71,16 +67,14 @@ passing the keyword argument `dir = :right`.
 
 ```@example tutorial
 A = ConstantInterpolation(u, t)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 Or using the right endpoints:
 
 ```@example tutorial
 A = ConstantInterpolation(u, t, dir = :right)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 ## Quadratic Spline
@@ -92,8 +86,7 @@ nearest to it.
 
 ```@example tutorial
 A = QuadraticSpline(u, t)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 ## Cubic Spline
@@ -103,8 +96,7 @@ which hits each of the data points exactly.
 
 ```@example tutorial
 A = CubicSpline(u, t)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 ## B-Splines
@@ -118,8 +110,7 @@ uniformly spaced, we will use the `:ArcLen` and `:Average` choices:
 
 ```@example tutorial
 A = BSplineInterpolation(u, t, 3, :ArcLen, :Average)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 The approximating B-spline is a smoothed version of the B-spline. It again is
@@ -130,8 +121,7 @@ data. For example, if we use 4 control points, we get the result:
 
 ```@example tutorial
 A = BSplineApprox(u, t, 3, 4, :ArcLen, :Average)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 ## Cubic Hermite Spline
@@ -141,8 +131,16 @@ This is the cubic (third order) Hermite interpolation. It matches the values and
 ```@example tutorial
 du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0011]
 A = CubicHermiteSpline(du, u, t)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
+```
+
+## PCHIP Interpolation
+
+This is a type of `CubicHermiteSpline` where the derivative values `du` are derived from the input data in such a way that the interpolation never overshoots the data.
+
+```@example tutorial
+A = PCHIPInterpolation(u, t)
+plot(A)
 ```
 
 ## Quintic Hermite Spline
@@ -153,8 +151,7 @@ This is the quintic (fifth order) Hermite interpolation. It matches the values a
 ddu = [0.0, -0.00033, 0.0051, -0.0067, 0.0029, 0.0]
 du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0011]
 A = QuinticHermiteSpline(ddu, du, u, t)
-scatter(t, u, label = "input data")
-plot!(A)
+plot(A)
 ```
 
 ## Regularization Smoothing
@@ -248,8 +245,7 @@ match our data. Let's start with the guess of every `p` being zero, that is
 ```@example tutorial
 using Optim
 A = Curvefit(u, t, m, ones(4), LBFGS())
-scatter(t, u, label = "points", legend = :bottomright)
-plot!(A)
+plot(A)
 ```
 
 We can check what the fitted parameters are via:
@@ -265,8 +261,7 @@ is not good:
 
 ```@example tutorial
 A = Curvefit(u, t, m, zeros(4), LBFGS())
-scatter(t, u, label = "points", legend = :bottomright)
-plot!(A)
+plot(A)
 ```
 
 And the parameters show the issue:

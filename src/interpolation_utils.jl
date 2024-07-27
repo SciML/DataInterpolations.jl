@@ -105,14 +105,15 @@ function get_idx(tvec, t, iguess; lb = 1, ub_shift = -1, idx_shift = 0, side = :
     end
 end
 
-function cumulative_integral(A)
-    if isempty(methods(_integral, (typeof(A), Any, Any)))
-        return nothing
+function cumulative_integral(A, cache_parameters)
+    if cache_parameters && hasmethod(_integral, Tuple{typeof(A), Number, Number})
+        integral_values = [_integral(A, idx, A.t[idx + 1]) - _integral(A, idx, A.t[idx])
+                           for idx in 1:(length(A.t) - 1)]
+        pushfirst!(integral_values, zero(first(integral_values)))
+        cumsum(integral_values)
+    else
+        promote_type(eltype(A.u), eltype(A.t))[]
     end
-    integral_values = [_integral(A, idx, A.t[idx + 1]) - _integral(A, idx, A.t[idx])
-                       for idx in 1:(length(A.t) - 1)]
-    pushfirst!(integral_values, zero(first(integral_values)))
-    return cumsum(integral_values)
 end
 
 function get_parameters(A::LinearInterpolation, idx)
@@ -161,4 +162,39 @@ function get_parameters(A::QuinticHermiteSpline, idx)
     else
         quintic_hermite_spline_parameters(A.ddu, A.du, A.u, A.t, idx)
     end
+end
+
+function du_PCHIP(u, t)
+    h = diff(u)
+    δ = h ./ diff(t)
+    s = sign.(δ)
+
+    function _du(k)
+        sₖ₋₁, sₖ = if k == 1
+            s[1], s[2]
+        elseif k == lastindex(t)
+            s[end - 1], s[end]
+        else
+            s[k - 1], s[k]
+        end
+
+        if sₖ₋₁ == 0 && sₖ == 0
+            zero(eltype(δ))
+        elseif sₖ₋₁ == sₖ
+            if k == 1
+                ((2 * h[1] + h[2]) * δ[1] - h[1] * δ[2]) / (h[1] + h[2])
+            elseif k == lastindex(t)
+                ((2 * h[end] + h[end - 1]) * δ[end] - h[end] * δ[end - 1]) /
+                (h[end] + h[end - 1])
+            else
+                w₁ = 2h[k] + h[k - 1]
+                w₂ = h[k] + 2h[k - 1]
+                δ[k - 1] * δ[k] * (w₁ + w₂) / (w₁ * δ[k] + w₂ * δ[k - 1])
+            end
+        else
+            zero(eltype(δ))
+        end
+    end
+
+    return _du.(eachindex(t))
 end
