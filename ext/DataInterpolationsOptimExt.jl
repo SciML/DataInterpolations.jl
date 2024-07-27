@@ -18,9 +18,8 @@ function Curvefit(u,
         box = false,
         lb = nothing,
         ub = nothing;
-        extrapolate = false,
-        safetycopy = false)
-    u, t = munge_data(u, t, safetycopy)
+        extrapolate = false)
+    u, t = munge_data(u, t)
     errfun(t, u, p) = sum(abs2.(u .- model(t, p)))
     if box == false
         mfit = optimize(p -> errfun(t, u, p), p0, alg)

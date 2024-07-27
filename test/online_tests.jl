@@ -9,9 +9,9 @@ u2 = [1.0, 2.0, 1.0]
 ts = 1.0:0.5:6.0
 
 for method in [LinearInterpolation, QuadraticInterpolation, ConstantInterpolation]
-    func1 = method(u1, t1)
+    func1 = method(copy(u1), copy(t1); cache_parameters = true)
     append!(func1, u2, t2)
-    func2 = method(vcat(u1, u2), vcat(t1, t2))
+    func2 = method(vcat(u1, u2), vcat(t1, t2); cache_parameters = true)
     @test func1.u == func2.u
     @test func1.t == func2.t
     for name in propertynames(func1.p)
@@ -20,9 +20,9 @@ for method in [LinearInterpolation, QuadraticInterpolation, ConstantInterpolatio
     @test func1(ts) == func2(ts)
     @test func1.I == func2.I
 
-    func1 = method(u1, t1)
+    func1 = method(copy(u1), copy(t1); cache_parameters = true)
     push!(func1, 1.0, 4.0)
-    func2 = method(vcat(u1, 1.0), vcat(t1, 4.0))
+    func2 = method(vcat(u1, 1.0), vcat(t1, 4.0); cache_parameters = true)
     @test func1.u == func2.u
     @test func1.t == func2.t
     for name in propertynames(func1.p)
