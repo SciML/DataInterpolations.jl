@@ -311,17 +311,23 @@ uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 version = "1.16.0"
 
 [[deps.DataInterpolations]]
-deps = ["FindFirstFunctions", "ForwardDiff", "LinearAlgebra", "PrettyTables", "ReadOnlyArrays", "RecipesBase", "Reexport"]
+deps = ["FindFirstFunctions", "ForwardDiff", "LinearAlgebra", "PrettyTables", "RecipesBase", "Reexport"]
 path = "/home/runner/work/DataInterpolations.jl/DataInterpolations.jl"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
 version = "5.3.1"
-weakdeps = ["ChainRulesCore", "Optim", "RegularizationTools", "Symbolics"]
 
     [deps.DataInterpolations.extensions]
     DataInterpolationsChainRulesCoreExt = "ChainRulesCore"
     DataInterpolationsOptimExt = "Optim"
     DataInterpolationsRegularizationToolsExt = "RegularizationTools"
     DataInterpolationsSymbolicsExt = "Symbolics"
+
+    [deps.DataInterpolations.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+    RegularizationTools = "29dad682-9a27-4bc3-9c72-016788665182"
+    Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+    Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -568,6 +574,12 @@ git-tree-sha1 = "27415f162e6028e81c72b82ef756bf321213b6ec"
 uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
 version = "0.1.10"
 
+[[deps.Expronicon]]
+deps = ["MLStyle", "Pkg", "TOML"]
+git-tree-sha1 = "fc3951d4d398b5515f91d7fe5d45fc31dccb3c9b"
+uuid = "6b7a57c9-7cc1-4fdf-b7f5-e857abae3636"
+version = "0.8.5"
+
 [[deps.FFMPEG]]
 deps = ["FFMPEG_jll"]
 git-tree-sha1 = "b57e3acbe22f8484b4b5ff66a7499717fe1a9cc8"
@@ -582,9 +594,9 @@ version = "4.4.4+1"
 
 [[deps.FastBroadcast]]
 deps = ["ArrayInterface", "LinearAlgebra", "Polyester", "Static", "StaticArrayInterface", "StrideArraysCore"]
-git-tree-sha1 = "bd19de6fe8a3b18888f35e79832f97544684caa7"
+git-tree-sha1 = "ab1b34570bcdf272899062e1a56285a53ecaae08"
 uuid = "7034ab61-46d4-4ed7-9d0f-46aef9175898"
-version = "0.3.4"
+version = "0.3.5"
 
 [[deps.FastClosures]]
 git-tree-sha1 = "acebe244d53ee1b461970f8910c235b259e772ef"
@@ -1244,9 +1256,9 @@ version = "9.26.0"
 
 [[deps.ModelingToolkitStandardLibrary]]
 deps = ["ChainRulesCore", "DiffEqBase", "IfElse", "LinearAlgebra", "ModelingToolkit", "Symbolics"]
-git-tree-sha1 = "e5d7c4e76721672b425f322a4a206ce62adca685"
+git-tree-sha1 = "862e6f77409c3ee33ade20b0242b10225fcc5e5a"
 uuid = "16a59e39-deab-5bd0-87e4-056b12336739"
-version = "2.8.0"
+version = "2.9.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
@@ -1579,11 +1591,6 @@ git-tree-sha1 = "043da614cc7e95c703498a491e2c21f58a2b8111"
 uuid = "e6cf234a-135c-5ec9-84dd-332b85af5143"
 version = "1.5.3"
 
-[[deps.ReadOnlyArrays]]
-git-tree-sha1 = "e6f7ddf48cf141cb312b078ca21cb2d29d0dc11d"
-uuid = "988b38a3-91fc-5605-94a2-ee2116b3bd83"
-version = "0.2.0"
-
 [[deps.RecipesBase]]
 deps = ["PrecompileTools"]
 git-tree-sha1 = "5c3d09cc4f31f5fc6af001c250bf1278733100ff"
@@ -1695,10 +1702,10 @@ uuid = "476501e8-09a2-5ece-8869-fb82de89a1fa"
 version = "0.6.43"
 
 [[deps.SciMLBase]]
-deps = ["ADTypes", "Accessors", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "PrecompileTools", "Preferences", "Printf", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLOperators", "SciMLStructures", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables"]
-git-tree-sha1 = "ddb59473b85372c4a71b082e6862503e550fd97c"
+deps = ["ADTypes", "Accessors", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "Expronicon", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "PrecompileTools", "Preferences", "Printf", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLOperators", "SciMLStructures", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables"]
+git-tree-sha1 = "8501bb749cc6684c86b6f113e17f2e6d60ccf11c"
 uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
-version = "2.44.0"
+version = "2.45.1"
 
     [deps.SciMLBase.extensions]
     SciMLBaseChainRulesCoreExt = "ChainRulesCore"
@@ -2040,9 +2047,9 @@ uuid = "d5829a12-d9aa-46ab-831f-fb7c9ab06edf"
 version = "0.2.1"
 
 [[deps.Tricks]]
-git-tree-sha1 = "eae1bb484cd63b36999ee58be2de6c178105112f"
+git-tree-sha1 = "7822b97e99a1672bfb1b49b668a6d46d58d8cbcb"
 uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
-version = "0.1.8"
+version = "0.1.9"
 
 [[deps.TruncatedStacktraces]]
 deps = ["InteractiveUtils", "MacroTools", "Preferences"]
@@ -2370,9 +2377,9 @@ version = "1.6.43+1"
 
 [[deps.libvorbis_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Ogg_jll", "Pkg"]
-git-tree-sha1 = "b910cb81ef3fe6e78bf6acee440bda86fd6ae00c"
+git-tree-sha1 = "490376214c4721cdaca654041f635213c6165cb3"
 uuid = "f27f6e37-5d2b-51aa-960f-b287f2bc3b7a"
-version = "1.3.7+1"
+version = "1.3.7+2"
 
 [[deps.mtdev_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
