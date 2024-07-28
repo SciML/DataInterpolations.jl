@@ -19,14 +19,16 @@ end
 
 function _derivative(A::LinearInterpolation, t::Number, iguess)
     idx = get_idx(A.t, t, iguess; idx_shift = -1, ub_shift = -1, side = :first)
-    A.p.slope[idx], idx
+    slope = get_parameters(A, idx)
+    slope, idx
 end
 
 function _derivative(A::QuadraticInterpolation, t::Number, iguess)
     i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    du₀ = A.p.l₀[i₀] * (2t - A.t[i₁] - A.t[i₂])
-    du₁ = A.p.l₁[i₀] * (2t - A.t[i₀] - A.t[i₂])
-    du₂ = A.p.l₂[i₀] * (2t - A.t[i₀] - A.t[i₁])
+    l₀, l₁, l₂ = get_parameters(A, i₀)
+    du₀ = l₀ * (2t - A.t[i₁] - A.t[i₂])
+    du₁ = l₁ * (2t - A.t[i₀] - A.t[i₂])
+    du₂ = l₂ * (2t - A.t[i₀] - A.t[i₁])
     return @views @. du₀ + du₁ + du₂, i₀
 end
 
@@ -129,7 +131,7 @@ end
 # QuadraticSpline Interpolation
 function _derivative(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess; lb = 2, ub_shift = 0, side = :first)
-    σ = A.p.σ[idx - 1]
+    σ = get_parameters(A, idx - 1)
     A.z[idx - 1] + 2σ * (t - A.t[idx - 1]), idx
 end
 
@@ -139,8 +141,9 @@ function _derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
     dI = (-A.z[idx] * Δt₂^2 + A.z[idx + 1] * Δt₁^2) / (2A.h[idx + 1])
-    dC = A.p.c₁[idx]
-    dD = -A.p.c₂[idx]
+    c₁, c₂ = get_parameters(A, idx)
+    dC = c₁
+    dD = -c₂
     dI + dC + dD, idx
 end
 
@@ -193,7 +196,8 @@ function _derivative(
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
     out = A.du[idx]
-    out += Δt₀ * (Δt₀ * A.p.c₂[idx] + 2(A.p.c₁[idx] + Δt₁ * A.p.c₂[idx]))
+    c₁, c₂ = get_parameters(A, idx)
+    out += Δt₀ * (Δt₀ * c₂ + 2(c₁ + Δt₁ * c₂))
     out, idx
 end
 
@@ -204,7 +208,8 @@ function _derivative(
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
     out = A.du[idx] + A.ddu[idx] * Δt₀
+    c₁, c₂, c₃ = get_parameters(A, idx)
     out += Δt₀^2 *
-           (3A.p.c₁[idx] + (3Δt₁ + Δt₀) * A.p.c₂[idx] + (3Δt₁^2 + Δt₀ * 2Δt₁) * A.p.c₃[idx])
+           (3c₁ + (3Δt₁ + Δt₀) * c₂ + (3Δt₁^2 + Δt₀ * 2Δt₁) * c₃)
     out, idx
 end

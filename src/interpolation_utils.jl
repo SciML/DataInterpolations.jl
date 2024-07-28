@@ -60,15 +60,11 @@ function spline_coefficients!(N, d, k, u::AbstractVector)
 end
 
 # helper function for data manipulation
-function munge_data(u::AbstractVector{<:Real}, t::AbstractVector{<:Real}, safetycopy::Bool)
-    if safetycopy
-        u = copy(u)
-        t = copy(t)
-    end
-    return readonly_wrap(u), readonly_wrap(t)
+function munge_data(u::AbstractVector{<:Real}, t::AbstractVector{<:Real})
+    return u, t
 end
 
-function munge_data(u::AbstractVector, t::AbstractVector, safetycopy::Bool)
+function munge_data(u::AbstractVector, t::AbstractVector)
     Tu = Base.nonmissingtype(eltype(u))
     Tt = Base.nonmissingtype(eltype(t))
     @assert length(t) == length(u)
@@ -77,17 +73,13 @@ function munge_data(u::AbstractVector, t::AbstractVector, safetycopy::Bool)
     if !ismissing(u[i]) && !ismissing(t[i])
     )
 
-    if safetycopy
-        u = Tu.([u[i] for i in non_missing_indices])
-        t = Tt.([t[i] for i in non_missing_indices])
-    else
-        !isempty(non_missing_indices) && throw(MustCopyError())
-    end
+    u = Tu.([u[i] for i in non_missing_indices])
+    t = Tt.([t[i] for i in non_missing_indices])
 
-    return readonly_wrap(u), readonly_wrap(t)
+    return u, t
 end
 
-function munge_data(U::StridedMatrix, t::AbstractVector, safetycopy::Bool)
+function munge_data(U::StridedMatrix, t::AbstractVector)
     TU = Base.nonmissingtype(eltype(U))
     Tt = Base.nonmissingtype(eltype(t))
     @assert length(t) == size(U, 2)
@@ -96,19 +88,11 @@ function munge_data(U::StridedMatrix, t::AbstractVector, safetycopy::Bool)
     if !any(ismissing, U[:, i]) && !ismissing(t[i])
     )
 
-    if safetycopy
-        U = hcat([TU.(U[:, i]) for i in non_missing_indices]...)
-        t = Tt.([t[i] for i in non_missing_indices])
-    else
-        !isempty(non_missing_indices) && throw(MustCopyError())
-    end
+    U = hcat([TU.(U[:, i]) for i in non_missing_indices]...)
+    t = Tt.([t[i] for i in non_missing_indices])
 
-    return readonly_wrap(U), readonly_wrap(t)
+    return U, t
 end
-
-# Don't nest ReadOnlyArrays
-readonly_wrap(a::AbstractArray) = ReadOnlyArray(a)
-readonly_wrap(a::ReadOnlyArray) = a
 
 function get_idx(tvec, t, iguess; lb = 1, ub_shift = -1, idx_shift = 0, side = :last)
     ub = length(tvec) + ub_shift
@@ -121,14 +105,63 @@ function get_idx(tvec, t, iguess; lb = 1, ub_shift = -1, idx_shift = 0, side = :
     end
 end
 
-function cumulative_integral(A)
-    if !hasmethod(_integral, Tuple{typeof(A), Number, Number})
-        return nothing
+function cumulative_integral(A, cache_parameters)
+    if cache_parameters && hasmethod(_integral, Tuple{typeof(A), Number, Number})
+        integral_values = [_integral(A, idx, A.t[idx + 1]) - _integral(A, idx, A.t[idx])
+                           for idx in 1:(length(A.t) - 1)]
+        pushfirst!(integral_values, zero(first(integral_values)))
+        cumsum(integral_values)
+    else
+        promote_type(eltype(A.u), eltype(A.t))[]
     end
-    integral_values = [_integral(A, idx, A.t[idx + 1]) - _integral(A, idx, A.t[idx])
-                       for idx in 1:(length(A.t) - 1)]
-    pushfirst!(integral_values, zero(first(integral_values)))
-    return cumsum(integral_values)
+end
+
+function get_parameters(A::LinearInterpolation, idx)
+    if A.cache_parameters
+        A.p.slope[idx]
+    else
+        linear_interpolation_parameters(A.u, A.t, idx)
+    end
+end
+
+function get_parameters(A::QuadraticInterpolation, idx)
+    if A.cache_parameters
+        A.p.l₀[idx], A.p.l₁[idx], A.p.l₂[idx]
+    else
+        quadratic_interpolation_parameters(A.u, A.t, idx)
+    end
+end
+
+function get_parameters(A::QuadraticSpline, idx)
+    if A.cache_parameters
+        A.p.σ[idx]
+    else
+        quadratic_spline_parameters(A.z, A.t, idx)
+    end
+end
+
+function get_parameters(A::CubicSpline, idx)
+    if A.cache_parameters
+        A.p.c₁[idx], A.p.c₂[idx]
+    else
+        cubic_spline_parameters(A.u, A.h, A.z, idx)
+    end
+end
+
+function get_parameters(A::CubicHermiteSpline, idx)
+    if A.cache_parameters
+        A.p.c₁[idx], A.p.c₂[idx]
+    else
+        cubic_hermite_spline_parameters(A.du, A.u, A.t, idx)
+    end
+end
+
+function get_parameters(A::QuinticHermiteSpline, idx)
+    if A.cache_parameters
+        A.p.c₁[idx], A.p.c₂[idx], A.p.c₃[idx]
+    else
+        quintic_hermite_spline_parameters(A.ddu, A.du, A.u, A.t, idx)
+    end
 end
 
 function du_PCHIP(u, t)

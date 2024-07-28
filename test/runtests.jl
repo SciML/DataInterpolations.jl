@@ -10,3 +10,4 @@ using SafeTestsets
 @safetestset "Online Tests" include("online_tests.jl")
 @safetestset "Regularization Smoothing" include("regularization.jl")
 @safetestset "Show methods" include("show.jl")
+@safetestset "Zygote support" include("zygote_tests.jl")
