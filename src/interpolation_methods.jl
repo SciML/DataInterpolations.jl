@@ -18,15 +18,15 @@ end
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     if isnan(t)
         # For correct derivative with NaN
-        idx = firstindex(A.u) - 1
+        idx = firstindex(A.u)
         t1 = t2 = one(eltype(A.t))
         u1 = u2 = one(eltype(A.u))
-        slope = t * one(eltype(A.p.slope))
+        slope = t * get_parameters(A, idx)
     else
         idx = get_idx(A.t, t, iguess)
         t1, t2 = A.t[idx], A.t[idx + 1]
         u1, u2 = A.u[idx], A.u[idx + 1]
-        slope = A.p.slope[idx]
+        slope = get_parameters(A, idx)
     end
 
     Δt = t - t1
@@ -46,7 +46,8 @@ end
 function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess)
     Δt = t - A.t[idx]
-    return A.u[:, idx] + A.p.slope[idx] * Δt, idx
+    slope = get_parameters(A, idx)
+    return A.u[:, idx] + slope * Δt, idx
 end
 
 # Quadratic Interpolation
@@ -58,9 +59,10 @@ end
 
 function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
     i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    u₀ = A.p.l₀[i₀] * (t - A.t[i₁]) * (t - A.t[i₂])
-    u₁ = A.p.l₁[i₀] * (t - A.t[i₀]) * (t - A.t[i₂])
-    u₂ = A.p.l₂[i₀] * (t - A.t[i₀]) * (t - A.t[i₁])
+    l₀, l₁, l₂ = get_parameters(A, i₀)
+    u₀ = l₀ * (t - A.t[i₁]) * (t - A.t[i₂])
+    u₁ = l₁ * (t - A.t[i₀]) * (t - A.t[i₂])
+    u₂ = l₂ * (t - A.t[i₀]) * (t - A.t[i₁])
     return u₀ + u₁ + u₂, i₀
 end
 
@@ -157,7 +159,8 @@ function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A.t, t, iguess)
     Cᵢ = A.u[idx]
     Δt = t - A.t[idx]
-    return A.z[idx] * Δt + A.p.σ[idx] * Δt^2 + Cᵢ, idx
+    σ = get_parameters(A, idx)
+    return A.z[idx] * Δt + σ * Δt^2 + Cᵢ, idx
 end
 
 # CubicSpline Interpolation
@@ -166,8 +169,9 @@ function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
     I = (A.z[idx] * Δt₂^3 + A.z[idx + 1] * Δt₁^3) / (6A.h[idx + 1])
-    C = A.p.c₁[idx] * Δt₁
-    D = A.p.c₂[idx] * Δt₂
+    c₁, c₂ = get_parameters(A, idx)
+    C = c₁ * Δt₁
+    D = c₂ * Δt₂
     I + C + D, idx
 end
 
@@ -213,7 +217,8 @@ function _interpolate(
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
     out = A.u[idx] + Δt₀ * A.du[idx]
-    out += Δt₀^2 * (A.p.c₁[idx] + Δt₁ * A.p.c₂[idx])
+    c₁, c₂ = get_parameters(A, idx)
+    out += Δt₀^2 * (c₁ + Δt₁ * c₂)
     out, idx
 end
 
@@ -224,6 +229,7 @@ function _interpolate(
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
     out = A.u[idx] + Δt₀ * (A.du[idx] + A.ddu[idx] * Δt₀ / 2)
-    out += Δt₀^3 * (A.p.c₁[idx] + Δt₁ * (A.p.c₂[idx] + A.p.c₃[idx] * Δt₁))
+    c₁, c₂, c₃ = get_parameters(A, idx)
+    out += Δt₀^3 * (c₁ + Δt₁ * (c₂ + c₃ * Δt₁))
     out, idx
 end

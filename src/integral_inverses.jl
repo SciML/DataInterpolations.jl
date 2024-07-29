@@ -40,10 +40,9 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     itp::itpType
-    safetycopy::Bool
     function LinearInterpolationIntInv(u, t, A)
         new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, A.extrapolate, Ref(1), A, A.safetycopy)
+            u, t, A.extrapolate, Ref(1), A)
     end
 end
 
@@ -51,9 +50,11 @@ function invertible_integral(A::LinearInterpolation{<:AbstractVector{<:Number}})
     return all(A.u .> 0)
 end
 
+get_I(A::AbstractInterpolation) = isempty(A.I) ? cumulative_integral(A, true) : A.I
+
 function invert_integral(A::LinearInterpolation{<:AbstractVector{<:Number}})
     !invertible_integral(A) && throw(IntegralNotInvertibleError())
-    return LinearInterpolationIntInv(A.t, A.I, A)
+    return LinearInterpolationIntInv(A.t, get_I(A), A)
 end
 
 function _interpolate(
@@ -61,7 +62,8 @@ function _interpolate(
     idx = get_idx(A.t, t, iguess)
     Δt = t - A.t[idx]
     x = A.itp.u[idx]
-    u = A.u[idx] + 2Δt / (x + sqrt(x^2 + A.itp.p.slope[idx] * 2Δt))
+    slope = get_parameters(A.itp, idx)
+    u = A.u[idx] + 2Δt / (x + sqrt(x^2 + slope * 2Δt))
     u, idx
 end
 
@@ -84,10 +86,9 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     itp::itpType
-    safetycopy::Bool
     function ConstantInterpolationIntInv(u, t, A)
         new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, A.extrapolate, Ref(1), A, A.safetycopy
+            u, t, A.extrapolate, Ref(1), A
         )
     end
 end
@@ -98,7 +99,7 @@ end
 
 function invert_integral(A::ConstantInterpolation{<:AbstractVector{<:Number}})
     !invertible_integral(A) && throw(IntegralNotInvertibleError())
-    return ConstantInterpolationIntInv(A.t, A.I, A)
+    return ConstantInterpolationIntInv(A.t, get_I(A), A)
 end
 
 function _interpolate(

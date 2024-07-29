@@ -2,13 +2,28 @@ struct LinearParameterCache{pType}
     slope::pType
 end
 
-function LinearParameterCache(u, t)
-    slope = linear_interpolation_parameters.(Ref(u), Ref(t), 1:(length(t) - 1))
-    return LinearParameterCache(slope)
+function LinearParameterCache(u, t, cache_parameters)
+    if cache_parameters
+        slope = linear_interpolation_parameters.(Ref(u), Ref(t), 1:(length(t) - 1))
+        LinearParameterCache(slope)
+    else
+        # Compute parameters once to infer types
+        slope = linear_interpolation_parameters(u, t, 1)
+        LinearParameterCache(typeof(slope)[])
+    end
 end
 
-function linear_interpolation_parameters(u, t, idx)
-    Δu = u isa AbstractMatrix ? u[:, idx + 1] - u[:, idx] : u[idx + 1] - u[idx]
+# Prevent e.g. Inf - Inf = NaN
+function safe_diff(b, a::T) where {T}
+    b == a ? zero(T) : b - a
+end
+
+function linear_interpolation_parameters(u::AbstractArray{T}, t, idx) where {T}
+    Δu = if u isa AbstractMatrix
+        [safe_diff(u[j, idx + 1], u[j, idx]) for j in 1:size(u)[1]]
+    else
+        safe_diff(u[idx + 1], u[idx])
+    end
     Δt = t[idx + 1] - t[idx]
     slope = Δu / Δt
     slope = iszero(Δt) ? zero(slope) : slope
@@ -21,11 +36,18 @@ struct QuadraticParameterCache{pType}
     l₂::pType
 end
 
-function QuadraticParameterCache(u, t)
-    parameters = quadratic_interpolation_parameters.(
-        Ref(u), Ref(t), 1:(length(t) - 2))
-    l₀, l₁, l₂ = collect.(eachrow(hcat(collect.(parameters)...)))
-    return QuadraticParameterCache(l₀, l₁, l₂)
+function QuadraticParameterCache(u, t, cache_parameters)
+    if cache_parameters
+        parameters = quadratic_interpolation_parameters.(
+            Ref(u), Ref(t), 1:(length(t) - 2))
+        l₀, l₁, l₂ = collect.(eachrow(stack(collect.(parameters))))
+        QuadraticParameterCache(l₀, l₁, l₂)
+    else
+        # Compute parameters once to infer types
+        l₀, l₁, l₂ = quadratic_interpolation_parameters(u, t, 1)
+        pType = typeof(l₀)
+        QuadraticParameterCache(pType[], pType[], pType[])
+    end
 end
 
 function quadratic_interpolation_parameters(u, t, idx)
@@ -54,9 +76,15 @@ struct QuadraticSplineParameterCache{pType}
     σ::pType
 end
 
-function QuadraticSplineParameterCache(z, t)
-    σ = quadratic_spline_parameters.(Ref(z), Ref(t), 1:(length(t) - 1))
-    return QuadraticSplineParameterCache(σ)
+function QuadraticSplineParameterCache(z, t, cache_parameters)
+    if cache_parameters
+        σ = quadratic_spline_parameters.(Ref(z), Ref(t), 1:(length(t) - 1))
+        QuadraticSplineParameterCache(σ)
+    else
+        # Compute parameters once to infer types
+        σ = quadratic_spline_parameters(z, t, 1)
+        QuadraticSplineParameterCache(typeof(σ)[])
+    end
 end
 
 function quadratic_spline_parameters(z, t, idx)
@@ -69,11 +97,18 @@ struct CubicSplineParameterCache{pType}
     c₂::pType
 end
 
-function CubicSplineParameterCache(u, h, z)
-    parameters = cubic_spline_parameters.(
-        Ref(u), Ref(h), Ref(z), 1:(size(u)[end] - 1))
-    c₁, c₂ = collect.(eachrow(hcat(collect.(parameters)...)))
-    return CubicSplineParameterCache(c₁, c₂)
+function CubicSplineParameterCache(u, h, z, cache_parameters)
+    if cache_parameters
+        parameters = cubic_spline_parameters.(
+            Ref(u), Ref(h), Ref(z), 1:(size(u)[end] - 1))
+        c₁, c₂ = collect.(eachrow(stack(collect.(parameters))))
+        CubicSplineParameterCache(c₁, c₂)
+    else
+        # Compute parameters once to infer types
+        c₁, c₂ = cubic_spline_parameters(u, h, z, 1)
+        pType = typeof(c₁)
+        CubicSplineParameterCache(pType[], pType[])
+    end
 end
 
 function cubic_spline_parameters(u, h, z, idx)
@@ -87,11 +122,18 @@ struct CubicHermiteParameterCache{pType}
     c₂::pType
 end
 
-function CubicHermiteParameterCache(du, u, t)
-    parameters = cubic_hermite_spline_parameters.(
-        Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
-    c₁, c₂ = collect.(eachrow(hcat(collect.(parameters)...)))
-    return CubicHermiteParameterCache(c₁, c₂)
+function CubicHermiteParameterCache(du, u, t, cache_parameters)
+    if cache_parameters
+        parameters = cubic_hermite_spline_parameters.(
+            Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
+        c₁, c₂ = collect.(eachrow(stack(collect.(parameters))))
+        CubicHermiteParameterCache(c₁, c₂)
+    else
+        # Compute parameters once to infer types
+        c₁, c₂ = cubic_hermite_spline_parameters(du, u, t, 1)
+        pType = typeof(c₁)
+        CubicHermiteParameterCache(pType[], pType[])
+    end
 end
 
 function cubic_hermite_spline_parameters(du, u, t, idx)
@@ -111,11 +153,18 @@ struct QuinticHermiteParameterCache{pType}
     c₃::pType
 end
 
-function QuinticHermiteParameterCache(ddu, du, u, t)
-    parameters = quintic_hermite_spline_parameters.(
-        Ref(ddu), Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
-    c₁, c₂, c₃ = collect.(eachrow(hcat(collect.(parameters)...)))
-    return QuinticHermiteParameterCache(c₁, c₂, c₃)
+function QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
+    if cache_parameters
+        parameters = quintic_hermite_spline_parameters.(
+            Ref(ddu), Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
+        c₁, c₂, c₃ = collect.(eachrow(stack(collect.(parameters))))
+        QuinticHermiteParameterCache(c₁, c₂, c₃)
+    else
+        # Compute parameters once to infer types
+        c₁, c₂, c₃ = quintic_hermite_spline_parameters(ddu, du, u, t, 1)
+        pType = typeof(c₁)
+        QuinticHermiteParameterCache(pType[], pType[], pType[])
+    end
 end
 
 function quintic_hermite_spline_parameters(ddu, du, u, t, idx)

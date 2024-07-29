@@ -69,8 +69,8 @@ A = RegularizationSmooth(u, t, t̂, wls, wr, d; λ = 1.0, alg = :gcv_svd)
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
         wls::AbstractVector, wr::AbstractVector, d::Int = 2;
-        λ::Real = 1.0, alg::Symbol = :gcv_svd, extrapolate::Bool = false, safetycopy::Bool = true)
-    u, t = munge_data(u, t, safetycopy)
+        λ::Real = 1.0, alg::Symbol = :gcv_svd, extrapolate::Bool = false)
+    u, t = munge_data(u, t)
     M = _mapping_matrix(t̂, t)
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = LA.diagm(sqrt.(wr))
@@ -86,8 +86,8 @@ A = RegularizationSmooth(u, t, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int = 2;
         λ::Real = 1.0,
-        alg::Symbol = :gcv_svd, extrapolate::Bool = false, safetycopy::Bool = true)
-    u, t = munge_data(u, t, safetycopy)
+        alg::Symbol = :gcv_svd, extrapolate::Bool = false)
+    u, t = munge_data(u, t)
     t̂ = t
     N = length(t)
     M = Array{Float64}(LA.I, N, N)
@@ -115,8 +115,8 @@ A = RegularizationSmooth(u, t, t̂, d; λ = 1.0, alg = :gcv_svd, extrapolate = f
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
         d::Int = 2; λ::Real = 1.0, alg::Symbol = :gcv_svd,
-        extrapolate::Bool = false, safetycopy::Bool = true)
-    u, t = munge_data(u, t, safetycopy)
+        extrapolate::Bool = false)
+    u, t = munge_data(u, t)
     N, N̂ = length(t), length(t̂)
     M = _mapping_matrix(t̂, t)
     Wls½ = Array{Float64}(LA.I, N, N)
@@ -143,8 +143,8 @@ A = RegularizationSmooth(u, t, t̂, wls, d; λ = 1.0, alg = :gcv_svd, extrapolat
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
         wls::AbstractVector, d::Int = 2; λ::Real = 1.0,
-        alg::Symbol = :gcv_svd, extrapolate::Bool = false, safetycopy::Bool = true)
-    u, t = munge_data(u, t, safetycopy)
+        alg::Symbol = :gcv_svd, extrapolate::Bool = false)
+    u, t = munge_data(u, t)
     N, N̂ = length(t), length(t̂)
     M = _mapping_matrix(t̂, t)
     Wls½ = LA.diagm(sqrt.(wls))
@@ -172,8 +172,8 @@ A = RegularizationSmooth(
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
         wls::AbstractVector, d::Int = 2; λ::Real = 1.0,
-        alg::Symbol = :gcv_svd, extrapolate::Bool = false, safetycopy::Bool = true)
-    u, t = munge_data(u, t, safetycopy)
+        alg::Symbol = :gcv_svd, extrapolate::Bool = false)
+    u, t = munge_data(u, t)
     t̂ = t
     N = length(t)
     M = Array{Float64}(LA.I, N, N)
@@ -202,8 +202,8 @@ A = RegularizationSmooth(
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
         wls::AbstractVector, wr::AbstractVector, d::Int = 2;
-        λ::Real = 1.0, alg::Symbol = :gcv_svd, extrapolate::Bool = false, safetycopy::Bool = true)
-    u, t = munge_data(u, t, safetycopy)
+        λ::Real = 1.0, alg::Symbol = :gcv_svd, extrapolate::Bool = false)
+    u, t = munge_data(u, t)
     t̂ = t
     N = length(t)
     M = Array{Float64}(LA.I, N, N)
@@ -232,8 +232,8 @@ A = RegularizationSmooth(
 """
 function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
         wls::Symbol, d::Int = 2; λ::Real = 1.0, alg::Symbol = :gcv_svd,
-        extrapolate::Bool = false, safetycopy::Bool = true)
-    u, t = munge_data(u, t, safetycopy)
+        extrapolate::Bool = false)
+    u, t = munge_data(u, t)
     t̂ = t
     N = length(t)
     M = Array{Float64}(LA.I, N, N)

@@ -35,22 +35,7 @@ A2(300.0)
     
     The values computed beyond the range of the time points provided during interpolation will not be reliable, as these methods only perform well within the range and the first/last piece polynomial fit is extrapolated on either side which might not reflect the true nature of the data.
 
-The keyword `safetycopy = false` can be passed to make sure no copies of `u` and `t` are made when initializing the interpolation object.
-
-```@example interface
-A3 = QuadraticInterpolation(u, t; safetycopy = false)
-
-# Check for same memory
-u === A3.u.parent
-```
-
-Note that this does not prevent allocation in every interpolation constructor call, because parameter values are cached for all interpolation types except [`ConstantInterpolation`](@ref).
-
-Because of the caching of parameters which depend on `u` and `t`, this data should not be mutated. Therefore `u` and `t` are wrapped in a `ReadOnlyArray` from [ReadOnlyArrays.jl](https://github.com/JuliaArrays/ReadOnlyArrays.jl).
-
-```@repl interface
-A3.t[2] = 3.14
-```
+The keyword `cache_parameters = true` can be passed to precalculate parameters at initialization, making evalations cheaper to compute. This is not compatible with modifying `u` and `t`. The default `cache_parameters = false` does however not prevent allocation in every interpolation constructor call.
 
 ## Derivatives
 

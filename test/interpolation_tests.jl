@@ -9,7 +9,6 @@ function test_interpolation_type(T)
     @test hasfield(T, :t)
     @test hasfield(T, :extrapolate)
     @test hasfield(T, :idx_prev)
-    @test hasfield(T, :safetycopy)
     @test !isempty(methods(DataInterpolations._interpolate, (T, Any, Number)))
     @test !isempty(methods(DataInterpolations._integral, (T, Any, Number)))
     @test !isempty(methods(DataInterpolations._derivative, (T, Any, Number)))
@@ -160,6 +159,13 @@ end
     @test A(0) == fill(0.0)
     @test A(5.5) == fill(11.0)
     @test A(11) == fill(22)
+
+    # Test constant -Inf interpolation
+    u = [-Inf, -Inf]
+    t = [0.0, 1.0]
+    A = LinearInterpolation(u, t)
+    @test A(0.0) == -Inf
+    @test A(0.5) == -Inf
 
     # Test extrapolation
     u = 2.0collect(1:10)
