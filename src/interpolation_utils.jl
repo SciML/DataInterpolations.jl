@@ -95,7 +95,7 @@ function munge_data(U::StridedMatrix, t::AbstractVector)
 end
 
 seems_linear(assume_linear_t::Bool, _) = assume_linear_t
-seems_linear(assume_qr::Number, t) = looks_linear(t; threshold = assume_qr)
+seems_linear(assume_linear_t::Number, t) = looks_linear(t; threshold = assume_linear_t)
 
 # """
 # Determine if the abscissae are regularly distributed, taking the standard \
