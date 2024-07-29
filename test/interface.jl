@@ -18,9 +18,14 @@ end
 @testset "Symbolics" begin
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
-    A = LinearInterpolation(u, t)
+    A = LinearInterpolation(u, t; extrapolate = true)
+    B = LinearInterpolation(u .^ 2, t; extrapolate = true)
     @variables t x(t)
     substitute(A(t), Dict(t => x))
+    t_val = 2.7
+    @test substitute(A(t), Dict(t => t_val)) == A(t_val)
+    @test substitute(B(A(t)), Dict(t => t_val)) == B(A(t_val))
+    @test substitute(A(B(A(t))), Dict(t => t_val)) == A(B(A(t_val)))
 end
 
 @testset "Type Inference" begin
