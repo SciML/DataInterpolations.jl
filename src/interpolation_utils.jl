@@ -106,12 +106,15 @@ function munge_data(U::StridedMatrix, t::AbstractVector, safetycopy::Bool)
     return readonly_wrap(U), readonly_wrap(t)
 end
 
+seems_linear(assume_linear_t::Bool, _) = assume_linear_t
+seems_linear(assume_qr::Number, t) = looks_linear(t; threshold = assume_qr)
+
 # """
 # Determine if the abscissae are regularly distributed, taking the standard \
 # deviation of the difference between the array of abscissae with respect to \
 # the straight line linking its first and last elements
 # """
-function looks_quasiregular(t; threshold = 1e-2)
+function looks_linear(t; threshold = 1e-2)
     length(t) <= 2 && return true
     t_0, t_f = first(t), last(t)
     t_span = t_f - t_0

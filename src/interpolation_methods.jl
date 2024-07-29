@@ -1,7 +1,8 @@
 function _interpolate(A, t)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
         throw(ExtrapolationError())
-    idx_guess = if hasfield(typeof(A), :seems_linear) && A.seems_linear
+    idx_guess = if hasfield(typeof(A), :use_linear_lookup) &&
+                   A.use_linear_lookup
         f = (t - first(A.t)) / (last(A.t) - first(A.t))
         i_0, i_f = firstindex(A.t), lastindex(A.t)
         round(typeof(firstindex(A.t)), f * (i_f - i_0) + i_0)

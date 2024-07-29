@@ -13,6 +13,10 @@ Extrapolation extends the last linear polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `safetycopy`: boolean value to make a copy of `u` and `t`. Defaults to `true`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line. Defaults to 1e-2
 """
 struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolation{T}
     u::uType
@@ -22,22 +26,22 @@ struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolati
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    seems_linear::Bool
+    use_linear_lookup::Bool
     function LinearInterpolation(
-            u, t, I, p, extrapolate, safetycopy; quasiregular = 1e-2)
-        quasiregular = quasiregular isa Bool ? quasiregular :
-                       looks_quasiregular(t; threshold = quasiregular)
+            u, t, I, p, extrapolate, safetycopy, assume_linear_t)
+        linear_flag = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
-            u, t, I, p, extrapolate, Ref(1), safetycopy, quasiregular)
+            u, t, I, p, extrapolate, Ref(1), safetycopy, linear_flag)
     end
 end
 
-function LinearInterpolation(u, t; extrapolate = false, safetycopy = true)
+function LinearInterpolation(
+        u, t; extrapolate = false, safetycopy = true, assume_linear_t = 1e-2)
     u, t = munge_data(u, t, safetycopy)
     p = LinearParameterCache(u, t)
     A = LinearInterpolation(u, t, nothing, p, extrapolate, safetycopy)
     I = cumulative_integral(A)
-    LinearInterpolation(u, t, I, p, extrapolate, safetycopy)
+    LinearInterpolation(u, t, I, p, extrapolate, safetycopy, assume_linear_t)
 end
 
 """
@@ -66,11 +70,14 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T} <: AbstractInterpol
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
-    function QuadraticInterpolation(u, t, I, p, mode, extrapolate, safetycopy)
+    use_linear_lookup::Bool
+    function QuadraticInterpolation(
+            u, t, I, p, mode, extrapolate, safetycopy, assume_linear_t)
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
+        linear_flag = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(p.l₀), eltype(u)}(
-            u, t, I, p, mode, extrapolate, Ref(1), safetycopy)
+            u, t, I, p, mode, extrapolate, Ref(1), safetycopy, linear_flag)
     end
 end
 
@@ -233,6 +240,7 @@ struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
+    use_linear_lookup::Bool
     function ConstantInterpolation(u, t, I, dir, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(I), eltype(u)}(
             u, t, I, nothing, dir, extrapolate, Ref(1), safetycopy)
@@ -274,6 +282,7 @@ struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
+    use_linear_lookup::Bool
     function QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(I), typeof(p.σ), typeof(tA),
             typeof(d), typeof(z), eltype(u)}(u,
@@ -358,6 +367,7 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <: AbstractInter
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
+    use_linear_lookup::Bool
     function CubicSpline(u, t, I, p, h, z, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(I), typeof(p.c₁), typeof(h), typeof(z), eltype(u)}(
             u,
@@ -454,6 +464,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
+    use_linear_lookup::Bool
     function BSplineInterpolation(u,
             t,
             d,
@@ -586,6 +597,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
+    use_linear_lookup::Bool
     function BSplineApprox(u,
             t,
             d,
@@ -730,6 +742,7 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <: AbstractInte
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
+    use_linear_lookup::Bool
     function CubicHermiteSpline(du, u, t, I, p, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u)}(
             du, u, t, I, p, extrapolate, Ref(1), safetycopy)
@@ -773,6 +786,7 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     safetycopy::Bool
+    use_linear_lookup::Bool
     function QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate, safetycopy)
         new{typeof(u), typeof(t), typeof(I), typeof(du),
             typeof(ddu), typeof(p.c₁), eltype(u)}(
