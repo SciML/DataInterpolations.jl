@@ -12,8 +12,7 @@ else
     using ..Symbolics: Num, unwrap, SymbolicUtils
 end
 
-(interp::AbstractInterpolation)(t::Num) = SymbolicUtils.term(interp, unwrap(t))
-SymbolicUtils.promote_symtype(t::AbstractInterpolation, _...) = Real
+@register_symbolic (interp::AbstractInterpolation)(t)
 Base.nameof(interp::AbstractInterpolation) = :Interpolation
 
 function derivative(interp::AbstractInterpolation, t::Num, order = 1)
