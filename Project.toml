@@ -25,7 +25,7 @@ DataInterpolationsSymbolicsExt = "Symbolics"
 
 [compat]
 Aqua = "0.8"
-ChainRulesCore = "1.18"
+ChainRulesCore = "1.24"
 FindFirstFunctions = "1.1"
 FiniteDifferences = "0.12.31"
 ForwardDiff = "0.10.36"
