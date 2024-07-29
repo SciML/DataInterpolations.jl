@@ -52,7 +52,7 @@ end
 
 function u_tangent(A::LinearInterpolation, t, Δ)
     out = zero(A.u)
-    idx = get_idx(A.t, t, A.idx_prev[])
+    idx = get_idx(A, t, A.idx_prev[])
     t_factor = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
     out[idx] = Δ * (one(eltype(out)) - t_factor)
     out[idx + 1] = Δ * t_factor
