@@ -25,7 +25,7 @@ DataInterpolationsSymbolicsExt = "Symbolics"
 
 [compat]
 Aqua = "0.8"
-ChainRulesCore = "1.18"
+ChainRulesCore = "1.24"
 FindFirstFunctions = "1.1"
 FiniteDifferences = "0.12.31"
 ForwardDiff = "0.10.36"
@@ -40,7 +40,7 @@ SafeTestsets = "0.1"
 StableRNGs = "1"
 Symbolics = "5.29"
 Test = "1"
-Zygote = "0.6"
+Zygote = "0.6.70"
 julia = "1.10"
 
 [extras]
