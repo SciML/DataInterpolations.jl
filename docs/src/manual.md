@@ -13,4 +13,5 @@ BSplineApprox
 CubicHermiteSpline
 PCHIPInterpolation
 QuinticHermiteSpline
+looks_linear
 ```
