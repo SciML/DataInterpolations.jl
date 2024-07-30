@@ -64,7 +64,7 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
-    to the straight line. Defaults to 1e-2.
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct QuadraticInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolation{T}
     u::uType
@@ -167,7 +167,7 @@ Extrapolation extends the last cubic polynomial on each side.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
-    to the straight line. Defaults to 1e-2.
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
        AbstractInterpolation{T}
@@ -249,7 +249,7 @@ Extrapolation extends the last constant polynomial at the end points on each sid
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
-    to the straight line. Defaults to 1e-2.
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     u::uType
@@ -297,7 +297,7 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
-    to the straight line. Defaults to 1e-2.
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
        AbstractInterpolation{T}
@@ -400,7 +400,7 @@ Second derivative on both ends are zero, which are also called "natural" boundar
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
-    to the straight line. Defaults to 1e-2.
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <: AbstractInterpolation{T}
     u::uType
@@ -506,7 +506,7 @@ Extrapolation is a constant polynomial of the end points on each side.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
-    to the straight line. Defaults to 1e-2.
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
        AbstractInterpolation{T}
@@ -641,7 +641,7 @@ Extrapolation is a constant polynomial of the end points on each side.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
-    to the straight line. Defaults to 1e-2.
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
        AbstractInterpolation{T}
@@ -797,7 +797,7 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
-    to the straight line. Defaults to 1e-2.
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <: AbstractInterpolation{T}
     du::duType
@@ -848,7 +848,7 @@ section 3.4 for more details.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
-    to the straight line. Defaults to 1e-2.
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 function PCHIPInterpolation(
         u, t; extrapolate = false, cache_parameters = false, assume_linear_t = 1e-2)
@@ -876,7 +876,7 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
-    to the straight line. Defaults to 1e-2.
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
        AbstractInterpolation{T}
