@@ -8,9 +8,9 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     ((t2 < A.t[1] || t2 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     !hasfield(typeof(A), :I) && throw(IntegralNotFoundError())
     # the index less than or equal to t1
-    idx1 = get_idx(A.t, t1, 0)
+    idx1 = get_idx(A, t1, 0)
     # the index less than t2
-    idx2 = get_idx(A.t, t2, 0; idx_shift = -1, side = :first)
+    idx2 = get_idx(A, t2, 0; idx_shift = -1, side = :first)
 
     if A.cache_parameters
         total = A.I[idx2] - A.I[idx1]

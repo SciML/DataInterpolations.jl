@@ -59,7 +59,7 @@ end
 
 function _interpolate(
         A::LinearInterpolationIntInv{<:AbstractVector{<:Number}}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]
     x = A.itp.u[idx]
     slope = get_parameters(A.itp, idx)
@@ -104,13 +104,13 @@ end
 
 function _interpolate(
         A::ConstantInterpolationIntInv{<:AbstractVector{<:Number}}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess; ub_shift = 0)
+    idx = get_idx(A, t, iguess; ub_shift = 0)
     if A.itp.dir === :left
         # :left means that value to the left is used for interpolation
-        idx_ = get_idx(A.t, t, idx; lb = 1, ub_shift = 0)
+        idx_ = get_idx(A, t, idx; lb = 1, ub_shift = 0)
     else
         # :right means that value to the right is used for interpolation
-        idx_ = get_idx(A.t, t, idx; side = :first, lb = 1, ub_shift = 0)
+        idx_ = get_idx(A, t, idx; side = :first, lb = 1, ub_shift = 0)
     end
     A.u[idx] + (t - A.t[idx]) / A.itp.u[idx_], idx
 end

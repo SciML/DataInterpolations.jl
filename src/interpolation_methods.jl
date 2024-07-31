@@ -1,7 +1,8 @@
 function _interpolate(A, t)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
         throw(ExtrapolationError())
-    val, idx_prev = _interpolate(A, t, A.idx_prev[])
+    idx_guess = A.idx_prev[]
+    val, idx_prev = _interpolate(A, t, idx_guess)
     A.idx_prev[] = idx_prev
     return val
 end
@@ -15,7 +16,7 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
         u1 = u2 = one(eltype(A.u))
         slope = t * get_parameters(A, idx)
     else
-        idx = get_idx(A.t, t, iguess)
+        idx = get_idx(A, t, iguess)
         t1, t2 = A.t[idx], A.t[idx + 1]
         u1, u2 = A.u[idx], A.u[idx + 1]
         slope = get_parameters(A, idx)
@@ -36,7 +37,7 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
 end
 
 function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]
     slope = get_parameters(A, idx)
     return A.u[:, idx] + slope * Δt, idx
@@ -45,7 +46,7 @@ end
 # Quadratic Interpolation
 _quad_interp_indices(A, t) = _quad_interp_indices(A, t, firstindex(A.t) - 1)
 function _quad_interp_indices(A::QuadraticInterpolation, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess; idx_shift = A.mode == :Backward ? -1 : 0, ub_shift = -2)
+    idx = get_idx(A, t, iguess; idx_shift = A.mode == :Backward ? -1 : 0, ub_shift = -2)
     idx, idx + 1, idx + 2
 end
 
@@ -60,7 +61,7 @@ end
 
 # Lagrange Interpolation
 function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     findRequiredIdxs!(A, t, idx)
     if A.t[A.idxs[1]] == t
         return A.u[A.idxs[1]], idx
@@ -89,7 +90,7 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, igu
 end
 
 function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     findRequiredIdxs!(A, t, idx)
     if A.t[A.idxs[1]] == t
         return A.u[:, A.idxs[1]], idx
@@ -118,7 +119,7 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, igu
 end
 
 function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     wj = t - A.t[idx]
     (@evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]), idx
 end
@@ -127,10 +128,10 @@ end
 function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
-        idx = get_idx(A.t, t, iguess; lb = 1, ub_shift = 0)
+        idx = get_idx(A, t, iguess; lb = 1, ub_shift = 0)
     else
         # :right means that value to the right is used for interpolation
-        idx = get_idx(A.t, t, iguess; side = :first, lb = 1, ub_shift = 0)
+        idx = get_idx(A, t, iguess; side = :first, lb = 1, ub_shift = 0)
     end
     A.u[idx], idx
 end
@@ -138,17 +139,17 @@ end
 function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
-        idx = get_idx(A.t, t, iguess; lb = 1, ub_shift = 0)
+        idx = get_idx(A, t, iguess; lb = 1, ub_shift = 0)
     else
         # :right means that value to the right is used for interpolation
-        idx = get_idx(A.t, t, iguess; side = :first, lb = 1, ub_shift = 0)
+        idx = get_idx(A, t, iguess; side = :first, lb = 1, ub_shift = 0)
     end
     A.u[:, idx], idx
 end
 
 # QuadraticSpline Interpolation
 function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     Cᵢ = A.u[idx]
     Δt = t - A.t[idx]
     σ = get_parameters(A, idx)
@@ -157,7 +158,7 @@ end
 
 # CubicSpline Interpolation
 function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
     I = (A.z[idx] * Δt₂^3 + A.z[idx + 1] * Δt₁^3) / (6A.h[idx + 1])
@@ -174,7 +175,7 @@ function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
     t < A.t[1] && return A.u[1], 1
     t > A.t[end] && return A.u[end], lastindex(t)
     # change t into param [0 1]
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
     N = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.N
@@ -191,7 +192,7 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
     t < A.t[1] && return A.u[1], 1
     t > A.t[end] && return A.u[end], lastindex(t)
     # change t into param [0 1]
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     N = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.N
     nonzero_coefficient_idxs = spline_coefficients!(N, A.d, A.k, t)
@@ -205,7 +206,7 @@ end
 # Cubic Hermite Spline
 function _interpolate(
         A::CubicHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
     out = A.u[idx] + Δt₀ * A.du[idx]
@@ -217,7 +218,7 @@ end
 # Quintic Hermite Spline
 function _interpolate(
         A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
-    idx = get_idx(A.t, t, iguess)
+    idx = get_idx(A, t, iguess)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
     out = A.u[idx] + Δt₀ * (A.du[idx] + A.ddu[idx] * Δt₀ / 2)

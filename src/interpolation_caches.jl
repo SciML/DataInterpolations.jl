@@ -12,7 +12,12 @@ Extrapolation extends the last linear polynomial on each side.
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
-  - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `cache_parameters`: precompute parameters at initialization for faster interpolation
+    computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolation{T}
     u::uType
@@ -22,18 +27,22 @@ struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolati
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     cache_parameters::Bool
-    function LinearInterpolation(u, t, I, p, extrapolate, cache_parameters)
+    linear_lookup::Bool
+    function LinearInterpolation(u, t, I, p, extrapolate, cache_parameters, assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
-            u, t, I, p, extrapolate, Ref(1), cache_parameters)
+            u, t, I, p, extrapolate, Ref(1), cache_parameters, linear_lookup)
     end
 end
 
-function LinearInterpolation(u, t; extrapolate = false, cache_parameters = false)
+function LinearInterpolation(
+        u, t; extrapolate = false, cache_parameters = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
     p = LinearParameterCache(u, t, cache_parameters)
-    A = LinearInterpolation(u, t, nothing, p, extrapolate, cache_parameters)
+    A = LinearInterpolation(
+        u, t, nothing, p, extrapolate, cache_parameters, assume_linear_t)
     I = cumulative_integral(A, cache_parameters)
-    LinearInterpolation(u, t, I, p, extrapolate, cache_parameters)
+    LinearInterpolation(u, t, I, p, extrapolate, cache_parameters, assume_linear_t)
 end
 
 """
@@ -52,6 +61,10 @@ Extrapolation extends the last quadratic polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct QuadraticInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolation{T}
     u::uType
@@ -62,24 +75,30 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T} <: AbstractInterpol
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     cache_parameters::Bool
-    function QuadraticInterpolation(u, t, I, p, mode, extrapolate, cache_parameters)
+    linear_lookup::Bool
+    function QuadraticInterpolation(
+            u, t, I, p, mode, extrapolate, cache_parameters, assume_linear_t)
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
+        linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(p.l₀), eltype(u)}(
-            u, t, I, p, mode, extrapolate, Ref(1), cache_parameters)
+            u, t, I, p, mode, extrapolate, Ref(1), cache_parameters, linear_lookup)
     end
 end
 
-function QuadraticInterpolation(u, t, mode; extrapolate = false, cache_parameters = false)
+function QuadraticInterpolation(
+        u, t, mode; extrapolate = false, cache_parameters = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
+    linear_lookup = seems_linear(assume_linear_t, t)
     p = QuadraticParameterCache(u, t, cache_parameters)
-    A = QuadraticInterpolation(u, t, nothing, p, mode, extrapolate, cache_parameters)
+    A = QuadraticInterpolation(
+        u, t, nothing, p, mode, extrapolate, cache_parameters, linear_lookup)
     I = cumulative_integral(A, cache_parameters)
-    QuadraticInterpolation(u, t, I, p, mode, extrapolate, cache_parameters)
+    QuadraticInterpolation(u, t, I, p, mode, extrapolate, cache_parameters, linear_lookup)
 end
 
-function QuadraticInterpolation(u, t; extrapolate = false, cache_parameters = false)
-    QuadraticInterpolation(u, t, :Forward; extrapolate, cache_parameters)
+function QuadraticInterpolation(u, t; kwargs...)
+    QuadraticInterpolation(u, t, :Forward; kwargs...)
 end
 
 """
@@ -145,6 +164,10 @@ Extrapolation extends the last cubic polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
        AbstractInterpolation{T}
@@ -157,7 +180,10 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     cache_parameters::Bool
-    function AkimaInterpolation(u, t, I, b, c, d, extrapolate, cache_parameters)
+    linear_lookup::Bool
+    function AkimaInterpolation(
+            u, t, I, b, c, d, extrapolate, cache_parameters, assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
             typeof(d), eltype(u)}(u,
             t,
@@ -167,13 +193,16 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
             d,
             extrapolate,
             Ref(1),
-            cache_parameters
+            cache_parameters,
+            linear_lookup
         )
     end
 end
 
-function AkimaInterpolation(u, t; extrapolate = false, cache_parameters = false)
+function AkimaInterpolation(
+        u, t; extrapolate = false, cache_parameters = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
+    linear_lookup = seems_linear(assume_linear_t, t)
     n = length(t)
     dt = diff(t)
     m = Array{eltype(u)}(undef, n + 3)
@@ -194,9 +223,10 @@ function AkimaInterpolation(u, t; extrapolate = false, cache_parameters = false)
     c = (3.0 .* m[3:(end - 2)] .- 2.0 .* b[1:(end - 1)] .- b[2:end]) ./ dt
     d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
 
-    A = AkimaInterpolation(u, t, nothing, b, c, d, extrapolate, cache_parameters)
+    A = AkimaInterpolation(
+        u, t, nothing, b, c, d, extrapolate, cache_parameters, linear_lookup)
     I = cumulative_integral(A, cache_parameters)
-    AkimaInterpolation(u, t, I, b, c, d, extrapolate, cache_parameters)
+    AkimaInterpolation(u, t, I, b, c, d, extrapolate, cache_parameters, linear_lookup)
 end
 
 """
@@ -216,6 +246,10 @@ Extrapolation extends the last constant polynomial at the end points on each sid
   - `dir`: indicates which value should be used for interpolation (`:left` or `:right`).
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     u::uType
@@ -226,18 +260,23 @@ struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     cache_parameters::Bool
-    function ConstantInterpolation(u, t, I, dir, extrapolate, cache_parameters)
+    linear_lookup::Bool
+    function ConstantInterpolation(
+            u, t, I, dir, extrapolate, cache_parameters, assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), eltype(u)}(
-            u, t, I, nothing, dir, extrapolate, Ref(1), cache_parameters)
+            u, t, I, nothing, dir, extrapolate, Ref(1), cache_parameters, linear_lookup)
     end
 end
 
 function ConstantInterpolation(
-        u, t; dir = :left, extrapolate = false, cache_parameters = false)
+        u, t; dir = :left, extrapolate = false,
+        cache_parameters = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
-    A = ConstantInterpolation(u, t, nothing, dir, extrapolate, cache_parameters)
+    A = ConstantInterpolation(
+        u, t, nothing, dir, extrapolate, cache_parameters, assume_linear_t)
     I = cumulative_integral(A, cache_parameters)
-    ConstantInterpolation(u, t, I, dir, extrapolate, cache_parameters)
+    ConstantInterpolation(u, t, I, dir, extrapolate, cache_parameters, assume_linear_t)
 end
 
 """
@@ -255,6 +294,10 @@ Extrapolation extends the last quadratic polynomial on each side.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
        AbstractInterpolation{T}
@@ -268,7 +311,10 @@ struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     cache_parameters::Bool
-    function QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters)
+    linear_lookup::Bool
+    function QuadraticSpline(
+            u, t, I, p, tA, d, z, extrapolate, cache_parameters, assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(p.σ), typeof(tA),
             typeof(d), typeof(z), eltype(u)}(u,
             t,
@@ -279,15 +325,18 @@ struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
             z,
             extrapolate,
             Ref(1),
-            cache_parameters
+            cache_parameters,
+            linear_lookup
         )
     end
 end
 
 function QuadraticSpline(
         u::uType, t; extrapolate = false,
-        cache_parameters = false) where {uType <: AbstractVector{<:Number}}
+        cache_parameters = false, assume_linear_t = 1e-2) where {uType <:
+                                                                 AbstractVector{<:Number}}
     u, t = munge_data(u, t)
+    linear_lookup = seems_linear(assume_linear_t, t)
     s = length(t)
     dl = ones(eltype(t), s - 1)
     d_tmp = ones(eltype(t), s)
@@ -301,15 +350,18 @@ function QuadraticSpline(
     z = tA \ d
 
     p = QuadraticSplineParameterCache(z, t, cache_parameters)
-    A = QuadraticSpline(u, t, nothing, p, tA, d, z, extrapolate, cache_parameters)
+    A = QuadraticSpline(
+        u, t, nothing, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
     I = cumulative_integral(A, cache_parameters)
-    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters)
+    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
 end
 
 function QuadraticSpline(
-        u::uType, t; extrapolate = false, cache_parameters = false) where {uType <:
-                                                                           AbstractVector}
+        u::uType, t; extrapolate = false, cache_parameters = false,
+        assume_linear_t = 1e-2) where {uType <:
+                                       AbstractVector}
     u, t = munge_data(u, t)
+    linear_lookup = seems_linear(assume_linear_t, t)
     s = length(t)
     dl = ones(eltype(t), s - 1)
     d_tmp = ones(eltype(t), s)
@@ -324,9 +376,10 @@ function QuadraticSpline(
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
 
     p = QuadraticSplineParameterCache(z, t, cache_parameters)
-    A = QuadraticSpline(u, t, nothing, p, tA, d, z, extrapolate, cache_parameters)
+    A = QuadraticSpline(
+        u, t, nothing, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
     I = cumulative_integral(A, cache_parameters)
-    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters)
+    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
 end
 
 """
@@ -344,6 +397,10 @@ Second derivative on both ends are zero, which are also called "natural" boundar
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <: AbstractInterpolation{T}
     u::uType
@@ -355,7 +412,9 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <: AbstractInter
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     cache_parameters::Bool
-    function CubicSpline(u, t, I, p, h, z, extrapolate, cache_parameters)
+    linear_lookup::Bool
+    function CubicSpline(u, t, I, p, h, z, extrapolate, cache_parameters, assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(p.c₁), typeof(h), typeof(z), eltype(u)}(
             u,
             t,
@@ -365,15 +424,17 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <: AbstractInter
             z,
             extrapolate,
             Ref(1),
-            cache_parameters
+            cache_parameters,
+            linear_lookup
         )
     end
 end
 
 function CubicSpline(u::uType,
         t;
-        extrapolate = false, cache_parameters = false) where {uType <:
-                                                              AbstractVector{<:Number}}
+        extrapolate = false, cache_parameters = false,
+        assume_linear_t = 1e-2) where {uType <:
+                                       AbstractVector{<:Number}}
     u, t = munge_data(u, t)
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -391,16 +452,18 @@ function CubicSpline(u::uType,
              6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
         1:(n + 1))
     z = tA \ d
-
+    linear_lookup = seems_linear(assume_linear_t, t)
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
-    A = CubicSpline(u, t, nothing, p, h[1:(n + 1)], z, extrapolate, cache_parameters)
+    A = CubicSpline(
+        u, t, nothing, p, h[1:(n + 1)], z, extrapolate, cache_parameters, linear_lookup)
     I = cumulative_integral(A, cache_parameters)
-    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, cache_parameters)
+    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, cache_parameters, linear_lookup)
 end
 
 function CubicSpline(
-        u::uType, t; extrapolate = false, cache_parameters = false) where {uType <:
-                                                                           AbstractVector}
+        u::uType, t; extrapolate = false, cache_parameters = false,
+        assume_linear_t = 1e-2) where {uType <:
+                                       AbstractVector}
     u, t = munge_data(u, t)
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -417,9 +480,10 @@ function CubicSpline(
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
 
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
-    A = CubicSpline(u, t, nothing, p, h[1:(n + 1)], z, extrapolate, cache_parameters)
+    A = CubicSpline(
+        u, t, nothing, p, h[1:(n + 1)], z, extrapolate, cache_parameters, assume_linear_t)
     I = cumulative_integral(A, cache_parameters)
-    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, cache_parameters)
+    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, cache_parameters, assume_linear_t)
 end
 
 """
@@ -439,6 +503,10 @@ Extrapolation is a constant polynomial of the end points on each side.
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
        AbstractInterpolation{T}
@@ -453,6 +521,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
     knotVecType::Symbol
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
+    linear_lookup::Bool
     function BSplineInterpolation(u,
             t,
             d,
@@ -462,7 +531,9 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
             N,
             pVecType,
             knotVecType,
-            extrapolate)
+            extrapolate,
+            assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(N), eltype(u)}(u,
             t,
             d,
@@ -473,13 +544,14 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
             pVecType,
             knotVecType,
             extrapolate,
-            Ref(1)
+            Ref(1),
+            linear_lookup
         )
     end
 end
 
 function BSplineInterpolation(
-        u, t, d, pVecType, knotVecType; extrapolate = false)
+        u, t, d, pVecType, knotVecType; extrapolate = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d+1) points.")
@@ -544,7 +616,7 @@ function BSplineInterpolation(
     c = vec(N \ u[:, :])
     N = zeros(eltype(t), n)
     BSplineInterpolation(
-        u, t, d, p, k, c, N, pVecType, knotVecType, extrapolate)
+        u, t, d, p, k, c, N, pVecType, knotVecType, extrapolate, assume_linear_t)
 end
 
 """
@@ -566,6 +638,10 @@ Extrapolation is a constant polynomial of the end points on each side.
 ## Keyword Arguments
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
        AbstractInterpolation{T}
@@ -581,6 +657,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
     knotVecType::Symbol
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
+    linear_lookup::Bool
     function BSplineApprox(u,
             t,
             d,
@@ -591,8 +668,10 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
             N,
             pVecType,
             knotVecType,
-            extrapolate
+            extrapolate,
+            assume_linear_t
     )
+        linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(N), eltype(u)}(u,
             t,
             d,
@@ -604,13 +683,14 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
             pVecType,
             knotVecType,
             extrapolate,
-            Ref(1)
+            Ref(1),
+            linear_lookup
         )
     end
 end
 
 function BSplineApprox(
-        u, t, d, h, pVecType, knotVecType; extrapolate = false)
+        u, t, d, h, pVecType, knotVecType; extrapolate = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d+1) control points.")
@@ -696,7 +776,7 @@ function BSplineApprox(
     c[2:(end - 1)] .= vec(P)
     N = zeros(eltype(t), h)
     BSplineApprox(
-        u, t, d, h, p, k, c, N, pVecType, knotVecType, extrapolate)
+        u, t, d, h, p, k, c, N, pVecType, knotVecType, extrapolate, assume_linear_t)
 end
 
 """
@@ -714,6 +794,10 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <: AbstractInterpolation{T}
     du::duType
@@ -724,19 +808,25 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <: AbstractInte
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     cache_parameters::Bool
-    function CubicHermiteSpline(du, u, t, I, p, extrapolate, cache_parameters)
+    linear_lookup::Bool
+    function CubicHermiteSpline(
+            du, u, t, I, p, extrapolate, cache_parameters, assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u)}(
-            du, u, t, I, p, extrapolate, Ref(1), cache_parameters)
+            du, u, t, I, p, extrapolate, Ref(1), cache_parameters, linear_lookup)
     end
 end
 
-function CubicHermiteSpline(du, u, t; extrapolate = false, cache_parameters = false)
+function CubicHermiteSpline(
+        du, u, t; extrapolate = false, cache_parameters = false, assume_linear_t = 1e-2)
     @assert length(u)==length(du) "Length of `u` is not equal to length of `du`."
     u, t = munge_data(u, t)
+    linear_lookup = seems_linear(assume_linear_t, t)
     p = CubicHermiteParameterCache(du, u, t, cache_parameters)
-    A = CubicHermiteSpline(du, u, t, nothing, p, extrapolate, cache_parameters)
+    A = CubicHermiteSpline(
+        du, u, t, nothing, p, extrapolate, cache_parameters, linear_lookup)
     I = cumulative_integral(A, cache_parameters)
-    CubicHermiteSpline(du, u, t, I, p, extrapolate, cache_parameters)
+    CubicHermiteSpline(du, u, t, I, p, extrapolate, cache_parameters, linear_lookup)
 end
 
 """
@@ -755,11 +845,16 @@ section 3.4 for more details.
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-function PCHIPInterpolation(u, t; extrapolate = false, cache_parameters = false)
+function PCHIPInterpolation(
+        u, t; extrapolate = false, cache_parameters = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
     du = du_PCHIP(u, t)
-    CubicHermiteSpline(du, u, t; extrapolate, cache_parameters)
+    CubicHermiteSpline(du, u, t; extrapolate, cache_parameters, assume_linear_t)
 end
 
 """
@@ -778,6 +873,10 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
        AbstractInterpolation{T}
@@ -790,18 +889,25 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
     extrapolate::Bool
     idx_prev::Base.RefValue{Int}
     cache_parameters::Bool
-    function QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate, cache_parameters)
+    linear_lookup::Bool
+    function QuinticHermiteSpline(
+            ddu, du, u, t, I, p, extrapolate, cache_parameters, assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(du),
             typeof(ddu), typeof(p.c₁), eltype(u)}(
-            ddu, du, u, t, I, p, extrapolate, Ref(1), cache_parameters)
+            ddu, du, u, t, I, p, extrapolate, Ref(1), cache_parameters, linear_lookup)
     end
 end
 
-function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false, cache_parameters = false)
+function QuinticHermiteSpline(ddu, du, u, t; extrapolate = false,
+        cache_parameters = false, assume_linear_t = 1e-2)
     @assert length(u)==length(du)==length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     u, t = munge_data(u, t)
+    linear_lookup = seems_linear(assume_linear_t, t)
     p = QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
-    A = QuinticHermiteSpline(ddu, du, u, t, nothing, p, extrapolate, cache_parameters)
+    A = QuinticHermiteSpline(
+        ddu, du, u, t, nothing, p, extrapolate, cache_parameters, linear_lookup)
     I = cumulative_integral(A, cache_parameters)
-    QuinticHermiteSpline(ddu, du, u, t, I, p, extrapolate, cache_parameters)
+    QuinticHermiteSpline(
+        ddu, du, u, t, I, p, extrapolate, cache_parameters, linear_lookup)
 end

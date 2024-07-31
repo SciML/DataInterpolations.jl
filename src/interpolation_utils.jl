@@ -94,7 +94,40 @@ function munge_data(U::StridedMatrix, t::AbstractVector)
     return U, t
 end
 
-function get_idx(tvec, t, iguess; lb = 1, ub_shift = -1, idx_shift = 0, side = :last)
+seems_linear(assume_linear_t::Bool, _) = assume_linear_t
+seems_linear(assume_linear_t::Number, t) = looks_linear(t; threshold = assume_linear_t)
+
+"""
+    looks_linear(t; threshold = 1e-2)
+
+Determine if the abscissae `t` are regularly distributed, taking the standard deviation of
+the difference between the array of abscissae with respect to the straight line linking
+its first and last elements, normalized by the range of `t`. If this standard deviation is
+below the given `threshold`, the vector looks linear (return true). Internal function -
+interface may change.
+"""
+function looks_linear(t; threshold = 1e-2)
+    length(t) <= 2 && return true
+    t_0, t_f = first(t), last(t)
+    t_span = t_f - t_0
+    tspan_over_N = t_span * length(t)^(-1)
+    norm_var = sum(
+        (t_i - t_0 - i * tspan_over_N)^2 for (i, t_i) in enumerate(t)
+    ) / (length(t) * t_span^2)
+    norm_var < threshold^2
+end
+
+function get_idx(A::AbstractInterpolation, t, iguess; lb = 1,
+        ub_shift = -1, idx_shift = 0, side = :last)
+    iguess = if hasfield(typeof(A), :linear_lookup) &&
+                A.linear_lookup
+        f = (t - first(A.t)) / (last(A.t) - first(A.t))
+        i_0, i_f = firstindex(A.t), lastindex(A.t)
+        round(typeof(firstindex(A.t)), f * (i_f - i_0) + i_0)
+    else
+        iguess
+    end
+    tvec = A.t
     ub = length(tvec) + ub_shift
     return if side == :last
         clamp(searchsortedlastcorrelated(tvec, t, iguess) + idx_shift, lb, ub)

@@ -2,6 +2,7 @@ using DataInterpolations
 using FindFirstFunctions: searchsortedfirstcorrelated
 using StableRNGs
 using Optim, ForwardDiff
+using BenchmarkTools
 
 function test_interpolation_type(T)
     @test T <: DataInterpolations.AbstractInterpolation
@@ -800,3 +801,20 @@ f_cubic_spline = c -> square(CubicSpline, c)
 @test ForwardDiff.derivative(f_quadratic_spline, 4.0) ≈ 8.0
 @test ForwardDiff.derivative(f_cubic_spline, 2.0) ≈ 4.0
 @test ForwardDiff.derivative(f_cubic_spline, 4.0) ≈ 8.0
+
+@testset "Linear lookup" begin
+    for N in (100, 1_000, 10_000, 100_000, 1_000_000) # Interpolant size
+        seed = 1234
+        t = collect(LinRange(0, 1, N)) # collect to avoid fast LinRange dispatch
+        y = rand(N)
+        A = LinearInterpolation(y, t)
+        A_fallback = LinearInterpolation(copy(y), copy(t); assume_linear_t = false)
+        @test A.linear_lookup
+        @test !(A_fallback.linear_lookup)
+
+        n_samples = 1_000
+        b_linear = @benchmark $A(rand()) samples=n_samples
+        b_fallback = @benchmark $A_fallback(rand()) samples=n_samples
+        @test mean(b_linear.times) < mean(b_fallback.times)
+    end
+end

@@ -14,3 +14,9 @@ CubicHermiteSpline
 PCHIPInterpolation
 QuinticHermiteSpline
 ```
+
+# Utility Functions
+
+```@docs
+DataInterpolations.looks_linear
+```
