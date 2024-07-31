@@ -13,5 +13,10 @@ BSplineApprox
 CubicHermiteSpline
 PCHIPInterpolation
 QuinticHermiteSpline
-looks_linear
+```
+
+# Utility Functions
+
+```@docs
+DataInterpolations.looks_linear
 ```
