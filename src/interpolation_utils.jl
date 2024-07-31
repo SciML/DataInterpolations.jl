@@ -98,11 +98,13 @@ seems_linear(assume_linear_t::Bool, _) = assume_linear_t
 seems_linear(assume_linear_t::Number, t) = looks_linear(t; threshold = assume_linear_t)
 
 """
+    looks_linear(t; threshold = 1e-2)
+
 Determine if the abscissae `t` are regularly distributed, taking the standard deviation of
 the difference between the array of abscissae with respect to the straight line linking
 its first and last elements, normalized by the range of `t`. If this standard deviation is
-below the given `threshold` (default value: 1e-2), the vector looks linear. Internal
-function or structure - interface may change.
+below the given `threshold`, the vector looks linear (return true). Internal function -
+interface may change.
 """
 function looks_linear(t; threshold = 1e-2)
     length(t) <= 2 && return true
