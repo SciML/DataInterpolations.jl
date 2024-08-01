@@ -492,6 +492,13 @@ end
     A = ConstantInterpolation(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-1.0)
     @test_throws DataInterpolations.ExtrapolationError A(11.0)
+
+    # Test extrapolation with infs with regularily spaced t
+    u = [1.67e7, 1.6867e7, 1.7034e7, 1.7201e7, 1.7368e7]
+    t = [0.0, 0.1, 0.2, 0.3, 0.4]
+    A = ConstantInterpolation(u, t; extrapolate = true)
+    @test A(Inf) == last(u)
+    @test A(-Inf) == first(u)
 end
 
 @testset "QuadraticSpline Interpolation" begin
