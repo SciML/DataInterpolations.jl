@@ -18,7 +18,7 @@ invert_integral(A::AbstractInterpolation) = throw(IntegralInverseNotFoundError()
 _integral(A::AbstractIntegralInverseInterpolation, idx, t) = throw(IntegralNotFoundError())
 
 function _derivative(A::AbstractIntegralInverseInterpolation, t::Number, iguess)
-    inv(A.itp(A(t))), A.iguesser(t)
+    inv(A.itp(A(t)))
 end
 
 """
@@ -64,7 +64,7 @@ function _interpolate(
     x = A.itp.u[idx]
     slope = get_parameters(A.itp, idx)
     u = A.u[idx] + 2Δt / (x + sqrt(x^2 + slope * 2Δt))
-    u, idx
+    u
 end
 
 """
@@ -112,5 +112,5 @@ function _interpolate(
         # :right means that value to the right is used for interpolation
         idx_ = get_idx(A, t, idx; side = :first, lb = 1, ub_shift = 0)
     end
-    A.u[idx] + (t - A.t[idx]) / A.itp.u[idx_], idx
+    A.u[idx] + (t - A.t[idx]) / A.itp.u[idx_]
 end

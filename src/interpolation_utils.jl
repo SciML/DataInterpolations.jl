@@ -117,7 +117,7 @@ function looks_linear(t; threshold = 1e-2)
     norm_var < threshold^2
 end
 
-function get_idx(A::AbstractInterpolation, t, iguess; lb = 1,
+function get_idx(A::AbstractInterpolation, t, iguess::Union{<:Integer, Guesser}; lb = 1,
         ub_shift = -1, idx_shift = 0, side = :last)
     tvec = A.t
     ub = length(tvec) + ub_shift

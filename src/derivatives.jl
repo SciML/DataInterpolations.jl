@@ -1,4 +1,4 @@
-function derivative(A, t, order = 1; iguess = A.iguesser(t))
+function derivative(A, t, order = 1; iguess = A.iguesser)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
 
     return if order == 1
@@ -15,7 +15,7 @@ end
 function _derivative(A::LinearInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, ub_shift = -1, side = :first)
     slope = get_parameters(A, idx)
-    slope, idx
+    slope
 end
 
 function _derivative(A::QuadraticInterpolation, t::Number, iguess)
@@ -144,8 +144,8 @@ end
 
 function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
-    t < A.t[1] && return zero(A.u[1]), 1
-    t > A.t[end] && return zero(A.u[end]), lastindex(t)
+    t < A.t[1] && return zero(A.u[1])
+    t > A.t[end] && return zero(A.u[end])
     idx = get_idx(A, t, iguess)
     n = length(A.t)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
@@ -166,8 +166,8 @@ end
 # BSpline Curve Approx
 function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
-    t < A.t[1] && return zero(A.u[1]), 1
-    t > A.t[end] && return zero(A.u[end]), lastindex(t)
+    t < A.t[1] && return zero(A.u[1])
+    t > A.t[end] && return zero(A.u[end])
     idx = get_idx(A, t, iguess)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale

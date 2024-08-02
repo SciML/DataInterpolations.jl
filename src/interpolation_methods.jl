@@ -1,4 +1,4 @@
-function _interpolate(A, t; iguess = A.iguesser(t))
+function _interpolate(A, t; iguess = A.iguesser)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
         throw(ExtrapolationError())
     return _interpolate(A, t, iguess)
