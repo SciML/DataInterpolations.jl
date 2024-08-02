@@ -1,10 +1,7 @@
-function _interpolate(A, t)
+function _interpolate(A, t; iguess = A.iguesser(t))
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
         throw(ExtrapolationError())
-    idx_guess = A.idx_prev[]
-    val, idx_prev = _interpolate(A, t, idx_guess)
-    A.idx_prev[] = idx_prev
-    return val
+    return _interpolate(A, t, iguess)[1]
 end
 
 # Linear Interpolation

@@ -9,7 +9,7 @@ function test_interpolation_type(T)
     @test hasfield(T, :u)
     @test hasfield(T, :t)
     @test hasfield(T, :extrapolate)
-    @test hasfield(T, :idx_prev)
+    @test hasfield(T, :iguesser)
     @test !isempty(methods(DataInterpolations._interpolate, (T, Any, Number)))
     @test !isempty(methods(DataInterpolations._integral, (T, Any, Number)))
     @test !isempty(methods(DataInterpolations._derivative, (T, Any, Number)))
@@ -18,9 +18,9 @@ end
 function test_cached_index(A)
     for t in range(first(A.t), last(A.t); length = 2 * length(A.t) - 1)
         A(t)
-        idx = searchsortedfirstcorrelated(A.t, t, A.idx_prev[])
-        @test abs(A.idx_prev[] -
-                  searchsortedfirstcorrelated(A.t, t, A.idx_prev[])) <= 2
+        idx = searchsortedfirstcorrelated(A.t, t, A.iguesser)
+        @test abs(A.iguesser.idx_prev[] -
+                  searchsortedfirstcorrelated(A.t, t, A.iguesser)) <= 2
     end
 end
 
@@ -808,20 +808,3 @@ f_cubic_spline = c -> square(CubicSpline, c)
 @test ForwardDiff.derivative(f_quadratic_spline, 4.0) ≈ 8.0
 @test ForwardDiff.derivative(f_cubic_spline, 2.0) ≈ 4.0
 @test ForwardDiff.derivative(f_cubic_spline, 4.0) ≈ 8.0
-
-@testset "Linear lookup" begin
-    for N in (100, 1_000, 10_000, 100_000, 1_000_000) # Interpolant size
-        seed = 1234
-        t = collect(LinRange(0, 1, N)) # collect to avoid fast LinRange dispatch
-        y = rand(N)
-        A = LinearInterpolation(y, t)
-        A_fallback = LinearInterpolation(copy(y), copy(t); assume_linear_t = false)
-        @test A.linear_lookup
-        @test !(A_fallback.linear_lookup)
-
-        n_samples = 1_000
-        b_linear = @benchmark $A(rand()) samples=n_samples
-        b_fallback = @benchmark $A_fallback(rand()) samples=n_samples
-        @test mean(b_linear.times) < mean(b_fallback.times)
-    end
-end

@@ -8,7 +8,7 @@ using LinearAlgebra, RecipesBase
 using PrettyTables
 using ForwardDiff
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
-                           bracketstrictlymontonic
+                           Guesser
 
 include("parameter_caches.jl")
 include("interpolation_caches.jl")
@@ -22,9 +22,8 @@ include("online.jl")
 include("show.jl")
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
-function (interp::AbstractInterpolation)(t::Number, i::Integer)
-    interp.idx_prev[] = i
-    _interpolate(interp, t)
+function (interp::AbstractInterpolation)(t::Number, iguess::Integer)
+    _interpolate(interp, t; iguess)
 end
 
 function (interp::AbstractInterpolation)(t::AbstractVector)

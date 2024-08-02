@@ -1,16 +1,11 @@
-function derivative(A, t, order = 1)
+function derivative(A, t, order = 1; iguess = A.iguesser(t))
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    iguess = A.idx_prev[]
-
+    
     return if order == 1
-        val, idx = _derivative(A, t, iguess)
-        A.idx_prev[] = idx
-        val
+        _derivative(A, t, iguess)[1]
     elseif order == 2
         ForwardDiff.derivative(t -> begin
-                val, idx = _derivative(A, t, iguess)
-                A.idx_prev[] = idx
-                val
+                _derivative(A, t, iguess)[1]
             end, t)
     else
         throw(DerivativeNotFoundError())

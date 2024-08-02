@@ -18,7 +18,7 @@ invert_integral(A::AbstractInterpolation) = throw(IntegralInverseNotFoundError()
 _integral(A::AbstractIntegralInverseInterpolation, idx, t) = throw(IntegralNotFoundError())
 
 function _derivative(A::AbstractIntegralInverseInterpolation, t::Number, iguess)
-    inv(A.itp(A(t))), A.idx_prev[]
+    inv(A.itp(A(t))), A.iguesser(t)
 end
 
 """
@@ -38,11 +38,11 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
     u::uType
     t::tType
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     itp::itpType
     function LinearInterpolationIntInv(u, t, A)
         new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, A.extrapolate, Ref(1), A)
+            u, t, A.extrapolate, Guesser(t), A)
     end
 end
 
@@ -84,11 +84,11 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
     u::uType
     t::tType
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     itp::itpType
     function ConstantInterpolationIntInv(u, t, A)
         new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, A.extrapolate, Ref(1), A
+            u, t, A.extrapolate, Guesser(t), A
         )
     end
 end

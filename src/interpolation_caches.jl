@@ -25,13 +25,13 @@ struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolati
     I::IType
     p::LinearParameterCache{pType}
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function LinearInterpolation(u, t, I, p, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
-            u, t, I, p, extrapolate, Ref(1), cache_parameters, linear_lookup)
+            u, t, I, p, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end
 
@@ -73,7 +73,7 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T} <: AbstractInterpol
     p::QuadraticParameterCache{pType}
     mode::Symbol
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function QuadraticInterpolation(
@@ -82,7 +82,7 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T} <: AbstractInterpol
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
         linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(p.l₀), eltype(u)}(
-            u, t, I, p, mode, extrapolate, Ref(1), cache_parameters, linear_lookup)
+            u, t, I, p, mode, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end
 
@@ -124,7 +124,7 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
     bcache::bcacheType
     idxs::Vector{Int}
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     function LagrangeInterpolation(u, t, n, extrapolate)
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
@@ -135,7 +135,7 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
             bcache,
             idxs,
             extrapolate,
-            Ref(1)
+            Guesser(t)
         )
     end
 end
@@ -178,7 +178,7 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
     c::cType
     d::dType
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function AkimaInterpolation(
@@ -192,7 +192,7 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
             c,
             d,
             extrapolate,
-            Ref(1),
+            Guesser(t),
             cache_parameters,
             linear_lookup
         )
@@ -258,14 +258,14 @@ struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     p::Nothing
     dir::Symbol # indicates if value to the $dir should be used for the interpolation
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function ConstantInterpolation(
             u, t, I, dir, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), eltype(u)}(
-            u, t, I, nothing, dir, extrapolate, Ref(1), cache_parameters, linear_lookup)
+            u, t, I, nothing, dir, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end
 
@@ -309,7 +309,7 @@ struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
     d::dType
     z::zType
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function QuadraticSpline(
@@ -324,7 +324,7 @@ struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
             d,
             z,
             extrapolate,
-            Ref(1),
+            Guesser(t),
             cache_parameters,
             linear_lookup
         )
@@ -410,7 +410,7 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <: AbstractInter
     h::hType
     z::zType
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function CubicSpline(u, t, I, p, h, z, extrapolate, cache_parameters, assume_linear_t)
@@ -423,7 +423,7 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <: AbstractInter
             h,
             z,
             extrapolate,
-            Ref(1),
+            Guesser(t),
             cache_parameters,
             linear_lookup
         )
@@ -520,7 +520,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
     pVecType::Symbol
     knotVecType::Symbol
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     linear_lookup::Bool
     function BSplineInterpolation(u,
             t,
@@ -544,7 +544,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
             pVecType,
             knotVecType,
             extrapolate,
-            Ref(1),
+            Guesser(t),
             linear_lookup
         )
     end
@@ -656,7 +656,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
     pVecType::Symbol
     knotVecType::Symbol
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     linear_lookup::Bool
     function BSplineApprox(u,
             t,
@@ -683,7 +683,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
             pVecType,
             knotVecType,
             extrapolate,
-            Ref(1),
+            Guesser(t),
             linear_lookup
         )
     end
@@ -806,14 +806,14 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <: AbstractInte
     I::IType
     p::CubicHermiteParameterCache{pType}
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function CubicHermiteSpline(
             du, u, t, I, p, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u)}(
-            du, u, t, I, p, extrapolate, Ref(1), cache_parameters, linear_lookup)
+            du, u, t, I, p, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end
 
@@ -887,7 +887,7 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
     I::IType
     p::QuinticHermiteParameterCache{pType}
     extrapolate::Bool
-    idx_prev::Base.RefValue{Int}
+    iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function QuinticHermiteSpline(
@@ -895,7 +895,7 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
         linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), typeof(du),
             typeof(ddu), typeof(p.c₁), eltype(u)}(
-            ddu, du, u, t, I, p, extrapolate, Ref(1), cache_parameters, linear_lookup)
+            ddu, du, u, t, I, p, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end
 

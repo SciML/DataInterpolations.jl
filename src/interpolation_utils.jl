@@ -120,18 +120,6 @@ end
 function get_idx(A::AbstractInterpolation, t, iguess; lb = 1,
         ub_shift = -1, idx_shift = 0, side = :last)
     tvec = A.t
-    iguess = if hasfield(typeof(A), :linear_lookup) &&
-                A.linear_lookup
-        f = (t - first(A.t)) / (last(A.t) - first(A.t))
-        if isinf(f)
-            f > 0 ? lastindex(A.t) : firstindex(A.t)
-        else
-            i_0, i_f = firstindex(A.t), lastindex(A.t)
-            round(typeof(firstindex(A.t)), f * (i_f - i_0) + i_0)
-        end
-    else
-        iguess
-    end
     ub = length(tvec) + ub_shift
     return if side == :last
         clamp(searchsortedlastcorrelated(tvec, t, iguess) + idx_shift, lb, ub)

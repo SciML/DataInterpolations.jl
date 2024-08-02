@@ -39,9 +39,9 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             @test isapprox(fdiff, adiff, atol = 1e-8)
             @test isapprox(fdiff2, adiff2, atol = 1e-8)
             # Cached index
-            if hasproperty(func, :idx_prev)
-                @test abs(func.idx_prev[] -
-                          searchsortedfirstcorrelated(func.t, _t, func.idx_prev[])) <= 1
+            if hasproperty(func, :iguesser)
+                @test abs(func.iguesser.idx_prev[] -
+                          searchsortedfirstcorrelated(func.t, _t, func.iguesser(_t))) <= 1
             end
         end
 
