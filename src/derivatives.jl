@@ -1,5 +1,6 @@
-function derivative(A, t, order = 1; iguess = A.iguesser)
+function derivative(A, t, order = 1)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
+    iguess = A.iguesser
 
     return if order == 1
         _derivative(A, t, iguess)

@@ -22,9 +22,6 @@ include("online.jl")
 include("show.jl")
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
-function (interp::AbstractInterpolation)(t::Number, iguess::Integer)
-    _interpolate(interp, t; iguess)
-end
 
 function (interp::AbstractInterpolation)(t::AbstractVector)
     u = get_u(interp.u, t)

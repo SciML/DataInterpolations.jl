@@ -1,7 +1,7 @@
-function _interpolate(A, t; iguess = A.iguesser)
+function _interpolate(A, t)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
         throw(ExtrapolationError())
-    return _interpolate(A, t, iguess)
+    return _interpolate(A, t, A.iguesser)
 end
 
 # Linear Interpolation
