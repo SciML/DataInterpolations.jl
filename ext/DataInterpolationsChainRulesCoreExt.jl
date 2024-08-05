@@ -52,7 +52,7 @@ end
 
 function u_tangent(A::LinearInterpolation, t, Δ)
     out = zero(A.u)
-    idx = get_idx(A, t, A.idx_prev[])
+    idx = get_idx(A, t, A.iguesser)
     t_factor = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
     out[idx] = Δ * (one(eltype(out)) - t_factor)
     out[idx + 1] = Δ * t_factor
@@ -61,7 +61,7 @@ end
 
 function u_tangent(A::QuadraticInterpolation, t, Δ)
     out = zero(A.u)
-    i₀, i₁, i₂ = _quad_interp_indices(A, t, A.idx_prev[])
+    i₀, i₁, i₂ = _quad_interp_indices(A, t, A.iguesser)
     t₀ = A.t[i₀]
     t₁ = A.t[i₁]
     t₂ = A.t[i₂]

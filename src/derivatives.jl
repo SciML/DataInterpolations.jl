@@ -1,16 +1,12 @@
 function derivative(A, t, order = 1)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    iguess = A.idx_prev[]
+    iguess = A.iguesser
 
     return if order == 1
-        val, idx = _derivative(A, t, iguess)
-        A.idx_prev[] = idx
-        val
+        _derivative(A, t, iguess)
     elseif order == 2
         ForwardDiff.derivative(t -> begin
-                val, idx = _derivative(A, t, iguess)
-                A.idx_prev[] = idx
-                val
+                _derivative(A, t, iguess)
             end, t)
     else
         throw(DerivativeNotFoundError())
@@ -20,7 +16,7 @@ end
 function _derivative(A::LinearInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, ub_shift = -1, side = :first)
     slope = get_parameters(A, idx)
-    slope, idx
+    slope
 end
 
 function _derivative(A::QuadraticInterpolation, t::Number, iguess)
@@ -29,7 +25,7 @@ function _derivative(A::QuadraticInterpolation, t::Number, iguess)
     du₀ = l₀ * (2t - A.t[i₁] - A.t[i₂])
     du₁ = l₁ * (2t - A.t[i₀] - A.t[i₂])
     du₂ = l₂ * (2t - A.t[i₀] - A.t[i₁])
-    return @views @. du₀ + du₁ + du₂, i₀
+    return @views @. du₀ + du₁ + du₂
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
@@ -101,21 +97,21 @@ function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)
-    _derivative(A, t), idx
+    _derivative(A, t)
 end
 function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx)
-    _derivative(A, t), idx
+    _derivative(A, t)
 end
 
 function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, side = :first)
     j = min(idx, length(A.c))  # for smooth derivative at A.t[end]
     wj = t - A.t[idx]
-    (@evalpoly wj A.b[idx] 2A.c[j] 3A.d[j]), idx
+    @evalpoly wj A.b[idx] 2A.c[j] 3A.d[j]
 end
 
 function _derivative(A::ConstantInterpolation, t::Number, iguess)
-    return zero(first(A.u)), iguess
+    return zero(first(A.u))
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
@@ -132,7 +128,7 @@ end
 function _derivative(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess; lb = 2, ub_shift = 0, side = :first)
     σ = get_parameters(A, idx - 1)
-    A.z[idx - 1] + 2σ * (t - A.t[idx - 1]), idx
+    A.z[idx - 1] + 2σ * (t - A.t[idx - 1])
 end
 
 # CubicSpline Interpolation
@@ -144,13 +140,13 @@ function _derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     c₁, c₂ = get_parameters(A, idx)
     dC = c₁
     dD = -c₂
-    dI + dC + dD, idx
+    dI + dC + dD
 end
 
 function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
-    t < A.t[1] && return zero(A.u[1]), 1
-    t > A.t[end] && return zero(A.u[end]), lastindex(t)
+    t < A.t[1] && return zero(A.u[1])
+    t > A.t[end] && return zero(A.u[end])
     idx = get_idx(A, t, iguess)
     n = length(A.t)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
@@ -165,14 +161,14 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
             ducum += N[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
-    ducum * A.d * scale, idx
+    ducum * A.d * scale
 end
 
 # BSpline Curve Approx
 function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
-    t < A.t[1] && return zero(A.u[1]), 1
-    t > A.t[end] && return zero(A.u[end]), lastindex(t)
+    t < A.t[1] && return zero(A.u[1])
+    t > A.t[end] && return zero(A.u[end])
     idx = get_idx(A, t, iguess)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
@@ -186,7 +182,7 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
             ducum += N[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
-    ducum * A.d * scale, idx
+    ducum * A.d * scale
 end
 
 # Cubic Hermite Spline
@@ -198,7 +194,7 @@ function _derivative(
     out = A.du[idx]
     c₁, c₂ = get_parameters(A, idx)
     out += Δt₀ * (Δt₀ * c₂ + 2(c₁ + Δt₁ * c₂))
-    out, idx
+    out
 end
 
 # Quintic Hermite Spline
@@ -211,5 +207,5 @@ function _derivative(
     c₁, c₂, c₃ = get_parameters(A, idx)
     out += Δt₀^2 *
            (3c₁ + (3Δt₁ + Δt₀) * c₂ + (3Δt₁^2 + Δt₀ * 2Δt₁) * c₃)
-    out, idx
+    out
 end

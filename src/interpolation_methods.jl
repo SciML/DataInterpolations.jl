@@ -1,10 +1,7 @@
 function _interpolate(A, t)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
         throw(ExtrapolationError())
-    idx_guess = A.idx_prev[]
-    val, idx_prev = _interpolate(A, t, idx_guess)
-    A.idx_prev[] = idx_prev
-    return val
+    return _interpolate(A, t, A.iguesser)
 end
 
 # Linear Interpolation
@@ -33,14 +30,14 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
     end
     val = oftype(Δu, val)
 
-    val, idx
+    val
 end
 
 function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]
     slope = get_parameters(A, idx)
-    return A.u[:, idx] + slope * Δt, idx
+    return A.u[:, idx] + slope * Δt
 end
 
 # Quadratic Interpolation
@@ -56,7 +53,7 @@ function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
     u₀ = l₀ * (t - A.t[i₁]) * (t - A.t[i₂])
     u₁ = l₁ * (t - A.t[i₀]) * (t - A.t[i₂])
     u₂ = l₂ * (t - A.t[i₀]) * (t - A.t[i₁])
-    return u₀ + u₁ + u₂, i₀
+    return u₀ + u₁ + u₂
 end
 
 # Lagrange Interpolation
@@ -64,7 +61,7 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, igu
     idx = get_idx(A, t, iguess)
     findRequiredIdxs!(A, t, idx)
     if A.t[A.idxs[1]] == t
-        return A.u[A.idxs[1]], idx
+        return A.u[A.idxs[1]]
     end
     N = zero(A.u[1])
     D = zero(A.t[1])
@@ -86,14 +83,14 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, igu
         D += tmp
         N += (tmp * A.u[A.idxs[i]])
     end
-    N / D, idx
+    N / D
 end
 
 function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     findRequiredIdxs!(A, t, idx)
     if A.t[A.idxs[1]] == t
-        return A.u[:, A.idxs[1]], idx
+        return A.u[:, A.idxs[1]]
     end
     N = zero(A.u[:, 1])
     D = zero(A.t[1])
@@ -115,13 +112,13 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, igu
         D += tmp
         @. N += (tmp * A.u[:, A.idxs[i]])
     end
-    N / D, idx
+    N / D
 end
 
 function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     wj = t - A.t[idx]
-    (@evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]), idx
+    @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
 end
 
 # ConstantInterpolation Interpolation
@@ -133,7 +130,7 @@ function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number, igu
         # :right means that value to the right is used for interpolation
         idx = get_idx(A, t, iguess; side = :first, lb = 1, ub_shift = 0)
     end
-    A.u[idx], idx
+    A.u[idx]
 end
 
 function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
@@ -144,7 +141,7 @@ function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, igu
         # :right means that value to the right is used for interpolation
         idx = get_idx(A, t, iguess; side = :first, lb = 1, ub_shift = 0)
     end
-    A.u[:, idx], idx
+    A.u[:, idx]
 end
 
 # QuadraticSpline Interpolation
@@ -153,7 +150,7 @@ function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     Cᵢ = A.u[idx]
     Δt = t - A.t[idx]
     σ = get_parameters(A, idx)
-    return A.z[idx] * Δt + σ * Δt^2 + Cᵢ, idx
+    return A.z[idx] * Δt + σ * Δt^2 + Cᵢ
 end
 
 # CubicSpline Interpolation
@@ -165,15 +162,15 @@ function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     c₁, c₂ = get_parameters(A, idx)
     C = c₁ * Δt₁
     D = c₂ * Δt₂
-    I + C + D, idx
+    I + C + D
 end
 
 # BSpline Curve Interpolation
 function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
         t::Number,
         iguess)
-    t < A.t[1] && return A.u[1], 1
-    t > A.t[end] && return A.u[end], lastindex(t)
+    t < A.t[1] && return A.u[1]
+    t > A.t[end] && return A.u[end]
     # change t into param [0 1]
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
@@ -184,13 +181,13 @@ function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
     for i in nonzero_coefficient_idxs
         ucum += N[i] * A.c[i]
     end
-    ucum, idx
+    ucum
 end
 
 # BSpline Curve Approx
 function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
-    t < A.t[1] && return A.u[1], 1
-    t > A.t[end] && return A.u[end], lastindex(t)
+    t < A.t[1] && return A.u[1]
+    t > A.t[end] && return A.u[end]
     # change t into param [0 1]
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
@@ -200,7 +197,7 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
     for i in nonzero_coefficient_idxs
         ucum += N[i] * A.c[i]
     end
-    ucum, idx
+    ucum
 end
 
 # Cubic Hermite Spline
@@ -212,7 +209,7 @@ function _interpolate(
     out = A.u[idx] + Δt₀ * A.du[idx]
     c₁, c₂ = get_parameters(A, idx)
     out += Δt₀^2 * (c₁ + Δt₁ * c₂)
-    out, idx
+    out
 end
 
 # Quintic Hermite Spline
@@ -224,5 +221,5 @@ function _interpolate(
     out = A.u[idx] + Δt₀ * (A.du[idx] + A.ddu[idx] * Δt₀ / 2)
     c₁, c₂, c₃ = get_parameters(A, idx)
     out += Δt₀^3 * (c₁ + Δt₁ * (c₂ + c₃ * Δt₁))
-    out, idx
+    out
 end

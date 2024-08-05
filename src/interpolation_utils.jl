@@ -117,16 +117,8 @@ function looks_linear(t; threshold = 1e-2)
     norm_var < threshold^2
 end
 
-function get_idx(A::AbstractInterpolation, t, iguess; lb = 1,
+function get_idx(A::AbstractInterpolation, t, iguess::Union{<:Integer, Guesser}; lb = 1,
         ub_shift = -1, idx_shift = 0, side = :last)
-    iguess = if hasfield(typeof(A), :linear_lookup) &&
-                A.linear_lookup
-        f = (t - first(A.t)) / (last(A.t) - first(A.t))
-        i_0, i_f = firstindex(A.t), lastindex(A.t)
-        round(typeof(firstindex(A.t)), f * (i_f - i_0) + i_0)
-    else
-        iguess
-    end
     tvec = A.t
     ub = length(tvec) + ub_shift
     return if side == :last
