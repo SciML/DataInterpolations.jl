@@ -114,12 +114,12 @@ function _derivative(A::ConstantInterpolation, t::Number, iguess)
     return zero(first(A.u))
 end
 
-function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
+function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : eltype(A.u)(NaN)
 end
 
-function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number)
+function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : eltype(A.u)(NaN) .* A.u[:, 1]
 end
