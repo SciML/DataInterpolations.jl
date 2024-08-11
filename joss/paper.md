@@ -31,12 +31,12 @@ bibliography: paper.bib
 
 # Summary
 
-Interpolations are used to estimate values between known data points using an approximate continuous function.DataInterpolations.jl is a Julia [@Bezanson2017] package containing 1D implementations of some of the most commonly used interpolation functions. These include:
+Interpolations are used to estimate values between known data points using an approximate continuous function. DataInterpolations.jl is a Julia [@Bezanson2017] package containing 1D implementations of some of the most commonly used interpolation functions. These include:
 
   - Constant Interpolation
   - Linear Interpolation
   - Quadratic Interpolation
-  - Lagrange Interpolation [@lagrange]
+  - Lagrange Interpolation [@lagrange1898lectures]
   - Quadratic Splines
   - Cubic Splines [@Schoenberg1988]
   - Akima Splines [@10.1145/321607.321609]
@@ -46,7 +46,7 @@ Interpolations are used to estimate values between known data points using an ap
   - B-Splines [@Curry1988] [@DEBOOR197250]
   - Regression based B-Splines
 
-and a continually growing list. Along with these, the package also has methods to fit parameterized curves with the data points and Tikhonov regularization [@Tikhonov1943OnTS] [@amt-14-7909-2021] for obtaining smooth curves. The package also provides functionality to compute integrals and derivatives upto second order for those interpolations methods. It is also automatic differentiation friendly. It can also be used symbolically with Symbolics.jl [@gowda2021high] and plugged into models defined using ModelingToolkit.jl [@ma2021modelingtoolkit].
+and a continually growing list. Along with these, the package also has methods to fit parameterized curves with the data points and Tikhonov regularization [@Tikhonov1943OnTS] [@amt-14-7909-2021] for obtaining smooth curves. The package also provides functionality to compute integrals and derivatives upto second order for those interpolations methods. It is also automatic differentiation friendly. It can also be used symbolically with Symbolics.jl [@10.1145/3511528.3511535] and plugged into models defined using ModelingToolkit.jl [@ma2021modelingtoolkit].
 
 # Statement of need
 
@@ -54,7 +54,11 @@ Interpolations are a very important component of many modeling workflows. Often,
 
 # Example
 
-The following tutorials in the documentation [1](https://docs.sciml.ai/DataInterpolations/stable/methods/) provides how to define each of the interpolation methods and compute the value at any point. [2](https://docs.sciml.ai/DataInterpolations/stable/interface/) provides explanation for using the interface and interpolated objects for evaluating at any point, computing the derivative at any point and computing the integral between any two points. [3](https://docs.sciml.ai/DataInterpolations/stable/symbolics/) provides how to use interpolation objects with Symbolics.jl and ModelingToolkit.jl.
+The following tutorials are provided in the documentation:
+
+  - [Tutorial 1](https://docs.sciml.ai/DataInterpolations/stable/methods/) provides how to define each of the interpolation methods and compute the value at any point.
+  - [Tutorial 2](https://docs.sciml.ai/DataInterpolations/stable/interface/) provides explanation for using the interface and interpolated objects for evaluating at any point, computing the derivative at any point and computing the integral between any two points.
+  - [Tutorial 3](https://docs.sciml.ai/DataInterpolations/stable/symbolics/) provides how to use interpolation objects with Symbolics.jl and ModelingToolkit.jl.
 
 A simple demonstration here:
 
