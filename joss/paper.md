@@ -8,22 +8,22 @@ authors:
     orcid: 0000-0003-0785-3586
     corresponding: true
     affiliation: 1
-  - name: Christopher Rackauckas
-    orcid: 0000-0001-5850-0663
-    affiliation: "1, 2, 3"
-  - name: Shubham Maddhashiya
-    affiliation: 3
   - name: Bart de Koning
     orcid: 0009-0005-6134-6608
-    affiliation: 4
+    affiliation: 2
+  - name: Shubham Maddhashiya
+    affiliation: 3
+  - name: Christopher Rackauckas
+    orcid: 0000-0001-5850-0663
+    affiliation: "1, 3, 4"
 affiliations:
  - name: JuliaHub
    index: 1
- - name: Massachusetts Institute of Technology
+ - name: Deltares
    index: 2
  - name: Pumas-AI
    index: 3
- - name: Deltares
+ - name: Massachusetts Institute of Technology
    index: 4
 date: 6 June 2024
 bibliography: paper.bib
