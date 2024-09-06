@@ -8,6 +8,7 @@
 
 [![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor%27s%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
 [![SciML Code Style](https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826)](https://github.com/SciML/SciMLStyle)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.06917/status.svg)](https://doi.org/10.21105/joss.06917)
 
 DataInterpolations.jl is a library for performing interpolations of one-dimensional data. By
 "data interpolations" we mean techniques for interpolating possibly noisy data, and thus
@@ -93,3 +94,22 @@ The series types defined are:
   - `:quintic_hermite_spline`
 
 By and large, these accept the same keywords as their function counterparts.
+
+## Citing
+
+If you use this software in your work, please cite:
+
+```bib
+@article{Bhagavan2024,
+  doi = {10.21105/joss.06917},
+  url = {https://doi.org/10.21105/joss.06917},
+  year = {2024},
+  publisher = {The Open Journal},
+  volume = {9},
+  number = {101},
+  pages = {6917},
+  author = {Sathvik Bhagavan and Bart de Koning and Shubham Maddhashiya and Christopher Rackauckas},
+  title = {DataInterpolations.jl: Fast Interpolations of 1D data},
+  journal = {Journal of Open Source Software}
+}
+```
