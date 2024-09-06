@@ -65,6 +65,25 @@ The series types defined are:
 
 By and large, these accept the same keywords as their function counterparts.
 
+## Citing
+
+If you use this software in your work, please cite:
+
+```bib
+@article{Bhagavan2024,
+  doi = {10.21105/joss.06917},
+  url = {https://doi.org/10.21105/joss.06917},
+  year = {2024},
+  publisher = {The Open Journal},
+  volume = {9},
+  number = {101},
+  pages = {6917},
+  author = {Sathvik Bhagavan and Bart de Koning and Shubham Maddhashiya and Christopher Rackauckas},
+  title = {DataInterpolations.jl: Fast Interpolations of 1D data},
+  journal = {Journal of Open Source Software}
+}
+```
+
 ## Contributing
 
   - Please refer to the
