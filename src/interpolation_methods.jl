@@ -33,11 +33,12 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
     val
 end
 
-function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
+function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]
     slope = get_parameters(A, idx)
-    return A.u[:, idx] + slope * Δt
+    ax = axes(A.u)[1:end-1]
+    return A.u[ax..., idx] + slope * Δt
 end
 
 # Quadratic Interpolation
