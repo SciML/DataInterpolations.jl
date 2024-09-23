@@ -19,8 +19,9 @@ function safe_diff(b, a::T) where {T}
 end
 
 function linear_interpolation_parameters(u::AbstractArray{T}, t, idx) where {T}
-    Δu = if u isa AbstractMatrix
-        [safe_diff(u[j, idx + 1], u[j, idx]) for j in 1:size(u)[1]]
+    Δu = if u isa AbstractArray 
+        ax = axes(u)
+        safe_diff.(u[ax[1:end-1]..., idx+1:idx+1] , u[ax[1:end-1]..., idx:idx])
     else
         safe_diff(u[idx + 1], u[idx])
     end
