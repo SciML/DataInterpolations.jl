@@ -43,11 +43,11 @@ end
         A = LinearInterpolation(u, t; extrapolate = true)
 
         for (_t, _u) in zip(t, eachcol(u))
-            @test A(_t) == _u
+            @test A(_t) == reshape(_u, : , 1)
         end
-        @test A(0) == [0.0, 0.0]
-        @test A(5.5) == [11.0, 16.5]
-        @test A(11) == [22, 33]
+        @test A(0) == [0.0; 0.0;;]
+        @test A(5.5) == [11.0; 16.5;;]
+        @test A(11) == [22; 33;;]
 
         x = 1:10
         y = 2:4
