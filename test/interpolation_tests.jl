@@ -43,7 +43,7 @@ end
         A = LinearInterpolation(u, t; extrapolate = true)
 
         for (_t, _u) in zip(t, eachcol(u))
-            @test A(_t) == reshape(_u, : , 1)
+            @test A(_t) == reshape(_u, :, 1)
         end
         @test A(0) == [0.0; 0.0;;]
         @test A(5.5) == [11.0; 16.5;;]

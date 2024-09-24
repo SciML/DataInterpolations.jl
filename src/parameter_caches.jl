@@ -21,7 +21,8 @@ end
 function linear_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {T, N}
     Δu = if N > 1
         ax = axes(u)
-        safe_diff.(u[ax[1:end-1]..., idx+1:idx+1] , u[ax[1:end-1]..., idx:idx])
+        safe_diff.(
+            u[ax[1:(end - 1)]..., (idx + 1):(idx + 1)], u[ax[1:(end - 1)]..., idx:idx])
     else
         safe_diff(u[idx + 1], u[idx])
     end

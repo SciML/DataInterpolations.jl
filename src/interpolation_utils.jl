@@ -98,7 +98,7 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     TU = Base.nonmissingtype(eltype(U))
     Tt = Base.nonmissingtype(eltype(t))
     @assert length(t) == size(U, ndims(U))
-    ax = axes(U)[1:end-1]
+    ax = axes(U)[1:(end - 1)]
     non_missing_indices = collect(
         i for i in 1:length(t)
     if !any(ismissing, U[ax..., i]) && !ismissing(t[i])
@@ -107,7 +107,7 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     t = Tt.([t[i] for i in non_missing_indices])
 
     return U, t
-end 
+end
 
 seems_linear(assume_linear_t::Bool, _) = assume_linear_t
 seems_linear(assume_linear_t::Number, t) = looks_linear(t; threshold = assume_linear_t)
