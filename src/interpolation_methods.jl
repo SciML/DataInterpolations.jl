@@ -41,14 +41,6 @@ function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess
     return A.u[ax..., idx] + slope * Δt
 end
 
-function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    idx = get_idx(A, t, iguess)
-    Δt = t - A.t[idx]
-    slope = get_parameters(A, idx)
-    ax = axes(A.u)[1:(end - 1)]
-    return @views A.u[ax..., idx][:] + slope[:] * Δt
-end
-
 # Quadratic Interpolation
 _quad_interp_indices(A, t) = _quad_interp_indices(A, t, firstindex(A.t) - 1)
 function _quad_interp_indices(A::QuadraticInterpolation, t::Number, iguess)
