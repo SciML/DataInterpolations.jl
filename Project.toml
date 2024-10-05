@@ -1,6 +1,6 @@
 name = "DataInterpolations"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
-version = "6.4.2"
+version = "6.4.3"
 
 [deps]
 FindFirstFunctions = "64ca27bc-2ba2-4a57-88aa-44e436879224"
