@@ -64,8 +64,13 @@ function u_tangent(A::LinearInterpolation, t, Δ)
     out = zero(A.u)
     idx = get_idx(A, t, A.iguesser)
     t_factor = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
-    out[idx] = Δ * (one(eltype(out)) - t_factor)
-    out[idx + 1] = Δ * t_factor
+    if eltype(out) <: Number
+        out[idx] = Δ * (one(eltype(out)) - t_factor)
+        out[idx + 1] = Δ * t_factor
+    else
+        @. out[idx] = Δ * (true - t_factor)
+        @. out[idx + 1] = Δ * t_factor
+    end
     out
 end
 
@@ -78,9 +83,15 @@ function u_tangent(A::QuadraticInterpolation, t, Δ)
     Δt₀ = t₁ - t₀
     Δt₁ = t₂ - t₁
     Δt₂ = t₂ - t₀
-    out[i₀] = Δ * (t - A.t[i₁]) * (t - A.t[i₂]) / (Δt₀ * Δt₂)
-    out[i₁] = -Δ * (t - A.t[i₀]) * (t - A.t[i₂]) / (Δt₀ * Δt₁)
-    out[i₂] = Δ * (t - A.t[i₀]) * (t - A.t[i₁]) / (Δt₂ * Δt₁)
+    if eltype(out) <: Number
+        out[i₀] = Δ * (t - A.t[i₁]) * (t - A.t[i₂]) / (Δt₀ * Δt₂)
+        out[i₁] = -Δ * (t - A.t[i₀]) * (t - A.t[i₂]) / (Δt₀ * Δt₁)
+        out[i₂] = Δ * (t - A.t[i₀]) * (t - A.t[i₁]) / (Δt₂ * Δt₁)
+    else
+        @. out[i₀] = Δ * (t - A.t[i₁]) * (t - A.t[i₂]) / (Δt₀ * Δt₂)
+        @. out[i₁] = -Δ * (t - A.t[i₀]) * (t - A.t[i₂]) / (Δt₀ * Δt₁)
+        @. out[i₂] = Δ * (t - A.t[i₀]) * (t - A.t[i₁]) / (Δt₂ * Δt₁)
+    end
     out
 end
 
@@ -100,7 +111,7 @@ function ChainRulesCore.rrule(::typeof(_interpolate),
         t::Number)
     deriv = derivative(A, t)
     function interpolate_pullback(Δ)
-        (NoTangent(), Tangent{typeof(A)}(; u = u_tangent(A, t, Δ)), deriv * Δ)
+        (NoTangent(), Tangent{typeof(A)}(; u = u_tangent(A, t, Δ)), sum(deriv .* Δ))
     end
     return _interpolate(A, t), interpolate_pullback
 end
