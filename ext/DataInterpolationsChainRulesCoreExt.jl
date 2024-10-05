@@ -16,7 +16,7 @@ else
 end
 
 function ChainRulesCore.rrule(::typeof(munge_data), u, t)
-    u_out, t_out = munge_data(u,t)
+    u_out, t_out = munge_data(u, t)
 
     # For now modifications by munge_data not supported
     @assert (u == u_out && t == t_out)

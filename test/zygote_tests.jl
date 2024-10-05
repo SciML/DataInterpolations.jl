@@ -9,7 +9,8 @@ function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name
     @testset "$name, derivatives w.r.t. input" begin
         for _t in trange_exclude
             adiff = DataInterpolations.derivative(func, _t)
-            zdiff = u isa AbstractVector{<:Real} ? only(Zygote.gradient(func, _t)) : only(Zygote.jacobian(func, _t))
+            zdiff = u isa AbstractVector{<:Real} ? only(Zygote.gradient(func, _t)) :
+                    only(Zygote.jacobian(func, _t))
             isnothing(zdiff) && (zdiff = 0.0)
             @test adiff ≈ zdiff
         end
@@ -64,8 +65,9 @@ end
     u = [1.0 2.0; 0.0 1.0; 1.0 2.0; 0.0 1.0]
     test_zygote(ConstantInterpolation, u, t, name = "Constant Interpolation (matrix)")
 
-    u = [[1.0,2.0,3.0,4.0],[2.0,3.0,4.0,5.0]]
-    test_zygote(ConstantInterpolation, u, t, name = "Constant Interpolation (vector of vectors)")
+    u = [[1.0, 2.0, 3.0, 4.0], [2.0, 3.0, 4.0, 5.0]]
+    test_zygote(
+        ConstantInterpolation, u, t, name = "Constant Interpolation (vector of vectors)")
 end
 
 @testset "Cubic Hermite Spline" begin
