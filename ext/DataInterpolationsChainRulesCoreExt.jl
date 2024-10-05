@@ -4,15 +4,25 @@ if isdefined(Base, :get_extension)
                               LinearInterpolation, QuadraticInterpolation,
                               LagrangeInterpolation, AkimaInterpolation,
                               BSplineInterpolation, BSplineApprox, get_idx, get_parameters,
-                              _quad_interp_indices
+                              _quad_interp_indices, munge_data
     using ChainRulesCore
 else
     using ..DataInterpolations: _interpolate, derivative, AbstractInterpolation,
                                 LinearInterpolation, QuadraticInterpolation,
                                 LagrangeInterpolation, AkimaInterpolation,
                                 BSplineInterpolation, BSplineApprox, get_parameters,
-                                _quad_interp_indices
+                                _quad_interp_indices, munge_data
     using ..ChainRulesCore
+end
+
+function ChainRulesCore.rrule(::typeof(munge_data), u, t)
+    u_out, t_out = munge_data(u, t)
+
+    # For now modifications by munge_data not supported
+    @assert (u == u_out && t == t_out)
+
+    munge_data_pullback = Δ -> (NoTangent(), Δ[1], Δ[2])
+    (u_out, t_out), munge_data_pullback
 end
 
 function ChainRulesCore.rrule(
