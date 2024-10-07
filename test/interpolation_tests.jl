@@ -599,6 +599,16 @@ end
     A = CubicSpline(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-2.0)
     @test_throws DataInterpolations.ExtrapolationError A(2.0)
+
+    @testset "AbstractMatrix" begin 
+        t  = 0.1:0.1:1.0 
+        u = [sin.(t) cos.(t)]' |> collect
+        c = CubicSpline(u, t)
+        t_test = 0.1:0.05:1.0 
+        u_test = reduce(hcat, c.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
+    end
 end
 
 @testset "BSplines" begin
