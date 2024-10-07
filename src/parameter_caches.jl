@@ -120,7 +120,7 @@ function cubic_spline_parameters(u::AbstractVector, h, z, idx)
 end
 
 function cubic_spline_parameters(u::AbstractArray, h, z, idx)
-    ax = axes(u)[1:end-1]
+    ax = axes(u)[1:(end - 1)]
     c₁ = (u[ax..., idx + 1] / h[idx + 1] - z[ax..., idx + 1] * h[idx + 1] / 6)
     c₂ = (u[ax..., idx] / h[idx + 1] - z[ax..., idx] * h[idx + 1] / 6)
     return c₁, c₂
