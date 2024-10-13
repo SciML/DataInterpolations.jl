@@ -479,11 +479,11 @@ function CubicSpline(u::uType,
                       6(u[ax..., begin + 1] - u[ax..., begin]) / h[begin + 1])
 
     h_ = reshape(h, ones(Int64, N - 1)..., :)
-    ax_h = axes(h_)[1:end-1]
+    ax_h = axes(h_)[1:(end - 1)]
     d = 6 * ((u[ax..., 3:(n + 1)] - u[ax..., 2:n]) ./ h_[ax_h..., 3:(n + 1)]) -
         6 * ((u[ax..., 2:n] - u[ax..., 1:(n - 1)]) ./ h_[ax_h..., 2:n])
     d = cat(typed_zero, d, typed_zero; dims = ndims(d))
-    d_reshaped = reshape(d, prod(size(d)[1:end-1]), :)
+    d_reshaped = reshape(d, prod(size(d)[1:(end - 1)]), :)
     z = (tA \ d_reshaped')'
     z = reshape(z, size(u)...)
     linear_lookup = seems_linear(assume_linear_t, t)

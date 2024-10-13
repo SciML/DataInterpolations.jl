@@ -609,9 +609,9 @@ end
         @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
         @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
     end
-    @testset "AbstractArray{T, 3}" begin 
+    @testset "AbstractArray{T, 3}" begin
         f3d(t) = [sin(t) cos(t);
-                  0. cos(2t)]
+                  0.0 cos(2t)]
         t = 0.1:0.1:1.0
         u3d = f3d.(t)
         c = CubicSpline(u3d, t)
