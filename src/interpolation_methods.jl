@@ -166,6 +166,18 @@ function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     I + C + D
 end
 
+function _interpolate(A::CubicSpline{<:AbstractArray{T, N}}, t::Number, iguess) where {T, N}
+    idx = get_idx(A, t, iguess)
+    Δt₁ = t - A.t[idx]
+    Δt₂ = A.t[idx + 1] - t
+    ax = axes(A.z)[1:(end - 1)]
+    I = (A.z[ax..., idx] * Δt₂^3 + A.z[ax..., idx + 1] * Δt₁^3) / (6A.h[idx + 1])
+    c₁, c₂ = get_parameters(A, idx)
+    C = c₁ * Δt₁
+    D = c₂ * Δt₂
+    I + C + D
+end
+
 # BSpline Curve Interpolation
 function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
         t::Number,
