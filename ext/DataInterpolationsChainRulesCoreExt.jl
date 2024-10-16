@@ -121,4 +121,8 @@ function ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractIn
     return _interpolate(A, t), derivative(A, t) * Δt
 end
 
+function ChainRulesCore.frule((_, Δt), A::AbstractInterpolation, t::Number)
+    return A(t), derivative(A, t) * Δt
+end
+
 end # module
