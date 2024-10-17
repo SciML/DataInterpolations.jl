@@ -389,6 +389,33 @@ function QuadraticSpline(
     QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
 end
 
+function QuadraticSpline(
+        u::uType, t; extrapolate = false, cache_parameters = false,
+        assume_linear_t = 1e-2) where {uType <:
+                                       AbstractArray{T, N}} where {T, N}
+    u, t = munge_data(u, t)
+    linear_lookup = seems_linear(assume_linear_t, t)
+    s = length(t)
+    dl = ones(eltype(t), s - 1)
+    d_tmp = ones(eltype(t), s)
+    du = zeros(eltype(t), s - 1)
+    tA = Tridiagonal(dl, d_tmp, du)
+    ax = axes(u)[1:(end - 1)]
+    d_ = map(
+        i -> i == 1 ? zeros(eltype(t), size(u[ax..., 1])) :
+             2 // 1 * (u[ax..., i] - u[ax..., i - 1]) / (t[i] - t[i - 1]),
+        1:s)
+    d = transpose(reshape(reduce(hcat, d_), :, s))
+    z_ = reshape(transpose(tA \ d), size(u[ax..., 1])..., :)
+    z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
+
+    p = QuadraticSplineParameterCache(z, t, cache_parameters)
+    A = QuadraticSpline(
+        u, t, nothing, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
+    I = cumulative_integral(A, cache_parameters)
+    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
+end
+
 """
     CubicSpline(u, t; extrapolate = false, cache_parameters = false)
 

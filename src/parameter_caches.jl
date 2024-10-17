@@ -52,11 +52,12 @@ function QuadraticParameterCache(u, t, cache_parameters)
     end
 end
 
-function quadratic_interpolation_parameters(u, t, idx)
-    if u isa AbstractMatrix
-        u₀ = u[:, idx]
-        u₁ = u[:, idx + 1]
-        u₂ = u[:, idx + 2]
+function quadratic_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {T, N}
+    if N > 1
+        ax = axes(u)
+        u₀ = u[ax[1:(end - 1)]..., idx]
+        u₁ = u[ax[1:(end - 1)]..., idx + 1]
+        u₂ = u[ax[1:(end - 1)]..., idx + 2]
     else
         u₀ = u[idx]
         u₁ = u[idx + 1]
@@ -89,8 +90,14 @@ function QuadraticSplineParameterCache(z, t, cache_parameters)
     end
 end
 
-function quadratic_spline_parameters(z, t, idx)
+function quadratic_spline_parameters(z::AbstractVector, t, idx)
     σ = 1 // 2 * (z[idx + 1] - z[idx]) / (t[idx + 1] - t[idx])
+    return σ
+end
+
+function quadratic_spline_parameters(z::AbstractArray, t, idx)
+    ax = axes(z)[1:(end - 1)]
+    σ = 1 // 2 * (z[ax..., idx + 1] - z[ax..., idx]) / (t[idx + 1] - t[idx])
     return σ
 end
 
