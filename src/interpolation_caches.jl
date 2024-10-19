@@ -173,29 +173,24 @@ Extrapolation extends the last cubic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, N} <:
+struct AkimaInterpolation{uType, tType, IType, pType, T, N} <:
        AbstractInterpolation{T, N}
     u::uType
     t::tType
     I::IType
-    b::bType
-    c::cType
-    d::dType
+    p::pType
     extrapolate::Bool
     iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function AkimaInterpolation(
-            u, t, I, b, c, d, extrapolate, cache_parameters, assume_linear_t)
+            u, t, I, p, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
         N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
-            typeof(d), eltype(u), N}(u,
+        new{typeof(u), typeof(t), typeof(I), typeof(p), eltype(u), N}(u,
             t,
             I,
-            b,
-            c,
-            d,
+            p,
             extrapolate,
             Guesser(t),
             cache_parameters,
@@ -208,30 +203,11 @@ function AkimaInterpolation(
         u, t; extrapolate = false, cache_parameters = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
     linear_lookup = seems_linear(assume_linear_t, t)
-    n = length(t)
-    dt = diff(t)
-    m = Array{eltype(u)}(undef, n + 3)
-    m[3:(end - 2)] = diff(u) ./ dt
-    m[2] = 2m[3] - m[4]
-    m[1] = 2m[2] - m[3]
-    m[end - 1] = 2m[end - 2] - m[end - 3]
-    m[end] = 2m[end - 1] - m[end - 2]
-
-    b = 0.5 .* (m[4:end] .+ m[1:(end - 3)])
-    dm = abs.(diff(m))
-    f1 = dm[3:(n + 2)]
-    f2 = dm[1:n]
-    f12 = f1 + f2
-    ind = findall(f12 .> 1e-9 * maximum(f12))
-    b[ind] = (f1[ind] .* m[ind .+ 1] .+
-              f2[ind] .* m[ind .+ 2]) ./ f12[ind]
-    c = (3.0 .* m[3:(end - 2)] .- 2.0 .* b[1:(end - 1)] .- b[2:end]) ./ dt
-    d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
-
+    p = AkimaParameterCache(u, t)
     A = AkimaInterpolation(
-        u, t, nothing, b, c, d, extrapolate, cache_parameters, linear_lookup)
+        u, t, nothing, p, extrapolate, cache_parameters, linear_lookup)
     I = cumulative_integral(A, cache_parameters)
-    AkimaInterpolation(u, t, I, b, c, d, extrapolate, cache_parameters, linear_lookup)
+    AkimaInterpolation(u, t, I, p, extrapolate, cache_parameters, linear_lookup)
 end
 
 """
@@ -392,7 +368,7 @@ end
 function QuadraticSpline(
         u::uType, t; extrapolate = false, cache_parameters = false,
         assume_linear_t = 1e-2) where {uType <:
-                                       AbstractArray{T, N}} where {T, N}
+                                       AbstractArray}
     u, t = munge_data(u, t)
     linear_lookup = seems_linear(assume_linear_t, t)
     s = length(t)
