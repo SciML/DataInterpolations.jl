@@ -667,14 +667,14 @@ end
 
         @testset "AbstractMatrix" begin
             t = 0.1:0.1:1.0
-            u = [sin.(t) cos.(t)]' |> collect
-            A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform)
+            u2d = [sin.(t) cos.(t)]' |> collect
+            A = BSplineInterpolation(u2d, t, 2, :Uniform, :Uniform)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
 
-            A = BSplineInterpolation(u, t, 2, :ArcLen, :Average)
+            A = BSplineInterpolation(u2d, t, 2, :ArcLen, :Average)
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
