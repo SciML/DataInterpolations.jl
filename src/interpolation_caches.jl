@@ -811,7 +811,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, N} <:
 end
 
 function BSplineApprox(
-        u, t, d, h, pVecType, knotVecType; extrapolate = false, assume_linear_t = 1e-2)
+        u::AbstractVector, t, d, h, pVecType, knotVecType; extrapolate = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d+1) control points.")
@@ -900,6 +900,101 @@ function BSplineApprox(
         u, t, d, h, p, k, c, sc, pVecType, knotVecType, extrapolate, assume_linear_t)
 end
 
+function BSplineApprox(
+        u::AbstractArray{T, N}, t, d, h, pVecType, knotVecType; extrapolate = false,
+        assume_linear_t = 1e-2) where {T, N}
+    u, t = munge_data(u, t)
+    n = length(t)
+    h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d+1) control points.")
+    s = zero(eltype(u))
+    p = zero(t)
+    k = zeros(eltype(t), h + d + 1)
+    l = zeros(eltype(u), n - 1)
+    p[1] = zero(eltype(t))
+    p[end] = one(eltype(t))
+
+    ax_u = axes(u)[1:(end - 1)]
+
+    for i in 2:n
+        s += √((t[i] - t[i - 1])^2 + sum((u[ax_u..., i] - u[ax_u..., i - 1]) .^ 2))
+        l[i - 1] = s
+    end
+    if pVecType == :Uniform
+        for i in 2:(n - 1)
+            p[i] = p[1] + (i - 1) * (p[end] - p[1]) / (n - 1)
+        end
+    elseif pVecType == :ArcLen
+        for i in 2:(n - 1)
+            p[i] = p[1] + l[i - 1] / s * (p[end] - p[1])
+        end
+    end
+
+    lidx = 1
+    ridx = length(k)
+    while lidx <= (d + 1) && ridx >= (length(k) - d)
+        k[lidx] = p[1]
+        k[ridx] = p[end]
+        lidx += 1
+        ridx -= 1
+    end
+
+    ps = zeros(eltype(t), n - 2)
+    s = zero(eltype(t))
+    for i in 2:(n - 1)
+        s += p[i]
+        ps[i - 1] = s
+    end
+
+    if knotVecType == :Uniform
+        # uniformly spaced knot vector
+        # this method is not recommended because, if it is used with the chord length method for global interpolation,
+        # the system of linear equations would be singular.
+        for i in (d + 2):h
+            k[i] = k[1] + (i - d - 1) // (h - d) * (k[end] - k[1])
+        end
+    elseif knotVecType == :Average
+        # NOTE: verify that average method can be applied when size of k is less than size of p
+        # average spaced knot vector
+        idx = 1
+        if d + 2 <= h
+            k[d + 2] = 1 // d * ps[d]
+        end
+        for i in (d + 3):h
+            k[i] = 1 // d * (ps[idx + d] - ps[idx])
+            idx += 1
+        end
+    end
+    # control points
+    c = zeros(eltype(u), size(u)[1:(end - 1)]..., h)
+    c[ax_u..., 1] = u[ax_u..., 1]
+    c[ax_u..., end] = u[ax_u..., end]
+    q = zeros(eltype(u), size(u)[1:(end - 1)]..., n)
+    sc = zeros(eltype(t), n, h)
+    for i in 1:n
+        spline_coefficients!(view(sc, i, :), d, k, p[i])
+    end
+    for k in 2:(n - 1)
+        q[ax_u..., k] = u[ax_u..., k] - sc[k, 1] * u[ax_u..., 1] -
+                        sc[k, h] * u[ax_u..., end]
+    end
+    Q = Array{eltype(u), N}(undef, size(u)[1:(end - 1)]..., h - 2)
+    for i in 2:(h - 1)
+        s = zeros(eltype(sc), size(u)[1:(end - 1)]...)
+        for k in 2:(n - 1)
+            s = s + sc[k, i] * q[ax_u..., k]
+        end
+        Q[ax_u..., i - 1] = s
+    end
+    sc = sc[2:(end - 1), 2:(h - 1)]
+    M = transpose(sc) * sc
+    Q = reshape(Q, prod(size(u)[1:(end - 1)]), :)
+    P = (M \ Q')'
+    P = reshape(P, size(u)[1:(end - 1)]..., :)
+    c[ax_u..., 2:(end - 1)] = P
+    sc = zeros(eltype(t), h)
+    BSplineApprox(
+        u, t, d, h, p, k, c, sc, pVecType, knotVecType, extrapolate, assume_linear_t)
+end
 """
     CubicHermiteSpline(du, u, t; extrapolate = false, cache_parameters = false)
 

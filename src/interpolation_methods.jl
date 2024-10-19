@@ -232,6 +232,23 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
     ucum
 end
 
+function _interpolate(
+        A::BSplineApprox{<:AbstractArray{T, N}}, t::Number, iguess) where {T <: Number, N}
+    t < A.t[1] && return A.u[1]
+    t > A.t[end] && return A.u[end]
+    # change t into param [0 1]
+    ax_u = axes(A.u)[1:(end - 1)]
+    idx = get_idx(A, t, iguess)
+    t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
+    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
+    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
+    ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)
+    for i in nonzero_coefficient_idxs
+        ucum = ucum + (sc[i] * A.c[ax_u..., i])
+    end
+    ucum
+end
+
 # Cubic Hermite Spline
 function _interpolate(
         A::CubicHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
