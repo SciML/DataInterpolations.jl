@@ -121,14 +121,14 @@ end
 function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     wj = t - A.t[idx]
-    @evalpoly wj A.u[idx] A.p.b[idx] A.p.c[idx] A.p.d[idx]
+    @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
 end
 
 function _interpolate(A::AkimaInterpolation{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     wj = t - A.t[idx]
     ax = axes(A.u)[1:(end - 1)]
-    @. @evalpoly wj A.u[ax..., idx] A.p.b[ax..., idx] A.p.c[ax..., idx] A.p.d[ax..., idx]
+    @. @evalpoly wj A.u[ax..., idx] A.b[ax..., idx] A.c[ax..., idx] A.d[ax..., idx]
 end
 
 # ConstantInterpolation Interpolation

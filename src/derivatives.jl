@@ -106,17 +106,17 @@ end
 
 function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, side = :first)
-    j = min(idx, length(A.p.c))  # for smooth derivative at A.t[end]
+    j = min(idx, length(A.c))  # for smooth derivative at A.t[end]
     wj = t - A.t[idx]
-    @evalpoly wj A.p.b[idx] 2A.p.c[j] 3A.p.d[j]
+    @evalpoly wj A.b[idx] 2A.c[j] 3A.d[j]
 end
 
 function _derivative(A::AkimaInterpolation{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, side = :first)
-    j = min(idx, length(A.p.c))  # for smooth derivative at A.t[end]
+    j = min(idx, length(A.c))  # for smooth derivative at A.t[end]
     wj = t - A.t[idx]
     ax = axes(A.u)[1:(end - 1)]
-    @. @evalpoly wj A.p.b[ax..., idx] 2A.p.c[ax..., j] 3A.p.d[ax..., j]
+    @. @evalpoly wj A.b[ax..., idx] 2A.c[ax..., j] 3A.d[ax..., j]
 end
 
 function _derivative(A::ConstantInterpolation, t::Number, iguess)
