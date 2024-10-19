@@ -625,10 +625,9 @@ end
 @testset "BSplines" begin
 
     # BSpline Interpolation and Approximation
-    t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
-
     @testset "BSplineInterpolation" begin
+        t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
+        u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
         test_interpolation_type(BSplineInterpolation)
         A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform)
 
@@ -699,6 +698,8 @@ end
 
     @testset "BSplineApprox" begin
         test_interpolation_type(BSplineApprox)
+        t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
+        u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
         A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
 
         @test [A(25.0), A(80.0)] ≈ [12.979802931218234, 10.914310609953178]
