@@ -720,6 +720,37 @@ end
         A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
         @test_throws DataInterpolations.ExtrapolationError A(-1.0)
         @test_throws DataInterpolations.ExtrapolationError A(300.0)
+
+        @testset "AbstractMatrix" begin
+            t = 0.1:0.1:1.0
+            u2d = [sin.(t) cos.(t)]' |> collect
+            A = BSplineApprox(u2d, t, 2, 5, :Uniform, :Uniform)
+            t_test = 0.1:0.05:1.0
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
+
+            A = BSplineApprox(u2d, t, 2, 5, :ArcLen, :Average)
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-2)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-2)
+        end
+        @testset "AbstractArray{T, 3}" begin
+            f3d(t) = [sin(t) cos(t);
+                      0.0 cos(2t)]
+            t = 0.1:0.1:1.0
+            u3d = cat(f3d.(t)..., dims = 3)
+            A = BSplineApprox(u3d, t, 2, 6, :Uniform, :Uniform)
+            t_test = 0.1:0.05:1.0
+            u_test = reduce(hcat, A.(t_test))
+            f_test = reduce(hcat, f3d.(t_test))
+            @test isapprox(u_test, f_test, atol = 1e-2)
+
+            A = BSplineApprox(u3d, t, 2, 7, :ArcLen, :Average)
+            t_test = 0.1:0.05:1.0
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test, f_test, atol = 1e-2)
+        end
     end
 end
 
