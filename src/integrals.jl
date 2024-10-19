@@ -61,7 +61,6 @@ function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
     t₀ = A.t[idx]
     t₁ = A.t[idx + 1]
     t₂ = A.t[idx + 2]
-
     t_sq = (t^2) / 3
     l₀, l₁, l₂ = get_parameters(A, idx)
     Iu₀ = l₀ * t * (t_sq - t * (t₁ + t₂) / 2 + t₁ * t₂)
@@ -91,8 +90,8 @@ function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
         idx::Number,
         t::Number)
     t1 = A.t[idx]
-    A.u[idx] * (t - t1) + A.b[idx] * ((t - t1)^2 / 2) + A.c[idx] * ((t - t1)^3 / 3) +
-    A.d[idx] * ((t - t1)^4 / 4)
+    A.u[idx] * (t - t1) + A.p.b[idx] * ((t - t1)^2 / 2) + A.p.c[idx] * ((t - t1)^3 / 3) +
+    A.p.d[idx] * ((t - t1)^4 / 4)
 end
 
 _integral(A::LagrangeInterpolation, idx::Number, t::Number) = throw(IntegralNotFoundError())
