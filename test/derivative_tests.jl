@@ -191,7 +191,7 @@ end
               0.0 cos(2t)]
 
     t3d = 0.1:0.1:1.0 |> collect
-    u3d = cat(f3d.(t)...; dims = 3)
+    u3d = cat(f3d.(t3d)...; dims = 3)
     test_derivatives(BSplineInterpolation;
         args = [u3d, t3d,
             2,
@@ -214,7 +214,7 @@ end
             4,
             :Uniform,
             :Uniform],
-        name = "BSpline Approx (Uniform, Uniform)")
+        name = "BSpline Approx (Uniform, Uniform): AbstractArray")
 
     test_derivatives(BSplineApprox;
         args = [u3d, t3d,
