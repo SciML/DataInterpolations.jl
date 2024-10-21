@@ -234,10 +234,10 @@ end
 
 function _interpolate(
         A::BSplineApprox{<:AbstractArray{T, N}}, t::Number, iguess) where {T <: Number, N}
-    t < A.t[1] && return A.u[1]
-    t > A.t[end] && return A.u[end]
-    # change t into param [0 1]
     ax_u = axes(A.u)[1:(end - 1)]
+    t < A.t[1] && return A.u[ax_u..., 1]
+    t > A.t[end] && return A.u[ax_u..., end]
+    # change t into param [0 1]
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
