@@ -186,6 +186,44 @@ end
             :Uniform,
             :Uniform],
         name = "BSpline Approx (Uniform, Uniform)")
+
+    f3d(t) = [sin(t) cos(t);
+              0.0 cos(2t)]
+
+    t3d = 0.1:0.1:1.0 |> collect
+    u3d = cat(f3d.(t3d)...; dims = 3)
+    test_derivatives(BSplineInterpolation;
+        args = [u3d, t3d,
+            2,
+            :Uniform,
+            :Uniform],
+        name = "BSpline Interpolation (Uniform, Uniform): AbstractArray"
+    )
+
+    test_derivatives(BSplineInterpolation;
+        args = [u3d, t3d,
+            2,
+            :ArcLen,
+            :Average],
+        name = "BSpline Interpolation (Arclen, Average): AbstractArray"
+    )
+
+    test_derivatives(BSplineApprox;
+        args = [u3d, t3d,
+            3,
+            4,
+            :Uniform,
+            :Uniform],
+        name = "BSpline Approx (Uniform, Uniform): AbstractArray")
+
+    test_derivatives(BSplineApprox;
+        args = [u3d, t3d,
+            3,
+            4,
+            :ArcLen,
+            :Average],
+        name = "BSpline Approx (Arclen, Average): AbstractArray"
+    )
 end
 
 @testset "Cubic Hermite Spline" begin
