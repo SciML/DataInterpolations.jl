@@ -52,11 +52,12 @@ function QuadraticParameterCache(u, t, cache_parameters)
     end
 end
 
-function quadratic_interpolation_parameters(u, t, idx)
-    if u isa AbstractMatrix
-        u₀ = u[:, idx]
-        u₁ = u[:, idx + 1]
-        u₂ = u[:, idx + 2]
+function quadratic_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {T, N}
+    if N > 1
+        ax = axes(u)
+        u₀ = u[ax[1:(end - 1)]..., idx]
+        u₁ = u[ax[1:(end - 1)]..., idx + 1]
+        u₂ = u[ax[1:(end - 1)]..., idx + 2]
     else
         u₀ = u[idx]
         u₁ = u[idx + 1]
@@ -89,8 +90,14 @@ function QuadraticSplineParameterCache(z, t, cache_parameters)
     end
 end
 
-function quadratic_spline_parameters(z, t, idx)
+function quadratic_spline_parameters(z::AbstractVector, t, idx)
     σ = 1 // 2 * (z[idx + 1] - z[idx]) / (t[idx + 1] - t[idx])
+    return σ
+end
+
+function quadratic_spline_parameters(z::AbstractArray, t, idx)
+    ax = axes(z)[1:(end - 1)]
+    σ = 1 // 2 * (z[ax..., idx + 1] - z[ax..., idx]) / (t[idx + 1] - t[idx])
     return σ
 end
 
@@ -145,7 +152,19 @@ function CubicHermiteParameterCache(du, u, t, cache_parameters)
     end
 end
 
-function cubic_hermite_spline_parameters(du, u, t, idx)
+function cubic_hermite_spline_parameters(du::AbstractArray, u, t, idx)
+    ax = axes(u)[1:(end - 1)]
+    Δt = t[idx + 1] - t[idx]
+    u₀ = u[ax..., idx]
+    u₁ = u[ax..., idx + 1]
+    du₀ = du[ax..., idx]
+    du₁ = du[ax..., idx + 1]
+    c₁ = (u₁ - u₀ - du₀ * Δt) / Δt^2
+    c₂ = (du₁ - du₀ - 2c₁ * Δt) / Δt^2
+    return c₁, c₂
+end
+
+function cubic_hermite_spline_parameters(du::AbstractVector, u, t, idx)
     Δt = t[idx + 1] - t[idx]
     u₀ = u[idx]
     u₁ = u[idx + 1]
@@ -176,7 +195,7 @@ function QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
     end
 end
 
-function quintic_hermite_spline_parameters(ddu, du, u, t, idx)
+function quintic_hermite_spline_parameters(ddu::AbstractVector, du, u, t, idx)
     Δt = t[idx + 1] - t[idx]
     u₀ = u[idx]
     u₁ = u[idx + 1]
@@ -184,6 +203,21 @@ function quintic_hermite_spline_parameters(ddu, du, u, t, idx)
     du₁ = du[idx + 1]
     ddu₀ = ddu[idx]
     ddu₁ = ddu[idx + 1]
+    c₁ = (u₁ - u₀ - du₀ * Δt - ddu₀ * Δt^2 / 2) / Δt^3
+    c₂ = (3u₀ - 3u₁ + 2(du₀ + du₁ / 2)Δt + ddu₀ * Δt^2 / 2) / Δt^4
+    c₃ = (6u₁ - 6u₀ - 3(du₀ + du₁)Δt + (ddu₁ - ddu₀)Δt^2 / 2) / Δt^5
+    return c₁, c₂, c₃
+end
+
+function quintic_hermite_spline_parameters(ddu::AbstractArray, du, u, t, idx)
+    ax = axes(ddu)[1:(end - 1)]
+    Δt = t[idx + 1] - t[idx]
+    u₀ = u[ax..., idx]
+    u₁ = u[ax..., idx + 1]
+    du₀ = du[ax..., idx]
+    du₁ = du[ax..., idx + 1]
+    ddu₀ = ddu[ax..., idx]
+    ddu₁ = ddu[ax..., idx + 1]
     c₁ = (u₁ - u₀ - du₀ * Δt - ddu₀ * Δt^2 / 2) / Δt^3
     c₂ = (3u₀ - 3u₁ + 2(du₀ + du₁ / 2)Δt + ddu₀ * Δt^2 / 2) / Δt^4
     c₃ = (6u₁ - 6u₀ - 3(du₀ + du₁)Δt + (ddu₁ - ddu₀)Δt^2 / 2) / Δt^5

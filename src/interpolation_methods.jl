@@ -87,13 +87,15 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, igu
     N / D
 end
 
-function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, iguess)
+function _interpolate(
+        A::LagrangeInterpolation{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     findRequiredIdxs!(A, t, idx)
+    ax = axes(A.u)[1:(end - 1)]
     if A.t[A.idxs[1]] == t
-        return A.u[:, A.idxs[1]]
+        return A.u[ax..., A.idxs[1]]
     end
-    N = zero(A.u[:, 1])
+    N = zero(A.u[ax..., 1])
     D = zero(A.t[1])
     tmp = D
     for i in 1:length(A.idxs)
@@ -111,7 +113,7 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, igu
         end
         tmp = inv((t - A.t[A.idxs[i]]) * mult)
         D += tmp
-        @. N += (tmp * A.u[:, A.idxs[i]])
+        @. N += (tmp * A.u[ax..., A.idxs[i]])
     end
     N / D
 end
@@ -120,6 +122,13 @@ function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess
     idx = get_idx(A, t, iguess)
     wj = t - A.t[idx]
     @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
+end
+
+function _interpolate(A::AkimaInterpolation{<:AbstractArray}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    wj = t - A.t[idx]
+    ax = axes(A.u)[1:(end - 1)]
+    @. @evalpoly wj A.u[ax..., idx] A.b[ax..., idx] A.c[ax..., idx] A.d[ax..., idx]
 end
 
 # ConstantInterpolation Interpolation
@@ -134,7 +143,8 @@ function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number, igu
     A.u[idx]
 end
 
-function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
+function _interpolate(
+        A::ConstantInterpolation{<:AbstractArray}, t::Number, iguess)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
         idx = get_idx(A, t, iguess; lb = 1, ub_shift = 0)
@@ -142,13 +152,23 @@ function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, igu
         # :right means that value to the right is used for interpolation
         idx = get_idx(A, t, iguess; side = :first, lb = 1, ub_shift = 0)
     end
-    A.u[:, idx]
+    A.u[axes(A.u)[1:(end - 1)]..., idx]
 end
 
 # QuadraticSpline Interpolation
 function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Cᵢ = A.u[idx]
+    Δt = t - A.t[idx]
+    σ = get_parameters(A, idx)
+    return A.z[idx] * Δt + σ * Δt^2 + Cᵢ
+end
+
+function _interpolate(
+        A::QuadraticSpline{<:AbstractArray}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    ax = axes(A.u)[1:(end - 1)]
+    Cᵢ = A.u[ax..., idx]
     Δt = t - A.t[idx]
     σ = get_parameters(A, idx)
     return A.z[idx] * Δt + σ * Δt^2 + Cᵢ
@@ -166,7 +186,7 @@ function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     I + C + D
 end
 
-function _interpolate(A::CubicSpline{<:AbstractArray{T, N}}, t::Number, iguess) where {T, N}
+function _interpolate(A::CubicSpline{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
@@ -261,6 +281,18 @@ function _interpolate(
     out
 end
 
+function _interpolate(
+        A::CubicHermiteSpline{<:AbstractArray}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    Δt₀ = t - A.t[idx]
+    Δt₁ = t - A.t[idx + 1]
+    ax = axes(A.u)[1:(end - 1)]
+    out = A.u[ax..., idx] .+ Δt₀ .* A.du[ax..., idx]
+    c₁, c₂ = get_parameters(A, idx)
+    out .+= Δt₀^2 .* (c₁ .+ Δt₁ .* c₂)
+    out
+end
+
 # Quintic Hermite Spline
 function _interpolate(
         A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
@@ -270,5 +302,17 @@ function _interpolate(
     out = A.u[idx] + Δt₀ * (A.du[idx] + A.ddu[idx] * Δt₀ / 2)
     c₁, c₂, c₃ = get_parameters(A, idx)
     out += Δt₀^3 * (c₁ + Δt₁ * (c₂ + c₃ * Δt₁))
+    out
+end
+
+function _interpolate(
+        A::QuinticHermiteSpline{<:AbstractArray}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    Δt₀ = t - A.t[idx]
+    Δt₁ = t - A.t[idx + 1]
+    ax = axes(A.u)[1:(end - 1)]
+    out = A.u[ax..., idx] + Δt₀ * (A.du[ax..., idx] + A.ddu[ax..., idx] * Δt₀ / 2)
+    c₁, c₂, c₃ = get_parameters(A, idx)
+    out .+= Δt₀^3 .* (c₁ .+ Δt₁ .* (c₂ .+ c₃ .* Δt₁))
     out
 end

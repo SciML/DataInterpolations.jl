@@ -189,8 +189,7 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, N} <:
             u, t, I, b, c, d, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
         N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
-            typeof(d), eltype(u), N}(u,
+        new{typeof(u), typeof(t), typeof(I), typeof(b), typeof(c), typeof(d), eltype(u), N}(u,
             t,
             I,
             b,
@@ -205,7 +204,9 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, N} <:
 end
 
 function AkimaInterpolation(
-        u, t; extrapolate = false, cache_parameters = false, assume_linear_t = 1e-2)
+        u::uType, t; extrapolate = false, cache_parameters = false,
+        assume_linear_t = 1e-2) where {uType <:
+                                       AbstractVector{<:Number}}
     u, t = munge_data(u, t)
     linear_lookup = seems_linear(assume_linear_t, t)
     n = length(t)
@@ -216,7 +217,6 @@ function AkimaInterpolation(
     m[1] = 2m[2] - m[3]
     m[end - 1] = 2m[end - 2] - m[end - 3]
     m[end] = 2m[end - 1] - m[end - 2]
-
     b = 0.5 .* (m[4:end] .+ m[1:(end - 3)])
     dm = abs.(diff(m))
     f1 = dm[3:(n + 2)]
@@ -227,7 +227,45 @@ function AkimaInterpolation(
               f2[ind] .* m[ind .+ 2]) ./ f12[ind]
     c = (3.0 .* m[3:(end - 2)] .- 2.0 .* b[1:(end - 1)] .- b[2:end]) ./ dt
     d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
+    A = AkimaInterpolation(
+        u, t, nothing, b, c, d, extrapolate, cache_parameters, linear_lookup)
+    I = cumulative_integral(A, cache_parameters)
+    AkimaInterpolation(u, t, I, b, c, d, extrapolate, cache_parameters, linear_lookup)
+end
 
+function AkimaInterpolation(
+        u::uType, t; extrapolate = false, cache_parameters = false,
+        assume_linear_t = 1e-2) where {uType <:
+                                       AbstractArray}
+    n = length(t)
+    dt = diff(t)
+    ax = axes(u)[1:(end - 1)]
+    su = size(u)
+    m = zeros(eltype(u), su[1:(end - 1)]..., n + 3)
+    m[ax..., 3:(end - 2)] .= mapslices(
+        x -> x ./ dt, diff(u, dims = length(su)); dims = length(su))
+    m[ax..., 2] .= 2m[ax..., 3] .- m[ax..., 4]
+    m[ax..., 1] .= 2m[ax..., 2] .- m[3]
+    m[ax..., end - 1] .= 2m[ax..., end - 2] - m[ax..., end - 3]
+    m[ax..., end] .= 2m[ax..., end - 1] .- m[ax..., end - 2]
+    b = 0.5 .* (m[ax..., 4:end] .+ m[ax..., 1:(end - 3)])
+    dm = abs.(diff(m, dims = length(su)))
+    f1 = dm[ax..., 3:(n + 2)]
+    f2 = dm[ax..., 1:n]
+    f12 = f1 .+ f2
+    ind = findall(f12 .> 1e-9 * maximum(f12))
+    indi = map(i -> i.I, ind)
+    b[ind] .= (f1[ind] .*
+               m[CartesianIndex.(map(i -> (i[1:(end - 1)]..., i[end] + 1), indi))] .+
+               f2[ind] .*
+               m[CartesianIndex.(map(i -> (i[1:(end - 1)]..., i[end] + 2), indi))]) ./
+              f12[ind]
+    c = mapslices(x -> x ./ dt,
+        (3.0 .* m[ax..., 3:(end - 2)] .- 2.0 .* b[ax..., 1:(end - 1)] .- b[ax..., 2:end]);
+        dims = length(su))
+    d = mapslices(x -> x ./ dt .^ 2,
+        (b[ax..., 1:(end - 1)] .+ b[ax..., 2:end] .- 2.0 .* m[ax..., 3:(end - 2)]);
+        dims = length(su))
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolate, cache_parameters, linear_lookup)
     I = cumulative_integral(A, cache_parameters)
@@ -380,6 +418,32 @@ function QuadraticSpline(
         1:s)
     d = transpose(reshape(reduce(hcat, d_), :, s))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
+    z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
+
+    p = QuadraticSplineParameterCache(z, t, cache_parameters)
+    A = QuadraticSpline(
+        u, t, nothing, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
+    I = cumulative_integral(A, cache_parameters)
+    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
+end
+
+function QuadraticSpline(
+        u::uType, t; extrapolate = false, cache_parameters = false,
+        assume_linear_t = 1e-2) where {uType <: AbstractArray}
+    u, t = munge_data(u, t)
+    linear_lookup = seems_linear(assume_linear_t, t)
+    s = length(t)
+    dl = ones(eltype(t), s - 1)
+    d_tmp = ones(eltype(t), s)
+    du = zeros(eltype(t), s - 1)
+    tA = Tridiagonal(dl, d_tmp, du)
+    ax = axes(u)[1:(end - 1)]
+    d_ = map(
+        i -> i == 1 ? zeros(eltype(t), size(u[ax..., 1])) :
+             2 // 1 * (u[ax..., i] - u[ax..., i - 1]) / (t[i] - t[i - 1]),
+        1:s)
+    d = transpose(reshape(reduce(hcat, d_), :, s))
+    z_ = reshape(transpose(tA \ d), size(u[ax..., 1])..., :)
     z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
 
     p = QuadraticSplineParameterCache(z, t, cache_parameters)

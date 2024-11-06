@@ -61,7 +61,6 @@ function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
     t₀ = A.t[idx]
     t₁ = A.t[idx + 1]
     t₂ = A.t[idx + 2]
-
     t_sq = (t^2) / 3
     l₀, l₁, l₂ = get_parameters(A, idx)
     Iu₀ = l₀ * t * (t_sq - t * (t₁ + t₂) / 2 + t₁ * t₂)
