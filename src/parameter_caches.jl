@@ -79,15 +79,15 @@ struct QuadraticSplineParameterCache{pType}
     β::pType
 end
 
-function QuadraticSplineParameterCache(u, t, k, c, N, cache_parameters)
+function QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     if cache_parameters
         parameters = quadratic_spline_parameters.(
-            Ref(u), Ref(t), Ref(k), Ref(c), Ref(N), 1:(length(t) - 1))
+            Ref(u), Ref(t), Ref(k), Ref(c), Ref(sc), 1:(length(t) - 1))
         α, β = collect.(eachrow(stack(collect.(parameters))))
         QuadraticSplineParameterCache(α, β)
     else
         # Compute parameters once to infer types
-        α, β = quadratic_spline_parameters(u, t, k, c, N, 1)
+        α, β = quadratic_spline_parameters(u, t, k, c, sc, 1)
         QuadraticSplineParameterCache(typeof(α)[], typeof(β)[])
     end
 end
