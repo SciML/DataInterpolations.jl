@@ -15,7 +15,8 @@ function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name
             @test adiff ≈ zdiff
         end
     end
-    if method ∉ [LagrangeInterpolation, BSplineInterpolation, BSplineApprox, QuadraticSpline]
+    if method ∉
+       [LagrangeInterpolation, BSplineInterpolation, BSplineApprox, QuadraticSpline]
         @testset "$name, derivatives w.r.t. u" begin
             function f(u)
                 A = method(args..., u, t, args_after...; kwargs..., extrapolate = true)
