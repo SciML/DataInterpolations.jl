@@ -312,7 +312,7 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, N} <
     I::IType
     p::QuadraticSplineParameterCache{pType}
     k::kType # knot vector
-    c::cType # 1D B-spline control points
+    c::cType # B-spline control points
     sc::scType # Spline coefficients (preallocated memory)
     extrapolate::Bool
     iguesser::Guesser{tType}
