@@ -71,10 +71,11 @@ function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
 end
 
 function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
-    Cᵢ = A.u[idx]
+    α, β = get_parameters(A, idx)
+    uᵢ = A.u[idx]
     Δt = t - A.t[idx]
-    σ = get_parameters(A, idx)
-    return A.z[idx] * Δt^2 / 2 + σ * Δt^3 / 3 + Cᵢ * Δt
+    Δt_full = (A.t[idx + 1] - A.t[idx])
+    Δt * (α * Δt^2 / (3Δt_full^2) + β * Δt / (2Δt_full) + uᵢ)
 end
 
 function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)

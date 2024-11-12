@@ -299,30 +299,30 @@ Extrapolation extends the last quadratic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct QuadraticSpline{uType, tType, IType, pType, tAType, dType, zType, T} <:
+struct QuadraticSpline{uType, tType, IType, pType, kType, cType, NType, T} <:
        AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
     p::QuadraticSplineParameterCache{pType}
-    tA::tAType
-    d::dType
-    z::zType
+    k::kType # knot vector
+    c::cType # 1D B-spline control points
+    N::NType # Spline coefficients (preallocated memory)
     extrapolate::Bool
     iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function QuadraticSpline(
-            u, t, I, p, tA, d, z, extrapolate, cache_parameters, assume_linear_t)
+            u, t, I, p, k, c, N, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.σ), typeof(tA),
-            typeof(d), typeof(z), eltype(u)}(u,
+        new{typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
+            typeof(c), typeof(N), eltype(u)}(u,
             t,
             I,
             p,
-            tA,
-            d,
-            z,
+            k,
+            c,
+            N,
             extrapolate,
             Guesser(t),
             cache_parameters,
@@ -336,24 +336,18 @@ function QuadraticSpline(
         cache_parameters = false, assume_linear_t = 1e-2) where {uType <:
                                                                  AbstractVector{<:Number}}
     u, t = munge_data(u, t)
-    linear_lookup = seems_linear(assume_linear_t, t)
-    s = length(t)
-    dl = ones(eltype(t), s - 1)
-    d_tmp = ones(eltype(t), s)
-    du = zeros(eltype(t), s - 1)
-    tA = Tridiagonal(dl, d_tmp, du)
 
-    # zero for element type of d, which we don't know yet
-    typed_zero = zero(2 // 1 * (u[begin + 1] - u[begin]) / (t[begin + 1] - t[begin]))
+    n = length(t)
+    dtype_N = typeof(t[1] / t[1])
+    N = zeros(dtype_N, n)
+    k, A = quadratic_spline_params(t, N)
+    c = A \ u
 
-    d = map(i -> i == 1 ? typed_zero : 2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]), 1:s)
-    z = tA \ d
-
-    p = QuadraticSplineParameterCache(z, t, cache_parameters)
+    p = QuadraticSplineParameterCache(u, t, k, c, N, cache_parameters)
     A = QuadraticSpline(
-        u, t, nothing, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
+        u, t, nothing, p, k, c, N, extrapolate, cache_parameters, assume_linear_t)
     I = cumulative_integral(A, cache_parameters)
-    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
+    QuadraticSpline(u, t, I, p, k, c, N, extrapolate, cache_parameters, assume_linear_t)
 end
 
 function QuadraticSpline(
@@ -361,25 +355,28 @@ function QuadraticSpline(
         assume_linear_t = 1e-2) where {uType <:
                                        AbstractVector}
     u, t = munge_data(u, t)
-    linear_lookup = seems_linear(assume_linear_t, t)
-    s = length(t)
-    dl = ones(eltype(t), s - 1)
-    d_tmp = ones(eltype(t), s)
-    du = zeros(eltype(t), s - 1)
-    tA = Tridiagonal(dl, d_tmp, du)
-    d_ = map(
-        i -> i == 1 ? zeros(eltype(t), size(u[1])) :
-             2 // 1 * (u[i] - u[i - 1]) / (t[i] - t[i - 1]),
-        1:s)
-    d = transpose(reshape(reduce(hcat, d_), :, s))
-    z_ = reshape(transpose(tA \ d), size(u[1])..., :)
-    z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
 
-    p = QuadraticSplineParameterCache(z, t, cache_parameters)
+    n = length(t)
+    dtype_N = typeof(t[1] / t[1])
+    N = zeros(dtype_N, n)
+    k, A = quadratic_spline_params(t, N)
+
+    eltype_c_prototype = one(dtype_N) * first(u)
+    c = [similar(eltype_c_prototype) for _ in 1:n]
+
+    # Assuming u contains arrays of equal shape
+    for j in eachindex(eltype_c_prototype)
+        c_dim = A \ [u_[j] for u_ in u]
+        for (i, c_dim_) in enumerate(c_dim)
+            c[i][j] = c_dim_
+        end
+    end
+
+    p = QuadraticSplineParameterCache(u, t, k, c, N, cache_parameters)
     A = QuadraticSpline(
-        u, t, nothing, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
+        u, t, nothing, p, k, c, N, extrapolate, cache_parameters, assume_linear_t)
     I = cumulative_integral(A, cache_parameters)
-    QuadraticSpline(u, t, I, p, tA, d, z, extrapolate, cache_parameters, linear_lookup)
+    QuadraticSpline(u, t, I, p, k, c, N, extrapolate, cache_parameters, assume_linear_t)
 end
 
 """

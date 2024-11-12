@@ -126,9 +126,11 @@ end
 
 # QuadraticSpline Interpolation
 function _derivative(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
-    idx = get_idx(A, t, iguess; lb = 2, ub_shift = 0, side = :first)
-    σ = get_parameters(A, idx - 1)
-    A.z[idx - 1] + 2σ * (t - A.t[idx - 1])
+    idx = get_idx(A, t, iguess)
+    α, β = get_parameters(A, idx)
+    Δt = t - A.t[idx]
+    Δt_full = A.t[idx + 1] - A.t[idx]
+    2α * Δt / Δt_full^2 + β / Δt_full
 end
 
 # CubicSpline Interpolation

@@ -510,16 +510,15 @@ end
     A = QuadraticSpline(u, t; extrapolate = true)
 
     # Solution
-    P₁ = x -> (x + 1)^2 # for x ∈ [-1, 0]
-    P₂ = x -> 2 * x + 1   # for x ∈ [ 0, 1]
+    P₁ = x -> 0.5 * (x + 1) * (x + 2)
 
     for (_t, _u) in zip(t, u)
         @test A(_t) == _u
     end
     @test A(-2.0) == P₁(-2.0)
     @test A(-0.5) == P₁(-0.5)
-    @test A(0.7) == P₂(0.7)
-    @test A(2.0) == P₂(2.0)
+    @test A(0.7) == P₁(0.7)
+    @test A(2.0) == P₁(2.0)
     test_cached_index(A)
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
@@ -527,22 +526,22 @@ end
     A = QuadraticSpline(u, t; extrapolate = true)
     @test A(-2.0) == P₁(-2.0) * ones(4)
     @test A(-0.5) == P₁(-0.5) * ones(4)
-    @test A(0.7) == P₂(0.7) * ones(4)
-    @test A(2.0) == P₂(2.0) * ones(4)
+    @test A(0.7) == P₁(0.7) * ones(4)
+    @test A(2.0) == P₁(2.0) * ones(4)
 
     u = [repeat(u[i], 1, 3) for i in 1:3]
     A = QuadraticSpline(u, t; extrapolate = true)
     @test A(-2.0) == P₁(-2.0) * ones(4, 3)
     @test A(-0.5) == P₁(-0.5) * ones(4, 3)
-    @test A(0.7) == P₂(0.7) * ones(4, 3)
-    @test A(2.0) == P₂(2.0) * ones(4, 3)
+    @test A(0.7) == P₁(0.7) * ones(4, 3)
+    @test A(2.0) == P₁(2.0) * ones(4, 3)
 
     # Test extrapolation
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
     A = QuadraticSpline(u, t; extrapolate = true)
-    @test A(-2.0) == 1.0
-    @test A(2.0) == 5.0
+    @test A(-2.0) == 0.0
+    @test A(2.0) == 6.0
     A = QuadraticSpline(u, t)
     @test_throws DataInterpolations.ExtrapolationError A(-2.0)
     @test_throws DataInterpolations.ExtrapolationError A(2.0)
