@@ -4,15 +4,25 @@ if isdefined(Base, :get_extension)
                               LinearInterpolation, QuadraticInterpolation,
                               LagrangeInterpolation, AkimaInterpolation,
                               BSplineInterpolation, BSplineApprox, get_idx, get_parameters,
-                              _quad_interp_indices
+                              _quad_interp_indices, munge_data
     using ChainRulesCore
 else
     using ..DataInterpolations: _interpolate, derivative, AbstractInterpolation,
                                 LinearInterpolation, QuadraticInterpolation,
                                 LagrangeInterpolation, AkimaInterpolation,
                                 BSplineInterpolation, BSplineApprox, get_parameters,
-                                _quad_interp_indices
+                                _quad_interp_indices, munge_data
     using ..ChainRulesCore
+end
+
+function ChainRulesCore.rrule(::typeof(munge_data), u, t)
+    u_out, t_out = munge_data(u, t)
+
+    # For now modifications by munge_data not supported
+    @assert (u == u_out && t == t_out)
+
+    munge_data_pullback = Δ -> (NoTangent(), Δ[1], Δ[2])
+    (u_out, t_out), munge_data_pullback
 end
 
 function ChainRulesCore.rrule(
@@ -51,16 +61,21 @@ function ChainRulesCore.rrule(
 end
 
 function u_tangent(A::LinearInterpolation, t, Δ)
-    out = zero(A.u)
+    out = zero.(A.u)
     idx = get_idx(A, t, A.iguesser)
     t_factor = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
-    out[idx] = Δ * (one(eltype(out)) - t_factor)
-    out[idx + 1] = Δ * t_factor
+    if eltype(out) <: Number
+        out[idx] = Δ * (one(eltype(out)) - t_factor)
+        out[idx + 1] = Δ * t_factor
+    else
+        @. out[idx] = Δ * (true - t_factor)
+        @. out[idx + 1] = Δ * t_factor
+    end
     out
 end
 
 function u_tangent(A::QuadraticInterpolation, t, Δ)
-    out = zero(A.u)
+    out = zero.(A.u)
     i₀, i₁, i₂ = _quad_interp_indices(A, t, A.iguesser)
     t₀ = A.t[i₀]
     t₁ = A.t[i₁]
@@ -68,9 +83,15 @@ function u_tangent(A::QuadraticInterpolation, t, Δ)
     Δt₀ = t₁ - t₀
     Δt₁ = t₂ - t₁
     Δt₂ = t₂ - t₀
-    out[i₀] = Δ * (t - A.t[i₁]) * (t - A.t[i₂]) / (Δt₀ * Δt₂)
-    out[i₁] = -Δ * (t - A.t[i₀]) * (t - A.t[i₂]) / (Δt₀ * Δt₁)
-    out[i₂] = Δ * (t - A.t[i₀]) * (t - A.t[i₁]) / (Δt₂ * Δt₁)
+    if eltype(out) <: Number
+        out[i₀] = Δ * (t - A.t[i₁]) * (t - A.t[i₂]) / (Δt₀ * Δt₂)
+        out[i₁] = -Δ * (t - A.t[i₀]) * (t - A.t[i₂]) / (Δt₀ * Δt₁)
+        out[i₂] = Δ * (t - A.t[i₀]) * (t - A.t[i₁]) / (Δt₂ * Δt₁)
+    else
+        @. out[i₀] = Δ * (t - A.t[i₁]) * (t - A.t[i₂]) / (Δt₀ * Δt₂)
+        @. out[i₁] = -Δ * (t - A.t[i₀]) * (t - A.t[i₂]) / (Δt₀ * Δt₁)
+        @. out[i₂] = Δ * (t - A.t[i₀]) * (t - A.t[i₁]) / (Δt₂ * Δt₁)
+    end
     out
 end
 
@@ -90,7 +111,7 @@ function ChainRulesCore.rrule(::typeof(_interpolate),
         t::Number)
     deriv = derivative(A, t)
     function interpolate_pullback(Δ)
-        (NoTangent(), Tangent{typeof(A)}(; u = u_tangent(A, t, Δ)), deriv * Δ)
+        (NoTangent(), Tangent{typeof(A)}(; u = u_tangent(A, t, Δ)), sum(deriv .* Δ))
     end
     return _interpolate(A, t), interpolate_pullback
 end
@@ -98,6 +119,10 @@ end
 function ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolation,
         t::Number)
     return _interpolate(A, t), derivative(A, t) * Δt
+end
+
+function ChainRulesCore.frule((_, Δt), A::AbstractInterpolation, t::Number)
+    return A(t), derivative(A, t) * Δt
 end
 
 end # module

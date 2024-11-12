@@ -114,12 +114,12 @@ function _derivative(A::ConstantInterpolation, t::Number, iguess)
     return zero(first(A.u))
 end
 
-function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number)
+function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : eltype(A.u)(NaN)
 end
 
-function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number)
+function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
     ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : eltype(A.u)(NaN) .* A.u[:, 1]
 end
@@ -153,19 +153,43 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
     n = length(A.t)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    N = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.N
-    spline_coefficients!(N, A.d - 1, A.k, t_)
+    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
+    spline_coefficients!(sc, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
     else
         for i in 1:(n - 1)
-            ducum += N[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+            ducum += sc[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
     ducum * A.d * scale
 end
 
+function _derivative(
+        A::BSplineInterpolation{<:AbstractArray{<:Number, N}}, t::Number, iguess) where {N}
+    # change t into param [0 1]
+    ax_u = axes(A.u)[1:(end - 1)]
+    t < A.t[1] && return zeros(size(A.u)[1:(end - 1)]...)
+    t > A.t[end] && return zeros(size(A.u)[1:(end - 1)]...)
+    idx = get_idx(A, t, iguess)
+    n = length(A.t)
+    scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
+    t_ = A.p[idx] + (t - A.t[idx]) * scale
+    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
+    spline_coefficients!(sc, A.d - 1, A.k, t_)
+    ducum = zeros(size(A.u)[1:(end - 1)]...)
+    if t == A.t[1]
+        ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / (A.k[A.d + 2])
+    else
+        for i in 1:(n - 1)
+            ducum = ducum +
+                    sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
+                    (A.k[i + A.d + 1] - A.k[i + 1])
+        end
+    end
+    ducum * A.d * scale
+end
 # BSpline Curve Approx
 function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
@@ -174,19 +198,42 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
     idx = get_idx(A, t, iguess)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    N = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.N
-    spline_coefficients!(N, A.d - 1, A.k, t_)
+    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
+    spline_coefficients!(sc, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
     else
         for i in 1:(A.h - 1)
-            ducum += N[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+            ducum += sc[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
     ducum * A.d * scale
 end
 
+function _derivative(
+        A::BSplineApprox{<:AbstractArray{<:Number, N}}, t::Number, iguess) where {N}
+    # change t into param [0 1]
+    ax_u = axes(A.u)[1:(end - 1)]
+    t < A.t[1] && return zeros(size(A.u)[1:(end - 1)]...)
+    t > A.t[end] && return zeros(size(A.u)[1:(end - 1)]...)
+    idx = get_idx(A, t, iguess)
+    scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
+    t_ = A.p[idx] + (t - A.t[idx]) * scale
+    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
+    spline_coefficients!(sc, A.d - 1, A.k, t_)
+    ducum = zeros(size(A.u)[1:(end - 1)]...)
+    if t == A.t[1]
+        ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / (A.k[A.d + 2])
+    else
+        for i in 1:(A.h - 1)
+            ducum = ducum +
+                    sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
+                    (A.k[i + A.d + 1] - A.k[i + 1])
+        end
+    end
+    ducum * A.d * scale
+end
 # Cubic Hermite Spline
 function _derivative(
         A::CubicHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)

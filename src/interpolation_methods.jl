@@ -33,11 +33,12 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
     val
 end
 
-function _interpolate(A::LinearInterpolation{<:AbstractMatrix}, t::Number, iguess)
+function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]
     slope = get_parameters(A, idx)
-    return A.u[:, idx] + slope * Δt
+    ax = axes(A.u)[1:(end - 1)]
+    return A.u[ax..., idx] + slope * Δt
 end
 
 # Quadratic Interpolation
@@ -165,6 +166,18 @@ function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     I + C + D
 end
 
+function _interpolate(A::CubicSpline{<:AbstractArray{T, N}}, t::Number, iguess) where {T, N}
+    idx = get_idx(A, t, iguess)
+    Δt₁ = t - A.t[idx]
+    Δt₂ = A.t[idx + 1] - t
+    ax = axes(A.z)[1:(end - 1)]
+    I = (A.z[ax..., idx] * Δt₂^3 + A.z[ax..., idx + 1] * Δt₁^3) / (6A.h[idx + 1])
+    c₁, c₂ = get_parameters(A, idx)
+    C = c₁ * Δt₁
+    D = c₂ * Δt₂
+    I + C + D
+end
+
 # BSpline Curve Interpolation
 function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
         t::Number,
@@ -175,11 +188,30 @@ function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
-    N = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.N
-    nonzero_coefficient_idxs = spline_coefficients!(N, A.d, A.k, t)
+    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
+    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
     ucum = zero(eltype(A.u))
     for i in nonzero_coefficient_idxs
-        ucum += N[i] * A.c[i]
+        ucum += sc[i] * A.c[i]
+    end
+    ucum
+end
+
+function _interpolate(A::BSplineInterpolation{<:AbstractArray{T, N}},
+        t::Number,
+        iguess) where {T <: Number, N}
+    ax_u = axes(A.u)[1:(end - 1)]
+    t < A.t[1] && return A.u[ax_u..., 1]
+    t > A.t[end] && return A.u[ax_u..., end]
+    # change t into param [0 1]
+    idx = get_idx(A, t, iguess)
+    t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
+    n = length(A.t)
+    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
+    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
+    ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)
+    for i in nonzero_coefficient_idxs
+        ucum = ucum + (sc[i] * A.c[ax_u..., i])
     end
     ucum
 end
@@ -191,11 +223,28 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
     # change t into param [0 1]
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
-    N = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.N
-    nonzero_coefficient_idxs = spline_coefficients!(N, A.d, A.k, t)
+    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
+    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
     ucum = zero(eltype(A.u))
     for i in nonzero_coefficient_idxs
-        ucum += N[i] * A.c[i]
+        ucum += sc[i] * A.c[i]
+    end
+    ucum
+end
+
+function _interpolate(
+        A::BSplineApprox{<:AbstractArray{T, N}}, t::Number, iguess) where {T <: Number, N}
+    ax_u = axes(A.u)[1:(end - 1)]
+    t < A.t[1] && return A.u[ax_u..., 1]
+    t > A.t[end] && return A.u[ax_u..., end]
+    # change t into param [0 1]
+    idx = get_idx(A, t, iguess)
+    t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
+    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
+    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
+    ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)
+    for i in nonzero_coefficient_idxs
+        ucum = ucum + (sc[i] * A.c[ax_u..., i])
     end
     ucum
 end

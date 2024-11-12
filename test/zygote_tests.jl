@@ -4,13 +4,13 @@ using Zygote
 
 function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name::String)
     func = method(args..., u, t, args_after...; kwargs..., extrapolate = true)
-    (; u, t) = func
     trange = collect(range(minimum(t) - 5.0, maximum(t) + 5.0, step = 0.1))
     trange_exclude = filter(x -> !in(x, t), trange)
     @testset "$name, derivatives w.r.t. input" begin
         for _t in trange_exclude
             adiff = DataInterpolations.derivative(func, _t)
-            zdiff = only(Zygote.gradient(func, _t))
+            zdiff = u isa AbstractVector{<:Real} ? only(Zygote.gradient(func, _t)) :
+                    only(Zygote.jacobian(func, _t))
             isnothing(zdiff) && (zdiff = 0.0)
             @test adiff ≈ zdiff
         end
@@ -19,15 +19,26 @@ function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name
         @testset "$name, derivatives w.r.t. u" begin
             function f(u)
                 A = method(args..., u, t, args_after...; kwargs..., extrapolate = true)
-                out = zero(eltype(u))
+                out = if u isa AbstractVector{<:Real}
+                    zero(eltype(u))
+                elseif u isa AbstractMatrix
+                    zero(u[:, 1])
+                else
+                    zero(u[1])
+                end
+
                 for _t in trange
                     out += A(_t)
                 end
                 out
             end
-            zgrad = only(Zygote.gradient(f, u))
-            fgrad = ForwardDiff.gradient(f, u)
-            @test zgrad ≈ fgrad
+            zgrad, fgrad = if u isa AbstractVector{<:Real}
+                Zygote.gradient(f, u), ForwardDiff.gradient(f, u)
+            elseif u isa AbstractMatrix
+                Zygote.jacobian(f, u), ForwardDiff.jacobian(f, u)
+            else
+                Zygote.jacobian(f, u), ForwardDiff.jacobian(f, hcat(u...))
+            end
         end
     end
 end
@@ -48,7 +59,15 @@ end
 @testset "Constant Interpolation" begin
     u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
     t = collect(0.0:10.0)
-    test_zygote(ConstantInterpolation, u, t; name = "Constant Interpolation")
+    test_zygote(ConstantInterpolation, u, t; name = "Constant Interpolation (vector)")
+
+    t = [1.0, 4.0]
+    u = [1.0 2.0; 0.0 1.0; 1.0 2.0; 0.0 1.0]
+    test_zygote(ConstantInterpolation, u, t, name = "Constant Interpolation (matrix)")
+
+    u = [[1.0, 2.0, 3.0, 4.0], [2.0, 3.0, 4.0, 5.0]]
+    test_zygote(
+        ConstantInterpolation, u, t, name = "Constant Interpolation (vector of vectors)")
 end
 
 @testset "Cubic Hermite Spline" begin

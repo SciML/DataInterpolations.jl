@@ -18,9 +18,11 @@ function safe_diff(b, a::T) where {T}
     b == a ? zero(T) : b - a
 end
 
-function linear_interpolation_parameters(u::AbstractArray{T}, t, idx) where {T}
-    Δu = if u isa AbstractMatrix
-        [safe_diff(u[j, idx + 1], u[j, idx]) for j in 1:size(u)[1]]
+function linear_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {T, N}
+    Δu = if N > 1
+        ax = axes(u)
+        safe_diff.(
+            u[ax[1:(end - 1)]..., (idx + 1)], u[ax[1:(end - 1)]..., idx])
     else
         safe_diff(u[idx + 1], u[idx])
     end
@@ -77,25 +79,25 @@ struct QuadraticSplineParameterCache{pType}
     β::pType
 end
 
-function QuadraticSplineParameterCache(u, t, k, c, N, cache_parameters)
+function QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     if cache_parameters
         parameters = quadratic_spline_parameters.(
-            Ref(u), Ref(t), Ref(k), Ref(c), Ref(N), 1:(length(t) - 1))
+            Ref(u), Ref(t), Ref(k), Ref(c), Ref(sc), 1:(length(t) - 1))
         α, β = collect.(eachrow(stack(collect.(parameters))))
         QuadraticSplineParameterCache(α, β)
     else
         # Compute parameters once to infer types
-        α, β = quadratic_spline_parameters(u, t, k, c, N, 1)
+        α, β = quadratic_spline_parameters(u, t, k, c, sc, 1)
         QuadraticSplineParameterCache(typeof(α)[], typeof(β)[])
     end
 end
 
-function quadratic_spline_parameters(u, t, k, c, N, idx)
+function quadratic_spline_parameters(u, t, k, c, sc, idx)
     tᵢ₊ = (t[idx] + t[idx + 1]) / 2
-    nonzero_coefficient_idxs = spline_coefficients!(N, 2, k, tᵢ₊)
+    nonzero_coefficient_idxs = spline_coefficients!(sc, 2, k, tᵢ₊)
     uᵢ₊ = zero(first(u))
     for j in nonzero_coefficient_idxs
-        uᵢ₊ += N[j] * c[j]
+        uᵢ₊ += sc[j] * c[j]
     end
     α = 2 * (u[idx + 1] + u[idx]) - 4uᵢ₊
     β = 4 * (uᵢ₊ - u[idx]) - (u[idx + 1] - u[idx])
@@ -121,9 +123,16 @@ function CubicSplineParameterCache(u, h, z, cache_parameters)
     end
 end
 
-function cubic_spline_parameters(u, h, z, idx)
+function cubic_spline_parameters(u::AbstractVector, h, z, idx)
     c₁ = (u[idx + 1] / h[idx + 1] - z[idx + 1] * h[idx + 1] / 6)
     c₂ = (u[idx] / h[idx + 1] - z[idx] * h[idx + 1] / 6)
+    return c₁, c₂
+end
+
+function cubic_spline_parameters(u::AbstractArray, h, z, idx)
+    ax = axes(u)[1:(end - 1)]
+    c₁ = (u[ax..., idx + 1] / h[idx + 1] - z[ax..., idx + 1] * h[idx + 1] / 6)
+    c₂ = (u[ax..., idx] / h[idx + 1] - z[ax..., idx] * h[idx + 1] / 6)
     return c₁, c₂
 end
 

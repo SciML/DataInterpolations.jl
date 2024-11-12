@@ -133,9 +133,11 @@ end
 
 @testset "Constant Interpolation" begin
     u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
-    t = collect(0.0:10.0)
+    t = collect(0.0:11.0)
     A = ConstantInterpolation(u, t)
-    @test all(derivative.(Ref(A), t) .== 0.0)
+    t2 = collect(0.0:10.0)
+    @test all(isnan, derivative.(Ref(A), t))
+    @test all(derivative.(Ref(A), t2 .+ 0.1) .== 0.0)
 end
 
 @testset "Quadratic Spline" begin
@@ -184,6 +186,44 @@ end
             :Uniform,
             :Uniform],
         name = "BSpline Approx (Uniform, Uniform)")
+
+    f3d(t) = [sin(t) cos(t);
+              0.0 cos(2t)]
+
+    t3d = 0.1:0.1:1.0 |> collect
+    u3d = cat(f3d.(t3d)...; dims = 3)
+    test_derivatives(BSplineInterpolation;
+        args = [u3d, t3d,
+            2,
+            :Uniform,
+            :Uniform],
+        name = "BSpline Interpolation (Uniform, Uniform): AbstractArray"
+    )
+
+    test_derivatives(BSplineInterpolation;
+        args = [u3d, t3d,
+            2,
+            :ArcLen,
+            :Average],
+        name = "BSpline Interpolation (Arclen, Average): AbstractArray"
+    )
+
+    test_derivatives(BSplineApprox;
+        args = [u3d, t3d,
+            3,
+            4,
+            :Uniform,
+            :Uniform],
+        name = "BSpline Approx (Uniform, Uniform): AbstractArray")
+
+    test_derivatives(BSplineApprox;
+        args = [u3d, t3d,
+            3,
+            4,
+            :ArcLen,
+            :Average],
+        name = "BSpline Approx (Arclen, Average): AbstractArray"
+    )
 end
 
 @testset "Cubic Hermite Spline" begin

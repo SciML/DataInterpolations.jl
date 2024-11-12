@@ -19,7 +19,7 @@ Extrapolation extends the last linear polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolation{T}
+struct LinearInterpolation{uType, tType, IType, pType, T, N} <: AbstractInterpolation{T, N}
     u::uType
     t::tType
     I::IType
@@ -30,7 +30,8 @@ struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolati
     linear_lookup::Bool
     function LinearInterpolation(u, t, I, p, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
+        N = get_output_dim(u)
+        new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u), N}(
             u, t, I, p, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end
@@ -66,7 +67,8 @@ Extrapolation extends the last quadratic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct QuadraticInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolation{T}
+struct QuadraticInterpolation{uType, tType, IType, pType, T, N} <:
+       AbstractInterpolation{T, N}
     u::uType
     t::tType
     I::IType
@@ -81,7 +83,8 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T} <: AbstractInterpol
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.l₀), eltype(u)}(
+        N = get_output_dim(u)
+        new{typeof(u), typeof(t), typeof(I), typeof(p.l₀), eltype(u), N}(
             u, t, I, p, mode, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end
@@ -116,8 +119,8 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
 
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
 """
-struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
-       AbstractInterpolation{T}
+struct LagrangeInterpolation{uType, tType, T, bcacheType, N} <:
+       AbstractInterpolation{T, N}
     u::uType
     t::tType
     n::Int
@@ -129,7 +132,8 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
-        new{typeof(u), typeof(t), eltype(u), typeof(bcache)}(u,
+        N = get_output_dim(u)
+        new{typeof(u), typeof(t), eltype(u), typeof(bcache), N}(u,
             t,
             n,
             bcache,
@@ -169,8 +173,8 @@ Extrapolation extends the last cubic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
-       AbstractInterpolation{T}
+struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, N} <:
+       AbstractInterpolation{T, N}
     u::uType
     t::tType
     I::IType
@@ -184,8 +188,9 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
     function AkimaInterpolation(
             u, t, I, b, c, d, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
+        N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
-            typeof(d), eltype(u)}(u,
+            typeof(d), eltype(u), N}(u,
             t,
             I,
             b,
@@ -251,7 +256,7 @@ Extrapolation extends the last constant polynomial at the end points on each sid
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
+struct ConstantInterpolation{uType, tType, IType, T, N} <: AbstractInterpolation{T, N}
     u::uType
     t::tType
     I::IType
@@ -264,7 +269,8 @@ struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     function ConstantInterpolation(
             u, t, I, dir, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), eltype(u)}(
+        N = get_output_dim(u)
+        new{typeof(u), typeof(t), typeof(I), eltype(u), N}(
             u, t, I, nothing, dir, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end
@@ -299,30 +305,31 @@ Extrapolation extends the last quadratic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct QuadraticSpline{uType, tType, IType, pType, kType, cType, NType, T} <:
-       AbstractInterpolation{T}
+struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, N} <:
+       AbstractInterpolation{T, N}
     u::uType
     t::tType
     I::IType
     p::QuadraticSplineParameterCache{pType}
     k::kType # knot vector
     c::cType # 1D B-spline control points
-    N::NType # Spline coefficients (preallocated memory)
+    sc::scType # Spline coefficients (preallocated memory)
     extrapolate::Bool
     iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function QuadraticSpline(
-            u, t, I, p, k, c, N, extrapolate, cache_parameters, assume_linear_t)
+            u, t, I, p, k, c, sc, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
+        N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
-            typeof(c), typeof(N), eltype(u)}(u,
+            typeof(c), typeof(sc), eltype(u), N}(u,
             t,
             I,
             p,
             k,
             c,
-            N,
+            sc,
             extrapolate,
             Guesser(t),
             cache_parameters,
@@ -338,16 +345,16 @@ function QuadraticSpline(
     u, t = munge_data(u, t)
 
     n = length(t)
-    dtype_N = typeof(t[1] / t[1])
-    N = zeros(dtype_N, n)
-    k, A = quadratic_spline_params(t, N)
+    dtype_sc = typeof(t[1] / t[1])
+    sc = zeros(dtype_sc, n)
+    k, A = quadratic_spline_params(t, sc)
     c = A \ u
 
-    p = QuadraticSplineParameterCache(u, t, k, c, N, cache_parameters)
+    p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     A = QuadraticSpline(
-        u, t, nothing, p, k, c, N, extrapolate, cache_parameters, assume_linear_t)
+        u, t, nothing, p, k, c, sc, extrapolate, cache_parameters, assume_linear_t)
     I = cumulative_integral(A, cache_parameters)
-    QuadraticSpline(u, t, I, p, k, c, N, extrapolate, cache_parameters, assume_linear_t)
+    QuadraticSpline(u, t, I, p, k, c, sc, extrapolate, cache_parameters, assume_linear_t)
 end
 
 function QuadraticSpline(
@@ -399,7 +406,8 @@ Second derivative on both ends are zero, which are also called "natural" boundar
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <: AbstractInterpolation{T}
+struct CubicSpline{uType, tType, IType, pType, hType, zType, T, N} <:
+       AbstractInterpolation{T, N}
     u::uType
     t::tType
     I::IType
@@ -412,7 +420,9 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <: AbstractInter
     linear_lookup::Bool
     function CubicSpline(u, t, I, p, h, z, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.c₁), typeof(h), typeof(z), eltype(u)}(
+        N = get_output_dim(u)
+        new{typeof(u), typeof(t), typeof(I), typeof(p.c₁),
+            typeof(h), typeof(z), eltype(u), N}(
             u,
             t,
             I,
@@ -449,6 +459,40 @@ function CubicSpline(u::uType,
              6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
         1:(n + 1))
     z = tA \ d
+    linear_lookup = seems_linear(assume_linear_t, t)
+    p = CubicSplineParameterCache(u, h, z, cache_parameters)
+    A = CubicSpline(
+        u, t, nothing, p, h[1:(n + 1)], z, extrapolate, cache_parameters, linear_lookup)
+    I = cumulative_integral(A, cache_parameters)
+    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolate, cache_parameters, linear_lookup)
+end
+
+function CubicSpline(u::uType,
+        t;
+        extrapolate = false, cache_parameters = false,
+        assume_linear_t = 1e-2) where {uType <:
+                                       AbstractArray{T, N}} where {T, N}
+    u, t = munge_data(u, t)
+    n = length(t) - 1
+    h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
+    dl = vcat(h[2:n], zero(eltype(h)))
+    d_tmp = 2 .* (h[1:(n + 1)] .+ h[2:(n + 2)])
+    du = vcat(zero(eltype(h)), h[3:(n + 1)])
+    tA = Tridiagonal(dl, d_tmp, du)
+
+    # zero for element type of d, which we don't know yet
+    ax = axes(u)[1:(end - 1)]
+    typed_zero = zero(6(u[ax..., begin + 2] - u[ax..., begin + 1]) / h[begin + 2] -
+                      6(u[ax..., begin + 1] - u[ax..., begin]) / h[begin + 1])
+
+    h_ = reshape(h, ones(Int64, N - 1)..., :)
+    ax_h = axes(h_)[1:(end - 1)]
+    d = 6 * ((u[ax..., 3:(n + 1)] - u[ax..., 2:n]) ./ h_[ax_h..., 3:(n + 1)]) -
+        6 * ((u[ax..., 2:n] - u[ax..., 1:(n - 1)]) ./ h_[ax_h..., 2:n])
+    d = cat(typed_zero, d, typed_zero; dims = ndims(d))
+    d_reshaped = reshape(d, prod(size(d)[1:(end - 1)]), :)
+    z = (tA \ d_reshaped')'
+    z = reshape(z, size(u)...)
     linear_lookup = seems_linear(assume_linear_t, t)
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
@@ -505,15 +549,15 @@ Extrapolation is a constant polynomial of the end points on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
-       AbstractInterpolation{T}
+struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T, N} <:
+       AbstractInterpolation{T, N}
     u::uType
     t::tType
     d::Int    # degree
     p::pType  # params vector
     k::kType  # knot vector
     c::cType  # control points
-    N::NType  # Spline coefficients (preallocated memory)
+    sc::scType  # Spline coefficients (preallocated memory)
     pVecType::Symbol
     knotVecType::Symbol
     extrapolate::Bool
@@ -525,19 +569,21 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
             p,
             k,
             c,
-            N,
+            sc,
             pVecType,
             knotVecType,
             extrapolate,
             assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(N), eltype(u)}(u,
+        N = get_output_dim(u)
+        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u), N}(
+            u,
             t,
             d,
             p,
             k,
             c,
-            N,
+            sc,
             pVecType,
             knotVecType,
             extrapolate,
@@ -548,7 +594,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, NType, T} <:
 end
 
 function BSplineInterpolation(
-        u, t, d, pVecType, knotVecType; extrapolate = false, assume_linear_t = 1e-2)
+        u::AbstractVector, t, d, pVecType, knotVecType; extrapolate = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d+1) points.")
@@ -608,12 +654,85 @@ function BSplineInterpolation(
         end
     end
     # control points
-    N = zeros(eltype(t), n, n)
-    spline_coefficients!(N, d, k, p)
-    c = vec(N \ u[:, :])
-    N = zeros(eltype(t), n)
+    sc = zeros(eltype(t), n, n)
+    spline_coefficients!(sc, d, k, p)
+    c = vec(sc \ u[:, :])
+    sc = zeros(eltype(t), n)
     BSplineInterpolation(
-        u, t, d, p, k, c, N, pVecType, knotVecType, extrapolate, assume_linear_t)
+        u, t, d, p, k, c, sc, pVecType, knotVecType, extrapolate, assume_linear_t)
+end
+
+function BSplineInterpolation(
+        u::AbstractArray{T, N}, t, d, pVecType, knotVecType; extrapolate = false,
+        assume_linear_t = 1e-2) where {T, N}
+    u, t = munge_data(u, t)
+    n = length(t)
+    n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d+1) points.")
+    s = zero(eltype(u))
+    p = zero(t)
+    k = zeros(eltype(t), n + d + 1)
+    l = zeros(eltype(u), n - 1)
+    p[1] = zero(eltype(t))
+    p[end] = one(eltype(t))
+
+    ax_u = axes(u)[1:(end - 1)]
+
+    for i in 2:n
+        s += √((t[i] - t[i - 1])^2 + sum((u[ax_u..., i] - u[ax_u..., i - 1]) .^ 2))
+        l[i - 1] = s
+    end
+    if pVecType == :Uniform
+        for i in 2:(n - 1)
+            p[i] = p[1] + (i - 1) * (p[end] - p[1]) / (n - 1)
+        end
+    elseif pVecType == :ArcLen
+        for i in 2:(n - 1)
+            p[i] = p[1] + l[i - 1] / s * (p[end] - p[1])
+        end
+    end
+
+    lidx = 1
+    ridx = length(k)
+    while lidx <= (d + 1) && ridx >= (length(k) - d)
+        k[lidx] = p[1]
+        k[ridx] = p[end]
+        lidx += 1
+        ridx -= 1
+    end
+
+    ps = zeros(eltype(t), n - 2)
+    s = zero(eltype(t))
+    for i in 2:(n - 1)
+        s += p[i]
+        ps[i - 1] = s
+    end
+
+    if knotVecType == :Uniform
+        # uniformly spaced knot vector
+        # this method is not recommended because, if it is used with the chord length method for global interpolation,
+        # the system of linear equations would be singular.
+        for i in (d + 2):n
+            k[i] = k[1] + (i - d - 1) // (n - d) * (k[end] - k[1])
+        end
+    elseif knotVecType == :Average
+        # average spaced knot vector
+        idx = 1
+        if d + 2 <= n
+            k[d + 2] = 1 // d * ps[d]
+        end
+        for i in (d + 3):n
+            k[i] = 1 // d * (ps[idx + d] - ps[idx])
+            idx += 1
+        end
+    end
+    # control points
+    sc = zeros(eltype(t), n, n)
+    spline_coefficients!(sc, d, k, p)
+    c = (sc \ reshape(u, prod(size(u)[1:(end - 1)]), :)')'
+    c = reshape(c, size(u)...)
+    sc = zeros(eltype(t), n)
+    BSplineInterpolation(
+        u, t, d, p, k, c, sc, pVecType, knotVecType, extrapolate, assume_linear_t)
 end
 
 """
@@ -640,8 +759,8 @@ Extrapolation is a constant polynomial of the end points on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
-       AbstractInterpolation{T}
+struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, N} <:
+       AbstractInterpolation{T, N}
     u::uType
     t::tType
     d::Int    # degree
@@ -649,7 +768,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
     p::pType  # params vector
     k::kType  # knot vector
     c::cType  # control points
-    N::NType  # Spline coefficients (preallocated memory)
+    sc::scType  # Spline coefficients (preallocated memory)
     pVecType::Symbol
     knotVecType::Symbol
     extrapolate::Bool
@@ -662,21 +781,23 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
             p,
             k,
             c,
-            N,
+            sc,
             pVecType,
             knotVecType,
             extrapolate,
             assume_linear_t
     )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(N), eltype(u)}(u,
+        N = get_output_dim(u)
+        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u), N}(
+            u,
             t,
             d,
             h,
             p,
             k,
             c,
-            N,
+            sc,
             pVecType,
             knotVecType,
             extrapolate,
@@ -687,7 +808,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, NType, T} <:
 end
 
 function BSplineApprox(
-        u, t, d, h, pVecType, knotVecType; extrapolate = false, assume_linear_t = 1e-2)
+        u::AbstractVector, t, d, h, pVecType, knotVecType; extrapolate = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d+1) control points.")
@@ -752,30 +873,125 @@ function BSplineApprox(
     c[1] = u[1]
     c[end] = u[end]
     q = zeros(eltype(u), n)
-    N = zeros(eltype(t), n, h)
+    sc = zeros(eltype(t), n, h)
     for i in 1:n
-        spline_coefficients!(view(N, i, :), d, k, p[i])
+        spline_coefficients!(view(sc, i, :), d, k, p[i])
     end
     for k in 2:(n - 1)
-        q[k] = u[k] - N[k, 1] * u[1] - N[k, h] * u[end]
+        q[k] = u[k] - sc[k, 1] * u[1] - sc[k, h] * u[end]
     end
     Q = Matrix{eltype(u)}(undef, h - 2, 1)
     for i in 2:(h - 1)
         s = 0.0
         for k in 2:(n - 1)
-            s += N[k, i] * q[k]
+            s += sc[k, i] * q[k]
         end
         Q[i - 1] = s
     end
-    N = N[2:(end - 1), 2:(h - 1)]
-    M = transpose(N) * N
+    sc = sc[2:(end - 1), 2:(h - 1)]
+    M = transpose(sc) * sc
     P = M \ Q
     c[2:(end - 1)] .= vec(P)
-    N = zeros(eltype(t), h)
+    sc = zeros(eltype(t), h)
     BSplineApprox(
-        u, t, d, h, p, k, c, N, pVecType, knotVecType, extrapolate, assume_linear_t)
+        u, t, d, h, p, k, c, sc, pVecType, knotVecType, extrapolate, assume_linear_t)
 end
 
+function BSplineApprox(
+        u::AbstractArray{T, N}, t, d, h, pVecType, knotVecType; extrapolate = false,
+        assume_linear_t = 1e-2) where {T, N}
+    u, t = munge_data(u, t)
+    n = length(t)
+    h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d+1) control points.")
+    s = zero(eltype(u))
+    p = zero(t)
+    k = zeros(eltype(t), h + d + 1)
+    l = zeros(eltype(u), n - 1)
+    p[1] = zero(eltype(t))
+    p[end] = one(eltype(t))
+
+    ax_u = axes(u)[1:(end - 1)]
+
+    for i in 2:n
+        s += √((t[i] - t[i - 1])^2 + sum((u[ax_u..., i] - u[ax_u..., i - 1]) .^ 2))
+        l[i - 1] = s
+    end
+    if pVecType == :Uniform
+        for i in 2:(n - 1)
+            p[i] = p[1] + (i - 1) * (p[end] - p[1]) / (n - 1)
+        end
+    elseif pVecType == :ArcLen
+        for i in 2:(n - 1)
+            p[i] = p[1] + l[i - 1] / s * (p[end] - p[1])
+        end
+    end
+
+    lidx = 1
+    ridx = length(k)
+    while lidx <= (d + 1) && ridx >= (length(k) - d)
+        k[lidx] = p[1]
+        k[ridx] = p[end]
+        lidx += 1
+        ridx -= 1
+    end
+
+    ps = zeros(eltype(t), n - 2)
+    s = zero(eltype(t))
+    for i in 2:(n - 1)
+        s += p[i]
+        ps[i - 1] = s
+    end
+
+    if knotVecType == :Uniform
+        # uniformly spaced knot vector
+        # this method is not recommended because, if it is used with the chord length method for global interpolation,
+        # the system of linear equations would be singular.
+        for i in (d + 2):h
+            k[i] = k[1] + (i - d - 1) // (h - d) * (k[end] - k[1])
+        end
+    elseif knotVecType == :Average
+        # NOTE: verify that average method can be applied when size of k is less than size of p
+        # average spaced knot vector
+        idx = 1
+        if d + 2 <= h
+            k[d + 2] = 1 // d * ps[d]
+        end
+        for i in (d + 3):h
+            k[i] = 1 // d * (ps[idx + d] - ps[idx])
+            idx += 1
+        end
+    end
+    # control points
+    c = zeros(eltype(u), size(u)[1:(end - 1)]..., h)
+    c[ax_u..., 1] = u[ax_u..., 1]
+    c[ax_u..., end] = u[ax_u..., end]
+    q = zeros(eltype(u), size(u)[1:(end - 1)]..., n)
+    sc = zeros(eltype(t), n, h)
+    for i in 1:n
+        spline_coefficients!(view(sc, i, :), d, k, p[i])
+    end
+    for k in 2:(n - 1)
+        q[ax_u..., k] = u[ax_u..., k] - sc[k, 1] * u[ax_u..., 1] -
+                        sc[k, h] * u[ax_u..., end]
+    end
+    Q = Array{eltype(u), N}(undef, size(u)[1:(end - 1)]..., h - 2)
+    for i in 2:(h - 1)
+        s = zeros(eltype(sc), size(u)[1:(end - 1)]...)
+        for k in 2:(n - 1)
+            s = s + sc[k, i] * q[ax_u..., k]
+        end
+        Q[ax_u..., i - 1] = s
+    end
+    sc = sc[2:(end - 1), 2:(h - 1)]
+    M = transpose(sc) * sc
+    Q = reshape(Q, prod(size(u)[1:(end - 1)]), :)
+    P = (M \ Q')'
+    P = reshape(P, size(u)[1:(end - 1)]..., :)
+    c[ax_u..., 2:(end - 1)] = P
+    sc = zeros(eltype(t), h)
+    BSplineApprox(
+        u, t, d, h, p, k, c, sc, pVecType, knotVecType, extrapolate, assume_linear_t)
+end
 """
     CubicHermiteSpline(du, u, t; extrapolate = false, cache_parameters = false)
 
@@ -796,7 +1012,8 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <: AbstractInterpolation{T}
+struct CubicHermiteSpline{uType, tType, IType, duType, pType, T, N} <:
+       AbstractInterpolation{T, N}
     du::duType
     u::uType
     t::tType
@@ -809,7 +1026,8 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <: AbstractInte
     function CubicHermiteSpline(
             du, u, t, I, p, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u)}(
+        N = get_output_dim(u)
+        new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u), N}(
             du, u, t, I, p, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end
@@ -875,8 +1093,8 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
-       AbstractInterpolation{T}
+struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T, N} <:
+       AbstractInterpolation{T, N}
     ddu::dduType
     du::duType
     u::uType
@@ -890,8 +1108,9 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
     function QuinticHermiteSpline(
             ddu, du, u, t, I, p, extrapolate, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
+        N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(I), typeof(du),
-            typeof(ddu), typeof(p.c₁), eltype(u)}(
+            typeof(ddu), typeof(p.c₁), eltype(u), N}(
             ddu, du, u, t, I, p, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end

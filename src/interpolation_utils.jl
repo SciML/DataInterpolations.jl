@@ -59,7 +59,7 @@ function spline_coefficients!(N, d, k, u::AbstractVector)
     return nothing
 end
 
-function quadratic_spline_params(t::AbstractVector, N::AbstractVector)
+function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 
     # Create knot vector
     # Don't use x[end-1] as knot to match number of degrees of freedom with data
@@ -72,22 +72,35 @@ function quadratic_spline_params(t::AbstractVector, N::AbstractVector)
     # - A consists of basis function evaulations in t
     # - c are the 1D control points 
     n = length(t)
-    dtype_N = typeof(t[1] / t[1])
+    dtype_sc = typeof(t[1] / t[1])
 
-    diag = Vector{dtype_N}(undef, n)
-    diag_hi = Vector{dtype_N}(undef, n - 1)
-    diag_lo = Vector{dtype_N}(undef, n - 1)
+    diag = Vector{dtype_sc}(undef, n)
+    diag_hi = Vector{dtype_sc}(undef, n - 1)
+    diag_lo = Vector{dtype_sc}(undef, n - 1)
 
     for (i, tᵢ) in enumerate(t)
-        spline_coefficients!(N, 2, k, tᵢ)
-        diag[i] = N[i]
-        (i > 1) && (diag_lo[i - 1] = N[i - 1])
-        (i < n) && (diag_hi[i] = N[i + 1])
+        spline_coefficients!(sc, 2, k, tᵢ)
+        diag[i] = sc[i]
+        (i > 1) && (diag_lo[i - 1] = sc[i - 1])
+        (i < n) && (diag_hi[i] = sc[i + 1])
     end
 
     A = Tridiagonal(diag_lo, diag, diag_hi)
 
     return k, A
+end
+
+# Get Output Dimension for parameterizing AbstractInterpolations
+function get_output_dim(u::AbstractVector{<:Number})
+    return (1,)
+end
+
+function get_output_dim(u::AbstractVector)
+    return (length(first(u)),)
+end
+
+function get_output_dim(u::AbstractArray)
+    return size(u)[1:(end - 1)]
 end
 
 # helper function for data manipulation
@@ -120,6 +133,21 @@ function munge_data(U::StridedMatrix, t::AbstractVector)
     )
 
     U = hcat([TU.(U[:, i]) for i in non_missing_indices]...)
+    t = Tt.([t[i] for i in non_missing_indices])
+
+    return U, t
+end
+
+function munge_data(U::AbstractArray{T, N}, t) where {T, N}
+    TU = Base.nonmissingtype(eltype(U))
+    Tt = Base.nonmissingtype(eltype(t))
+    @assert length(t) == size(U, ndims(U))
+    ax = axes(U)[1:(end - 1)]
+    non_missing_indices = collect(
+        i for i in 1:length(t)
+    if !any(ismissing, U[ax..., i]) && !ismissing(t[i])
+    )
+    U = cat([TU.(U[ax..., i]) for i in non_missing_indices]...; dims = ndims(U))
     t = Tt.([t[i] for i in non_missing_indices])
 
     return U, t
@@ -192,7 +220,7 @@ function get_parameters(A::QuadraticSpline, idx)
     if A.cache_parameters
         A.p.α[idx], A.p.β[idx]
     else
-        quadratic_spline_parameters(A.u, A.t, A.k, A.c, A.N, idx)
+        quadratic_spline_parameters(A.u, A.t, A.k, A.c, A.sc, idx)
     end
 end
 

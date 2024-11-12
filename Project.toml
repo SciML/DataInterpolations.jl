@@ -1,6 +1,6 @@
 name = "DataInterpolations"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
-version = "6.1.0"
+version = "6.5.2"
 
 [deps]
 FindFirstFunctions = "64ca27bc-2ba2-4a57-88aa-44e436879224"
@@ -39,7 +39,7 @@ Reexport = "1"
 RegularizationTools = "0.6"
 SafeTestsets = "0.1"
 StableRNGs = "1"
-Symbolics = "5.29"
+Symbolics = "5.29, 6"
 Test = "1"
 Zygote = "0.6.70"
 julia = "1.10"
