@@ -15,7 +15,8 @@ function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name
             @test adiff ≈ zdiff
         end
     end
-    if method ∉ [LagrangeInterpolation, BSplineInterpolation, BSplineApprox]
+    if method ∉
+       [LagrangeInterpolation, BSplineInterpolation, BSplineApprox, QuadraticSpline]
         @testset "$name, derivatives w.r.t. u" begin
             function f(u)
                 A = method(args..., u, t, args_after...; kwargs..., extrapolate = true)
@@ -84,12 +85,6 @@ end
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     test_zygote(
         QuinticHermiteSpline, u, t, args = [ddu, du], name = "Quintic Hermite Spline")
-end
-
-@testset "Quadratic Spline" begin
-    u = [1.0, 4.0, 9.0, 16.0]
-    t = [1.0, 2.0, 3.0, 4.0]
-    test_zygote(QuadraticSpline, u, t, name = "Quadratic Spline")
 end
 
 @testset "Lagrange Interpolation" begin

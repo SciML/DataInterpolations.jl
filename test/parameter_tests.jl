@@ -20,7 +20,8 @@ end
     u = [1.0, 5.0, 3.0, 4.0, 4.0]
     t = collect(1:5)
     A = QuadraticSpline(u, t; cache_parameters = true)
-    @test A.p.σ ≈ [4.0, -10.0, 13.0, -14.0]
+    @test A.p.α ≈ [-9.5, 3.5, -0.5, -0.5]
+    @test A.p.β ≈ [13.5, -5.5, 1.5, 0.5]
 end
 
 @testset "Cubic Spline" begin

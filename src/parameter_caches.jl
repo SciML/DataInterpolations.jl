@@ -75,23 +75,33 @@ function quadratic_interpolation_parameters(u, t, idx)
 end
 
 struct QuadraticSplineParameterCache{pType}
-    σ::pType
+    α::pType
+    β::pType
 end
 
-function QuadraticSplineParameterCache(z, t, cache_parameters)
+function QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     if cache_parameters
-        σ = quadratic_spline_parameters.(Ref(z), Ref(t), 1:(length(t) - 1))
-        QuadraticSplineParameterCache(σ)
+        parameters = quadratic_spline_parameters.(
+            Ref(u), Ref(t), Ref(k), Ref(c), Ref(sc), 1:(length(t) - 1))
+        α, β = collect.(eachrow(stack(collect.(parameters))))
+        QuadraticSplineParameterCache(α, β)
     else
         # Compute parameters once to infer types
-        σ = quadratic_spline_parameters(z, t, 1)
-        QuadraticSplineParameterCache(typeof(σ)[])
+        α, β = quadratic_spline_parameters(u, t, k, c, sc, 1)
+        QuadraticSplineParameterCache(typeof(α)[], typeof(β)[])
     end
 end
 
-function quadratic_spline_parameters(z, t, idx)
-    σ = 1 // 2 * (z[idx + 1] - z[idx]) / (t[idx + 1] - t[idx])
-    return σ
+function quadratic_spline_parameters(u, t, k, c, sc, idx)
+    tᵢ₊ = (t[idx] + t[idx + 1]) / 2
+    nonzero_coefficient_idxs = spline_coefficients!(sc, 2, k, tᵢ₊)
+    uᵢ₊ = zero(first(u))
+    for j in nonzero_coefficient_idxs
+        uᵢ₊ += sc[j] * c[j]
+    end
+    α = 2 * (u[idx + 1] + u[idx]) - 4uᵢ₊
+    β = 4 * (uᵢ₊ - u[idx]) - (u[idx + 1] - u[idx])
+    return α, β
 end
 
 struct CubicSplineParameterCache{pType}

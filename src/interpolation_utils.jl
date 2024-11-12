@@ -72,6 +72,37 @@ function get_output_dim(u::AbstractArray)
     return size(u)[1:(end - 1)]
 end
 
+function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
+
+    # Create knot vector
+    # Don't use x[end-1] as knot to match number of degrees of freedom with data
+    k = zeros(length(t) + 3)
+    k[1:3] .= t[1]
+    k[(end - 2):end] .= t[end]
+    k[4:(end - 3)] .= t[2:(end - 2)]
+
+    # Create linear system Ac = u, where:
+    # - A consists of basis function evaulations in t
+    # - c are 1D control points 
+    n = length(t)
+    dtype_sc = typeof(t[1] / t[1])
+
+    diag = Vector{dtype_sc}(undef, n)
+    diag_hi = Vector{dtype_sc}(undef, n - 1)
+    diag_lo = Vector{dtype_sc}(undef, n - 1)
+
+    for (i, tᵢ) in enumerate(t)
+        spline_coefficients!(sc, 2, k, tᵢ)
+        diag[i] = sc[i]
+        (i > 1) && (diag_lo[i - 1] = sc[i - 1])
+        (i < n) && (diag_hi[i] = sc[i + 1])
+    end
+
+    A = Tridiagonal(diag_lo, diag, diag_hi)
+
+    return k, A
+end
+
 # helper function for data manipulation
 function munge_data(u::AbstractVector{<:Real}, t::AbstractVector{<:Real})
     return u, t
@@ -187,9 +218,9 @@ end
 
 function get_parameters(A::QuadraticSpline, idx)
     if A.cache_parameters
-        A.p.σ[idx]
+        A.p.α[idx], A.p.β[idx]
     else
-        quadratic_spline_parameters(A.z, A.t, idx)
+        quadratic_spline_parameters(A.u, A.t, A.k, A.c, A.sc, idx)
     end
 end
 
