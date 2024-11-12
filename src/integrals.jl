@@ -74,7 +74,7 @@ function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, 
     α, β = get_parameters(A, idx)
     uᵢ = A.u[idx]
     Δt = t - A.t[idx]
-    Δt_full = (A.t[idx + 1] - A.t[idx])
+    Δt_full = A.t[idx + 1] - A.t[idx]
     Δt * (α * Δt^2 / (3Δt_full^2) + β * Δt / (2Δt_full) + uᵢ)
 end
 
