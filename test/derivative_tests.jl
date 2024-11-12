@@ -299,8 +299,8 @@ end
     derivexpr2 = expand_derivatives(substitute(D2(A(ω)), Dict(ω => 0.5τ)))
     symfunc1 = Symbolics.build_function(derivexpr1, τ; expression = Val{false})
     symfunc2 = Symbolics.build_function(derivexpr2, τ; expression = Val{false})
-    @test symfunc1(0.5) == 0.5 * 3
-    @test symfunc2(0.5) == 0.5 * 6
+    @test symfunc1(0.5) == 1.5
+    @test symfunc2(0.5) == -3.0
 
     u = [0.0, 1.5, 0.0]
     t = [0.0, 0.5, 1.0]
