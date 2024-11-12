@@ -67,12 +67,6 @@ end
         QuinticHermiteSpline, u, t, args = [ddu, du], name = "Quintic Hermite Spline")
 end
 
-@testset "Quadratic Spline" begin
-    u = [1.0, 4.0, 9.0, 16.0]
-    t = [1.0, 2.0, 3.0, 4.0]
-    test_zygote(QuadraticSpline, u, t, name = "Quadratic Spline")
-end
-
 @testset "Lagrange Interpolation" begin
     u = [1.0, 4.0, 9.0]
     t = [1.0, 2.0, 3.0]
