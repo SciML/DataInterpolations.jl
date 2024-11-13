@@ -55,33 +55,39 @@ function (interp::AbstractInterpolation)(u::AbstractVector, t::AbstractVector)
     u
 end
 
-const EXTRAPOLATION_ERROR = "Cannot extrapolate as `extrapolate` keyword passed was `false`"
-struct ExtrapolationError <: Exception end
-function Base.showerror(io::IO, e::ExtrapolationError)
-    print(io, EXTRAPOLATION_ERROR)
+const DOWN_EXTRAPOLATION_ERROR = "Cannot extrapolate down as `extrapolation_down` keyword passed was `:none`"
+struct DownExtrapolationError <: Exception end
+function Base.showerror(io::IO, ::DownExtrapolationError)
+    print(io, DOWN_EXTRAPOLATION_ERROR)
+end
+
+const UP_EXTRAPOLATION_ERROR = "Cannot extrapolate up as `extrapolation_up` keyword passed was `:none`"
+struct UpExtrapolationError <: Exception end
+function Base.showerror(io::IO, ::UpExtrapolationError)
+    print(io, UP_EXTRAPOLATION_ERROR)
 end
 
 const INTEGRAL_NOT_FOUND_ERROR = "Cannot integrate it analytically. Please use Numerical Integration methods."
 struct IntegralNotFoundError <: Exception end
-function Base.showerror(io::IO, e::IntegralNotFoundError)
+function Base.showerror(io::IO, ::IntegralNotFoundError)
     print(io, INTEGRAL_NOT_FOUND_ERROR)
 end
 
 const DERIVATIVE_NOT_FOUND_ERROR = "Derivatives greater than second order is not supported."
 struct DerivativeNotFoundError <: Exception end
-function Base.showerror(io::IO, e::DerivativeNotFoundError)
+function Base.showerror(io::IO, ::DerivativeNotFoundError)
     print(io, DERIVATIVE_NOT_FOUND_ERROR)
 end
 
 const INTEGRAL_INVERSE_NOT_FOUND_ERROR = "Cannot invert the integral analytically. Please use Numerical methods."
 struct IntegralInverseNotFoundError <: Exception end
-function Base.showerror(io::IO, e::IntegralInverseNotFoundError)
+function Base.showerror(io::IO, ::IntegralInverseNotFoundError)
     print(io, INTEGRAL_INVERSE_NOT_FOUND_ERROR)
 end
 
 const INTEGRAL_NOT_INVERTIBLE_ERROR = "The Interpolation is not positive everywhere so its integral is not invertible."
 struct IntegralNotInvertibleError <: Exception end
-function Base.showerror(io::IO, e::IntegralNotInvertibleError)
+function Base.showerror(io::IO, ::IntegralNotInvertibleError)
     print(io, INTEGRAL_NOT_INVERTIBLE_ERROR)
 end
 
@@ -89,6 +95,8 @@ export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
        BSplineInterpolation, BSplineApprox, CubicHermiteSpline, PCHIPInterpolation,
        QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv
+
+const extrapolation_types::Vector{Symbol} = [:none, :constant, :linear, :extension]
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation

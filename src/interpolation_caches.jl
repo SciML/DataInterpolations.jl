@@ -314,14 +314,18 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, N} <
     k::kType # knot vector
     c::cType # B-spline control points
     sc::scType # Spline coefficients (preallocated memory)
-    extrapolate::Bool
+    extrapolation_down::Symbol
+    extrapolation_up::Symbol
     iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
     function QuadraticSpline(
-            u, t, I, p, k, c, sc, extrapolate, cache_parameters, assume_linear_t)
+            u, t, I, p, k, c, sc, extrapolation_down,
+            extrapolation_up, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
         N = get_output_dim(u)
+        validate_extrapolation(extrapolation_down)
+        validate_extrapolation(extrapolation_up)
         new{typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
             typeof(c), typeof(sc), eltype(u), N}(u,
             t,
@@ -330,7 +334,8 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, N} <
             k,
             c,
             sc,
-            extrapolate,
+            extrapolation_down,
+            extrapolation_up,
             Guesser(t),
             cache_parameters,
             linear_lookup
@@ -339,7 +344,7 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, N} <
 end
 
 function QuadraticSpline(
-        u::uType, t; extrapolate = false,
+        u::uType, t; extrapolation_down::Symbol = :none, extrapolation_up::Symbol = :none,
         cache_parameters = false, assume_linear_t = 1e-2) where {uType <:
                                                                  AbstractVector{<:Number}}
     u, t = munge_data(u, t)
@@ -352,9 +357,9 @@ function QuadraticSpline(
 
     p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     A = QuadraticSpline(
-        u, t, nothing, p, k, c, sc, extrapolate, cache_parameters, assume_linear_t)
+        u, t, nothing, p, k, c, sc, extrapolation_down, extrapolation_up, cache_parameters, assume_linear_t)
     I = cumulative_integral(A, cache_parameters)
-    QuadraticSpline(u, t, I, p, k, c, sc, extrapolate, cache_parameters, assume_linear_t)
+    QuadraticSpline(u, t, I, p, k, c, sc, extrapolation_down, extrapolation_up, cache_parameters, assume_linear_t)
 end
 
 function QuadraticSpline(

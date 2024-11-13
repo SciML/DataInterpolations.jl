@@ -248,6 +248,12 @@ function get_parameters(A::QuinticHermiteSpline, idx)
     end
 end
 
+function validate_extrapolation(method::Symbol)
+    if method ∉ extrapolation_types
+        error("Invalid extrapolation method `$method` supplied, use one of $extrapolation_types.")
+    end
+end
+
 function du_PCHIP(u, t)
     h = diff(u)
     δ = h ./ diff(t)

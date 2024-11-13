@@ -1,7 +1,39 @@
 function _interpolate(A, t)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
-        throw(ExtrapolationError())
-    return _interpolate(A, t, A.iguesser)
+    if t < first(A.t)
+        _extrapolate_down(A, t)
+    elseif t > last(A.t)
+        _extrapolate_up(A, t)
+    else
+        _interpolate(A, t, A.iguesser)
+    end
+end
+
+function _extrapolate_down(A, t)
+    (; extrapolation_down) = A
+    if extrapolation_down == :none
+        throw(ExtrapolationError(DOWN_EXTRAPOLATION_ERROR))
+    elseif extrapolation_down == :constant
+        first(A.u)
+    elseif extrapolation_down == :linear
+        slope = derivative(A, first(A.t))
+        first(A.u) + slope * (t - first(A.t))
+    elseif extrapolation_down == :extension
+        _interpolate(A, t, A.iguesser)
+    end
+end
+
+function _extrapolate_up(A, t)
+    (; extrapolation_up) = A
+    if extrapolation_up == :none
+        throw(ExtrapolationError(DOWN_EXTRAPOLATION_ERROR))
+    elseif extrapolation_up == :constant
+        last(A.u)
+    elseif extrapolation_up == :linear
+        slope = derivative(A, last(A.t))
+        last(A.u) + slope * (t - last(A.t))
+    elseif extrapolation_up == :extension
+        _interpolate(A, t, A.iguesser)
+    end
 end
 
 # Linear Interpolation
