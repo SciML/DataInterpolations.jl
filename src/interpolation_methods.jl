@@ -11,7 +11,7 @@ end
 function _extrapolate_down(A, t)
     (; extrapolation_down) = A
     if extrapolation_down == ExtrapolationType.none
-        throw(ExtrapolationError(DOWN_EXTRAPOLATION_ERROR))
+        throw(DownExtrapolationError())
     elseif extrapolation_down == ExtrapolationType.constant
         first(A.u)
     elseif extrapolation_down == ExtrapolationType.linear
@@ -25,7 +25,7 @@ end
 function _extrapolate_up(A, t)
     (; extrapolation_up) = A
     if extrapolation_up == ExtrapolationType.none
-        throw(ExtrapolationError(UP_EXTRAPOLATION_ERROR))
+        throw(UpExtrapolationError())
     elseif extrapolation_up == ExtrapolationType.constant
         last(A.u)
     elseif extrapolation_up == ExtrapolationType.linear
