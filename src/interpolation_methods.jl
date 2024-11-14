@@ -10,28 +10,28 @@ end
 
 function _extrapolate_down(A, t)
     (; extrapolation_down) = A
-    if extrapolation_down == :none
+    if extrapolation_down == ExtrapolationType.none
         throw(ExtrapolationError(DOWN_EXTRAPOLATION_ERROR))
-    elseif extrapolation_down == :constant
+    elseif extrapolation_down == ExtrapolationType.constant
         first(A.u)
-    elseif extrapolation_down == :linear
+    elseif extrapolation_down == ExtrapolationType.linear
         slope = derivative(A, first(A.t))
         first(A.u) + slope * (t - first(A.t))
-    elseif extrapolation_down == :extension
+    elseif extrapolation_down == ExtrapolationType.extension
         _interpolate(A, t, A.iguesser)
     end
 end
 
 function _extrapolate_up(A, t)
     (; extrapolation_up) = A
-    if extrapolation_up == :none
+    if extrapolation_up == ExtrapolationType.none
         throw(ExtrapolationError(UP_EXTRAPOLATION_ERROR))
-    elseif extrapolation_up == :constant
+    elseif extrapolation_up == ExtrapolationType.constant
         last(A.u)
-    elseif extrapolation_up == :linear
+    elseif extrapolation_up == ExtrapolationType.linear
         slope = derivative(A, last(A.t))
         last(A.u) + slope * (t - last(A.t))
-    elseif extrapolation_up == :extension
+    elseif extrapolation_up == ExtrapolationType.extension
         _interpolate(A, t, A.iguesser)
     end
 end

@@ -7,8 +7,11 @@ abstract type AbstractInterpolation{T, N} end
 using LinearAlgebra, RecipesBase
 using PrettyTables
 using ForwardDiff
+using EnumX
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            Guesser
+
+@enumx ExtrapolationType none constant linear extension
 
 include("parameter_caches.jl")
 include("interpolation_caches.jl")
@@ -55,13 +58,13 @@ function (interp::AbstractInterpolation)(u::AbstractVector, t::AbstractVector)
     u
 end
 
-const DOWN_EXTRAPOLATION_ERROR = "Cannot extrapolate down as `extrapolation_down` keyword passed was `:none`"
+const DOWN_EXTRAPOLATION_ERROR = "Cannot extrapolate down as `extrapolation_down` keyword passed was `none`"
 struct DownExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::DownExtrapolationError)
     print(io, DOWN_EXTRAPOLATION_ERROR)
 end
 
-const UP_EXTRAPOLATION_ERROR = "Cannot extrapolate up as `extrapolation_up` keyword passed was `:none`"
+const UP_EXTRAPOLATION_ERROR = "Cannot extrapolate up as `extrapolation_up` keyword passed was `none`"
 struct UpExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::UpExtrapolationError)
     print(io, UP_EXTRAPOLATION_ERROR)
@@ -94,9 +97,8 @@ end
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
        BSplineInterpolation, BSplineApprox, CubicHermiteSpline, PCHIPInterpolation,
-       QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv
-
-const extrapolation_types::Vector{Symbol} = [:none, :constant, :linear, :extension]
+       QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv,
+       ExtrapolationType
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
