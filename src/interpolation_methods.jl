@@ -25,7 +25,7 @@ end
 function _extrapolate_up(A, t)
     (; extrapolation_up) = A
     if extrapolation_up == :none
-        throw(ExtrapolationError(DOWN_EXTRAPOLATION_ERROR))
+        throw(ExtrapolationError(UP_EXTRAPOLATION_ERROR))
     elseif extrapolation_up == :constant
         last(A.u)
     elseif extrapolation_up == :linear
