@@ -50,7 +50,7 @@ function _extrapolate_integral_down(A, idx, t)
     elseif extrapolation_down == ExtrapolationType.linear
         slope = derivative(A, first(A.t))
         Δt = t - first(A.t)
-        (first(A.u) + slope * Δt/2) * Δt
+        (first(A.u) + slope * Δt / 2) * Δt
     elseif extrapolation_down == ExtrapolationType.extension
         _integral(A, idx, t)
     end
@@ -61,11 +61,11 @@ function _extrapolate_integral_up(A, idx, t)
     if extrapolation_up == ExtrapolationType.none
         throw(UpExtrapolationError())
     elseif extrapolation_up == ExtrapolationType.constant
-        integral(A, A.t[end-1], A.t[end]) + last(A.u) * (t - last(A.t))
+        integral(A, A.t[end - 1], A.t[end]) + last(A.u) * (t - last(A.t))
     elseif extrapolation_up == ExtrapolationType.linear
         slope = derivative(A, last(A.t))
         Δt = t - last(A.t)
-        integral(A, A.t[end-1], A.t[end]) + (last(A.u) + slope * Δt/2) * Δt
+        integral(A, A.t[end - 1], A.t[end]) + (last(A.u) + slope * Δt / 2) * Δt
     elseif extrapolation_up == ExtrapolationType.extension
         _integral(A, idx, t)
     end

@@ -22,7 +22,8 @@ function _extrapolate_derivative_down(A, t, order)
         typed_zero
     elseif extrapolation_down == ExtrapolationType.linear
         (order == 1) ? derivative(A, first(A.t)) : typed_zero
-    elseif extrapolation_down == ExtrapolationType.extension
+    else
+        # extrapolation_down == ExtrapolationType.extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
@@ -40,7 +41,8 @@ function _extrapolate_derivative_up(A, t, order)
         typed_zero
     elseif extrapolation_up == ExtrapolationType.linear
         (order == 1) ? derivative(A, last(A.t)) : typed_zero
-    elseif extrapolation_up == ExtrapolationType.extension
+    else
+        # extrapolation_up == ExtrapolationType.extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
