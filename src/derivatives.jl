@@ -15,9 +15,9 @@ end
 
 function _extrapolate_derivative_down(A, t, order)
     (; extrapolation_down) = A
-    typed_zero = zero(one(A.u[1]) / one(A.t[1]))
+    typed_zero = zero(first(A.u) / one(A.t[1]))
     if extrapolation_down == ExtrapolationType.none
-        throw(UpExtrapolationError())
+        throw(DownExtrapolationError())
     elseif extrapolation_down == ExtrapolationType.constant
         typed_zero
     elseif extrapolation_down == ExtrapolationType.linear
@@ -34,9 +34,9 @@ end
 
 function _extrapolate_derivative_up(A, t, order)
     (; extrapolation_up) = A
-    typed_zero = zero(one(A.u[1]) / one(A.t[1]))
+    typed_zero = zero(first(A.u) / one(A.t[1]))
     if extrapolation_up == ExtrapolationType.none
-        throw(DownExtrapolationError())
+        throw(UpExtrapolationError())
     elseif extrapolation_up == ExtrapolationType.constant
         typed_zero
     elseif extrapolation_up == ExtrapolationType.linear
@@ -67,7 +67,6 @@ function _derivative(A::QuadraticInterpolation, t::Number, iguess)
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     der = zero(A.u[1])
     for j in eachindex(A.t)
         tmp = zero(A.t[1])
@@ -101,7 +100,6 @@ function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     der = zero(A.u[:, 1])
     for j in eachindex(A.t)
         tmp = zero(A.t[1])
@@ -153,12 +151,10 @@ function _derivative(A::ConstantInterpolation, t::Number, iguess)
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : eltype(A.u)(NaN)
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : eltype(A.u)(NaN) .* A.u[:, 1]
 end
 

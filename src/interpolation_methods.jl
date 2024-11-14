@@ -13,11 +13,11 @@ function _extrapolate_down(A, t)
     if extrapolation_down == ExtrapolationType.none
         throw(DownExtrapolationError())
     elseif extrapolation_down == ExtrapolationType.constant
-        first(A.u) * one(t)
+        first(A.u) + zero(eltype(A.p.slope)) * t
     elseif extrapolation_down == ExtrapolationType.linear
         slope = derivative(A, first(A.t))
         first(A.u) + slope * (t - first(A.t))
-    else 
+    else
         # extrapolation_down == ExtrapolationType.extension
         _interpolate(A, t, A.iguesser)
     end
@@ -28,11 +28,11 @@ function _extrapolate_up(A, t)
     if extrapolation_up == ExtrapolationType.none
         throw(UpExtrapolationError())
     elseif extrapolation_up == ExtrapolationType.constant
-        last(A.u) * one(t)
+        last(A.u) + zero(eltype(A.p.slope)) * t
     elseif extrapolation_up == ExtrapolationType.linear
         slope = derivative(A, last(A.t))
         last(A.u) + slope * (t - last(A.t))
-    else 
+    else
         # extrapolation_up == ExtrapolationType.extension
         _interpolate(A, t, A.iguesser)
     end

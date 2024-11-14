@@ -139,10 +139,7 @@ end
     R32 = Int32(1) // Int32(1)
     R64 = 1 // 1
     for A in Any[A1, A2, A3, A4]
-        @show A.u
-        @show A.t
         @test @inferred(A(F32)) === A(F32)
-        println("foo")
         @test @inferred(A(F64)) === A(F64)
         @test @inferred(A(I32)) === A(I32)
         @test @inferred(A(I64)) === A(I64)
@@ -393,8 +390,8 @@ end
     @test A(-1.0) ≈ -5.0
     @test A(11.0) ≈ -3.924742268041234
     A = AkimaInterpolation(u, t)
-    @test_throws DataInterpolations.UpExtrapolationError A(-1.0)
-    @test_throws DataInterpolations.DownExtrapolationError A(11.0)
+    @test_throws DataInterpolations.DownExtrapolationError A(-1.0)
+    @test_throws DataInterpolations.UpExtrapolationError A(11.0)
 end
 
 @testset "ConstantInterpolation" begin
@@ -877,11 +874,10 @@ end
     @test vs ≈ us
 
     # Test extrapolation
-    A = Curvefit(u, t, model, p0, LBFGS(); extrapolation_up = ExtrapolationType.extension,
-        extrapolation_down = ExtrapolationType.extension)
+    A = Curvefit(u, t, model, p0, LBFGS(); extrapolate = true)
     @test A(15.0) == model(15.0, A.pmin)
     A = Curvefit(u, t, model, p0, LBFGS())
-    @test_throws DataInterpolations.UpExtrapolationError A(15.0)
+    @test_throws DataInterpolations.ExtrapolationError A(15.0)
 end
 
 @testset "Type of vector returned" begin

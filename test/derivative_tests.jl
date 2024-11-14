@@ -9,7 +9,11 @@ using Optim
 using ForwardDiff
 
 function test_derivatives(method; args = [], kwargs = [], name::String)
-    func = method(args...; kwargs..., extrapolate = true)
+    kwargs_extrapolation = (method == Curvefit) ?
+                           [:extrapolate => true] :
+                           [:extrapolation_up => ExtrapolationType.extension,
+        :extrapolation_down => ExtrapolationType.extension]
+    func = method(args...; kwargs..., kwargs_extrapolation...)
     (; t) = func
     trange = collect(range(minimum(t) - 5.0, maximum(t) + 5.0, step = 0.1))
     trange_exclude = filter(x -> !in(x, t), trange)
@@ -68,8 +72,13 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
     @test_throws DataInterpolations.DerivativeNotFoundError derivative(
         func, t[1], 3)
     func = method(args...)
-    @test_throws DataInterpolations.ExtrapolationError derivative(func, t[1] - 1.0)
-    @test_throws DataInterpolations.ExtrapolationError derivative(func, t[end] + 1.0)
+    if method == Curvefit
+        @test_throws DataInterpolations.ExtrapolationError derivative(func, t[1] - 1.0)
+        @test_throws DataInterpolations.ExtrapolationError derivative(func, t[end] + 1.0)
+    else
+        @test_throws DataInterpolations.DownExtrapolationError derivative(func, t[1] - 1.0)
+        @test_throws DataInterpolations.UpExtrapolationError derivative(func, t[end] + 1.0)
+    end
     @test_throws DataInterpolations.DerivativeNotFoundError derivative(
         func, t[1], 3)
 end
@@ -232,7 +241,8 @@ end
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     test_derivatives(CubicHermiteSpline; args = [du, u, t],
         name = "Cubic Hermite Spline")
-    A = CubicHermiteSpline(du, u, t; extrapolate = true)
+    A = CubicHermiteSpline(du, u, t; extrapolation_up = ExtrapolationType.extension,
+        extrapolation_down = ExtrapolationType.extension)
     @test derivative.(Ref(A), t) ≈ du
     @test derivative(A, 100.0)≈0.0105409 rtol=1e-5
     @test derivative(A, 300.0)≈-0.0806717 rtol=1e-5
@@ -245,7 +255,8 @@ end
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     test_derivatives(QuinticHermiteSpline; args = [ddu, du, u, t],
         name = "Quintic Hermite Spline")
-    A = QuinticHermiteSpline(ddu, du, u, t; extrapolate = true)
+    A = QuinticHermiteSpline(ddu, du, u, t; extrapolation_up = ExtrapolationType.extension,
+        extrapolation_down = ExtrapolationType.extension)
     @test derivative.(Ref(A), t) ≈ du
     @test derivative.(Ref(A), t, 2) ≈ ddu
     @test derivative(A, 100.0)≈0.0103916 rtol=1e-5
@@ -324,7 +335,8 @@ end
 @testset "Jacobian tests" begin
     u = rand(5)
     t = 0:4
-    interp = LinearInterpolation(u, t, extrapolate = true)
+    interp = LinearInterpolation(u, t, extrapolation_up = ExtrapolationType.extension,
+        extrapolation_down = ExtrapolationType.extension)
     grad1 = ForwardDiff.derivative(interp, 2.4)
 
     myvec = rand(20) .* 4.0
