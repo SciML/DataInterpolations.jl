@@ -5,7 +5,8 @@ function derivative(A, t, order = 1)
     elseif t > last(A.t)
         _extrapolate_derivative_up(A, t, order)
     else
-        (order == 1) ? _derivative(A, t, A.iguesser) :
+        iguess = A.iguesser
+        (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
                 _derivative(A, t, iguess)
             end, t)
@@ -22,7 +23,8 @@ function _extrapolate_derivative_down(A, t, order)
     elseif extrapolation_down == ExtrapolationType.linear
         (order == 1) ? derivative(A, first(A.t)) : typed_zero
     elseif extrapolation_down == ExtrapolationType.extension
-        (order == 1) ? _derivative(A, t, A.iguesser) :
+        iguess = A.iguesser
+        (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
                 _derivative(A, t, iguess)
             end, t)
@@ -39,7 +41,8 @@ function _extrapolate_derivative_up(A, t, order)
     elseif extrapolation_up == ExtrapolationType.linear
         (order == 1) ? derivative(A, last(A.t)) : typed_zero
     elseif extrapolation_up == ExtrapolationType.extension
-        (order == 1) ? _derivative(A, t, A.iguesser) :
+        iguess = A.iguesser
+        (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
                 _derivative(A, t, iguess)
             end, t)

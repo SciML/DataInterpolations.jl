@@ -1,11 +1,8 @@
 function integral(A::AbstractInterpolation, t::Number)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    integral(A, A.t[1], t)
+    integral(A, first(A.t), t)
 end
 
 function integral(A::AbstractInterpolation, t1::Number, t2::Number)
-    ((t1 < A.t[1] || t1 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    ((t2 < A.t[1] || t2 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     !hasfield(typeof(A), :I) && throw(IntegralNotFoundError())
     # the index less than or equal to t1
     idx1 = get_idx(A, t1, 0)
@@ -17,10 +14,10 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
         return if t1 == t2
             zero(total)
         else
-            total += _integral(A, idx1, A.t[idx1])
-            total -= _integral(A, idx1, t1)
-            total += _integral(A, idx2, t2)
-            total -= _integral(A, idx2, A.t[idx2])
+            total += __integral(A, idx1, A.t[idx1])
+            total -= __integral(A, idx1, t1)
+            total += __integral(A, idx2, t2)
+            total -= __integral(A, idx2, A.t[idx2])
             total
         end
     else
@@ -28,9 +25,49 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
         for idx in idx1:idx2
             lt1 = idx == idx1 ? t1 : A.t[idx]
             lt2 = idx == idx2 ? t2 : A.t[idx + 1]
-            total += _integral(A, idx, lt2) - _integral(A, idx, lt1)
+            total += __integral(A, idx, lt2) - __integral(A, idx, lt1)
         end
         total
+    end
+end
+
+function __integral(A::AbstractInterpolation, idx::Number, t::Number)
+    if t < first(A.t)
+        _extrapolate_integral_down(A, idx, t)
+    elseif t > last(A.t)
+        _extrapolate_integral_up(A, idx, t)
+    else
+        _integral(A, idx, t)
+    end
+end
+
+function _extrapolate_integral_down(A, idx, t)
+    (; extrapolation_down) = A
+    if extrapolation_down == ExtrapolationType.none
+        throw(DownExtrapolationError())
+    elseif extrapolation_down == ExtrapolationType.constant
+        first(A.u) * (t - first(A.t))
+    elseif extrapolation_down == ExtrapolationType.linear
+        slope = derivative(A, first(A.t))
+        Δt = t - first(A.t)
+        (first(A.u) + slope * Δt/2) * Δt
+    elseif extrapolation_down == ExtrapolationType.extension
+        _integral(A, idx, t)
+    end
+end
+
+function _extrapolate_integral_up(A, idx, t)
+    (; extrapolation_up) = A
+    if extrapolation_up == ExtrapolationType.none
+        throw(UpExtrapolationError())
+    elseif extrapolation_up == ExtrapolationType.constant
+        integral(A, A.t[end-1], A.t[end]) + last(A.u) * (t - last(A.t))
+    elseif extrapolation_up == ExtrapolationType.linear
+        slope = derivative(A, last(A.t))
+        Δt = t - last(A.t)
+        integral(A, A.t[end-1], A.t[end]) + (last(A.u) + slope * Δt/2) * Δt
+    elseif extrapolation_up == ExtrapolationType.extension
+        _integral(A, idx, t)
     end
 end
 
