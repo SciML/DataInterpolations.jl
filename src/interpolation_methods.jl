@@ -13,7 +13,8 @@ function _extrapolate_down(A, t)
     if extrapolation_down == ExtrapolationType.none
         throw(DownExtrapolationError())
     elseif extrapolation_down == ExtrapolationType.constant
-        first(A.u) + zero(eltype(A.p.slope)) * t
+        slope = derivative(A, first(A.t))
+        first(A.u) + slope * zero(t)
     elseif extrapolation_down == ExtrapolationType.linear
         slope = derivative(A, first(A.t))
         first(A.u) + slope * (t - first(A.t))
@@ -28,7 +29,8 @@ function _extrapolate_up(A, t)
     if extrapolation_up == ExtrapolationType.none
         throw(UpExtrapolationError())
     elseif extrapolation_up == ExtrapolationType.constant
-        last(A.u) + zero(eltype(A.p.slope)) * t
+        slope = derivative(A, last(A.t))
+        last(A.u) + slope * zero(t)
     elseif extrapolation_up == ExtrapolationType.linear
         slope = derivative(A, last(A.t))
         last(A.u) + slope * (t - last(A.t))
