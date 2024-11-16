@@ -4,89 +4,112 @@ end
 
 function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     !hasfield(typeof(A), :I) && throw(IntegralNotFoundError())
+
+    if t1 == t2 
+        # If the integration interval is trivial then the result is 0
+        return zero(eltype(A.I))
+    elseif t1 > t2
+        # Make sure that t1 < t2
+        return -integral(A, t2, t1)
+    end
+
     # the index less than or equal to t1
     idx1 = get_idx(A, t1, 0)
     # the index less than t2
     idx2 = get_idx(A, t2, 0; idx_shift = -1, side = :first)
 
+    total = zero(eltype(A.I))
+
+    # Lower potentially incomplete interval
+    if t1 < first(A.t)
+
+        if t2 < first(A.t)
+            # If interval is entirely below data
+            return _extrapolate_integral_down(A, t2) - extrapolate_integral_down(A.t1)
+        end
+
+        idx1 -= 1 # Make sure lowest complete interval is included
+        total += _extrapolate_integral_down(A, t1)
+    else
+        total += _integral(A, idx1, t1, A.t[idx1 + 1])
+    end
+
+    # Upper potentially incomplete interval
+    if t2 > last(A.t)
+
+        if t1 > last(A.t)
+            # If interval is entirely above data
+            return _extrapolate_integral_up(A, t2) - extrapolate_integral_up(A.t, t1)
+        end
+
+        idx2 += 1 # Make sure highest complete interval is included
+        total += _extrapolate_integral_up(A, t2)
+    else
+        total += _integral(A, idx2, A.t[idx2], t2)
+    end
+
+    if idx1 == idx2
+        return _integral(A, idx1, t1, t2)
+    end
+
+    # Complete intervals
     if A.cache_parameters
-        total = A.I[idx2] - A.I[idx1]
-        return if t1 == t2
-            zero(total)
-        else
-            total += __integral(A, idx1, A.t[idx1])
-            total -= __integral(A, idx1, t1)
-            total += __integral(A, idx2, t2)
-            total -= __integral(A, idx2, A.t[idx2])
-            total
-        end
+        total += A.I[idx2] - A.I[idx1 + 1]
     else
-        total = zero(eltype(A.u))
-        for idx in idx1:idx2
-            lt1 = idx == idx1 ? t1 : A.t[idx]
-            lt2 = idx == idx2 ? t2 : A.t[idx + 1]
-            total += __integral(A, idx, lt2) - __integral(A, idx, lt1)
+        for idx in (idx1 + 1):(idx2 - 1)
+            total += _integral(A, idx, A.t[idx], A.t[idx + 1])
         end
-        total
     end
+
+    return total
 end
 
-function __integral(A::AbstractInterpolation, idx::Number, t::Number)
-    if t < first(A.t)
-        _extrapolate_integral_down(A, idx, t)
-    elseif t > last(A.t)
-        _extrapolate_integral_up(A, idx, t)
-    else
-        _integral(A, idx, t)
-    end
-end
-
-function _extrapolate_integral_down(A, idx, t)
+function _extrapolate_integral_down(A, t)
     (; extrapolation_down) = A
     if extrapolation_down == ExtrapolationType.none
         throw(DownExtrapolationError())
     elseif extrapolation_down == ExtrapolationType.constant
-        first(A.u) * (t - first(A.t))
+        first(A.u) * (first(A.t) - t)
     elseif extrapolation_down == ExtrapolationType.linear
         slope = derivative(A, first(A.t))
-        Δt = t - first(A.t)
-        (first(A.u) + slope * Δt / 2) * Δt
+        Δt = first(A.t) - t
+        (first(A.u) - slope * Δt / 2) * Δt
     elseif extrapolation_down == ExtrapolationType.extension
-        _integral(A, idx, t)
+        _integral(A, 1, t, first(A.t))
     end
 end
 
-function _extrapolate_integral_up(A, idx, t)
+function _extrapolate_integral_up(A, t)
     (; extrapolation_up) = A
     if extrapolation_up == ExtrapolationType.none
         throw(UpExtrapolationError())
     elseif extrapolation_up == ExtrapolationType.constant
-        integral(A, A.t[end - 1], A.t[end]) + last(A.u) * (t - last(A.t))
+        last(A.u) * (t - last(A.t))
     elseif extrapolation_up == ExtrapolationType.linear
         slope = derivative(A, last(A.t))
         Δt = t - last(A.t)
-        integral(A, A.t[end - 1], A.t[end]) + (last(A.u) + slope * Δt / 2) * Δt
+        (last(A.u) + slope * Δt / 2) * Δt
     elseif extrapolation_up == ExtrapolationType.extension
-        _integral(A, idx, t)
+        _integral(A, length(A.t) - 1, last(A.t), t)
     end
 end
 
 function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
-        idx::Number,
-        t::Number)
-    Δt = t - A.t[idx]
+        idx::Number, t1::Number, t2::Number)
     slope = get_parameters(A, idx)
-    Δt * (A.u[idx] + slope * Δt / 2)
+    u_mean = A.u[idx] + slope * ((t1 + t2)/2 - A.t[idx])
+    u_mean * (t2 - t1)
 end
 
 function _integral(
-        A::ConstantInterpolation{<:AbstractVector{<:Number}}, idx::Number, t::Number)
+        A::ConstantInterpolation{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+    Δt = t2 - t1
     if A.dir === :left
         # :left means that value to the left is used for interpolation
-        return A.u[idx] * t
+        return A.u[idx] * Δt
     else
         # :right means that value to the right is used for interpolation
-        return A.u[idx + 1] * t
+        return A.u[idx + 1] * Δt
     end
 end
 
@@ -107,30 +130,27 @@ function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
     return Iu₀ + Iu₁ + Iu₂
 end
 
-function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
+function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
     α, β = get_parameters(A, idx)
     uᵢ = A.u[idx]
-    Δt = t - A.t[idx]
-    Δt_full = A.t[idx + 1] - A.t[idx]
-    Δt * (α * Δt^2 / (3Δt_full^2) + β * Δt / (2Δt_full) + uᵢ)
+    tᵢ = A.t[idx]
+    t1_rel = t1 - tᵢ
+    t2_rel = t2 - tᵢ
+    Δt = t2 - t1
+    Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
 end
 
-function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
-    Δt₁sq = (t - A.t[idx])^2 / 2
-    Δt₂sq = (A.t[idx + 1] - t)^2 / 2
-    II = (-A.z[idx] * Δt₂sq^2 + A.z[idx + 1] * Δt₁sq^2) / (6A.h[idx + 1])
+function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+    tᵢ = A.t[idx]
+    tᵢ₊₁ = A.t[idx + 1]
     c₁, c₂ = get_parameters(A, idx)
-    IC = c₁ * Δt₁sq
-    ID = -c₂ * Δt₂sq
-    II + IC + ID
+    integrate_cubic_polynomial(t1, t2, tᵢ, 0, c₁, 0, A.z[idx + 1] / (6A.h[idx + 1])) +
+    integrate_cubic_polynomial(t1, t2, tᵢ₊₁, 0, -c₂, 0, -A.z[idx] / (6A.h[idx + 1]))
 end
 
 function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
-        idx::Number,
-        t::Number)
-    t1 = A.t[idx]
-    A.u[idx] * (t - t1) + A.b[idx] * ((t - t1)^2 / 2) + A.c[idx] * ((t - t1)^3 / 3) +
-    A.d[idx] * ((t - t1)^4 / 4)
+        idx::Number, t1::Number, t2::Number)
+    integrate_cubic_polynomial(t1, t2, A.t[idx], A.u[idx], A.b[idx], A.c[idx], A.d[idx])
 end
 
 _integral(A::LagrangeInterpolation, idx::Number, t::Number) = throw(IntegralNotFoundError())
@@ -139,15 +159,12 @@ _integral(A::BSplineApprox, idx::Number, t::Number) = throw(IntegralNotFoundErro
 
 # Cubic Hermite Spline
 function _integral(
-        A::CubicHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
-    Δt₀ = t - A.t[idx]
-    Δt₁ = t - A.t[idx + 1]
-    out = Δt₀ * (A.u[idx] + Δt₀ * A.du[idx] / 2)
+        A::CubicHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
     c₁, c₂ = get_parameters(A, idx)
-    p = c₁ + Δt₁ * c₂
-    dp = c₂
-    out += Δt₀^3 / 3 * (p - dp * Δt₀ / 4)
-    out
+    tᵢ = A.t[idx]
+    tᵢ₊₁ = A.t[idx + 1]
+    c = c₁ - c₂ * (tᵢ₊₁ - tᵢ)
+    integrate_cubic_polynomial(t1, t2, tᵢ, A.u[idx], A.du[idx], c, c₂)
 end
 
 # Quintic Hermite Spline
