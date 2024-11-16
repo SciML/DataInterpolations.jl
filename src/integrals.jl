@@ -7,18 +7,23 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     ((t1 < A.t[1] || t1 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     ((t2 < A.t[1] || t2 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     !hasfield(typeof(A), :I) && throw(IntegralNotFoundError())
+    (t2 < t1) && return -integral(A, t2, t1)
     # the index less than or equal to t1
     idx1 = get_idx(A, t1, 0)
     # the index less than t2
     idx2 = get_idx(A, t2, 0; idx_shift = -1, side = :first)
 
     if A.cache_parameters
-        total = A.I[idx2] - A.I[idx1]
+        total = A.I[max(1, idx2 - 1)] - A.I[idx1]
         return if t1 == t2
             zero(total)
         else
-            total += _integral(A, idx1, t1, A.t[idx1 + 1])
-            total += _integral(A, idx2, A.t[idx2], t2)
+            if idx1 == idx2
+                total += _integral(A, idx1, t1, t2)
+            else
+                total += _integral(A, idx1, t1, A.t[idx1 + 1])
+                total += _integral(A, idx2, A.t[idx2], t2)
+            end
             total
         end
     else
@@ -52,20 +57,14 @@ function _integral(
 end
 
 function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
-        idx::Number,
-        t::Number)
-    A.mode == :Backward && idx > 1 && (idx -= 1)
-    idx = min(length(A.t) - 2, idx)
-    t₀ = A.t[idx]
-    t₁ = A.t[idx + 1]
-    t₂ = A.t[idx + 2]
-
-    t_sq = (t^2) / 3
-    l₀, l₁, l₂ = get_parameters(A, idx)
-    Iu₀ = l₀ * t * (t_sq - t * (t₁ + t₂) / 2 + t₁ * t₂)
-    Iu₁ = l₁ * t * (t_sq - t * (t₀ + t₂) / 2 + t₀ * t₂)
-    Iu₂ = l₂ * t * (t_sq - t * (t₀ + t₁) / 2 + t₀ * t₁)
-    return Iu₀ + Iu₁ + Iu₂
+        idx::Number, t1::Number, t2::Number)
+    α, β = get_parameters(A, idx)
+    uᵢ = A.u[idx]
+    tᵢ = A.t[idx]
+    t1_rel = t1 - tᵢ
+    t2_rel = t2 - tᵢ
+    Δt = t2 - t1
+    Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
 end
 
 function _integral(
@@ -93,9 +92,15 @@ function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
     integrate_cubic_polynomial(t1, t2, A.t[idx], A.u[idx], A.b[idx], A.c[idx], A.d[idx])
 end
 
-_integral(A::LagrangeInterpolation, idx::Number, t::Number) = throw(IntegralNotFoundError())
-_integral(A::BSplineInterpolation, idx::Number, t::Number) = throw(IntegralNotFoundError())
-_integral(A::BSplineApprox, idx::Number, t::Number) = throw(IntegralNotFoundError())
+function _integral(A::LagrangeInterpolation, idx::Number, t1::Number, t2::Number)
+    throw(IntegralNotFoundError())
+end
+function _integral(A::BSplineInterpolation, idx::Number, t1::Number, t2::Number)
+    throw(IntegralNotFoundError())
+end
+function _integral(A::BSplineApprox, idx::Number, t1::Number, t2::Number)
+    throw(IntegralNotFoundError())
+end
 
 # Cubic Hermite Spline
 function _integral(

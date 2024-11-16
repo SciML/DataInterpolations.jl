@@ -1,10 +1,16 @@
 import Base: append!, push!
 
 function add_integral_values!(A)
-    integral_values = cumsum([_integral(A, idx, A.t[idx + 1]) - _integral(A, idx, A.t[idx])
-                              for idx in (length(A.I) - 1):(length(A.t) - 1)])
     pop!(A.I)
-    integral_values .+= last(A.I)
+    integral_values = Vector{eltype(A.I)}(undef, (length(A.t) - 1) - length(A.I))
+    prev_sum = last(A.I)
+    for i in eachindex(integral_values)
+        idx = length(A.I) + i
+        new_sum = prev_sum + _integral(A, idx, A.t[idx], A.t[idx + 1])
+        integral_values[i] = new_sum
+        prev_sum = new_sum
+    end
+
     append!(A.I, integral_values)
 end
 
@@ -20,16 +26,12 @@ function push!(A::LinearInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {
 end
 
 function push!(A::QuadraticInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {U, T}
-    push!(A.u, u)
-    push!(A.t, t)
-    if A.cache_parameters
-        l₀, l₁, l₂ = quadratic_interpolation_parameters(A.u, A.t, length(A.t) - 2)
-        push!(A.p.l₀, l₀)
-        push!(A.p.l₁, l₁)
-        push!(A.p.l₂, l₂)
-        add_integral_values!(A)
-    end
-    A
+    # Use functionality in push! method to update parameters of last 2 intervals
+    u_new = [last(A.u), u]
+    t_new = [last(A.t), t]
+    pop!(A.u)
+    pop!(A.t)
+    append!(A, u_new, t_new)
 end
 
 function push!(A::ConstantInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {U, T}
@@ -72,17 +74,17 @@ end
 function append!(
         A::QuadraticInterpolation{U, T}, u::U, t::T) where {
         U, T}
-    length_old = length(A.t)
     u, t = munge_data(u, t)
     append!(A.u, u)
     append!(A.t, t)
     if A.cache_parameters
+        pop!(A.p.α)
+        pop!(A.p.β)
         parameters = quadratic_interpolation_parameters.(
-            Ref(A.u), Ref(A.t), (length_old - 1):(length(A.t) - 2))
-        l₀, l₁, l₂ = collect.(eachrow(hcat(collect.(parameters)...)))
-        append!(A.p.l₀, l₀)
-        append!(A.p.l₁, l₁)
-        append!(A.p.l₂, l₂)
+            Ref(A.u), Ref(A.t), (length(A.p.α) + 1):(length(A.t) - 1), A.mode)
+        α, β = collect.(eachrow(hcat(collect.(parameters)...)))
+        append!(A.p.α, α)
+        append!(A.p.β, β)
         add_integral_values!(A)
     end
     A

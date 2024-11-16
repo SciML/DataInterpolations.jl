@@ -190,10 +190,9 @@ function get_idx(A::AbstractInterpolation, t, iguess::Union{<:Integer, Guesser};
 end
 
 function cumulative_integral(A, cache_parameters)
-    if cache_parameters && hasmethod(_integral, Tuple{typeof(A), Number, Number})
+    if cache_parameters && hasmethod(_integral, Tuple{typeof(A), Number, Number, Number})
         integral_values = _integral.(
             Ref(A), 1:(length(A.t) - 1), A.t[1:(end - 1)], A.t[2:end])
-        pushfirst!(integral_values, zero(first(integral_values)))
         cumsum(integral_values)
     else
         promote_type(eltype(A.u), eltype(A.t))[]
@@ -210,9 +209,9 @@ end
 
 function get_parameters(A::QuadraticInterpolation, idx)
     if A.cache_parameters
-        A.p.l₀[idx], A.p.l₁[idx], A.p.l₂[idx]
+        A.p.α[idx], A.p.β[idx]
     else
-        quadratic_interpolation_parameters(A.u, A.t, idx)
+        quadratic_interpolation_parameters(A.u, A.t, idx, A.mode)
     end
 end
 

@@ -4,14 +4,14 @@ if isdefined(Base, :get_extension)
                               LinearInterpolation, QuadraticInterpolation,
                               LagrangeInterpolation, AkimaInterpolation,
                               BSplineInterpolation, BSplineApprox, get_idx, get_parameters,
-                              _quad_interp_indices, munge_data
+                              munge_data
     using ChainRulesCore
 else
     using ..DataInterpolations: _interpolate, derivative, AbstractInterpolation,
                                 LinearInterpolation, QuadraticInterpolation,
                                 LagrangeInterpolation, AkimaInterpolation,
                                 BSplineInterpolation, BSplineApprox, get_parameters,
-                                _quad_interp_indices, munge_data
+                                munge_data
     using ..ChainRulesCore
 end
 
@@ -72,6 +72,11 @@ function u_tangent(A::LinearInterpolation, t, Δ)
         @. out[idx + 1] = Δ * t_factor
     end
     out
+end
+
+function _quad_interp_indices(A::QuadraticInterpolation, t::Number, iguess)
+    idx = get_idx(A, t, iguess; idx_shift = A.mode == :Backward ? -1 : 0, ub_shift = -2)
+    idx, idx + 1, idx + 2
 end
 
 function u_tangent(A::QuadraticInterpolation, t, Δ)

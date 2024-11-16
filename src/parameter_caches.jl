@@ -33,45 +33,53 @@ function linear_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {
 end
 
 struct QuadraticParameterCache{pType}
-    l₀::pType
-    l₁::pType
-    l₂::pType
+    α::pType
+    β::pType
 end
 
-function QuadraticParameterCache(u, t, cache_parameters)
+function QuadraticParameterCache(u, t, cache_parameters, mode)
     if cache_parameters
         parameters = quadratic_interpolation_parameters.(
-            Ref(u), Ref(t), 1:(length(t) - 2))
-        l₀, l₁, l₂ = collect.(eachrow(stack(collect.(parameters))))
-        QuadraticParameterCache(l₀, l₁, l₂)
+            Ref(u), Ref(t), 1:(length(t) - 1), mode)
+        α, β = collect.(eachrow(stack(collect.(parameters))))
+        QuadraticParameterCache(α, β)
     else
         # Compute parameters once to infer types
-        l₀, l₁, l₂ = quadratic_interpolation_parameters(u, t, 1)
-        pType = typeof(l₀)
-        QuadraticParameterCache(pType[], pType[], pType[])
+        α, β = quadratic_interpolation_parameters(u, t, 1, mode)
+        pType = typeof(α)
+        QuadraticParameterCache(pType[], pType[])
     end
 end
 
-function quadratic_interpolation_parameters(u, t, idx)
-    if u isa AbstractMatrix
-        u₀ = u[:, idx]
-        u₁ = u[:, idx + 1]
-        u₂ = u[:, idx + 2]
-    else
-        u₀ = u[idx]
-        u₁ = u[idx + 1]
-        u₂ = u[idx + 2]
+function quadratic_interpolation_parameters(u, t, idx, mode)
+    # Adjust mode at boundaries
+    if idx == 1
+        mode = :Forward
+    elseif idx == length(t) - 1
+        mode = :Backward
     end
+
     t₀ = t[idx]
+    u₀ = u isa AbstractMatrix ? u[:, idx] : u[idx]
+
     t₁ = t[idx + 1]
-    t₂ = t[idx + 2]
-    Δt₀ = t₁ - t₀
-    Δt₁ = t₂ - t₁
+    u₁ = u isa AbstractMatrix ? u[:, idx + 1] : u[idx + 1]
+
+    t₂, u₂ = if mode == :Backward
+        t[idx - 1], u isa AbstractMatrix ? u[:, idx - 1] : u[idx - 1]
+    else
+        t[idx + 2], u isa AbstractMatrix ? u[:, idx + 2] : u[idx + 2]
+    end
+
+    Δt₁ = t₁ - t₀
     Δt₂ = t₂ - t₀
-    l₀ = u₀ / (Δt₀ * Δt₂)
-    l₁ = -u₁ / (Δt₀ * Δt₁)
-    l₂ = u₂ / (Δt₂ * Δt₁)
-    return l₀, l₁, l₂
+    Δt = t₂ - t₁
+    s₁ = (u₁ - u₀) / Δt₁
+    s₂ = (u₂ - u₀) / Δt₂
+    α = (s₂ - s₁) / Δt
+    β = s₁ - α * Δt₁
+
+    α, β
 end
 
 struct QuadraticSplineParameterCache{pType}
