@@ -191,8 +191,8 @@ end
 
 function cumulative_integral(A, cache_parameters)
     if cache_parameters && hasmethod(_integral, Tuple{typeof(A), Number, Number})
-        integral_values = [_integral(A, idx, A.t[idx + 1]) - _integral(A, idx, A.t[idx])
-                           for idx in 1:(length(A.t) - 1)]
+        integral_values = _integral.(
+            Ref(A), 1:(length(A.t) - 1), A.t[1:(end - 1)], A.t[2:end])
         pushfirst!(integral_values, zero(first(integral_values)))
         cumsum(integral_values)
     else
@@ -281,4 +281,23 @@ function du_PCHIP(u, t)
     end
 
     return _du.(eachindex(t))
+end
+
+function integrate_cubic_polynomial(t1, t2, offset, a, b, c, d)
+    t1_rel = t1 - offset
+    t2_rel = t2 - offset
+    t_sum = t1_rel + t2_rel
+    t_sq_sum = t1_rel^2 + t2_rel^2
+    Δt = t2 - t1
+    Δt * (a + t_sum * (b / 2 + d * t_sq_sum / 4) + c * (t_sq_sum + t1_rel * t2_rel) / 3)
+end
+
+function integrate_quintic_polynomial(t1, t2, offset, a, b, c, d, e, f)
+    t1_rel = t1 - offset
+    t2_rel = t2 - offset
+    t_sum = t1_rel + t2_rel
+    t_sq_sum = t1_rel^2 + t2_rel^2
+    Δt = t2 - t1
+    Δt * (a + t_sum * (b / 2 + d * t_sq_sum / 4) + c * (t_sq_sum + t1_rel * t2_rel) / 3) +
+    e * (t2_rel^5 - t1_rel^5) / 5 + f * (t2_rel^6 - t1_rel^6) / 6
 end
