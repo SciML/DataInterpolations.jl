@@ -22,12 +22,13 @@ function test_constant_extrapolation(method, u, t)
     A = method(u, t; extrapolation_down = ExtrapolationType.constant,
         extrapolation_up = ExtrapolationType.constant)
     t_lower = first(t) - 1
-    t_upper = last(t) + 1 
+    t_upper = last(t) + 1
     @test A(t_lower) == first(u)
     @test A(t_upper) == last(u)
     @test DataInterpolations.derivative(A, t_lower) == 0
     @test DataInterpolations.derivative(A, t_upper) == 0
-    @test DataInterpolations.integral(A, t_lower, first(t)) ≈ first(u) * (first(t) - t_lower)
+    @test DataInterpolations.integral(A, t_lower, first(t)) ≈
+          first(u) * (first(t) - t_lower)
     @test DataInterpolations.integral(A, last(t), t_upper) ≈ last(u) * (t_upper - last(t))
 end
 
