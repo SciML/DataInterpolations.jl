@@ -84,7 +84,7 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, N} <:
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
         linear_lookup = seems_linear(assume_linear_t, t)
         N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.l₀), eltype(u), N}(
+        new{typeof(u), typeof(t), typeof(I), typeof(p.α), eltype(u), N}(
             u, t, I, p, mode, extrapolate, Guesser(t), cache_parameters, linear_lookup)
     end
 end
@@ -93,7 +93,7 @@ function QuadraticInterpolation(
         u, t, mode; extrapolate = false, cache_parameters = false, assume_linear_t = 1e-2)
     u, t = munge_data(u, t)
     linear_lookup = seems_linear(assume_linear_t, t)
-    p = QuadraticParameterCache(u, t, cache_parameters)
+    p = QuadraticParameterCache(u, t, cache_parameters, mode)
     A = QuadraticInterpolation(
         u, t, nothing, p, mode, extrapolate, cache_parameters, linear_lookup)
     I = cumulative_integral(A, cache_parameters)

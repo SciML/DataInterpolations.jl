@@ -51,7 +51,11 @@ function invertible_integral(A::LinearInterpolation{<:AbstractVector{<:Number}})
     return all(A.u .> 0)
 end
 
-get_I(A::AbstractInterpolation) = isempty(A.I) ? cumulative_integral(A, true) : A.I
+function get_I(A::AbstractInterpolation)
+    I = isempty(A.I) ? cumulative_integral(A, true) : copy(A.I)
+    pushfirst!(I, 0)
+    I
+end
 
 function invert_integral(A::LinearInterpolation{<:AbstractVector{<:Number}})
     !invertible_integral(A) && throw(IntegralNotInvertibleError())

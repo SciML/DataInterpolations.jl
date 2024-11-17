@@ -11,9 +11,8 @@ end
     u = [1.0, 5.0, 3.0, 4.0, 4.0]
     t = collect(1:5)
     A = QuadraticInterpolation(u, t; cache_parameters = true)
-    @test A.p.l₀ ≈ [0.5, 2.5, 1.5]
-    @test A.p.l₁ ≈ [-5.0, -3.0, -4.0]
-    @test A.p.l₂ ≈ [1.5, 2.0, 2.0]
+    @test A.p.α ≈ [-3.0, 1.5, -0.5, -0.5]
+    @test A.p.β ≈ [7.0, -3.5, 1.5, 0.5]
 end
 
 @testset "Quadratic Spline" begin

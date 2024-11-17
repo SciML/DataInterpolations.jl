@@ -4,14 +4,14 @@ if isdefined(Base, :get_extension)
                               LinearInterpolation, QuadraticInterpolation,
                               LagrangeInterpolation, AkimaInterpolation,
                               BSplineInterpolation, BSplineApprox, get_idx, get_parameters,
-                              _quad_interp_indices, munge_data
+                              munge_data
     using ChainRulesCore
 else
     using ..DataInterpolations: _interpolate, derivative, AbstractInterpolation,
                                 LinearInterpolation, QuadraticInterpolation,
                                 LagrangeInterpolation, AkimaInterpolation,
                                 BSplineInterpolation, BSplineApprox, get_parameters,
-                                _quad_interp_indices, munge_data
+                                munge_data
     using ..ChainRulesCore
 end
 
@@ -74,6 +74,11 @@ function u_tangent(A::LinearInterpolation, t, Δ)
     out
 end
 
+function _quad_interp_indices(A::QuadraticInterpolation, t::Number, iguess)
+    idx = get_idx(A, t, iguess; idx_shift = A.mode == :Backward ? -1 : 0, ub_shift = -2)
+    idx, idx + 1, idx + 2
+end
+
 function u_tangent(A::QuadraticInterpolation, t, Δ)
     out = zero.(A.u)
     i₀, i₁, i₂ = _quad_interp_indices(A, t, A.iguesser)
@@ -83,14 +88,17 @@ function u_tangent(A::QuadraticInterpolation, t, Δ)
     Δt₀ = t₁ - t₀
     Δt₁ = t₂ - t₁
     Δt₂ = t₂ - t₀
+    Δt_rel₀ = t - A.t[i₀]
+    Δt_rel₁ = t - A.t[i₁]
+    Δt_rel₂ = t - A.t[i₂]
     if eltype(out) <: Number
-        out[i₀] = Δ * (t - A.t[i₁]) * (t - A.t[i₂]) / (Δt₀ * Δt₂)
-        out[i₁] = -Δ * (t - A.t[i₀]) * (t - A.t[i₂]) / (Δt₀ * Δt₁)
-        out[i₂] = Δ * (t - A.t[i₀]) * (t - A.t[i₁]) / (Δt₂ * Δt₁)
+        out[i₀] = Δ * Δt_rel₁ * Δt_rel₂ / (Δt₀ * Δt₂)
+        out[i₁] = -Δ * Δt_rel₀ * Δt_rel₂ / (Δt₀ * Δt₁)
+        out[i₂] = Δ * Δt_rel₀ * Δt_rel₁ / (Δt₂ * Δt₁)
     else
-        @. out[i₀] = Δ * (t - A.t[i₁]) * (t - A.t[i₂]) / (Δt₀ * Δt₂)
-        @. out[i₁] = -Δ * (t - A.t[i₀]) * (t - A.t[i₂]) / (Δt₀ * Δt₁)
-        @. out[i₂] = Δ * (t - A.t[i₀]) * (t - A.t[i₁]) / (Δt₂ * Δt₁)
+        @. out[i₀] = Δ * Δt_rel₁ * Δt_rel₂ / (Δt₀ * Δt₂)
+        @. out[i₁] = -Δ * Δt_rel₀ * Δt_rel₂ / (Δt₀ * Δt₁)
+        @. out[i₂] = Δ * Δt_rel₀ * Δt_rel₁ / (Δt₂ * Δt₁)
     end
     out
 end

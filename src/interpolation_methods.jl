@@ -42,19 +42,13 @@ function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess
 end
 
 # Quadratic Interpolation
-_quad_interp_indices(A, t) = _quad_interp_indices(A, t, firstindex(A.t) - 1)
-function _quad_interp_indices(A::QuadraticInterpolation, t::Number, iguess)
-    idx = get_idx(A, t, iguess; idx_shift = A.mode == :Backward ? -1 : 0, ub_shift = -2)
-    idx, idx + 1, idx + 2
-end
-
 function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
-    i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    l₀, l₁, l₂ = get_parameters(A, i₀)
-    u₀ = l₀ * (t - A.t[i₁]) * (t - A.t[i₂])
-    u₁ = l₁ * (t - A.t[i₀]) * (t - A.t[i₂])
-    u₂ = l₂ * (t - A.t[i₀]) * (t - A.t[i₁])
-    return u₀ + u₁ + u₂
+    idx = get_idx(A, t, iguess)
+    Δt = t - A.t[idx]
+    α, β = get_parameters(A, idx)
+    out = A.u isa AbstractMatrix ? A.u[:, idx] : A.u[idx]
+    out += @. Δt * (α * Δt + β)
+    out
 end
 
 # Lagrange Interpolation

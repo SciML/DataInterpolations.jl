@@ -20,12 +20,10 @@ function _derivative(A::LinearInterpolation, t::Number, iguess)
 end
 
 function _derivative(A::QuadraticInterpolation, t::Number, iguess)
-    i₀, i₁, i₂ = _quad_interp_indices(A, t, iguess)
-    l₀, l₁, l₂ = get_parameters(A, i₀)
-    du₀ = l₀ * (2t - A.t[i₁] - A.t[i₂])
-    du₁ = l₁ * (2t - A.t[i₀] - A.t[i₂])
-    du₂ = l₂ * (2t - A.t[i₀] - A.t[i₁])
-    return @views @. du₀ + du₁ + du₂
+    idx = get_idx(A, t, iguess)
+    Δt = t - A.t[idx]
+    α, β = get_parameters(A, idx)
+    return 2α * Δt + β
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
