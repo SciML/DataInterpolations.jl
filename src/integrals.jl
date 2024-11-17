@@ -5,7 +5,7 @@ end
 function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     !hasfield(typeof(A), :I) && throw(IntegralNotFoundError())
 
-    if t1 == t2 
+    if t1 == t2
         # If the integration interval is trivial then the result is 0
         return zero(eltype(A.I))
     elseif t1 > t2
@@ -22,7 +22,6 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
 
     # Lower potentially incomplete interval
     if t1 < first(A.t)
-
         if t2 < first(A.t)
             # If interval is entirely below data
             return _extrapolate_integral_down(A, t2) - extrapolate_integral_down(A.t1)
@@ -36,7 +35,6 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
 
     # Upper potentially incomplete interval
     if t2 > last(A.t)
-
         if t1 > last(A.t)
             # If interval is entirely above data
             return _extrapolate_integral_up(A, t2) - extrapolate_integral_up(A.t, t1)
@@ -97,7 +95,7 @@ end
 function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
         idx::Number, t1::Number, t2::Number)
     slope = get_parameters(A, idx)
-    u_mean = A.u[idx] + slope * ((t1 + t2)/2 - A.t[idx])
+    u_mean = A.u[idx] + slope * ((t1 + t2) / 2 - A.t[idx])
     u_mean * (t2 - t1)
 end
 
@@ -114,23 +112,7 @@ function _integral(
 end
 
 function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
-        idx::Number,
-        t::Number)
-    A.mode == :Backward && idx > 1 && (idx -= 1)
-    idx = min(length(A.t) - 2, idx)
-    t₀ = A.t[idx]
-    t₁ = A.t[idx + 1]
-    t₂ = A.t[idx + 2]
-
-    t_sq = (t^2) / 3
-    l₀, l₁, l₂ = get_parameters(A, idx)
-    Iu₀ = l₀ * t * (t_sq - t * (t₁ + t₂) / 2 + t₁ * t₂)
-    Iu₁ = l₁ * t * (t_sq - t * (t₀ + t₂) / 2 + t₀ * t₂)
-    Iu₂ = l₂ * t * (t_sq - t * (t₀ + t₁) / 2 + t₀ * t₁)
-    return Iu₀ + Iu₁ + Iu₂
-end
-
-function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+        idx::Number, t1::Number, t2::Number)
     α, β = get_parameters(A, idx)
     uᵢ = A.u[idx]
     tᵢ = A.t[idx]
@@ -140,7 +122,19 @@ function _integral(A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, 
     Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
 end
 
-function _integral(A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+function _integral(
+        A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+    α, β = get_parameters(A, idx)
+    uᵢ = A.u[idx]
+    tᵢ = A.t[idx]
+    t1_rel = t1 - tᵢ
+    t2_rel = t2 - tᵢ
+    Δt = t2 - t1
+    Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
+end
+
+function _integral(
+        A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
     tᵢ = A.t[idx]
     tᵢ₊₁ = A.t[idx + 1]
     c₁, c₂ = get_parameters(A, idx)
@@ -153,9 +147,15 @@ function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
     integrate_cubic_polynomial(t1, t2, A.t[idx], A.u[idx], A.b[idx], A.c[idx], A.d[idx])
 end
 
-_integral(A::LagrangeInterpolation, idx::Number, t::Number) = throw(IntegralNotFoundError())
-_integral(A::BSplineInterpolation, idx::Number, t::Number) = throw(IntegralNotFoundError())
-_integral(A::BSplineApprox, idx::Number, t::Number) = throw(IntegralNotFoundError())
+function _integral(A::LagrangeInterpolation, idx::Number, t1::Number, t2::Number)
+    throw(IntegralNotFoundError())
+end
+function _integral(A::BSplineInterpolation, idx::Number, t1::Number, t2::Number)
+    throw(IntegralNotFoundError())
+end
+function _integral(A::BSplineApprox, idx::Number, t1::Number, t2::Number)
+    throw(IntegralNotFoundError())
+end
 
 # Cubic Hermite Spline
 function _integral(
@@ -169,14 +169,11 @@ end
 
 # Quintic Hermite Spline
 function _integral(
-        A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t::Number)
-    Δt₀ = t - A.t[idx]
-    Δt₁ = t - A.t[idx + 1]
-    out = Δt₀ * (A.u[idx] + A.du[idx] * Δt₀ / 2 + A.ddu[idx] * Δt₀^2 / 6)
+        A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+    tᵢ = A.t[idx]
+    tᵢ₊₁ = A.t[idx + 1]
+    Δt = tᵢ₊₁ - tᵢ
     c₁, c₂, c₃ = get_parameters(A, idx)
-    p = c₁ + c₂ * Δt₁ + c₃ * Δt₁^2
-    dp = c₂ + 2c₃ * Δt₁
-    ddp = 2c₃
-    out += Δt₀^4 / 4 * (p - Δt₀ / 5 * dp + Δt₀^2 / 30 * ddp)
-    out
+    integrate_quintic_polynomial(t1, t2, tᵢ, A.u[idx], A.du[idx], A.ddu[idx] / 2,
+        c₁ + Δt * (-c₂ + c₃ * Δt), c₂ - 2c₃ * Δt, c₃)
 end

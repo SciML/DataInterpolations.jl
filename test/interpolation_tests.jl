@@ -12,7 +12,7 @@ function test_interpolation_type(T)
     @test hasfield(T, :extrapolation_down)
     @test hasfield(T, :iguesser)
     @test !isempty(methods(DataInterpolations._interpolate, (T, Any, Number)))
-    @test !isempty(methods(DataInterpolations._integral, (T, Any, Number)))
+    @test !isempty(methods(DataInterpolations._integral, (T, Number, Number, Number)))
     @test !isempty(methods(DataInterpolations._derivative, (T, Any, Number)))
 end
 

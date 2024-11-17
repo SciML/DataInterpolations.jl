@@ -191,8 +191,8 @@ end
 
 function cumulative_integral(A, cache_parameters)
     if cache_parameters && hasmethod(_integral, Tuple{typeof(A), Number, Number, Number})
-        integral_values = _integral.(Ref(A), 1:(length(A.t) - 1), A.t[1:end-1], A.t[2:end])
-        pushfirst!(integral_values, zero(first(integral_values)))
+        integral_values = _integral.(
+            Ref(A), 1:(length(A.t) - 1), A.t[1:(end - 1)], A.t[2:end])
         cumsum(integral_values)
     else
         promote_type(eltype(A.u), eltype(A.t))[]
@@ -209,9 +209,9 @@ end
 
 function get_parameters(A::QuadraticInterpolation, idx)
     if A.cache_parameters
-        A.p.l₀[idx], A.p.l₁[idx], A.p.l₂[idx]
+        A.p.α[idx], A.p.β[idx]
     else
-        quadratic_interpolation_parameters(A.u, A.t, idx)
+        quadratic_interpolation_parameters(A.u, A.t, idx, A.mode)
     end
 end
 
@@ -289,4 +289,17 @@ function integrate_cubic_polynomial(t1, t2, offset, a, b, c, d)
     t_sq_sum = t1_rel^2 + t2_rel^2
     Δt = t2 - t1
     Δt * (a + t_sum * (b / 2 + d * t_sq_sum / 4) + c * (t_sq_sum + t1_rel * t2_rel) / 3)
+end
+
+function integrate_quintic_polynomial(t1, t2, offset, a, b, c, d, e, f)
+    t1_rel = t1 - offset
+    t2_rel = t2 - offset
+    t_sum = t1_rel + t2_rel
+    t_sq_sum = t1_rel^2 + t2_rel^2
+    t_cb_sum = t1_rel^3 + t2_rel^3
+    Δt = t2 - t1
+    cube_diff_factor = t_sq_sum + t1_rel * t2_rel
+    Δt * (a + t_sum * (b / 2 + d * t_sq_sum / 4) +
+     cube_diff_factor * (c / 3 + f * t_cb_sum / 6)) +
+    e * (t2_rel^5 - t1_rel^5) / 5
 end
