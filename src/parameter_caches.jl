@@ -60,15 +60,15 @@ function quadratic_interpolation_parameters(u, t, idx, mode)
     end
 
     t₀ = t[idx]
-    u₀ = u isa AbstractMatrix ? u[:, idx] : u[idx]
+    u₀ = u isa AbstractMatrix ? view(u, :, idx) : u[idx]
 
     t₁ = t[idx + 1]
-    u₁ = u isa AbstractMatrix ? u[:, idx + 1] : u[idx + 1]
+    u₁ = u isa AbstractMatrix ? view(u, :, idx + 1) : u[idx + 1]
 
     t₂, u₂ = if mode == :Backward
-        t[idx - 1], u isa AbstractMatrix ? u[:, idx - 1] : u[idx - 1]
+        t[idx - 1], u isa AbstractMatrix ? view(u, :, idx - 1) : u[idx - 1]
     else
-        t[idx + 2], u isa AbstractMatrix ? u[:, idx + 2] : u[idx + 2]
+        t[idx + 2], u isa AbstractMatrix ? view(u, :, idx + 2) : u[idx + 2]
     end
 
     Δt₁ = t₁ - t₀

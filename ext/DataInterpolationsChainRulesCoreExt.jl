@@ -88,14 +88,17 @@ function u_tangent(A::QuadraticInterpolation, t, Δ)
     Δt₀ = t₁ - t₀
     Δt₁ = t₂ - t₁
     Δt₂ = t₂ - t₀
+    Δt_rel₀ = t - A.t[i₀]
+    Δt_rel₁ = t - A.t[i₁]
+    Δt_rel₂ = t - A.t[i₂]
     if eltype(out) <: Number
-        out[i₀] = Δ * (t - A.t[i₁]) * (t - A.t[i₂]) / (Δt₀ * Δt₂)
-        out[i₁] = -Δ * (t - A.t[i₀]) * (t - A.t[i₂]) / (Δt₀ * Δt₁)
-        out[i₂] = Δ * (t - A.t[i₀]) * (t - A.t[i₁]) / (Δt₂ * Δt₁)
+        out[i₀] = Δ * Δt_rel₁ * Δt_rel₂ / (Δt₀ * Δt₂)
+        out[i₁] = -Δ * Δt_rel₀ * Δt_rel₂ / (Δt₀ * Δt₁)
+        out[i₂] = Δ * Δt_rel₀ * Δt_rel₁ / (Δt₂ * Δt₁)
     else
-        @. out[i₀] = Δ * (t - A.t[i₁]) * (t - A.t[i₂]) / (Δt₀ * Δt₂)
-        @. out[i₁] = -Δ * (t - A.t[i₀]) * (t - A.t[i₂]) / (Δt₀ * Δt₁)
-        @. out[i₂] = Δ * (t - A.t[i₀]) * (t - A.t[i₁]) / (Δt₂ * Δt₁)
+        @. out[i₀] = Δ * Δt_rel₁ * Δt_rel₂ / (Δt₀ * Δt₂)
+        @. out[i₁] = -Δ * Δt_rel₀ * Δt_rel₂ / (Δt₀ * Δt₁)
+        @. out[i₂] = Δ * Δt_rel₀ * Δt_rel₁ / (Δt₂ * Δt₁)
     end
     out
 end
