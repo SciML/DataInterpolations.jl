@@ -64,13 +64,13 @@ function Base.showerror(io::IO, ::ExtrapolationError)
     print(io, EXTRAPOLATION_ERROR)
 end
 
-const DOWN_EXTRAPOLATION_ERROR = "Cannot extrapolate down as `extrapolation_down` keyword passed was `none`"
+const DOWN_EXTRAPOLATION_ERROR = "Cannot extrapolate down as `extrapolation_left` keyword passed was `none`"
 struct DownExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::DownExtrapolationError)
     print(io, DOWN_EXTRAPOLATION_ERROR)
 end
 
-const UP_EXTRAPOLATION_ERROR = "Cannot extrapolate up as `extrapolation_up` keyword passed was `none`"
+const UP_EXTRAPOLATION_ERROR = "Cannot extrapolate up as `extrapolation_right` keyword passed was `none`"
 struct UpExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::UpExtrapolationError)
     print(io, UP_EXTRAPOLATION_ERROR)
@@ -120,8 +120,8 @@ struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation
     λ::T2        # regularization parameter
     alg::Symbol  # how to determine λ: `:fixed`, `:gcv_svd`, `:gcv_tr`, `L_curve`
     Aitp::ITP
-    extrapolation_down::ExtrapolationType.T
-    extrapolation_up::ExtrapolationType.T
+    extrapolation_left::ExtrapolationType.T
+    extrapolation_right::ExtrapolationType.T
     function RegularizationSmooth(u,
             û,
             t,
@@ -132,8 +132,8 @@ struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation
             λ,
             alg,
             Aitp,
-            extrapolation_down,
-            extrapolation_up)
+            extrapolation_left,
+            extrapolation_right)
         N = get_output_dim(u)
         new{typeof(u), typeof(t), eltype(u), typeof(λ), N, typeof(Aitp)}(
             u,
@@ -146,8 +146,8 @@ struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation
             λ,
             alg,
             Aitp,
-            extrapolation_down,
-            extrapolation_up)
+            extrapolation_left,
+            extrapolation_right)
     end
 end
 

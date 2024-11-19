@@ -4,8 +4,7 @@ using Zygote
 
 function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name::String)
     func = method(args..., u, t, args_after...; kwargs...,
-        extrapolation_up = ExtrapolationType.extension,
-        extrapolation_down = ExtrapolationType.extension)
+        extrapolation = ExtrapolationType.extension)
     trange = collect(range(minimum(t) - 5.0, maximum(t) + 5.0, step = 0.1))
     trange_exclude = filter(x -> !in(x, t), trange)
     @testset "$name, derivatives w.r.t. input" begin
@@ -22,8 +21,7 @@ function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name
         @testset "$name, derivatives w.r.t. u" begin
             function f(u)
                 A = method(args..., u, t, args_after...; kwargs...,
-                    extrapolation_up = ExtrapolationType.extension,
-                    extrapolation_down = ExtrapolationType.extension)
+                    extrapolation = ExtrapolationType.extension)
                 out = if u isa AbstractVector{<:Real}
                     zero(eltype(u))
                 elseif u isa AbstractMatrix

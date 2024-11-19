@@ -37,14 +37,14 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T, N} <:
        AbstractIntegralInverseInterpolation{T, N}
     u::uType
     t::tType
-    extrapolation_down::ExtrapolationType.T
-    extrapolation_up::ExtrapolationType.T
+    extrapolation_left::ExtrapolationType.T
+    extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     itp::itpType
     function LinearInterpolationIntInv(u, t, A)
         N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(A), eltype(u), N}(
-            u, t, A.extrapolation_down, A.extrapolation_up, Guesser(t), A)
+            u, t, A.extrapolation_left, A.extrapolation_right, Guesser(t), A)
     end
 end
 
@@ -89,14 +89,14 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T, N} <:
        AbstractIntegralInverseInterpolation{T, N}
     u::uType
     t::tType
-    extrapolation_down::ExtrapolationType.T
-    extrapolation_up::ExtrapolationType.T
+    extrapolation_left::ExtrapolationType.T
+    extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     itp::itpType
     function ConstantInterpolationIntInv(u, t, A)
         N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(A), eltype(u), N}(
-            u, t, A.extrapolation_down, A.extrapolation_up, Guesser(t), A
+            u, t, A.extrapolation_left, A.extrapolation_right, Guesser(t), A
         )
     end
 end

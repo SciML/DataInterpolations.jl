@@ -11,8 +11,8 @@ using ForwardDiff
 function test_derivatives(method; args = [], kwargs = [], name::String)
     kwargs_extrapolation = (method == Curvefit) ?
                            [:extrapolate => true] :
-                           [:extrapolation_up => ExtrapolationType.extension,
-        :extrapolation_down => ExtrapolationType.extension]
+                           [:extrapolation_right => ExtrapolationType.extension,
+        :extrapolation_left => ExtrapolationType.extension]
     func = method(args...; kwargs..., kwargs_extrapolation...)
     (; t) = func
     trange = collect(range(minimum(t) - 5.0, maximum(t) + 5.0, step = 0.1))
@@ -241,8 +241,7 @@ end
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     test_derivatives(CubicHermiteSpline; args = [du, u, t],
         name = "Cubic Hermite Spline")
-    A = CubicHermiteSpline(du, u, t; extrapolation_up = ExtrapolationType.extension,
-        extrapolation_down = ExtrapolationType.extension)
+    A = CubicHermiteSpline(du, u, t; extrapolation = ExtrapolationType.extension)
     @test derivative.(Ref(A), t) ≈ du
     @test derivative(A, 100.0)≈0.0105409 rtol=1e-5
     @test derivative(A, 300.0)≈-0.0806717 rtol=1e-5
@@ -255,8 +254,7 @@ end
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     test_derivatives(QuinticHermiteSpline; args = [ddu, du, u, t],
         name = "Quintic Hermite Spline")
-    A = QuinticHermiteSpline(ddu, du, u, t; extrapolation_up = ExtrapolationType.extension,
-        extrapolation_down = ExtrapolationType.extension)
+    A = QuinticHermiteSpline(ddu, du, u, t; extrapolation = ExtrapolationType.extension)
     @test derivative.(Ref(A), t) ≈ du
     @test derivative.(Ref(A), t, 2) ≈ ddu
     @test derivative(A, 100.0)≈0.0103916 rtol=1e-5
@@ -335,8 +333,7 @@ end
 @testset "Jacobian tests" begin
     u = rand(5)
     t = 0:4
-    interp = LinearInterpolation(u, t, extrapolation_up = ExtrapolationType.extension,
-        extrapolation_down = ExtrapolationType.extension)
+    interp = LinearInterpolation(u, t, extrapolation = ExtrapolationType.extension)
     grad1 = ForwardDiff.derivative(interp, 2.4)
 
     myvec = rand(20) .* 4.0

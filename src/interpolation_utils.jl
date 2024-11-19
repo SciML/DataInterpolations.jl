@@ -303,3 +303,11 @@ function integrate_quintic_polynomial(t1, t2, offset, a, b, c, d, e, f)
      cube_diff_factor * (c / 3 + f * t_cb_sum / 6)) +
     e * (t2_rel^5 - t1_rel^5) / 5
 end
+
+function munge_extrapolation(extrapolation, extrapolation_left, extrapolation_right)
+    if extrapolation == ExtrapolationType.none
+        extrapolation_left, extrapolation_right
+    else
+        extrapolation, extrapolation
+    end
+end

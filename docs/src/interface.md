@@ -17,7 +17,7 @@ t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
 
 All interpolation methods return an object from which we can compute the value of the dependent variable at any time point.
 
-We will use the `CubicSpline` method for demonstration, but the API is the same for all the methods. We can also pass the `extrapolation_up = ExtrapolationType.extension` keyword if we want to allow the interpolation to go beyond the range of the timepoints in the positive `t` direction. The default value is `extrapolation_up = ExtrapolationType.none`. For more information on extrapolation see [Extrapolation methods](extrapolation_methods.md).
+We will use the `CubicSpline` method for demonstration, but the API is the same for all the methods. We can also pass the `extrapolation = ExtrapolationType.extension` keyword if we want to allow the interpolation to go beyond the range of the timepoints in the positive `t` direction. The default value is `extrapolation = ExtrapolationType.none`. For more information on extrapolation see [Extrapolation methods](extrapolation_methods.md).
 
 ```@example interface
 A1 = CubicSpline(u, t)
@@ -25,7 +25,7 @@ A1 = CubicSpline(u, t)
 # For interpolation do, A(t)
 A1(100.0)
 
-A2 = CubicSpline(u, t; extrapolation_up = ExtrapolationType.extension)
+A2 = CubicSpline(u, t; extrapolation = ExtrapolationType.extension)
 
 # Extrapolation
 A2(300.0)

@@ -3,8 +3,7 @@ using DataInterpolations: integral, derivative, invert_integral
 using FiniteDifferences
 
 function test_integral_inverses(method; args = [], kwargs = [])
-    A = method(args...; kwargs..., extrapolation_down = ExtrapolationType.extension,
-        extrapolation_up = ExtrapolationType.extension)
+    A = method(args...; kwargs..., extrapolation = ExtrapolationType.extension)
     @test hasfield(typeof(A), :I)
     A_intinv = invert_integral(A)
     @test A_intinv isa DataInterpolations.AbstractIntegralInverseInterpolation

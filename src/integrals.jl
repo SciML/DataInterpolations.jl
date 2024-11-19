@@ -63,31 +63,31 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
 end
 
 function _extrapolate_integral_down(A, t)
-    (; extrapolation_down) = A
-    if extrapolation_down == ExtrapolationType.none
+    (; extrapolation_left) = A
+    if extrapolation_left == ExtrapolationType.none
         throw(DownExtrapolationError())
-    elseif extrapolation_down == ExtrapolationType.constant
+    elseif extrapolation_left == ExtrapolationType.constant
         first(A.u) * (first(A.t) - t)
-    elseif extrapolation_down == ExtrapolationType.linear
+    elseif extrapolation_left == ExtrapolationType.linear
         slope = derivative(A, first(A.t))
         Δt = first(A.t) - t
         (first(A.u) - slope * Δt / 2) * Δt
-    elseif extrapolation_down == ExtrapolationType.extension
+    elseif extrapolation_left == ExtrapolationType.extension
         _integral(A, 1, t, first(A.t))
     end
 end
 
 function _extrapolate_integral_up(A, t)
-    (; extrapolation_up) = A
-    if extrapolation_up == ExtrapolationType.none
+    (; extrapolation_right) = A
+    if extrapolation_right == ExtrapolationType.none
         throw(UpExtrapolationError())
-    elseif extrapolation_up == ExtrapolationType.constant
+    elseif extrapolation_right == ExtrapolationType.constant
         last(A.u) * (t - last(A.t))
-    elseif extrapolation_up == ExtrapolationType.linear
+    elseif extrapolation_right == ExtrapolationType.linear
         slope = derivative(A, last(A.t))
         Δt = t - last(A.t)
         (last(A.u) + slope * Δt / 2) * Δt
-    elseif extrapolation_up == ExtrapolationType.extension
+    elseif extrapolation_right == ExtrapolationType.extension
         _integral(A, length(A.t) - 1, last(A.t), t)
     end
 end

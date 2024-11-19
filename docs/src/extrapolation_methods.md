@@ -13,7 +13,7 @@ A = QuadraticSpline(u, t)
 plot(A)
 ```
 
-Extrapolation behavior can be set for `t` beyond the data in the negative and positive direction separately with the `extrapolation_down` and `extrapolation_up` keywords of the interpolation constructors respectively.
+Extrapolation behavior can be set left and right of the data simultaneously with the `extension` keyword, or left and right separately with the `extension_left` and `extension_right` keywords respectively.
 
 ## `ExtrapolationType.none`
 
@@ -24,8 +24,7 @@ This extrapolation type will throw an error when the input `t` is beyond the dat
 This extrapolation type extends the interpolation with the boundary values of the data `u`.
 
 ```@example tutorial
-A = QuadraticSpline(u, t; extrapolation_down = ExtrapolationType.constant,
-    extrapolation_up = ExtrapolationType.constant)
+A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.constant)
 plot(A)
 plot!(t_eval_down, A.(t_eval_down); label = "extrapolation down")
 plot!(t_eval_up, A.(t_eval_up); label = "extrapolation up")
@@ -36,8 +35,7 @@ plot!(t_eval_up, A.(t_eval_up); label = "extrapolation up")
 This extrapolation type extends the interpolation with a linear continuation of the interpolation, making it $C^1$ smooth at the data boundaries.
 
 ```@example tutorial
-A = QuadraticSpline(u, t; extrapolation_down = ExtrapolationType.linear,
-    extrapolation_up = ExtrapolationType.linear)
+A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.linear)
 plot(A)
 plot!(t_eval_down, A.(t_eval_down); label = "extrapolation down")
 plot!(t_eval_up, A.(t_eval_up); label = "extrapolation up")
@@ -48,8 +46,7 @@ plot!(t_eval_up, A.(t_eval_up); label = "extrapolation up")
 This extrapolation type extends the interpolation with a continuation of the expression for the interpolation at the boundary intervals for maximum smoothness.
 
 ```@example tutorial
-A = QuadraticSpline(u, t; extrapolation_down = ExtrapolationType.extension,
-    extrapolation_up = ExtrapolationType.extension)
+A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.extension)
 plot(A)
 plot!(t_eval_down, A.(t_eval_down); label = "extrapolation down")
 plot!(t_eval_up, A.(t_eval_up); label = "extrapolation up")

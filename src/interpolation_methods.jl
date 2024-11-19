@@ -9,33 +9,33 @@ function _interpolate(A, t)
 end
 
 function _extrapolate_down(A, t)
-    (; extrapolation_down) = A
-    if extrapolation_down == ExtrapolationType.none
+    (; extrapolation_left) = A
+    if extrapolation_left == ExtrapolationType.none
         throw(DownExtrapolationError())
-    elseif extrapolation_down == ExtrapolationType.constant
+    elseif extrapolation_left == ExtrapolationType.constant
         slope = derivative(A, first(A.t))
         first(A.u) + slope * zero(t)
-    elseif extrapolation_down == ExtrapolationType.linear
+    elseif extrapolation_left == ExtrapolationType.linear
         slope = derivative(A, first(A.t))
         first(A.u) + slope * (t - first(A.t))
     else
-        # extrapolation_down == ExtrapolationType.extension
+        # extrapolation_left == ExtrapolationType.extension
         _interpolate(A, t, A.iguesser)
     end
 end
 
 function _extrapolate_up(A, t)
-    (; extrapolation_up) = A
-    if extrapolation_up == ExtrapolationType.none
+    (; extrapolation_right) = A
+    if extrapolation_right == ExtrapolationType.none
         throw(UpExtrapolationError())
-    elseif extrapolation_up == ExtrapolationType.constant
+    elseif extrapolation_right == ExtrapolationType.constant
         slope = derivative(A, last(A.t))
         last(A.u) + slope * zero(t)
-    elseif extrapolation_up == ExtrapolationType.linear
+    elseif extrapolation_right == ExtrapolationType.linear
         slope = derivative(A, last(A.t))
         last(A.u) + slope * (t - last(A.t))
     else
-        # extrapolation_up == ExtrapolationType.extension
+        # extrapolation_right == ExtrapolationType.extension
         _interpolate(A, t, A.iguesser)
     end
 end
