@@ -176,9 +176,9 @@ end
     @test A(-1.0) == -2.0
     @test A(11.0) == 22.0
     A = LinearInterpolation(u, t)
-    @test_throws DataInterpolations.DownExtrapolationError A(-1.0)
-    @test_throws DataInterpolations.UpExtrapolationError A(11.0)
-    @test_throws DataInterpolations.DownExtrapolationError A([-1.0, 11.0])
+    @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
+    @test_throws DataInterpolations.RightExtrapolationError A(11.0)
+    @test_throws DataInterpolations.LeftExtrapolationError A([-1.0, 11.0])
 end
 
 @testset "Quadratic Interpolation" begin
@@ -275,8 +275,8 @@ end
     @test A(0.0) == -4.5
     @test A(5.0) == -7.5
     A = QuadraticInterpolation(u, t)
-    @test_throws DataInterpolations.DownExtrapolationError A(0.0)
-    @test_throws DataInterpolations.UpExtrapolationError A(5.0)
+    @test_throws DataInterpolations.LeftExtrapolationError A(0.0)
+    @test_throws DataInterpolations.RightExtrapolationError A(5.0)
 end
 
 @testset "Lagrange Interpolation" begin
@@ -335,8 +335,8 @@ end
     @test A(0.0) == 0.0
     @test A(4.0) == 16.0
     A = LagrangeInterpolation(u, t)
-    @test_throws DataInterpolations.DownExtrapolationError A(-1.0)
-    @test_throws DataInterpolations.UpExtrapolationError A(4.0)
+    @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
+    @test_throws DataInterpolations.RightExtrapolationError A(4.0)
 end
 
 @testset "Akima Interpolation" begin
@@ -366,8 +366,8 @@ end
     @test A(-1.0) ≈ -5.0
     @test A(11.0) ≈ -3.924742268041234
     A = AkimaInterpolation(u, t)
-    @test_throws DataInterpolations.DownExtrapolationError A(-1.0)
-    @test_throws DataInterpolations.UpExtrapolationError A(11.0)
+    @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
+    @test_throws DataInterpolations.RightExtrapolationError A(11.0)
 end
 
 @testset "ConstantInterpolation" begin
@@ -496,8 +496,8 @@ end
     @test A(-1.0) == 1.0
     @test A(11.0) == 1.0
     A = ConstantInterpolation(u, t)
-    @test_throws DataInterpolations.DownExtrapolationError A(-1.0)
-    @test_throws DataInterpolations.UpExtrapolationError A(11.0)
+    @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
+    @test_throws DataInterpolations.RightExtrapolationError A(11.0)
 
     # Test extrapolation with infs with regularly spaced t
     u = [1.67e7, 1.6867e7, 1.7034e7, 1.7201e7, 1.7368e7]
@@ -549,8 +549,8 @@ end
     @test A(-2.0) == 0.0
     @test A(2.0) == 6.0
     A = QuadraticSpline(u, t)
-    @test_throws DataInterpolations.DownExtrapolationError A(-2.0)
-    @test_throws DataInterpolations.UpExtrapolationError A(2.0)
+    @test_throws DataInterpolations.LeftExtrapolationError A(-2.0)
+    @test_throws DataInterpolations.RightExtrapolationError A(2.0)
 end
 
 @testset "CubicSpline Interpolation" begin
@@ -602,8 +602,8 @@ end
     @test A(-2.0) ≈ -1.0
     @test A(2.0) ≈ 5.0
     A = CubicSpline(u, t)
-    @test_throws DataInterpolations.DownExtrapolationError A(-2.0)
-    @test_throws DataInterpolations.UpExtrapolationError A(2.0)
+    @test_throws DataInterpolations.LeftExtrapolationError A(-2.0)
+    @test_throws DataInterpolations.RightExtrapolationError A(2.0)
 
     @testset "AbstractMatrix" begin
         t = 0.1:0.1:1.0
@@ -647,8 +647,8 @@ end
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform)
-        @test_throws DataInterpolations.DownExtrapolationError A(-1.0)
-        @test_throws DataInterpolations.UpExtrapolationError A(300.0)
+        @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
+        @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
         A = BSplineInterpolation(u, t, 2, :ArcLen, :Average)
 
@@ -668,8 +668,8 @@ end
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = BSplineInterpolation(u, t, 2, :ArcLen, :Average)
-        @test_throws DataInterpolations.DownExtrapolationError A(-1.0)
-        @test_throws DataInterpolations.UpExtrapolationError A(300.0)
+        @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
+        @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
         @testset "AbstractMatrix" begin
             t = 0.1:0.1:1.0
@@ -726,8 +726,8 @@ end
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
-        @test_throws DataInterpolations.DownExtrapolationError A(-1.0)
-        @test_throws DataInterpolations.UpExtrapolationError A(300.0)
+        @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
+        @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
         @testset "AbstractMatrix" begin
             t = 0.1:0.1:1.0

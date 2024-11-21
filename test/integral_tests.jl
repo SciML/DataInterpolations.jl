@@ -49,10 +49,11 @@ function test_integral(method; args = [], kwargs = [], name::String)
         @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
     end
     func = method(args...; kwargs...)
-    @test_throws DataInterpolations.DownExtrapolationError integral(func, t[1] - 1.0)
-    @test_throws DataInterpolations.UpExtrapolationError integral(func, t[end] + 1.0)
-    @test_throws DataInterpolations.DownExtrapolationError integral(func, t[1] - 1.0, t[2])
-    @test_throws DataInterpolations.UpExtrapolationError integral(func, t[1], t[end] + 1.0)
+    @test_throws DataInterpolations.LeftExtrapolationError integral(func, t[1] - 1.0)
+    @test_throws DataInterpolations.RightExtrapolationError integral(func, t[end] + 1.0)
+    @test_throws DataInterpolations.LeftExtrapolationError integral(func, t[1] - 1.0, t[2])
+    @test_throws DataInterpolations.RightExtrapolationError integral(
+        func, t[1], t[end] + 1.0)
 end
 
 @testset "LinearInterpolation" begin

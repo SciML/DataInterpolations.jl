@@ -64,16 +64,16 @@ function Base.showerror(io::IO, ::ExtrapolationError)
     print(io, EXTRAPOLATION_ERROR)
 end
 
-const DOWN_EXTRAPOLATION_ERROR = "Cannot extrapolate down as `extrapolation_left` keyword passed was `none`"
-struct DownExtrapolationError <: Exception end
-function Base.showerror(io::IO, ::DownExtrapolationError)
-    print(io, DOWN_EXTRAPOLATION_ERROR)
+const LEFT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t < first(A.t) as the `extrapolation_left` kwarg passed was `ExtrapolationType.none`"
+struct LeftExtrapolationError <: Exception end
+function Base.showerror(io::IO, ::LeftExtrapolationError)
+    print(io, LEFT_EXTRAPOLATION_ERROR)
 end
 
-const UP_EXTRAPOLATION_ERROR = "Cannot extrapolate up as `extrapolation_right` keyword passed was `none`"
-struct UpExtrapolationError <: Exception end
-function Base.showerror(io::IO, ::UpExtrapolationError)
-    print(io, UP_EXTRAPOLATION_ERROR)
+const RIGHT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t > last(A.t) as the `extrapolation_tight` kwarg passed was `ExtrapolationType.none`"
+struct RightExtrapolationError <: Exception end
+function Base.showerror(io::IO, ::RightExtrapolationError)
+    print(io, RIGHT_EXTRAPOLATION_ERROR)
 end
 
 const INTEGRAL_NOT_FOUND_ERROR = "Cannot integrate it analytically. Please use Numerical Integration methods."

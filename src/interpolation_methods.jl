@@ -11,7 +11,7 @@ end
 function _extrapolate_down(A, t)
     (; extrapolation_left) = A
     if extrapolation_left == ExtrapolationType.none
-        throw(DownExtrapolationError())
+        throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.constant
         slope = derivative(A, first(A.t))
         first(A.u) + slope * zero(t)
@@ -27,7 +27,7 @@ end
 function _extrapolate_up(A, t)
     (; extrapolation_right) = A
     if extrapolation_right == ExtrapolationType.none
-        throw(UpExtrapolationError())
+        throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.constant
         slope = derivative(A, last(A.t))
         last(A.u) + slope * zero(t)

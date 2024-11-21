@@ -1,6 +1,7 @@
 """
-    LinearInterpolation(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
+    LinearInterpolation(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none, 
+    extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, 
+    cache_parameters = false)
 
 It is the method of interpolating between the data points using a linear polynomial. For any point, two data points one each side are chosen and connected with a line.
 Extrapolation extends the last linear polynomial on each side.
@@ -16,9 +17,9 @@ Extrapolation extends the last linear polynomial on each side.
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation
     computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `assume_linear_t`: boolean value to specify a faster index lookup behavior for
@@ -65,7 +66,8 @@ end
 
 """
     QuadraticInterpolation(u, t, mode = :Forward; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
+        extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, 
+        cache_parameters = false)
 
 It is the method of interpolating between the data points using quadratic polynomials. For any point, three data points nearby are taken to fit a quadratic polynomial.
 Extrapolation extends the last quadratic polynomial on each side.
@@ -82,9 +84,9 @@ Extrapolation extends the last quadratic polynomial on each side.
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
@@ -138,8 +140,8 @@ function QuadraticInterpolation(u, t; kwargs...)
 end
 
 """
-    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, safetycopy = true)
+    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolation::ExtrapolationType.T = ExtrapolationType.none, 
+    extrapolation_left::ExtrapolationType.T = ExtrapolationType.none, extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
 
 It is the method of interpolation using Lagrange polynomials of (k-1)th order passing through all the data points where k is the number of data points.
 
@@ -155,9 +157,9 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
 """
 struct LagrangeInterpolation{uType, tType, T, bcacheType, N} <:
        AbstractInterpolation{T, N}
@@ -201,7 +203,7 @@ function LagrangeInterpolation(
 end
 
 """
-    AkimaInterpolation(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
+    AkimaInterpolation(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
 
 It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: [https://en.wikipedia.org/wiki/Akima_spline](https://en.wikipedia.org/wiki/Akima_spline).
@@ -218,9 +220,9 @@ Extrapolation extends the last cubic polynomial on each side.
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
@@ -298,7 +300,7 @@ function AkimaInterpolation(
 end
 
 """
-    ConstantInterpolation(u, t; dir = :left, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
+    ConstantInterpolation(u, t; dir = :left, extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
 
 It is the method of interpolating using a constant polynomial. For any point, two adjacent data points are found on either side (left and right). The value at that point depends on `dir`.
@@ -317,9 +319,9 @@ Extrapolation extends the last constant polynomial at the end points on each sid
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
@@ -365,7 +367,7 @@ function ConstantInterpolation(
 end
 
 """
-    QuadraticSpline(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
+    QuadraticSpline(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
 
 It is a spline interpolation using piecewise quadratic polynomials between each pair of data points. Its first derivative is also continuous.
@@ -382,9 +384,9 @@ Extrapolation extends the last quadratic polynomial on each side.
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
@@ -488,7 +490,7 @@ function QuadraticSpline(
 end
 
 """
-    CubicSpline(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
+    CubicSpline(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
 
 It is a spline interpolation using piecewise cubic polynomials between each pair of data points. Its first and second derivative is also continuous.
@@ -505,9 +507,9 @@ Second derivative on both ends are zero, which are also called "natural" boundar
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
@@ -655,8 +657,8 @@ function CubicSpline(
 end
 
 """
-    BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, safetycopy = true)
+    BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
 
 It is a curve defined by the linear combination of `n` basis functions of degree `d` where `n` is the number of data points. For more information, refer [https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html](https://pages.mtu.edu/%7Eshene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html).
 Extrapolation is a constant polynomial of the end points on each side.
@@ -675,10 +677,10 @@ Extrapolation is a constant polynomial of the end points on each side.
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behavior for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
@@ -885,7 +887,7 @@ function BSplineInterpolation(
 end
 
 """
-    BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
+    BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
 
 It is a regression based B-spline. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h < length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing.
@@ -907,9 +909,9 @@ Extrapolation is a constant polynomial of the end points on each side.
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
@@ -1164,7 +1166,7 @@ function BSplineApprox(
         extrapolation_left, extrapolation_right, assume_linear_t)
 end
 """
-    CubicHermiteSpline(du, u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
+    CubicHermiteSpline(du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
 
 It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomial such that the value and the first derivative are equal to given values in the data points.
@@ -1181,9 +1183,9 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
@@ -1232,8 +1234,8 @@ function CubicHermiteSpline(
 end
 
 """
-    PCHIPInterpolation(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, safetycopy = true)
+    PCHIPInterpolation(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
 
 It is a PCHIP Interpolation, which is a type of [`CubicHermiteSpline`](@ref) where the derivative values `du` are derived from the input data
 in such a way that the interpolation never overshoots the data. See [here](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf),
@@ -1250,9 +1252,9 @@ section 3.4 for more details.
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
@@ -1267,7 +1269,7 @@ end
 
 """
     QuinticHermiteSpline(ddu, du, u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, safetycopy = true)
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
 
 It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polynomial such that the value and the first and second derivative are equal to given values in the data points.
 
@@ -1284,9 +1286,9 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
     are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
     `ExtrapolationType.linear` and `ExtrapolationType.extension`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options.
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified

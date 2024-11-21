@@ -76,8 +76,9 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
         @test_throws DataInterpolations.ExtrapolationError derivative(func, t[1] - 1.0)
         @test_throws DataInterpolations.ExtrapolationError derivative(func, t[end] + 1.0)
     else
-        @test_throws DataInterpolations.DownExtrapolationError derivative(func, t[1] - 1.0)
-        @test_throws DataInterpolations.UpExtrapolationError derivative(func, t[end] + 1.0)
+        @test_throws DataInterpolations.LeftExtrapolationError derivative(func, t[1] - 1.0)
+        @test_throws DataInterpolations.RightExtrapolationError derivative(
+            func, t[end] + 1.0)
     end
     @test_throws DataInterpolations.DerivativeNotFoundError derivative(
         func, t[1], 3)

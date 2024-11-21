@@ -17,7 +17,7 @@ function _extrapolate_derivative_down(A, t, order)
     (; extrapolation_left) = A
     typed_zero = zero(first(A.u) / one(A.t[1]))
     if extrapolation_left == ExtrapolationType.none
-        throw(DownExtrapolationError())
+        throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.constant
         typed_zero
     elseif extrapolation_left == ExtrapolationType.linear
@@ -36,7 +36,7 @@ function _extrapolate_derivative_up(A, t, order)
     (; extrapolation_right) = A
     typed_zero = zero(first(A.u) / one(A.t[1]))
     if extrapolation_right == ExtrapolationType.none
-        throw(UpExtrapolationError())
+        throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.constant
         typed_zero
     elseif extrapolation_right == ExtrapolationType.linear

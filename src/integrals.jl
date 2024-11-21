@@ -65,7 +65,7 @@ end
 function _extrapolate_integral_down(A, t)
     (; extrapolation_left) = A
     if extrapolation_left == ExtrapolationType.none
-        throw(DownExtrapolationError())
+        throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.constant
         first(A.u) * (first(A.t) - t)
     elseif extrapolation_left == ExtrapolationType.linear
@@ -80,7 +80,7 @@ end
 function _extrapolate_integral_up(A, t)
     (; extrapolation_right) = A
     if extrapolation_right == ExtrapolationType.none
-        throw(UpExtrapolationError())
+        throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.constant
         last(A.u) * (t - last(A.t))
     elseif extrapolation_right == ExtrapolationType.linear

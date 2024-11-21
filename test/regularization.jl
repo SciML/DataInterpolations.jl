@@ -184,7 +184,7 @@ end
         uₒ, tₒ; alg = :fixed, extrapolation_right = ExtrapolationType.extension)
     @test A(10.0) == A.Aitp(10.0)
     A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
-    @test_throws DataInterpolations.UpExtrapolationError A(10.0)
+    @test_throws DataInterpolations.RightExtrapolationError A(10.0)
 end
 
 @testset "Type inference" begin

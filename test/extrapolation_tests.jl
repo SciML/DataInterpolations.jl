@@ -5,8 +5,8 @@ function test_extrapolation_errors(method, u, t)
     @test A.extrapolation_right == ExtrapolationType.none
     @test A.extrapolation_left == ExtrapolationType.none
     for (error_type, t_eval) in zip(
-        (DataInterpolations.DownExtrapolationError,
-            DataInterpolations.UpExtrapolationError),
+        (DataInterpolations.LeftExtrapolationError,
+            DataInterpolations.RightExtrapolationError),
         (first(t) - 1, last(t) + 1))
         @test_throws error_type A(t_eval)
         @test_throws error_type DataInterpolations.derivative(
