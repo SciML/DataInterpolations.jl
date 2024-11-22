@@ -316,6 +316,7 @@ function transformation_periodic(A, t)
     Δt = last(A.t) - first(A.t)
     n, t_ = fldmod(t - first(A.t), Δt)
     t_ += first(A.t)
+    (n > 0) && (n -= 1)
     t_, n
 end
 
@@ -323,5 +324,6 @@ function transformation_reflective(A, t)
     Δt = last(A.t) - first(A.t)
     n, t_ = fldmod(t - first(A.t), Δt)
     t_ = isodd(n) ? last(A.t) - t_ : first(A.t) + t_
+    (n > 0) && (n -= 1)
     t_, n
 end

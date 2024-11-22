@@ -74,6 +74,25 @@ function _extrapolate_integral_down(A, t)
         (first(A.u) - slope * Δt / 2) * Δt
     elseif extrapolation_left == ExtrapolationType.extension
         _integral(A, 1, t, first(A.t))
+    elseif extrapolation_left == ExtrapolationType.periodic
+        t_, n = transformation_periodic(A, t)
+        out = -integral(A, t_)
+        if !iszero(n)
+            out -= n * integral(A, first(A.t), last(A.t))
+        end
+        out
+    else
+        # extrapolation_left == ExtrapolationType.reflective
+        t_, n = transformation_reflective(A, t)
+        out = if isodd(n)
+            -integral(A, t_, last(A.t))
+        else
+            -integral(A, t_)
+        end
+        if !iszero(n)
+            out -= n * integral(A, first(A.t), last(A.t))
+        end
+        out
     end
 end
 
@@ -89,6 +108,25 @@ function _extrapolate_integral_up(A, t)
         (last(A.u) + slope * Δt / 2) * Δt
     elseif extrapolation_right == ExtrapolationType.extension
         _integral(A, length(A.t) - 1, last(A.t), t)
+    elseif extrapolation_right == ExtrapolationType.periodic
+        t_, n = transformation_periodic(A, t)
+        out = integral(A, first(A.t), t_)
+        if !iszero(n)
+            out += n * integral(A, first(A.t), last(A.t))
+        end
+        out
+    else
+        # extrapolation_right == ExtrapolationType.reflective
+        t_, n = transformation_reflective(A, t)
+        out = if iseven(n)
+            integral(A, t_, last(A.t))
+        else
+            integral(A, t_)
+        end
+        if !iszero(n)
+            out += n * integral(A, first(A.t), last(A.t))
+        end
+        out
     end
 end
 
