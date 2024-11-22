@@ -22,13 +22,19 @@ function _extrapolate_derivative_down(A, t, order)
         typed_zero
     elseif extrapolation_left == ExtrapolationType.linear
         (order == 1) ? derivative(A, first(A.t)) : typed_zero
-    else
-        # extrapolation_left == ExtrapolationType.extension
+    elseif extrapolation_left == ExtrapolationType.extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
                 _derivative(A, t, iguess)
             end, t)
+    elseif extrapolation_left == ExtrapolationType.periodic
+        t_, _ = transformation_periodic(A, t)
+        derivative(A, t_, order)
+    else
+        # extrapolation_left == ExtrapolationType.reflective
+        t_, _ = transformation_reflective(A, t)
+        derivative(A, t_, order)
     end
 end
 
@@ -41,13 +47,19 @@ function _extrapolate_derivative_up(A, t, order)
         typed_zero
     elseif extrapolation_right == ExtrapolationType.linear
         (order == 1) ? derivative(A, last(A.t)) : typed_zero
-    else
-        # extrapolation_right == ExtrapolationType.extension
+    elseif extrapolation_right == ExtrapolationType.extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
                 _derivative(A, t, iguess)
             end, t)
+    elseif extrapolation_right == ExtrapolationType.periodic
+        t_, _ = transformation_periodic(A, t)
+        derivative(A, t_, order)
+    else
+        # extrapolation_right == ExtrapolationType.reflective
+        t_, _ = transformation_reflective(A, t)
+        derivative(A, t_, order)
     end
 end
 
