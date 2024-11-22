@@ -49,7 +49,7 @@ function _extrapolate_up(A, t)
         # extrapolation_right == ExtrapolationType.reflective
         t_, _ = transformation_reflective(A, t)
         _interpolate(A, t_, A.iguesser)
-    end 
+    end
 end
 
 # Linear Interpolation

@@ -52,7 +52,10 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
 
     # Complete intervals
     if A.cache_parameters
-        total += A.I[idx2] - A.I[idx1 + 1]
+        total += A.I[idx2 - 1]
+        if idx1 > 0
+            total -= A.I[idx1]
+        end
     else
         for idx in (idx1 + 1):(idx2 - 1)
             total += _integral(A, idx, A.t[idx], A.t[idx + 1])

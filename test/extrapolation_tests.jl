@@ -1,43 +1,53 @@
-using DataInterpolations
+using DataInterpolations, Test
+using ForwardDiff
+using QuadGK
 
-function test_extrapolation_errors(method, u, t)
-    A = method(u, t)
-    @test A.extrapolation_right == ExtrapolationType.none
-    @test A.extrapolation_left == ExtrapolationType.none
-    for (error_type, t_eval) in zip(
-        (DataInterpolations.LeftExtrapolationError,
-            DataInterpolations.RightExtrapolationError),
-        (first(t) - 1, last(t) + 1))
-        @test_throws error_type A(t_eval)
-        @test_throws error_type DataInterpolations.derivative(
-            A, t_eval)
-        @test_throws error_type DataInterpolations.derivative(
-            A, t_eval, 2)
-        @test_throws error_type DataInterpolations.integral(
-            A, t_eval)
+function test_extrapolation(method, u, t)
+    @testset "Extrapolation errors" begin
+        A = method(u, t)
+        @test A.extrapolation_right == ExtrapolationType.none
+        @test A.extrapolation_left == ExtrapolationType.none
+        for (error_type, t_eval) in zip(
+            (DataInterpolations.LeftExtrapolationError,
+                DataInterpolations.RightExtrapolationError),
+            (first(t) - 1, last(t) + 1))
+            @test_throws error_type A(t_eval)
+            @test_throws error_type DataInterpolations.derivative(
+                A, t_eval)
+            @test_throws error_type DataInterpolations.derivative(
+                A, t_eval, 2)
+            @test_throws error_type DataInterpolations.integral(
+                A, t_eval)
+        end
     end
-end
 
-function test_constant_extrapolation(method, u, t)
-    A = method(u, t; extrapolation_left = ExtrapolationType.constant,
-        extrapolation_right = ExtrapolationType.constant)
-    t_lower = first(t) - 1
-    t_upper = last(t) + 1
-    @test A(t_lower) == first(u)
-    @test A(t_upper) == last(u)
-    @test DataInterpolations.derivative(A, t_lower) == 0
-    @test DataInterpolations.derivative(A, t_upper) == 0
-    @test DataInterpolations.integral(A, t_lower, first(t)) ≈
-          first(u) * (first(t) - t_lower)
-    @test DataInterpolations.integral(A, last(t), t_upper) ≈ last(u) * (t_upper - last(t))
+    for extrapolation_type in instances(ExtrapolationType.T)
+        (extrapolation_type == ExtrapolationType.none) && continue
+        @testset "extrapolation type $extrapolation_type" begin
+            A = method(u, t; extrapolation = extrapolation_type)
+
+            t_eval = first(t) - 1.5
+            @test DataInterpolations.derivative(A, t_eval) ≈
+                  ForwardDiff.derivative(A, t_eval)
+
+            t_eval = last(t) + 1.5
+            @test DataInterpolations.derivative(A, t_eval) ≈
+                  ForwardDiff.derivative(A, t_eval)
+
+            T = last(A.t) - first(A.t)
+            t1 = first(t) - 2.5T
+            t2 = last(t) + 3.5T
+            @test DataInterpolations.integral(A, t1, t2) ≈
+                  quadgk(A, t1, t2; atol = 1e-12, rtol = 1e-12)[1]
+        end
+    end
 end
 
 @testset "Linear Interpolation" begin
     u = [1.0, 2.0]
     t = [1.0, 2.0]
 
-    test_extrapolation_errors(LinearInterpolation, u, t)
-    test_constant_extrapolation(LinearInterpolation, u, t)
+    test_extrapolation(LinearInterpolation, u, t)
 
     for extrapolation_type in [ExtrapolationType.linear, ExtrapolationType.extension]
         # Down extrapolation
@@ -64,8 +74,7 @@ end
     u = [1.0, 3.0, 2.0]
     t = 1:3
 
-    test_extrapolation_errors(QuadraticInterpolation, u, t)
-    test_constant_extrapolation(LinearInterpolation, u, t)
+    test_extrapolation(QuadraticInterpolation, u, t)
 
     # Linear down extrapolation
     A = QuadraticInterpolation(u, t; extrapolation_left = ExtrapolationType.linear)

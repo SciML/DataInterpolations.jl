@@ -60,7 +60,7 @@ this extrapolation type extends the interpolation such that `A(t + T) == A(t)` f
 T = last(A.t) - first(A.t)
 t_eval_left = range(first(t) - 2T, first(t), length = 100)
 t_eval_right = range(last(t), last(t) + 2T, length = 100)
-A = QuadraticSpline(u,t; extrapolation = ExtrapolationType.periodic)
+A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.periodic)
 plot(A)
 plot!(t_eval_left, A.(t_eval_left); label = "extrapolation down")
 plot!(t_eval_right, A.(t_eval_right); label = "extrapolation up")
@@ -71,7 +71,7 @@ plot!(t_eval_right, A.(t_eval_right); label = "extrapolation up")
 this extrapolation type extends the interpolation such that `A(t_ + t) == A(t_ - t)` for all `t_, t` such that `(t_ - first(A.t)) % T == 0` and `0 < t < T`, where `T = last(A.t) - first(A.t)`.
 
 ```@example tutorial
-A = QuadraticSpline(u,t; extrapolation = ExtrapolationType.reflective)
+A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.reflective)
 plot(A)
 plot!(t_eval_left, A.(t_eval_left); label = "extrapolation down")
 plot!(t_eval_right, A.(t_eval_right); label = "extrapolation up")

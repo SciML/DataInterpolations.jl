@@ -33,8 +33,8 @@ function _extrapolate_derivative_down(A, t, order)
         derivative(A, t_, order)
     else
         # extrapolation_left == ExtrapolationType.reflective
-        t_, _ = transformation_reflective(A, t)
-        derivative(A, t_, order)
+        t_, n = transformation_reflective(A, t)
+        isodd(n) ? -derivative(A, t_, order) : derivative(A, t_, order)
     end
 end
 
@@ -58,8 +58,8 @@ function _extrapolate_derivative_up(A, t, order)
         derivative(A, t_, order)
     else
         # extrapolation_right == ExtrapolationType.reflective
-        t_, _ = transformation_reflective(A, t)
-        derivative(A, t_, order)
+        t_, n = transformation_reflective(A, t)
+        iseven(n) ? -derivative(A, t_, order) : derivative(A, t_, order)
     end
 end
 
