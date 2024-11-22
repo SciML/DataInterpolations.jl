@@ -18,9 +18,15 @@ function _extrapolate_down(A, t)
     elseif extrapolation_left == ExtrapolationType.linear
         slope = derivative(A, first(A.t))
         first(A.u) + slope * (t - first(A.t))
-    else
-        # extrapolation_left == ExtrapolationType.extension
+    elseif extrapolation_left == ExtrapolationType.extension
         _interpolate(A, t, A.iguesser)
+    elseif extrapolation_left == ExtrapolationType.periodic
+        t_, _ = transformation_periodic(A, t)
+        _interpolate(A, t_, A.iguesser)
+    else
+        # extrapolation_left == ExtrapolationType.reflective
+        t_, _ = transformation_reflective(A, t)
+        _interpolate(A, t_, A.iguesser)
     end
 end
 
@@ -34,10 +40,16 @@ function _extrapolate_up(A, t)
     elseif extrapolation_right == ExtrapolationType.linear
         slope = derivative(A, last(A.t))
         last(A.u) + slope * (t - last(A.t))
-    else
-        # extrapolation_right == ExtrapolationType.extension
+    elseif extrapolation_right == ExtrapolationType.extension
         _interpolate(A, t, A.iguesser)
-    end
+    elseif extrapolation_right == ExtrapolationType.periodic
+        t_, _ = transformation_periodic(A, t)
+        _interpolate(A, t_, A.iguesser)
+    else
+        # extrapolation_right == ExtrapolationType.reflective
+        t_, _ = transformation_reflective(A, t)
+        _interpolate(A, t_, A.iguesser)
+    end 
 end
 
 # Linear Interpolation

@@ -311,3 +311,17 @@ function munge_extrapolation(extrapolation, extrapolation_left, extrapolation_ri
         extrapolation, extrapolation
     end
 end
+
+function transformation_periodic(A, t)
+    Δt = last(A.t) - first(A.t)
+    n, t_ = fldmod(t - first(A.t), Δt)
+    t_ += first(A.t)
+    t_, n
+end
+
+function transformation_reflective(A, t)
+    Δt = last(A.t) - first(A.t)
+    n, t_ = fldmod(t - first(A.t), Δt)
+    t_ = isodd(n) ? last(A.t) - t_ : first(A.t) + t_
+    t_, n
+end

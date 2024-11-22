@@ -11,7 +11,7 @@ using EnumX
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            Guesser
 
-@enumx ExtrapolationType none constant linear extension
+@enumx ExtrapolationType none constant linear extension periodic reflective
 
 include("parameter_caches.jl")
 include("interpolation_caches.jl")
