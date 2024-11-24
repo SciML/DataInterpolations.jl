@@ -7,8 +7,8 @@ using DataInterpolations, Plots
 
 u = [0.86, 0.65, 0.44, 0.76, 0.73]
 t = [0.0022, 0.68, 1.41, 2.22, 2.46]
-t_eval_down = range(-1, first(t), length = 25)
-t_eval_up = range(last(t), 3.5, length = 25)
+t_eval_left = range(-1, first(t), length = 25)
+t_eval_right = range(last(t), 3.5, length = 25)
 A = QuadraticSpline(u, t)
 plot(A)
 ```
@@ -26,8 +26,8 @@ This extrapolation type extends the interpolation with the boundary values of th
 ```@example tutorial
 A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.constant)
 plot(A)
-plot!(t_eval_down, A.(t_eval_down); label = "extrapolation down")
-plot!(t_eval_up, A.(t_eval_up); label = "extrapolation up")
+plot!(t_eval_left, A.(t_eval_left); label = "extrapolation left")
+plot!(t_eval_right, A.(t_eval_right); label = "extrapolation right")
 ```
 
 ## `ExtrapolationType.linear`
@@ -37,8 +37,8 @@ This extrapolation type extends the interpolation with a linear continuation of 
 ```@example tutorial
 A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.linear)
 plot(A)
-plot!(t_eval_down, A.(t_eval_down); label = "extrapolation down")
-plot!(t_eval_up, A.(t_eval_up); label = "extrapolation up")
+plot!(t_eval_left, A.(t_eval_left); label = "extrapolation left")
+plot!(t_eval_right, A.(t_eval_right); label = "extrapolation right")
 ```
 
 ## `ExtrapolationType.extension`
@@ -48,8 +48,8 @@ This extrapolation type extends the interpolation with a continuation of the exp
 ```@example tutorial
 A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.extension)
 plot(A)
-plot!(t_eval_down, A.(t_eval_down); label = "extrapolation down")
-plot!(t_eval_up, A.(t_eval_up); label = "extrapolation up")
+plot!(t_eval_left, A.(t_eval_left); label = "extrapolation left")
+plot!(t_eval_right, A.(t_eval_right); label = "extrapolation right")
 ```
 
 ## Mixed extrapolation
@@ -60,6 +60,6 @@ You can also have different extrapolation types left and right of the data.
 A = QuadraticSpline(u, t; extrapolation_left = ExtrapolationType.constant,
     extrapolation_right = ExtrapolationType.linear)
 plot(A)
-plot!(t_eval_down, A.(t_eval_down); label = "extrapolation down")
-plot!(t_eval_up, A.(t_eval_up); label = "extrapolation up")
+plot!(t_eval_left, A.(t_eval_left); label = "extrapolation left")
+plot!(t_eval_right, A.(t_eval_right); label = "extrapolation right")
 ```

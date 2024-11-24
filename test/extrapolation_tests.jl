@@ -40,7 +40,7 @@ end
     test_constant_extrapolation(LinearInterpolation, u, t)
 
     for extrapolation_type in [ExtrapolationType.linear, ExtrapolationType.extension]
-        # Down extrapolation
+        # Left extrapolation
         A = LinearInterpolation(u, t; extrapolation_left = extrapolation_type)
         t_eval = 0.0
         @test A(t_eval) == 0.0
@@ -49,7 +49,7 @@ end
         @test DataInterpolations.integral(A, t_eval) == -0.5
         t_eval = 3.0
 
-        # Up extrapolation
+        # Right extrapolation
         A = LinearInterpolation(u, t; extrapolation_right = extrapolation_type)
         t_eval = 3.0
         @test A(t_eval) == 3.0
@@ -67,7 +67,7 @@ end
     test_extrapolation_errors(QuadraticInterpolation, u, t)
     test_constant_extrapolation(LinearInterpolation, u, t)
 
-    # Linear down extrapolation
+    # Linear left extrapolation
     A = QuadraticInterpolation(u, t; extrapolation_left = ExtrapolationType.linear)
     t_eval = 0.0
     @test A(t_eval) ≈ -2.5
@@ -75,7 +75,7 @@ end
     @test DataInterpolations.derivative(A, t_eval, 2) == 0.0
     @test DataInterpolations.integral(A, t_eval) ≈ 0.75
 
-    # Linear up extrapolation
+    # Linear right extrapolation
     A = QuadraticInterpolation(u, t; extrapolation_right = ExtrapolationType.linear)
     t_eval = 4.0
     @test A(t_eval) ≈ -0.5
@@ -83,7 +83,7 @@ end
     @test DataInterpolations.derivative(A, t_eval, 2) == 0.0
     @test DataInterpolations.integral(A, t[end], t_eval) ≈ 0.75
 
-    # Extension down extrapolation
+    # Extension left extrapolation
     f = t -> (-3t^2 + 13t - 8) / 2
     df = t -> (-6t + 13) / 2
     A = QuadraticInterpolation(u, t; extrapolation_left = ExtrapolationType.extension)
@@ -93,7 +93,7 @@ end
     @test DataInterpolations.derivative(A, t_eval, 2) == -3
     @test DataInterpolations.integral(A, t_eval) ≈ 1.25
 
-    # Extension up extrapolation
+    # Extension right extrapolation
     A = QuadraticInterpolation(u, t; extrapolation_right = ExtrapolationType.extension)
     t_eval = 4.0
     @test A(t_eval) ≈ -2.0
