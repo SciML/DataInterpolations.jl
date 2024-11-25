@@ -9,9 +9,9 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
     if isnan(t)
         # For correct derivative with NaN
         idx = firstindex(A.u)
-        t1 = t2 = one(eltype(A.t))
-        u1 = u2 = one(eltype(A.u))
-        slope = t * get_parameters(A, idx)
+        t1 = t2 = oneunit(eltype(A.t))
+        u1 = u2 = oneunit(eltype(A.u))
+        slope = get_parameters(A, idx)
     else
         idx = get_idx(A, t, iguess)
         t1, t2 = A.t[idx], A.t[idx + 1]
@@ -26,6 +26,7 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
     if t == t2 && Δu_nan
         val = u2
     elseif !(iszero(Δt) && Δu_nan)
+        @info "check" val u1 Δu
         val += Δu
     end
     val = oftype(Δu, val)
