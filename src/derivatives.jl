@@ -19,6 +19,19 @@ function _derivative(A::LinearInterpolation, t::Number, iguess)
     slope
 end
 
+function _derivative(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
+
+    if (t - A.t[idx]) < d_lower
+        -2c_lower * ((t - A.t[idx]) / d_lower - 1) / d_lower
+    elseif (A.t[idx + 1] - t) < d_upper
+        2c_upper * (1 - (A.t[idx + 1] - t) / d_upper) / d_upper
+    else
+        zero(c_upper / oneunit(t))
+    end
+end
+
 function _derivative(A::QuadraticInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]

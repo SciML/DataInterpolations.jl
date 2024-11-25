@@ -146,9 +146,9 @@ function _interpolate(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Num
     out = A.u[idx]
 
     if (t - A.t[idx]) < d_lower
-        out -= c_lower * (((t - A.t[idx]) / d_lower - 1))^2
+        out -= c_lower * ((t - A.t[idx]) / d_lower - 1)^2
     elseif (A.t[idx + 1] - t) < d_upper
-        out += c_upper * ((1 - (A.t[idx + 1] - t) / d_upper))^2
+        out += c_upper * (1 - (A.t[idx + 1] - t) / d_upper)^2
     end
 
     out

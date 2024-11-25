@@ -290,7 +290,7 @@ end
         cache_parameters = false, assume_linear_t = 1e-2)
 
 It is a method for interpolating constantly with forward fill, with smoothing around the
-value transitions to make the curve C1 smooth while the integral never drifts far from 
+value transitions to make the curve C1 smooth while the integral never drifts far from
 the integral of constant interpolation.
 
 ## Arguments
@@ -300,10 +300,10 @@ the integral of constant interpolation.
 
 ## Keyword Arguments
 
-  - `d_max`: the maximum distance in `t` from the data points the smoothing is allowed to reach. 
+  - `d_max`: the maximum distance in `t` from the data points the smoothing is allowed to reach.
   - `extrapolate`: boolean value to allow extrapolation. Defaults to `false`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+  - `assume_linear_t`: boolean value to specify a faster index lookup behavior for
     evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
