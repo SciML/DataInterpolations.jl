@@ -1,9 +1,9 @@
 function derivative(A, t, order = 1)
     (order ∉ (1, 2)) && throw(DerivativeNotFoundError())
     if t < first(A.t)
-        _extrapolate_derivative_down(A, t, order)
+        _extrapolate_derivative_left(A, t, order)
     elseif t > last(A.t)
-        _extrapolate_derivative_up(A, t, order)
+        _extrapolate_derivative_right(A, t, order)
     else
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
@@ -13,16 +13,16 @@ function derivative(A, t, order = 1)
     end
 end
 
-function _extrapolate_derivative_down(A, t, order)
+function _extrapolate_derivative_left(A, t, order)
     (; extrapolation_left) = A
-    typed_zero = zero(first(A.u) / one(A.t[1]))
     if extrapolation_left == ExtrapolationType.none
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.constant
-        typed_zero
+        zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.linear
-        (order == 1) ? derivative(A, first(A.t)) : typed_zero
-    elseif extrapolation_left == ExtrapolationType.extension
+        (order == 1) ? derivative(A, first(A.t)) : zero(first(A.u) / one(A.t[1]))
+    else
+        # extrapolation_left == ExtrapolationType.extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
@@ -38,16 +38,16 @@ function _extrapolate_derivative_down(A, t, order)
     end
 end
 
-function _extrapolate_derivative_up(A, t, order)
+function _extrapolate_derivative_right(A, t, order)
     (; extrapolation_right) = A
-    typed_zero = zero(first(A.u) / one(A.t[1]))
     if extrapolation_right == ExtrapolationType.none
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.constant
-        typed_zero
+        zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_right == ExtrapolationType.linear
-        (order == 1) ? derivative(A, last(A.t)) : typed_zero
-    elseif extrapolation_right == ExtrapolationType.extension
+        (order == 1) ? derivative(A, last(A.t)) : zero(first(A.u) / one(A.t[1]))
+    else
+        # extrapolation_right == ExtrapolationType.extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin

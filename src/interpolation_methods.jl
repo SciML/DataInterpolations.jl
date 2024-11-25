@@ -1,14 +1,14 @@
 function _interpolate(A, t)
     if t < first(A.t)
-        _extrapolate_down(A, t)
+        _extrapolate_left(A, t)
     elseif t > last(A.t)
-        _extrapolate_up(A, t)
+        _extrapolate_right(A, t)
     else
         _interpolate(A, t, A.iguesser)
     end
 end
 
-function _extrapolate_down(A, t)
+function _extrapolate_left(A, t)
     (; extrapolation_left) = A
     if extrapolation_left == ExtrapolationType.none
         throw(LeftExtrapolationError())
@@ -30,7 +30,7 @@ function _extrapolate_down(A, t)
     end
 end
 
-function _extrapolate_up(A, t)
+function _extrapolate_right(A, t)
     (; extrapolation_right) = A
     if extrapolation_right == ExtrapolationType.none
         throw(RightExtrapolationError())

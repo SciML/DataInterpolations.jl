@@ -24,11 +24,11 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     if t1 < first(A.t)
         if t2 < first(A.t)
             # If interval is entirely below data
-            return _extrapolate_integral_down(A, t2) - extrapolate_integral_down(A.t1)
+            return _extrapolate_integral_left(A, t2) - extrapolate_integral_left(A.t1)
         end
 
         idx1 -= 1 # Make sure lowest complete interval is included
-        total += _extrapolate_integral_down(A, t1)
+        total += _extrapolate_integral_left(A, t1)
     else
         total += _integral(A, idx1, t1, A.t[idx1 + 1])
     end
@@ -37,11 +37,11 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     if t2 > last(A.t)
         if t1 > last(A.t)
             # If interval is entirely above data
-            return _extrapolate_integral_up(A, t2) - extrapolate_integral_up(A.t, t1)
+            return _extrapolate_integral_right(A, t2) - extrapolate_integral_right(A.t, t1)
         end
 
         idx2 += 1 # Make sure highest complete interval is included
-        total += _extrapolate_integral_up(A, t2)
+        total += _extrapolate_integral_right(A, t2)
     else
         total += _integral(A, idx2, A.t[idx2], t2)
     end
@@ -65,7 +65,7 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     return total
 end
 
-function _extrapolate_integral_down(A, t)
+function _extrapolate_integral_left(A, t)
     (; extrapolation_left) = A
     if extrapolation_left == ExtrapolationType.none
         throw(LeftExtrapolationError())
@@ -99,7 +99,7 @@ function _extrapolate_integral_down(A, t)
     end
 end
 
-function _extrapolate_integral_up(A, t)
+function _extrapolate_integral_right(A, t)
     (; extrapolation_right) = A
     if extrapolation_right == ExtrapolationType.none
         throw(RightExtrapolationError())

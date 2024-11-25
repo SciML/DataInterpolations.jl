@@ -26,8 +26,8 @@ This extrapolation type extends the interpolation with the boundary values of th
 ```@example tutorial
 A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.constant)
 plot(A)
-plot!(t_eval_left, A.(t_eval_left); label = "extrapolation down")
-plot!(t_eval_right, A.(t_eval_right); label = "extrapolation up")
+plot!(t_eval_left, A.(t_eval_left); label = "extrapolation left")
+plot!(t_eval_right, A.(t_eval_right); label = "extrapolation right")
 ```
 
 ## `ExtrapolationType.linear`
@@ -37,8 +37,8 @@ This extrapolation type extends the interpolation with a linear continuation of 
 ```@example tutorial
 A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.linear)
 plot(A)
-plot!(t_eval_left, A.(t_eval_left); label = "extrapolation down")
-plot!(t_eval_right, A.(t_eval_right); label = "extrapolation up")
+plot!(t_eval_left, A.(t_eval_left); label = "extrapolation left")
+plot!(t_eval_right, A.(t_eval_right); label = "extrapolation right")
 ```
 
 ## `ExtrapolationType.extension`
@@ -85,6 +85,6 @@ You can also have different extrapolation types left and right of the data.
 A = QuadraticSpline(u, t; extrapolation_left = ExtrapolationType.reflective,
     extrapolation_right = ExtrapolationType.periodic)
 plot(A)
-plot!(t_eval_left, A.(t_eval_left); label = "extrapolation down")
-plot!(t_eval_right, A.(t_eval_right); label = "extrapolation up")
+plot!(t_eval_left, A.(t_eval_left); label = "extrapolation left")
+plot!(t_eval_right, A.(t_eval_right); label = "extrapolation right")
 ```
