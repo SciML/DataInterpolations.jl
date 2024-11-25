@@ -26,7 +26,6 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
     if t == t2 && Δu_nan
         val = u2
     elseif !(iszero(Δt) && Δu_nan)
-        @info "check" val u1 Δu
         val += Δu
     end
     val = oftype(Δu, val)
