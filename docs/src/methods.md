@@ -77,6 +77,24 @@ A = ConstantInterpolation(u, t, dir = :right)
 plot(A)
 ```
 
+## Smoothed Constant Interpolation
+
+This function is much like the constant interpolation above, but the transition
+between consecutive values is smoothed out so that the function is continuously 
+differentiable. The smoothing is done in such a way that the integral of this function
+is never much off from the same integral of constant interpolation without smoothing (because of the symmetry of the smoothing sections).
+The maximum smoothing distance in the `t` direction from the data points can be set
+with the keyword argument `d_max`.
+
+```@example tutorial
+A = ConstantInterpolation(u, t)
+plot(A)
+A = SmoothedConstantInterpolation(u, t; d_max = 10)
+plot!(A)
+```
+
+Note that `u[end]` is ignored.
+
 ## Quadratic Spline
 
 This is the quadratic spline. It is a continuously differentiable interpolation

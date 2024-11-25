@@ -47,7 +47,7 @@ In all cases, `u` an `AbstractVector` of values and `t` is an `AbstractVector` o
 corresponding to `(u,t)` pairs.
 
   - `ConstantInterpolation(u,t)` - A piecewise constant interpolation.
-
+  - `SmoothedConstantInterpolation(u,t)` - An integral preserving continuously differentiable approximation of constant interpolation.
   - `LinearInterpolation(u,t)` - A linear interpolation.
   - `QuadraticInterpolation(u,t)` - A quadratic interpolation.
   - `LagrangeInterpolation(u,t,n)` - A Lagrange interpolation of order `n`.
