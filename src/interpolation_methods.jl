@@ -116,7 +116,7 @@ function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess
     @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
 end
 
-# ConstantInterpolation Interpolation
+# Constant Interpolation
 function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
@@ -137,6 +137,21 @@ function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, igu
         idx = get_idx(A, t, iguess; side = :first, lb = 1, ub_shift = 0)
     end
     A.u[:, idx]
+end
+
+# Smoothed constant Interpolation
+function _interpolate(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
+    out = A.u[idx]
+
+    if (t - A.t[idx]) < d_lower
+        out -= c_lower * (((t - A.t[idx]) / d_lower - 1))^2
+    elseif (A.t[idx + 1] - t) < d_upper
+        out += c_upper * ((1 - (A.t[idx + 1] - t) / d_upper))^2
+    end
+
+    out
 end
 
 # QuadraticSpline Interpolation

@@ -285,6 +285,37 @@ function ConstantInterpolation(
     ConstantInterpolation(u, t, I, dir, extrapolate, cache_parameters, assume_linear_t)
 end
 
+struct SmoothedConstantInterpolation{uType, tType, dmaxType, IType, pType, T, N} <:
+       AbstractInterpolation{T, N}
+    u::uType
+    t::tType
+    I::IType
+    p::SmoothedConstantParameterCache{uType, tType}
+    d_max::dmaxType
+    extrapolate::Bool
+    iguesser::Guesser{tType}
+    cache_parameters::Bool
+    linear_lookup::Bool
+    function SmoothedConstantInterpolation(
+            u, t, I, p, d_max, extrapolate, cache_parameters, assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
+        N = get_output_dim(u)
+        new{typeof(u), typeof(t), typeof(d_max), typeof(I), typeof(p.d), eltype(u), N}(
+            u, t, I, p, d_max, extrapolate, Guesser(t), cache_parameters, linear_lookup)
+    end
+end
+
+function SmoothedConstantInterpolation(u, t; d_max = Inf, extrapolate = false,
+        cache_parameters = false, assume_linear_t = 1e-2)
+    u, t = munge_data(u, t)
+    p = SmoothedConstantParameterCache(u, t, cache_parameters, d_max)
+    A = SmoothedConstantInterpolation(
+        u, t, nothing, p, d_max, extrapolate, cache_parameters, assume_linear_t)
+    I = cumulative_integral(A, cache_parameters)
+    SmoothedConstantInterpolation(
+        u, t, I, p, d_max, extrapolate, cache_parameters, assume_linear_t)
+end
+
 """
     QuadraticSpline(u, t; extrapolate = false, cache_parameters = false)
 

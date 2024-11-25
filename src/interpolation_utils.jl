@@ -207,6 +207,21 @@ function get_parameters(A::LinearInterpolation, idx)
     end
 end
 
+function get_parameters(A::SmoothedConstantInterpolation, idx)
+    if A.cache_parameters
+        d_lower = A.p.d[idx]
+        d_upper = A.p.d[idx + 1]
+        c_lower = A.p.c[idx]
+        c_upper = A.p.c[idx + 1]
+        d_lower, d_upper, c_lower, c_upper
+    else
+        d_lower, c_lower = smoothed_linear_interpolation_parameters(A.u, A.t, A.d_max, idx)
+        d_upper, c_upper = smoothed_linear_interpolation_parameters(
+            A.u, A.t, A.d_max, idx + 1)
+        d_lower, d_upper, c_lower, c_upper
+    end
+end
+
 function get_parameters(A::QuadraticInterpolation, idx)
     if A.cache_parameters
         A.p.α[idx], A.p.β[idx]

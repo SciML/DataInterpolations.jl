@@ -86,9 +86,10 @@ function Base.showerror(io::IO, e::IntegralNotInvertibleError)
 end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
-       AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
-       BSplineInterpolation, BSplineApprox, CubicHermiteSpline, PCHIPInterpolation,
-       QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv
+       AkimaInterpolation, ConstantInterpolation, SmoothedConstantInterpolation,
+       QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox,
+       CubicHermiteSpline, PCHIPInterpolation, QuinticHermiteSpline,
+       LinearInterpolationIntInv, ConstantInterpolationIntInv
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation

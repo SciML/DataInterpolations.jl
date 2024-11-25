@@ -32,6 +32,31 @@ function linear_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {
     return slope
 end
 
+struct SmoothedConstantParameterCache{uType, tType}
+    d::tType
+    c::uType
+end
+
+function SmoothedConstantParameterCache(u, t, cache_parameters, d_max)
+    if cache_parameters
+        parameters = smoothed_linear_interpolation_parameters.(
+            Ref(u), Ref(t), d_max, eachindex(t))
+        d, c = collect.(eachrow(stack(collect.(parameters))))
+        SmoothedConstantParameterCache(d, c)
+    else
+        SmoothedConstantParameterCache(eltype(t)[], eltype(u)[])
+    end
+end
+
+function smoothed_linear_interpolation_parameters(u, t, d_max, idx)
+    # TODO: Add support for making periodic extrapolation smooth
+    if isone(idx) || (idx == length(t))
+        zero(eltype(t)), zero(eltype(u))
+    else
+        min(t[idx] - t[idx - 1], t[idx + 1] - t[idx], 2d_max) / 2, (u[idx] - u[idx - 1]) / 2
+    end
+end
+
 struct QuadraticParameterCache{pType}
     α::pType
     β::pType
