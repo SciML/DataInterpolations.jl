@@ -21,8 +21,7 @@ function _extrapolate_derivative_left(A, t, order)
         zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.linear
         (order == 1) ? derivative(A, first(A.t)) : zero(first(A.u) / one(A.t[1]))
-    else
-        # extrapolation_left == ExtrapolationType.extension
+    elseif extrapolation_left == ExtrapolationType.extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
@@ -46,8 +45,7 @@ function _extrapolate_derivative_right(A, t, order)
         zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_right == ExtrapolationType.linear
         (order == 1) ? derivative(A, last(A.t)) : zero(first(A.u) / one(A.t[1]))
-    else
-        # extrapolation_right == ExtrapolationType.extension
+    elseif extrapolation_right == ExtrapolationType.extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
