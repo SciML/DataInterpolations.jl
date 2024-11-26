@@ -6,8 +6,8 @@ using RegularizationTools
 using StableRNGs
 
 function test_integral(method; args = [], kwargs = [], name::String)
-    func = method(args...; kwargs..., extrapolation_left = ExtrapolationType.extension,
-        extrapolation_right = ExtrapolationType.extension)
+    func = method(args...; kwargs..., extrapolation_left = ExtrapolationType.Extension,
+        extrapolation_right = ExtrapolationType.Extension)
     (; t) = func
     t1 = minimum(t)
     t2 = maximum(t)

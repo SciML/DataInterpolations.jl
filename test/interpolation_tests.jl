@@ -31,7 +31,7 @@ end
     for t in (1.0:10.0, 1.0collect(1:10))
         u = 2.0collect(1:10)
         #t = 1.0collect(1:10)
-        A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+        A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
         for (_t, _u) in zip(t, u)
             @test A(_t) == _u
@@ -41,7 +41,7 @@ end
         @test A(11) == 22
 
         u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
-        A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+        A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
         for (_t, _u) in zip(t, eachcol(u))
             @test A(_t) == _u
@@ -54,7 +54,7 @@ end
         y = 2:4
         u_ = x' .* y
         u = [u_[:, i] for i in 1:size(u_, 2)]
-        A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+        A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
         @test A(0) == [0.0, 0.0, 0.0]
         @test A(5.5) == [11.0, 16.5, 22.0]
         @test A(11) == [22.0, 33.0, 44.0]
@@ -65,7 +65,7 @@ end
     u_ = x' .* y
     u = [u_[:, i:(i + 1)] for i in 1:2:10]
     t = 1.0collect(2:2:10)
-    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
     @test A(0) == [-2.0 0.0; -3.0 0.0; -4.0 0.0]
     @test A(3) == [4.0 6.0; 6.0 9.0; 8.0 12.0]
@@ -75,7 +75,7 @@ end
     # with NaNs (#113)
     u = [NaN, 1.0, 2.0, 3.0]
     t = 1:4
-    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test isnan(A(1.0))
     @test A(2.0) == 1.0
     @test A(2.5) == 1.5
@@ -83,7 +83,7 @@ end
     @test A(4.0) == 3.0
 
     u = [0.0, NaN, 2.0, 3.0]
-    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(1.0) == 0.0
     @test isnan(A(2.0))
     @test isnan(A(2.5))
@@ -91,7 +91,7 @@ end
     @test A(4.0) == 3.0
 
     u = [0.0, 1.0, NaN, 3.0]
-    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(1.0) == 0.0
     @test A(2.0) == 1.0
     @test isnan(A(2.5))
@@ -99,7 +99,7 @@ end
     @test A(4.0) == 3.0
 
     u = [0.0, 1.0, 2.0, NaN]
-    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(1.0) == 0.0
     @test A(2.0) == 1.0
     @test A(3.0) == 2.0
@@ -109,16 +109,16 @@ end
     # Test type stability
     u = Float32.(1:5)
     t = Float32.(1:5)
-    A1 = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A1 = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     u = 1:5
     t = 1:5
-    A2 = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A2 = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     u = [1 // i for i in 1:5]
     t = (1:5)
-    A3 = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A3 = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     u = [1 // i for i in 1:5]
     t = [1 // (6 - i) for i in 1:5]
-    A4 = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A4 = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
     F32 = Float32(1)
     F64 = Float64(1)
@@ -138,13 +138,13 @@ end
     # Nan time value:
     t = 0.0:3  # Floats
     u = [0, -2, -1, -2]
-    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     dA = t -> ForwardDiff.derivative(A, t)
     @test isnan(dA(NaN))
 
     t = 0:3  # Integers
     u = [0, -2, -1, -2]
-    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     dA = t -> ForwardDiff.derivative(A, t)
     @test isnan(dA(NaN))
 
@@ -157,7 +157,7 @@ end
     # Test array-valued interpolation
     u = collect.(2.0collect(1:10))
     t = 1.0collect(1:10)
-    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(0) == fill(0.0)
     @test A(5.5) == fill(11.0)
     @test A(11) == fill(22)
@@ -172,7 +172,7 @@ end
     # Test extrapolation
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
-    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(-1.0) == -2.0
     @test A(11.0) == 22.0
     A = LinearInterpolation(u, t)
@@ -186,7 +186,7 @@ end
 
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
     for (_t, _u) in zip(t, u)
         @test A(_t) == _u
@@ -202,7 +202,7 @@ end
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
     A = QuadraticInterpolation(
-        u, t, :Backward; extrapolation = ExtrapolationType.extension)
+        u, t, :Backward; extrapolation = ExtrapolationType.Extension)
 
     for (_t, _u) in zip(t, u)
         @test A(_t) == _u
@@ -240,7 +240,7 @@ end
 
     # Matrix interpolation test
     u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
-    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
     for (_t, _u) in zip(t, eachcol(u))
         @test A(_t) == _u
@@ -253,7 +253,7 @@ end
 
     u_ = [1.0, 4.0, 9.0, 16.0]' .* ones(5)
     u = [u_[:, i] for i in 1:size(u_, 2)]
-    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(0) == zeros(5)
     @test A(1.5) == 2.25 * ones(5)
     @test A(2.5) == 6.25 * ones(5)
@@ -261,7 +261,7 @@ end
     @test A(5.0) == 25.0 * ones(5)
 
     u = [repeat(u[i], 1, 3) for i in 1:4]
-    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(0) == zeros(5, 3)
     @test A(1.5) == 2.25 * ones(5, 3)
     @test A(2.5) == 6.25 * ones(5, 3)
@@ -271,7 +271,7 @@ end
     # Test extrapolation
     u = [1.0, 4.5, 6.0, 2.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(0.0) == -4.5
     @test A(5.0) == -7.5
     A = QuadraticInterpolation(u, t)
@@ -331,7 +331,7 @@ end
     # Test extrapolation
     u = [1.0, 4.0, 9.0]
     t = [1.0, 2.0, 3.0]
-    A = LagrangeInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = LagrangeInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(0.0) == 0.0
     @test A(4.0) == 16.0
     A = LagrangeInterpolation(u, t)
@@ -362,7 +362,7 @@ end
     test_cached_index(A)
 
     # Test extrapolation
-    A = AkimaInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = AkimaInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(-1.0) ≈ -5.0
     @test A(11.0) ≈ -3.924742268041234
     A = AkimaInterpolation(u, t)
@@ -377,7 +377,7 @@ end
 
     @testset "Vector case" for u in [[1.0, 2.0, 0.0, 1.0], ["B", "C", "A", "B"]]
         A = ConstantInterpolation(
-            u, t, dir = :right; extrapolation = ExtrapolationType.extension)
+            u, t, dir = :right; extrapolation = ExtrapolationType.Extension)
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[2]
@@ -389,7 +389,7 @@ end
         @test A(4.5) == u[1]
         test_cached_index(A)
 
-        A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.extension) # dir=:left is default
+        A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.Extension) # dir=:left is default
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[1]
@@ -407,7 +407,7 @@ end
         ["B" "C" "A" "B"; "B" "C" "A" "B"]
     ]
         A = ConstantInterpolation(
-            u, t, dir = :right; extrapolation = ExtrapolationType.extension)
+            u, t, dir = :right; extrapolation = ExtrapolationType.Extension)
         @test A(0.5) == u[:, 1]
         @test A(1.0) == u[:, 1]
         @test A(1.5) == u[:, 2]
@@ -419,7 +419,7 @@ end
         @test A(4.5) == u[:, 1]
         test_cached_index(A)
 
-        A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.extension) # dir=:left is default
+        A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.Extension) # dir=:left is default
         @test A(0.5) == u[:, 1]
         @test A(1.0) == u[:, 1]
         @test A(1.5) == u[:, 1]
@@ -436,7 +436,7 @@ end
         [[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]],
         [["B", "C"], ["A", "B"], ["B", "C"], ["A", "B"]]]
         A = ConstantInterpolation(
-            u, t, dir = :right; extrapolation = ExtrapolationType.extension)
+            u, t, dir = :right; extrapolation = ExtrapolationType.Extension)
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[2]
@@ -448,7 +448,7 @@ end
         @test A(4.5) == u[4]
         test_cached_index(A)
 
-        A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.extension) # dir=:left is default
+        A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.Extension) # dir=:left is default
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[1]
@@ -465,7 +465,7 @@ end
         [[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]],
         [["B" "C"; "B" "C"], ["A" "B"; "A" "B"], ["B" "C"; "B" "C"], ["A" "B"; "A" "B"]]]
         A = ConstantInterpolation(
-            u, t, dir = :right; extrapolation = ExtrapolationType.extension)
+            u, t, dir = :right; extrapolation = ExtrapolationType.Extension)
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[2]
@@ -477,7 +477,7 @@ end
         @test A(4.5) == u[4]
         test_cached_index(A)
 
-        A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.extension) # dir=:left is default
+        A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.Extension) # dir=:left is default
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[1]
@@ -492,7 +492,7 @@ end
 
     # Test extrapolation
     u = [1.0, 2.0, 0.0, 1.0]
-    A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(-1.0) == 1.0
     @test A(11.0) == 1.0
     A = ConstantInterpolation(u, t)
@@ -502,7 +502,7 @@ end
     # Test extrapolation with infs with regularly spaced t
     u = [1.67e7, 1.6867e7, 1.7034e7, 1.7201e7, 1.7368e7]
     t = [0.0, 0.1, 0.2, 0.3, 0.4]
-    A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.extension)
+    A = ConstantInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(Inf) == last(u)
     @test A(-Inf) == first(u)
 end
@@ -513,7 +513,7 @@ end
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
 
-    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.extension)
+    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
 
     # Solution
     P₁ = x -> 0.5 * (x + 1) * (x + 2)
@@ -529,14 +529,14 @@ end
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
-    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.extension)
+    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(-2.0) == P₁(-2.0) * ones(4)
     @test A(-0.5) == P₁(-0.5) * ones(4)
     @test A(0.7) == P₁(0.7) * ones(4)
     @test A(2.0) == P₁(2.0) * ones(4)
 
     u = [repeat(u[i], 1, 3) for i in 1:3]
-    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.extension)
+    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(-2.0) == P₁(-2.0) * ones(4, 3)
     @test A(-0.5) == P₁(-0.5) * ones(4, 3)
     @test A(0.7) == P₁(0.7) * ones(4, 3)
@@ -545,7 +545,7 @@ end
     # Test extrapolation
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.extension)
+    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(-2.0) == 0.0
     @test A(2.0) == 6.0
     A = QuadraticSpline(u, t)
@@ -559,7 +559,7 @@ end
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
 
-    A = CubicSpline(u, t; extrapolation = ExtrapolationType.extension)
+    A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     test_cached_index(A)
 
     # Solution
@@ -578,7 +578,7 @@ end
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
-    A = CubicSpline(u, t; extrapolation = ExtrapolationType.extension)
+    A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4)
     end
@@ -587,7 +587,7 @@ end
     end
 
     u = [repeat(u[i], 1, 3) for i in 1:3]
-    A = CubicSpline(u, t; extrapolation = ExtrapolationType.extension)
+    A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4, 3)
     end
@@ -598,7 +598,7 @@ end
     # Test extrapolation
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
-    A = CubicSpline(u, t; extrapolation = ExtrapolationType.extension)
+    A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(-2.0) ≈ -1.0
     @test A(2.0) ≈ 5.0
     A = CubicSpline(u, t)
@@ -643,7 +643,7 @@ end
 
         # Test extrapolation
         A = BSplineInterpolation(
-            u, t, 2, :Uniform, :Uniform; extrapolation = ExtrapolationType.extension)
+            u, t, 2, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension)
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform)
@@ -664,7 +664,7 @@ end
 
         # Test extrapolation
         A = BSplineInterpolation(
-            u, t, 2, :ArcLen, :Average; extrapolation = ExtrapolationType.extension)
+            u, t, 2, :ArcLen, :Average; extrapolation = ExtrapolationType.Extension)
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = BSplineInterpolation(u, t, 2, :ArcLen, :Average)
@@ -722,7 +722,7 @@ end
 
         # Test extrapolation
         A = BSplineApprox(
-            u, t, 2, 4, :Uniform, :Uniform; extrapolation = ExtrapolationType.extension)
+            u, t, 2, 4, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension)
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
@@ -768,7 +768,7 @@ end
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    A = CubicHermiteSpline(du, u, t; extrapolation = ExtrapolationType.extension)
+    A = CubicHermiteSpline(du, u, t; extrapolation = ExtrapolationType.Extension)
     @test A.(t) ≈ u
     @test A(100.0)≈10.106770 rtol=1e-5
     @test A(300.0)≈9.901542 rtol=1e-5
@@ -796,7 +796,7 @@ end
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    A = QuinticHermiteSpline(ddu, du, u, t; extrapolation = ExtrapolationType.extension)
+    A = QuinticHermiteSpline(ddu, du, u, t; extrapolation = ExtrapolationType.Extension)
     @test A.(t) ≈ u
     @test A(100.0)≈10.107996 rtol=1e-5
     @test A(300.0)≈11.364162 rtol=1e-5

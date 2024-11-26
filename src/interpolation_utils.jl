@@ -305,7 +305,7 @@ function integrate_quintic_polynomial(t1, t2, offset, a, b, c, d, e, f)
 end
 
 function munge_extrapolation(extrapolation, extrapolation_left, extrapolation_right)
-    if extrapolation == ExtrapolationType.none
+    if extrapolation == ExtrapolationType.None
         extrapolation_left, extrapolation_right
     else
         extrapolation, extrapolation

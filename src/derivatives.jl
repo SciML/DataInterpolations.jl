@@ -15,23 +15,23 @@ end
 
 function _extrapolate_derivative_left(A, t, order)
     (; extrapolation_left) = A
-    if extrapolation_left == ExtrapolationType.none
+    if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
-    elseif extrapolation_left == ExtrapolationType.constant
+    elseif extrapolation_left == ExtrapolationType.Constant
         zero(first(A.u) / one(A.t[1]))
-    elseif extrapolation_left == ExtrapolationType.linear
+    elseif extrapolation_left == ExtrapolationType.Linear
         (order == 1) ? derivative(A, first(A.t)) : zero(first(A.u) / one(A.t[1]))
-    elseif extrapolation_left == ExtrapolationType.extension
+    elseif extrapolation_left == ExtrapolationType.Extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
                 _derivative(A, t, iguess)
             end, t)
-    elseif extrapolation_left == ExtrapolationType.periodic
+    elseif extrapolation_left == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
         derivative(A, t_, order)
     else
-        # extrapolation_left == ExtrapolationType.reflective
+        # extrapolation_left == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         isodd(n) ? -derivative(A, t_, order) : derivative(A, t_, order)
     end
@@ -39,23 +39,23 @@ end
 
 function _extrapolate_derivative_right(A, t, order)
     (; extrapolation_right) = A
-    if extrapolation_right == ExtrapolationType.none
+    if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
-    elseif extrapolation_right == ExtrapolationType.constant
+    elseif extrapolation_right == ExtrapolationType.Constant
         zero(first(A.u) / one(A.t[1]))
-    elseif extrapolation_right == ExtrapolationType.linear
+    elseif extrapolation_right == ExtrapolationType.Linear
         (order == 1) ? derivative(A, last(A.t)) : zero(first(A.u) / one(A.t[1]))
-    elseif extrapolation_right == ExtrapolationType.extension
+    elseif extrapolation_right == ExtrapolationType.Extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
                 _derivative(A, t, iguess)
             end, t)
-    elseif extrapolation_right == ExtrapolationType.periodic
+    elseif extrapolation_right == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
         derivative(A, t_, order)
     else
-        # extrapolation_right == ExtrapolationType.reflective
+        # extrapolation_right == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         iseven(n) ? -derivative(A, t_, order) : derivative(A, t_, order)
     end

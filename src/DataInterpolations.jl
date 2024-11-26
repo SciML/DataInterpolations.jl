@@ -11,7 +11,7 @@ using EnumX
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            Guesser
 
-@enumx ExtrapolationType none constant linear extension periodic reflective
+@enumx ExtrapolationType None Constant Linear Extension Periodic Reflective
 
 include("parameter_caches.jl")
 include("interpolation_caches.jl")
@@ -64,13 +64,13 @@ function Base.showerror(io::IO, ::ExtrapolationError)
     print(io, EXTRAPOLATION_ERROR)
 end
 
-const LEFT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t < first(A.t) as the `extrapolation_left` kwarg passed was `ExtrapolationType.none`"
+const LEFT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t < first(A.t) as the `extrapolation_left` kwarg passed was `ExtrapolationType.None`"
 struct LeftExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::LeftExtrapolationError)
     print(io, LEFT_EXTRAPOLATION_ERROR)
 end
 
-const RIGHT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t > last(A.t) as the `extrapolation_tight` kwarg passed was `ExtrapolationType.none`"
+const RIGHT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t > last(A.t) as the `extrapolation_tight` kwarg passed was `ExtrapolationType.None`"
 struct RightExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::RightExtrapolationError)
     print(io, RIGHT_EXTRAPOLATION_ERROR)

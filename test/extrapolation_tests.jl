@@ -5,8 +5,8 @@ using QuadGK
 function test_extrapolation(method, u, t)
     @testset "Extrapolation errors" begin
         A = method(u, t)
-        @test A.extrapolation_right == ExtrapolationType.none
-        @test A.extrapolation_left == ExtrapolationType.none
+        @test A.extrapolation_right == ExtrapolationType.None
+        @test A.extrapolation_left == ExtrapolationType.None
         for (error_type, t_eval) in zip(
             (DataInterpolations.LeftExtrapolationError,
                 DataInterpolations.RightExtrapolationError),
@@ -22,7 +22,7 @@ function test_extrapolation(method, u, t)
     end
 
     for extrapolation_type in instances(ExtrapolationType.T)
-        (extrapolation_type == ExtrapolationType.none) && continue
+        (extrapolation_type == ExtrapolationType.None) && continue
         @testset "extrapolation type $extrapolation_type" begin
             A = method(u, t; extrapolation = extrapolation_type)
 
@@ -49,7 +49,7 @@ end
 
     test_extrapolation(LinearInterpolation, u, t)
 
-    for extrapolation_type in [ExtrapolationType.linear, ExtrapolationType.extension]
+    for extrapolation_type in [ExtrapolationType.Linear, ExtrapolationType.Extension]
         # Left extrapolation
         A = LinearInterpolation(u, t; extrapolation_left = extrapolation_type)
         t_eval = 0.0
@@ -77,7 +77,7 @@ end
     test_extrapolation(QuadraticInterpolation, u, t)
 
     # Linear left extrapolation
-    A = QuadraticInterpolation(u, t; extrapolation_left = ExtrapolationType.linear)
+    A = QuadraticInterpolation(u, t; extrapolation_left = ExtrapolationType.Linear)
     t_eval = 0.0
     @test A(t_eval) ≈ -2.5
     @test DataInterpolations.derivative(A, t_eval) == 3.5
@@ -85,7 +85,7 @@ end
     @test DataInterpolations.integral(A, t_eval) ≈ 0.75
 
     # Linear right extrapolation
-    A = QuadraticInterpolation(u, t; extrapolation_right = ExtrapolationType.linear)
+    A = QuadraticInterpolation(u, t; extrapolation_right = ExtrapolationType.Linear)
     t_eval = 4.0
     @test A(t_eval) ≈ -0.5
     @test DataInterpolations.derivative(A, t_eval) == -2.5
@@ -95,7 +95,7 @@ end
     # Extension left extrapolation
     f = t -> (-3t^2 + 13t - 8) / 2
     df = t -> (-6t + 13) / 2
-    A = QuadraticInterpolation(u, t; extrapolation_left = ExtrapolationType.extension)
+    A = QuadraticInterpolation(u, t; extrapolation_left = ExtrapolationType.Extension)
     t_eval = 0.0
     @test A(t_eval) ≈ -4.0
     @test DataInterpolations.derivative(A, t_eval) == df(t_eval)
@@ -103,7 +103,7 @@ end
     @test DataInterpolations.integral(A, t_eval) ≈ 1.25
 
     # Extension right extrapolation
-    A = QuadraticInterpolation(u, t; extrapolation_right = ExtrapolationType.extension)
+    A = QuadraticInterpolation(u, t; extrapolation_right = ExtrapolationType.Extension)
     t_eval = 4.0
     @test A(t_eval) ≈ -2.0
     @test DataInterpolations.derivative(A, t_eval) == df(t_eval)

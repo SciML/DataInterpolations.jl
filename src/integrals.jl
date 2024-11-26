@@ -67,17 +67,17 @@ end
 
 function _extrapolate_integral_left(A, t)
     (; extrapolation_left) = A
-    if extrapolation_left == ExtrapolationType.none
+    if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
-    elseif extrapolation_left == ExtrapolationType.constant
+    elseif extrapolation_left == ExtrapolationType.Constant
         first(A.u) * (first(A.t) - t)
-    elseif extrapolation_left == ExtrapolationType.linear
+    elseif extrapolation_left == ExtrapolationType.Linear
         slope = derivative(A, first(A.t))
         Δt = first(A.t) - t
         (first(A.u) - slope * Δt / 2) * Δt
-    elseif extrapolation_left == ExtrapolationType.extension
+    elseif extrapolation_left == ExtrapolationType.Extension
         _integral(A, 1, t, first(A.t))
-    elseif extrapolation_left == ExtrapolationType.periodic
+    elseif extrapolation_left == ExtrapolationType.Periodic
         t_, n = transformation_periodic(A, t)
         out = -integral(A, t_)
         if !iszero(n)
@@ -85,7 +85,7 @@ function _extrapolate_integral_left(A, t)
         end
         out
     else
-        # extrapolation_left == ExtrapolationType.reflective
+        # extrapolation_left == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         out = if isodd(n)
             -integral(A, t_, last(A.t))
@@ -101,17 +101,17 @@ end
 
 function _extrapolate_integral_right(A, t)
     (; extrapolation_right) = A
-    if extrapolation_right == ExtrapolationType.none
+    if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
-    elseif extrapolation_right == ExtrapolationType.constant
+    elseif extrapolation_right == ExtrapolationType.Constant
         last(A.u) * (t - last(A.t))
-    elseif extrapolation_right == ExtrapolationType.linear
+    elseif extrapolation_right == ExtrapolationType.Linear
         slope = derivative(A, last(A.t))
         Δt = t - last(A.t)
         (last(A.u) + slope * Δt / 2) * Δt
-    elseif extrapolation_right == ExtrapolationType.extension
+    elseif extrapolation_right == ExtrapolationType.Extension
         _integral(A, length(A.t) - 1, last(A.t), t)
-    elseif extrapolation_right == ExtrapolationType.periodic
+    elseif extrapolation_right == ExtrapolationType.Periodic
         t_, n = transformation_periodic(A, t)
         out = integral(A, first(A.t), t_)
         if !iszero(n)
@@ -119,7 +119,7 @@ function _extrapolate_integral_right(A, t)
         end
         out
     else
-        # extrapolation_right == ExtrapolationType.reflective
+        # extrapolation_right == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         out = if iseven(n)
             integral(A, t_, last(A.t))

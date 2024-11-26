@@ -10,21 +10,21 @@ end
 
 function _extrapolate_left(A, t)
     (; extrapolation_left) = A
-    if extrapolation_left == ExtrapolationType.none
+    if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
-    elseif extrapolation_left == ExtrapolationType.constant
+    elseif extrapolation_left == ExtrapolationType.Constant
         slope = derivative(A, first(A.t))
         first(A.u) + slope * zero(t)
-    elseif extrapolation_left == ExtrapolationType.linear
+    elseif extrapolation_left == ExtrapolationType.Linear
         slope = derivative(A, first(A.t))
         first(A.u) + slope * (t - first(A.t))
-    elseif extrapolation_left == ExtrapolationType.extension
+    elseif extrapolation_left == ExtrapolationType.Extension
         _interpolate(A, t, A.iguesser)
-    elseif extrapolation_left == ExtrapolationType.periodic
+    elseif extrapolation_left == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
         _interpolate(A, t_, A.iguesser)
     else
-        # extrapolation_left == ExtrapolationType.reflective
+        # extrapolation_left == ExtrapolationType.Reflective
         t_, _ = transformation_reflective(A, t)
         _interpolate(A, t_, A.iguesser)
     end
@@ -32,21 +32,21 @@ end
 
 function _extrapolate_right(A, t)
     (; extrapolation_right) = A
-    if extrapolation_right == ExtrapolationType.none
+    if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
-    elseif extrapolation_right == ExtrapolationType.constant
+    elseif extrapolation_right == ExtrapolationType.Constant
         slope = derivative(A, last(A.t))
         last(A.u) + slope * zero(t)
-    elseif extrapolation_right == ExtrapolationType.linear
+    elseif extrapolation_right == ExtrapolationType.Linear
         slope = derivative(A, last(A.t))
         last(A.u) + slope * (t - last(A.t))
-    elseif extrapolation_right == ExtrapolationType.extension
+    elseif extrapolation_right == ExtrapolationType.Extension
         _interpolate(A, t, A.iguesser)
-    elseif extrapolation_right == ExtrapolationType.periodic
+    elseif extrapolation_right == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
         _interpolate(A, t_, A.iguesser)
     else
-        # extrapolation_right == ExtrapolationType.reflective
+        # extrapolation_right == ExtrapolationType.Reflective
         t_, _ = transformation_reflective(A, t)
         _interpolate(A, t_, A.iguesser)
     end

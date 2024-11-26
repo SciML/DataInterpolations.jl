@@ -1,6 +1,6 @@
 """
-    LinearInterpolation(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none, 
-    extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, 
+    LinearInterpolation(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.None, 
+    extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, 
     cache_parameters = false)
 
 It is the method of interpolating between the data points using a linear polynomial. For any point, two data points one each side are chosen and connected with a line.
@@ -14,8 +14,8 @@ Extrapolation extends the last linear polynomial on each side.
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -48,9 +48,9 @@ struct LinearInterpolation{uType, tType, IType, pType, T, N} <: AbstractInterpol
 end
 
 function LinearInterpolation(
-        u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false, assume_linear_t = 1e-2)
+        u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1e-2)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
@@ -65,8 +65,8 @@ function LinearInterpolation(
 end
 
 """
-    QuadraticInterpolation(u, t, mode = :Forward; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, 
+    QuadraticInterpolation(u, t, mode = :Forward; extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, 
         cache_parameters = false)
 
 It is the method of interpolating between the data points using quadratic polynomials. For any point, three data points nearby are taken to fit a quadratic polynomial.
@@ -81,8 +81,8 @@ Extrapolation extends the last quadratic polynomial on each side.
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -119,9 +119,9 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, N} <:
 end
 
 function QuadraticInterpolation(
-        u, t, mode; extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false, assume_linear_t = 1e-2)
+        u, t, mode; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1e-2)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
@@ -140,8 +140,8 @@ function QuadraticInterpolation(u, t; kwargs...)
 end
 
 """
-    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolation::ExtrapolationType.T = ExtrapolationType.none, 
-    extrapolation_left::ExtrapolationType.T = ExtrapolationType.none, extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
+    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolation::ExtrapolationType.T = ExtrapolationType.None, 
+    extrapolation_left::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None)
 
 It is the method of interpolation using Lagrange polynomials of (k-1)th order passing through all the data points where k is the number of data points.
 
@@ -154,8 +154,8 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -190,9 +190,9 @@ end
 
 function LagrangeInterpolation(
         u, t, n = length(t) - 1;
-        extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
@@ -203,8 +203,8 @@ function LagrangeInterpolation(
 end
 
 """
-    AkimaInterpolation(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
+    AkimaInterpolation(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
 
 It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: [https://en.wikipedia.org/wiki/Akima_spline](https://en.wikipedia.org/wiki/Akima_spline).
 Extrapolation extends the last cubic polynomial on each side.
@@ -217,8 +217,8 @@ Extrapolation extends the last cubic polynomial on each side.
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -264,9 +264,9 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, N} <:
 end
 
 function AkimaInterpolation(
-        u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false, assume_linear_t = 1e-2)
+        u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1e-2)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
@@ -300,8 +300,8 @@ function AkimaInterpolation(
 end
 
 """
-    ConstantInterpolation(u, t; dir = :left, extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
+    ConstantInterpolation(u, t; dir = :left, extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
 
 It is the method of interpolating using a constant polynomial. For any point, two adjacent data points are found on either side (left and right). The value at that point depends on `dir`.
 If it is `:left`, then the value at the left point is chosen and if it is `:right`, the value at the right point is chosen.
@@ -316,8 +316,8 @@ Extrapolation extends the last constant polynomial at the end points on each sid
 
   - `dir`: indicates which value should be used for interpolation (`:left` or `:right`).
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -351,9 +351,9 @@ struct ConstantInterpolation{uType, tType, IType, T, N} <: AbstractInterpolation
 end
 
 function ConstantInterpolation(
-        u, t; dir = :left, extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none,
+        u, t; dir = :left, extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false, assume_linear_t = 1e-2)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
@@ -367,8 +367,8 @@ function ConstantInterpolation(
 end
 
 """
-    QuadraticSpline(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
+    QuadraticSpline(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
 
 It is a spline interpolation using piecewise quadratic polynomials between each pair of data points. Its first derivative is also continuous.
 Extrapolation extends the last quadratic polynomial on each side.
@@ -381,8 +381,8 @@ Extrapolation extends the last quadratic polynomial on each side.
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -430,9 +430,9 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, N} <
 end
 
 function QuadraticSpline(
-        u::uType, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none,
+        u::uType, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false, assume_linear_t = 1e-2) where {uType <:
                                                                  AbstractVector{<:Number}}
     extrapolation_left, extrapolation_right = munge_extrapolation(
@@ -455,9 +455,9 @@ function QuadraticSpline(
 end
 
 function QuadraticSpline(
-        u::uType, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false,
+        u::uType, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
         assume_linear_t = 1e-2) where {uType <:
                                        AbstractVector}
     extrapolation_left, extrapolation_right = munge_extrapolation(
@@ -490,8 +490,8 @@ function QuadraticSpline(
 end
 
 """
-    CubicSpline(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
+    CubicSpline(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
 
 It is a spline interpolation using piecewise cubic polynomials between each pair of data points. Its first and second derivative is also continuous.
 Second derivative on both ends are zero, which are also called "natural" boundary conditions. Extrapolation extends the last cubic polynomial on each side.
@@ -504,8 +504,8 @@ Second derivative on both ends are zero, which are also called "natural" boundar
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -551,9 +551,9 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, N} <:
 end
 
 function CubicSpline(u::uType,
-        t; extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false,
+        t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
         assume_linear_t = 1e-2) where {uType <:
                                        AbstractVector{<:Number}}
     extrapolation_left, extrapolation_right = munge_extrapolation(
@@ -587,8 +587,8 @@ end
 
 function CubicSpline(u::uType,
         t;
-        extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
         assume_linear_t = 1e-2) where {uType <:
                                        AbstractArray{T, N}} where {T, N}
     extrapolation_left, extrapolation_right = munge_extrapolation(
@@ -625,9 +625,9 @@ function CubicSpline(u::uType,
 end
 
 function CubicSpline(
-        u::uType, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false,
+        u::uType, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
         assume_linear_t = 1e-2) where {uType <:
                                        AbstractVector}
     extrapolation_left, extrapolation_right = munge_extrapolation(
@@ -657,8 +657,8 @@ function CubicSpline(
 end
 
 """
-    BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
+    BSplineInterpolation(u, t, d, pVecType, knotVecType; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None)
 
 It is a curve defined by the linear combination of `n` basis functions of degree `d` where `n` is the number of data points. For more information, refer [https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html](https://pages.mtu.edu/%7Eshene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html).
 Extrapolation is a constant polynomial of the end points on each side.
@@ -674,8 +674,8 @@ Extrapolation is a constant polynomial of the end points on each side.
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -734,9 +734,9 @@ end
 
 function BSplineInterpolation(
         u::AbstractVector, t, d, pVecType, knotVecType;
-        extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, assume_linear_t = 1e-2)
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, assume_linear_t = 1e-2)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
@@ -809,9 +809,9 @@ end
 
 function BSplineInterpolation(
         u::AbstractArray{T, N}, t, d, pVecType, knotVecType;
-        extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         assume_linear_t = 1e-2) where {T, N}
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
@@ -887,8 +887,8 @@ function BSplineInterpolation(
 end
 
 """
-    BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
+    BSplineApprox(u, t, d, h, pVecType, knotVecType; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None)
 
 It is a regression based B-spline. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h < length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing.
 For more information, refer [http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf](http://www.cad.zju.edu.cn/home/zhx/GM/009/00-bsia.pdf).
@@ -906,8 +906,8 @@ Extrapolation is a constant polynomial of the end points on each side.
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -970,9 +970,9 @@ end
 
 function BSplineApprox(
         u::AbstractVector, t, d, h, pVecType, knotVecType;
-        extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, assume_linear_t = 1e-2)
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, assume_linear_t = 1e-2)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
@@ -1066,9 +1066,9 @@ end
 
 function BSplineApprox(
         u::AbstractArray{T, N}, t, d, h, pVecType, knotVecType;
-        extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         assume_linear_t = 1e-2) where {T, N}
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
@@ -1166,8 +1166,8 @@ function BSplineApprox(
         extrapolation_left, extrapolation_right, assume_linear_t)
 end
 """
-    CubicHermiteSpline(du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false)
+    CubicHermiteSpline(du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
 
 It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomial such that the value and the first derivative are equal to given values in the data points.
 
@@ -1180,8 +1180,8 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -1216,9 +1216,9 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T, N} <:
 end
 
 function CubicHermiteSpline(
-        du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none, cache_parameters = false, assume_linear_t = 1e-2)
+        du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1e-2)
     @assert length(u)==length(du) "Length of `u` is not equal to length of `du`."
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
@@ -1234,8 +1234,8 @@ function CubicHermiteSpline(
 end
 
 """
-    PCHIPInterpolation(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none, extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
+    PCHIPInterpolation(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None)
 
 It is a PCHIP Interpolation, which is a type of [`CubicHermiteSpline`](@ref) where the derivative values `du` are derived from the input data
 in such a way that the interpolation never overshoots the data. See [here](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf),
@@ -1249,8 +1249,8 @@ section 3.4 for more details.
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -1268,8 +1268,8 @@ function PCHIPInterpolation(u, t; kwargs...)
 end
 
 """
-    QuinticHermiteSpline(ddu, du, u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none)
+    QuinticHermiteSpline(ddu, du, u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None)
 
 It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polynomial such that the value and the first and second derivative are equal to given values in the data points.
 
@@ -1283,8 +1283,8 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
 ## Keyword Arguments
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
-    are `ExtrapolationType.none` (default), `ExtrapolationType.constant`,
-    `ExtrapolationType.linear` and `ExtrapolationType.extension`.
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -1321,9 +1321,9 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T, N} <
 end
 
 function QuinticHermiteSpline(
-        ddu, du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_left::ExtrapolationType.T = ExtrapolationType.none,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.none,
+        ddu, du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false, assume_linear_t = 1e-2)
     @assert length(u)==length(du)==length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     extrapolation_left, extrapolation_right = munge_extrapolation(
