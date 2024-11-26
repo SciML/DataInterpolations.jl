@@ -143,6 +143,14 @@ end
 function _interpolate(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
+
+    # Fix extrapolation behavior as constant for now
+    if t <= first(A.t)
+        return first(A.u)
+    elseif t >= last(A.t)
+        return A.u[end - 1]
+    end
+
     out = A.u[idx]
 
     if (t - A.t[idx]) < d_lower

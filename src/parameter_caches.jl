@@ -32,9 +32,9 @@ function linear_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {
     return slope
 end
 
-struct SmoothedConstantParameterCache{uType, tType}
-    d::tType
-    c::uType
+struct SmoothedConstantParameterCache{dType, cType}
+    d::dType
+    c::cType
 end
 
 function SmoothedConstantParameterCache(u, t, cache_parameters, d_max)
@@ -51,7 +51,7 @@ end
 function smoothed_linear_interpolation_parameters(u, t, d_max, idx)
     # TODO: Add support for making periodic extrapolation smooth
     if isone(idx) || (idx == length(t))
-        zero(eltype(t)), zero(eltype(u))
+        zero(one(eltype(t))) / 2, zero(one(eltype(u)) / 2)
     else
         min(t[idx] - t[idx - 1], t[idx + 1] - t[idx], 2d_max) / 2, (u[idx] - u[idx - 1]) / 2
     end

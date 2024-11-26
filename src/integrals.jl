@@ -65,6 +65,13 @@ function _integral(A::SmoothedConstantInterpolation{<:AbstractVector},
 
     out = A.u[idx] * (t2 - t1)
 
+    # Fix extrapolation behavior as constant for now
+    if t1 <= first(A.t)
+        t1 = first(A.t)
+    elseif t2 >= last(A.t)
+        t2 = last(A.t)
+    end
+
     if t1 < bound_lower
         t2_ = min(t2, bound_lower)
         out -= c_lower * d_lower *

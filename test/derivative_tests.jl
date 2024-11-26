@@ -27,7 +27,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
         # Interpolation time points
         for _t in t[2:(end - 1)]
             if func isa BSplineInterpolation || func isa BSplineApprox ||
-               func isa CubicHermiteSpline
+               func isa CubicHermiteSpline || func isa SmoothedConstantInterpolation
                 fdiff = forward_fdm(5, 1; geom = true)(func, _t)
                 fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
             else
@@ -138,6 +138,13 @@ end
     t2 = collect(0.0:10.0)
     @test all(isnan, derivative.(Ref(A), t))
     @test all(derivative.(Ref(A), t2 .+ 0.1) .== 0.0)
+end
+
+@testset "SmoothedConstantInterpolation" begin
+    u = [5.5, 2.7, 5.1, 3.0]
+    t = [2.5, 5.6, 6.3, 8.9]
+    test_derivatives(SmoothedConstantInterpolation; args = [u, t],
+        name = "Smoothed constant interpolation")
 end
 
 @testset "Quadratic Spline" begin

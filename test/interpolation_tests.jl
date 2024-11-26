@@ -501,6 +501,19 @@ end
     @test A(-Inf) == first(u)
 end
 
+@testset "Smoothed constant Interpolation" begin
+    test_interpolation_type(SmoothedConstantInterpolation)
+    u = [0.0, 2.0, 1.0, 3.0]
+    t = [1.2, 2.5, 5.7, 8.7]
+    d_max = 0.5
+    A = SmoothedConstantInterpolation(u, t; d_max)
+    test_cached_index(A)
+
+    @test A(1.9) == u[1]
+    @test A(3.1) == u[2]
+    @test A(2.5) ≈ (u[1] + u[2]) / 2
+end
+
 @testset "QuadraticSpline Interpolation" begin
     test_interpolation_type(QuadraticSpline)
 
