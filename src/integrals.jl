@@ -56,6 +56,31 @@ function _integral(
     end
 end
 
+function _integral(A::SmoothedConstantInterpolation{<:AbstractVector},
+        idx::Number, t1::Number, t2::Number)
+    d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
+
+    bound_lower = A.t[idx] + d_lower
+    bound_upper = A.t[idx + 1] - d_upper
+
+    out = A.u[idx] * (t2 - t1)
+
+    if t1 < bound_lower
+        t2_ = min(t2, bound_lower)
+        out -= c_lower * d_lower *
+               (((t2_ - A.t[idx]) / d_lower - 1)^3 - ((t1 - A.t[idx]) / d_lower - 1)^3) / 3
+    end
+
+    if t2 > bound_upper
+        t1_ = max(t1, bound_upper)
+        out += c_upper * d_upper *
+               ((1 - (A.t[idx + 1] - t2) / d_upper)^3 -
+                (1 - (A.t[idx + 1] - t1_) / d_upper)^3) / 3
+    end
+
+    out
+end
+
 function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
         idx::Number, t1::Number, t2::Number)
     α, β = get_parameters(A, idx)

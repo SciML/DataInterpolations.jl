@@ -290,7 +290,7 @@ end
         cache_parameters = false, assume_linear_t = 1e-2)
 
 It is a method for interpolating constantly with forward fill, with smoothing around the
-value transitions to make the curve continuously differentiable while the integral never 
+value transitions to make the curve continuously differentiable while the integral never
 drifts far from the integral of constant interpolation. In this interpolation type u[end] is ignored.
 
 ## Arguments

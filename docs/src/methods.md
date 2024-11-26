@@ -80,7 +80,7 @@ plot(A)
 ## Smoothed Constant Interpolation
 
 This function is much like the constant interpolation above, but the transition
-between consecutive values is smoothed out so that the function is continuously 
+between consecutive values is smoothed out so that the function is continuously
 differentiable. The smoothing is done in such a way that the integral of this function
 is never much off from the same integral of constant interpolation without smoothing (because of the symmetry of the smoothing sections).
 The maximum smoothing distance in the `t` direction from the data points can be set
