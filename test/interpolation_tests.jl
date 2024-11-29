@@ -3,6 +3,7 @@ using FindFirstFunctions: searchsortedfirstcorrelated
 using StableRNGs
 using Optim, ForwardDiff
 using BenchmarkTools
+using Unitful
 
 function test_interpolation_type(T)
     @test T <: DataInterpolations.AbstractInterpolation
@@ -105,6 +106,14 @@ end
     @test isnan(A(3.5))
     @test isnan(A(4.0))
 
+    u = [0.0, 1.0, 2.0, NaN]
+    A = LinearInterpolation(u, t; extrapolate = true)
+    @test A(1.0) == 0.0
+    @test A(2.0) == 1.0
+    @test A(3.0) == 2.0
+    @test isnan(A(3.5))
+    @test isnan(A(4.0))
+
     # Test type stability
     u = Float32.(1:5)
     t = Float32.(1:5)
@@ -133,6 +142,12 @@ end
         @test @inferred(A(R32)) === A(R32)
         @test @inferred(A(R64)) === A(R64)
     end
+
+    # NaN time value for Unitful arrays: issue #365
+    t = (0:3)u"s" # Unitful quantities  
+    u = [0, -2, -1, -2]u"m"  
+    A = LinearInterpolation(u, t; extrapolate = true)
+    @test isnan(A(NaN*u"s"))
 
     # Nan time value:
     t = 0.0:3  # Floats

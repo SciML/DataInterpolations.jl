@@ -11,7 +11,7 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
         idx = firstindex(A.u)
         t1 = t2 = oneunit(eltype(A.t))
         u1 = u2 = oneunit(eltype(A.u))
-        slope = get_parameters(A, idx)
+        slope = t/t * get_parameters(A, idx)
     else
         idx = get_idx(A, t, iguess)
         t1, t2 = A.t[idx], A.t[idx + 1]
