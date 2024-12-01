@@ -18,8 +18,8 @@ end
 @testset "Symbolics" begin
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
-    A = LinearInterpolation(u, t; extrapolate = true)
-    B = LinearInterpolation(u .^ 2, t; extrapolate = true)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
+    B = LinearInterpolation(u .^ 2, t; extrapolation = ExtrapolationType.Extension)
     @variables t x(t)
     substitute(A(t), Dict(t => x))
     t_val = 2.7

@@ -180,10 +180,11 @@ end
 end
 
 @testset "Extrapolation" begin
-    A = RegularizationSmooth(uₒ, tₒ; alg = :fixed, extrapolate = true)
+    A = RegularizationSmooth(
+        uₒ, tₒ; alg = :fixed, extrapolation_right = ExtrapolationType.Extension)
     @test A(10.0) == A.Aitp(10.0)
     A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
-    @test_throws DataInterpolations.ExtrapolationError A(10.0)
+    @test_throws DataInterpolations.RightExtrapolationError A(10.0)
 end
 
 @testset "Type inference" begin

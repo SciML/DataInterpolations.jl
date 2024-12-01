@@ -1,15 +1,63 @@
 function derivative(A, t, order = 1)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    iguess = A.iguesser
-
-    return if order == 1
-        _derivative(A, t, iguess)
-    elseif order == 2
+    (order ∉ (1, 2)) && throw(DerivativeNotFoundError())
+    if t < first(A.t)
+        _extrapolate_derivative_left(A, t, order)
+    elseif t > last(A.t)
+        _extrapolate_derivative_right(A, t, order)
+    else
+        iguess = A.iguesser
+        (order == 1) ? _derivative(A, t, iguess) :
         ForwardDiff.derivative(t -> begin
                 _derivative(A, t, iguess)
             end, t)
+    end
+end
+
+function _extrapolate_derivative_left(A, t, order)
+    (; extrapolation_left) = A
+    if extrapolation_left == ExtrapolationType.None
+        throw(LeftExtrapolationError())
+    elseif extrapolation_left == ExtrapolationType.Constant
+        zero(first(A.u) / one(A.t[1]))
+    elseif extrapolation_left == ExtrapolationType.Linear
+        (order == 1) ? derivative(A, first(A.t)) : zero(first(A.u) / one(A.t[1]))
+    elseif extrapolation_left == ExtrapolationType.Extension
+        iguess = A.iguesser
+        (order == 1) ? _derivative(A, t, iguess) :
+        ForwardDiff.derivative(t -> begin
+                _derivative(A, t, iguess)
+            end, t)
+    elseif extrapolation_left == ExtrapolationType.Periodic
+        t_, _ = transformation_periodic(A, t)
+        derivative(A, t_, order)
     else
-        throw(DerivativeNotFoundError())
+        # extrapolation_left == ExtrapolationType.Reflective
+        t_, n = transformation_reflective(A, t)
+        isodd(n) ? -derivative(A, t_, order) : derivative(A, t_, order)
+    end
+end
+
+function _extrapolate_derivative_right(A, t, order)
+    (; extrapolation_right) = A
+    if extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif extrapolation_right == ExtrapolationType.Constant
+        zero(first(A.u) / one(A.t[1]))
+    elseif extrapolation_right == ExtrapolationType.Linear
+        (order == 1) ? derivative(A, last(A.t)) : zero(first(A.u) / one(A.t[1]))
+    elseif extrapolation_right == ExtrapolationType.Extension
+        iguess = A.iguesser
+        (order == 1) ? _derivative(A, t, iguess) :
+        ForwardDiff.derivative(t -> begin
+                _derivative(A, t, iguess)
+            end, t)
+    elseif extrapolation_right == ExtrapolationType.Periodic
+        t_, _ = transformation_periodic(A, t)
+        derivative(A, t_, order)
+    else
+        # extrapolation_right == ExtrapolationType.Reflective
+        t_, n = transformation_reflective(A, t)
+        iseven(n) ? -derivative(A, t_, order) : derivative(A, t_, order)
     end
 end
 
@@ -27,7 +75,6 @@ function _derivative(A::QuadraticInterpolation, t::Number, iguess)
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     der = zero(A.u[1])
     for j in eachindex(A.t)
         tmp = zero(A.t[1])
@@ -61,7 +108,6 @@ function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     der = zero(A.u[:, 1])
     for j in eachindex(A.t)
         tmp = zero(A.t[1])
@@ -113,12 +159,10 @@ function _derivative(A::ConstantInterpolation, t::Number, iguess)
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : eltype(A.u)(NaN)
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : eltype(A.u)(NaN) .* A.u[:, 1]
 end
 
