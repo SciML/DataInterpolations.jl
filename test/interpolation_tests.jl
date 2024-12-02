@@ -108,7 +108,7 @@ end
     @test isnan(A(4.0))
 
     u = [0.0, 1.0, 2.0, NaN]
-    A = LinearInterpolation(u, t; extrapolate = true)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(1.0) == 0.0
     @test A(2.0) == 1.0
     @test A(3.0) == 2.0
@@ -147,7 +147,7 @@ end
     # NaN time value for Unitful arrays: issue #365
     t = (0:3)u"s" # Unitful quantities  
     u = [0, -2, -1, -2]u"m"  
-    A = LinearInterpolation(u, t; extrapolate = true)
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test isnan(A(NaN*u"s"))
 
     # Nan time value:
