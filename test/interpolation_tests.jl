@@ -146,9 +146,9 @@ end
 
     # NaN time value for Unitful arrays: issue #365
     t = (0:3)u"s" # Unitful quantities  
-    u = [0, -2, -1, -2]u"m"  
+    u = [0, -2, -1, -2]u"m"
     A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
-    @test isnan(A(NaN*u"s"))
+    @test isnan(A(NaN * u"s"))
 
     # Nan time value:
     t = 0.0:3  # Floats
