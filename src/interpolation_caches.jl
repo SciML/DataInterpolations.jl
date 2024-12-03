@@ -408,28 +408,33 @@ struct SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType
     cache_parameters::Bool
     linear_lookup::Bool
     function SmoothedConstantInterpolation(
-            u, t, I, p, d_max, extrapolation_left, extrapolation_right, cache_parameters, assume_linear_t)
+            u, t, I, p, d_max, extrapolation_left,
+            extrapolation_right, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
         N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(I), typeof(p.d),
             typeof(p.c), typeof(d_max), eltype(u), N}(
-            u, t, I, p, d_max, extrapolation_left, extrapolation_right, Guesser(t), cache_parameters, linear_lookup)
+            u, t, I, p, d_max, extrapolation_left, extrapolation_right,
+            Guesser(t), cache_parameters, linear_lookup)
     end
 end
 
-function SmoothedConstantInterpolation(u, t; d_max = Inf, extrapolation::ExtrapolationType.T = ExtrapolationType.None,
-    extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-    extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-    cache_parameters = false, assume_linear_t = 1e-2)
+function SmoothedConstantInterpolation(
+        u, t; d_max = Inf, extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false, assume_linear_t = 1e-2)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
     p = SmoothedConstantParameterCache(u, t, cache_parameters, d_max)
     A = SmoothedConstantInterpolation(
-        u, t, nothing, p, d_max, extrapolation_left, extrapolation_right, cache_parameters, assume_linear_t)
+        u, t, nothing, p, d_max, extrapolation_left,
+        extrapolation_right, cache_parameters, assume_linear_t)
     I = cumulative_integral(A, cache_parameters)
     SmoothedConstantInterpolation(
-        u, t, I, p, d_max, extrapolation_left, extrapolation_right, cache_parameters, assume_linear_t)
+        u, t, I, p, d_max, extrapolation_left,
+        extrapolation_right, cache_parameters, assume_linear_t)
 end
 
 """
