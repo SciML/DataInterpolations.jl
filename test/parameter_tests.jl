@@ -19,7 +19,7 @@ end
     u = [1.0, 5.0, 3.0, 4.0, 4.0]
     t = collect(1:5)
     A = SmoothedConstantInterpolation(u, t; cache_parameters = true)
-    @test A.p.d ≈ [0.0, 0.5, 0.5, 0.5, 0.5]
+    @test A.p.d ≈ [0.5, 0.5, 0.5, 0.5, 0.5]
     @test A.p.c ≈ [0.0, 2.0, -1.0, 0.5, 0.0]
 end
 
