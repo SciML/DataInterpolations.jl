@@ -1,39 +1,135 @@
 function integral(A::AbstractInterpolation, t::Number)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    integral(A, A.t[1], t)
+    integral(A, first(A.t), t)
 end
 
 function integral(A::AbstractInterpolation, t1::Number, t2::Number)
-    ((t1 < A.t[1] || t1 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
-    ((t2 < A.t[1] || t2 > A.t[end]) && !A.extrapolate) && throw(ExtrapolationError())
     !hasfield(typeof(A), :I) && throw(IntegralNotFoundError())
-    (t2 < t1) && return -integral(A, t2, t1)
+
+    if t1 == t2
+        # If the integration interval is trivial then the result is 0
+        return zero(eltype(A.I))
+    elseif t1 > t2
+        # Make sure that t1 < t2
+        return -integral(A, t2, t1)
+    end
+
     # the index less than or equal to t1
     idx1 = get_idx(A, t1, 0)
     # the index less than t2
     idx2 = get_idx(A, t2, 0; idx_shift = -1, side = :first)
 
+    total = zero(eltype(A.I))
+
+    # Lower potentially incomplete interval
+    if t1 < first(A.t)
+        if t2 < first(A.t)
+            # If interval is entirely below data
+            return _extrapolate_integral_left(A, t2) - extrapolate_integral_left(A.t1)
+        end
+
+        idx1 -= 1 # Make sure lowest complete interval is included
+        total += _extrapolate_integral_left(A, t1)
+    else
+        total += _integral(A, idx1, t1, A.t[idx1 + 1])
+    end
+
+    # Upper potentially incomplete interval
+    if t2 > last(A.t)
+        if t1 > last(A.t)
+            # If interval is entirely above data
+            return _extrapolate_integral_right(A, t2) - extrapolate_integral_right(A.t, t1)
+        end
+
+        idx2 += 1 # Make sure highest complete interval is included
+        total += _extrapolate_integral_right(A, t2)
+    else
+        total += _integral(A, idx2, A.t[idx2], t2)
+    end
+
+    if idx1 == idx2
+        return _integral(A, idx1, t1, t2)
+    end
+
+    # Complete intervals
     if A.cache_parameters
-        total = A.I[max(1, idx2 - 1)] - A.I[idx1]
-        return if t1 == t2
-            zero(total)
-        else
-            if idx1 == idx2
-                total += _integral(A, idx1, t1, t2)
-            else
-                total += _integral(A, idx1, t1, A.t[idx1 + 1])
-                total += _integral(A, idx2, A.t[idx2], t2)
-            end
-            total
+        total += A.I[idx2 - 1]
+        if idx1 > 0
+            total -= A.I[idx1]
         end
     else
-        total = zero(eltype(A.u))
-        for idx in idx1:idx2
-            lt1 = idx == idx1 ? t1 : A.t[idx]
-            lt2 = idx == idx2 ? t2 : A.t[idx + 1]
-            total += _integral(A, idx, lt1, lt2)
+        for idx in (idx1 + 1):(idx2 - 1)
+            total += _integral(A, idx, A.t[idx], A.t[idx + 1])
         end
-        total
+    end
+
+    return total
+end
+
+function _extrapolate_integral_left(A, t)
+    (; extrapolation_left) = A
+    if extrapolation_left == ExtrapolationType.None
+        throw(LeftExtrapolationError())
+    elseif extrapolation_left == ExtrapolationType.Constant
+        first(A.u) * (first(A.t) - t)
+    elseif extrapolation_left == ExtrapolationType.Linear
+        slope = derivative(A, first(A.t))
+        Δt = first(A.t) - t
+        (first(A.u) - slope * Δt / 2) * Δt
+    elseif extrapolation_left == ExtrapolationType.Extension
+        _integral(A, 1, t, first(A.t))
+    elseif extrapolation_left == ExtrapolationType.Periodic
+        t_, n = transformation_periodic(A, t)
+        out = -integral(A, t_)
+        if !iszero(n)
+            out -= n * integral(A, first(A.t), last(A.t))
+        end
+        out
+    else
+        # extrapolation_left == ExtrapolationType.Reflective
+        t_, n = transformation_reflective(A, t)
+        out = if isodd(n)
+            -integral(A, t_, last(A.t))
+        else
+            -integral(A, t_)
+        end
+        if !iszero(n)
+            out -= n * integral(A, first(A.t), last(A.t))
+        end
+        out
+    end
+end
+
+function _extrapolate_integral_right(A, t)
+    (; extrapolation_right) = A
+    if extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif extrapolation_right == ExtrapolationType.Constant
+        last(A.u) * (t - last(A.t))
+    elseif extrapolation_right == ExtrapolationType.Linear
+        slope = derivative(A, last(A.t))
+        Δt = t - last(A.t)
+        (last(A.u) + slope * Δt / 2) * Δt
+    elseif extrapolation_right == ExtrapolationType.Extension
+        _integral(A, length(A.t) - 1, last(A.t), t)
+    elseif extrapolation_right == ExtrapolationType.Periodic
+        t_, n = transformation_periodic(A, t)
+        out = integral(A, first(A.t), t_)
+        if !iszero(n)
+            out += n * integral(A, first(A.t), last(A.t))
+        end
+        out
+    else
+        # extrapolation_right == ExtrapolationType.Reflective
+        t_, n = transformation_reflective(A, t)
+        out = if iseven(n)
+            integral(A, t_, last(A.t))
+        else
+            integral(A, t_)
+        end
+        if !iszero(n)
+            out += n * integral(A, first(A.t), last(A.t))
+        end
+        out
     end
 end
 

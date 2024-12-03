@@ -7,8 +7,11 @@ abstract type AbstractInterpolation{T, N} end
 using LinearAlgebra, RecipesBase
 using PrettyTables
 using ForwardDiff
+using EnumX
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
                            Guesser
+
+@enumx ExtrapolationType None Constant Linear Extension Periodic Reflective
 
 include("parameter_caches.jl")
 include("interpolation_caches.jl")
@@ -57,31 +60,43 @@ end
 
 const EXTRAPOLATION_ERROR = "Cannot extrapolate as `extrapolate` keyword passed was `false`"
 struct ExtrapolationError <: Exception end
-function Base.showerror(io::IO, e::ExtrapolationError)
+function Base.showerror(io::IO, ::ExtrapolationError)
     print(io, EXTRAPOLATION_ERROR)
+end
+
+const LEFT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t < first(A.t) as the `extrapolation_left` kwarg passed was `ExtrapolationType.None`"
+struct LeftExtrapolationError <: Exception end
+function Base.showerror(io::IO, ::LeftExtrapolationError)
+    print(io, LEFT_EXTRAPOLATION_ERROR)
+end
+
+const RIGHT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t > last(A.t) as the `extrapolation_tight` kwarg passed was `ExtrapolationType.None`"
+struct RightExtrapolationError <: Exception end
+function Base.showerror(io::IO, ::RightExtrapolationError)
+    print(io, RIGHT_EXTRAPOLATION_ERROR)
 end
 
 const INTEGRAL_NOT_FOUND_ERROR = "Cannot integrate it analytically. Please use Numerical Integration methods."
 struct IntegralNotFoundError <: Exception end
-function Base.showerror(io::IO, e::IntegralNotFoundError)
+function Base.showerror(io::IO, ::IntegralNotFoundError)
     print(io, INTEGRAL_NOT_FOUND_ERROR)
 end
 
 const DERIVATIVE_NOT_FOUND_ERROR = "Derivatives greater than second order is not supported."
 struct DerivativeNotFoundError <: Exception end
-function Base.showerror(io::IO, e::DerivativeNotFoundError)
+function Base.showerror(io::IO, ::DerivativeNotFoundError)
     print(io, DERIVATIVE_NOT_FOUND_ERROR)
 end
 
 const INTEGRAL_INVERSE_NOT_FOUND_ERROR = "Cannot invert the integral analytically. Please use Numerical methods."
 struct IntegralInverseNotFoundError <: Exception end
-function Base.showerror(io::IO, e::IntegralInverseNotFoundError)
+function Base.showerror(io::IO, ::IntegralInverseNotFoundError)
     print(io, INTEGRAL_INVERSE_NOT_FOUND_ERROR)
 end
 
 const INTEGRAL_NOT_INVERTIBLE_ERROR = "The Interpolation is not positive everywhere so its integral is not invertible."
 struct IntegralNotInvertibleError <: Exception end
-function Base.showerror(io::IO, e::IntegralNotInvertibleError)
+function Base.showerror(io::IO, ::IntegralNotInvertibleError)
     print(io, INTEGRAL_NOT_INVERTIBLE_ERROR)
 end
 
@@ -89,7 +104,7 @@ export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, SmoothedConstantInterpolation,
        QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox,
        CubicHermiteSpline, PCHIPInterpolation, QuinticHermiteSpline,
-       LinearInterpolationIntInv, ConstantInterpolationIntInv
+       LinearInterpolationIntInv, ConstantInterpolationIntInv, ExtrapolationType
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
@@ -105,7 +120,8 @@ struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation
     λ::T2        # regularization parameter
     alg::Symbol  # how to determine λ: `:fixed`, `:gcv_svd`, `:gcv_tr`, `L_curve`
     Aitp::ITP
-    extrapolate::Bool
+    extrapolation_left::ExtrapolationType.T
+    extrapolation_right::ExtrapolationType.T
     function RegularizationSmooth(u,
             û,
             t,
@@ -116,7 +132,8 @@ struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation
             λ,
             alg,
             Aitp,
-            extrapolate)
+            extrapolation_left,
+            extrapolation_right)
         N = get_output_dim(u)
         new{typeof(u), typeof(t), eltype(u), typeof(λ), N, typeof(Aitp)}(
             u,
@@ -129,7 +146,8 @@ struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation
             λ,
             alg,
             Aitp,
-            extrapolate)
+            extrapolation_left,
+            extrapolation_right)
     end
 end
 

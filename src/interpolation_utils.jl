@@ -311,7 +311,34 @@ function integrate_quintic_polynomial(t1, t2, offset, a, b, c, d, e, f)
     t2_rel = t2 - offset
     t_sum = t1_rel + t2_rel
     t_sq_sum = t1_rel^2 + t2_rel^2
+    t_cb_sum = t1_rel^3 + t2_rel^3
     Δt = t2 - t1
-    Δt * (a + t_sum * (b / 2 + d * t_sq_sum / 4) + c * (t_sq_sum + t1_rel * t2_rel) / 3) +
-    e * (t2_rel^5 - t1_rel^5) / 5 + f * (t2_rel^6 - t1_rel^6) / 6
+    cube_diff_factor = t_sq_sum + t1_rel * t2_rel
+    Δt * (a + t_sum * (b / 2 + d * t_sq_sum / 4) +
+     cube_diff_factor * (c / 3 + f * t_cb_sum / 6)) +
+    e * (t2_rel^5 - t1_rel^5) / 5
+end
+
+function munge_extrapolation(extrapolation, extrapolation_left, extrapolation_right)
+    if extrapolation == ExtrapolationType.None
+        extrapolation_left, extrapolation_right
+    else
+        extrapolation, extrapolation
+    end
+end
+
+function transformation_periodic(A, t)
+    Δt = last(A.t) - first(A.t)
+    n, t_ = fldmod(t - first(A.t), Δt)
+    t_ += first(A.t)
+    (n > 0) && (n -= 1)
+    t_, n
+end
+
+function transformation_reflective(A, t)
+    Δt = last(A.t) - first(A.t)
+    n, t_ = fldmod(t - first(A.t), Δt)
+    t_ = isodd(n) ? last(A.t) - t_ : first(A.t) + t_
+    (n > 0) && (n -= 1)
+    t_, n
 end

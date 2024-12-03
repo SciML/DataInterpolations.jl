@@ -1,7 +1,55 @@
 function _interpolate(A, t)
-    ((t < A.t[1] || t > A.t[end]) && !A.extrapolate) &&
-        throw(ExtrapolationError())
-    return _interpolate(A, t, A.iguesser)
+    if t < first(A.t)
+        _extrapolate_left(A, t)
+    elseif t > last(A.t)
+        _extrapolate_right(A, t)
+    else
+        _interpolate(A, t, A.iguesser)
+    end
+end
+
+function _extrapolate_left(A, t)
+    (; extrapolation_left) = A
+    if extrapolation_left == ExtrapolationType.None
+        throw(LeftExtrapolationError())
+    elseif extrapolation_left == ExtrapolationType.Constant
+        slope = derivative(A, first(A.t))
+        first(A.u) + slope * zero(t)
+    elseif extrapolation_left == ExtrapolationType.Linear
+        slope = derivative(A, first(A.t))
+        first(A.u) + slope * (t - first(A.t))
+    elseif extrapolation_left == ExtrapolationType.Extension
+        _interpolate(A, t, A.iguesser)
+    elseif extrapolation_left == ExtrapolationType.Periodic
+        t_, _ = transformation_periodic(A, t)
+        _interpolate(A, t_, A.iguesser)
+    else
+        # extrapolation_left == ExtrapolationType.Reflective
+        t_, _ = transformation_reflective(A, t)
+        _interpolate(A, t_, A.iguesser)
+    end
+end
+
+function _extrapolate_right(A, t)
+    (; extrapolation_right) = A
+    if extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif extrapolation_right == ExtrapolationType.Constant
+        slope = derivative(A, last(A.t))
+        last(A.u) + slope * zero(t)
+    elseif extrapolation_right == ExtrapolationType.Linear
+        slope = derivative(A, last(A.t))
+        last(A.u) + slope * (t - last(A.t))
+    elseif extrapolation_right == ExtrapolationType.Extension
+        _interpolate(A, t, A.iguesser)
+    elseif extrapolation_right == ExtrapolationType.Periodic
+        t_, _ = transformation_periodic(A, t)
+        _interpolate(A, t_, A.iguesser)
+    else
+        # extrapolation_right == ExtrapolationType.Reflective
+        t_, _ = transformation_reflective(A, t)
+        _interpolate(A, t_, A.iguesser)
+    end
 end
 
 # Linear Interpolation
@@ -9,9 +57,9 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
     if isnan(t)
         # For correct derivative with NaN
         idx = firstindex(A.u)
-        t1 = t2 = one(eltype(A.t))
-        u1 = u2 = one(eltype(A.u))
-        slope = t * get_parameters(A, idx)
+        t1 = t2 = oneunit(eltype(A.t))
+        u1 = u2 = oneunit(eltype(A.u))
+        slope = t / t * get_parameters(A, idx)
     else
         idx = get_idx(A, t, iguess)
         t1, t2 = A.t[idx], A.t[idx + 1]
