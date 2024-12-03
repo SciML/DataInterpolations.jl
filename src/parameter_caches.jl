@@ -54,13 +54,11 @@ function smoothed_constant_interpolation_parameters(
     if isone(idx) || (idx == length(t))
         # If extrapolation is periodic, make the transition differentiable
         if extrapolation_left == extrapolation_right == ExtrapolationType.Periodic
-            if isone(idx)
-                min(t[end] - t[end - 1], t[2] - t[1], 2d_max) / 2, (u[1] - u[end - 1]) / 2
-            else
-                min(t[end] - t[end - 1], t[2] - t[1], 2d_max) / 2, (u[1] - u[end - 1]) / 2
-            end
+            min(t[end] - t[end - 1], t[2] - t[1], 2d_max) / 2, (u[1] - u[end - 1]) / 2
         else
-            zero(one(eltype(t)) / 2), zero(one(eltype(u)) / 2)
+            d = isone(idx) ? min(t[2] - t[1], 2d_max) / 2 :
+                min(t[end] - t[end - 1], 2d_max) / 2
+            d, zero(one(eltype(u)) / 2)
         end
     else
         min(t[idx] - t[idx - 1], t[idx + 1] - t[idx], 2d_max) / 2, (u[idx] - u[idx - 1]) / 2

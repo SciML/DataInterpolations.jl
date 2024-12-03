@@ -71,11 +71,6 @@ function _derivative(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Numb
     idx = get_idx(A, t, iguess)
     d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
 
-    # Fix extrapolation behavior as constant for now
-    if t <= first(A.t) || t >= last(A.t)
-        return zero(c_upper / oneunit(t))
-    end
-
     if (t - A.t[idx]) < d_lower
         -2c_lower * ((t - A.t[idx]) / d_lower - 1) / d_lower
     elseif (A.t[idx + 1] - t) < d_upper
