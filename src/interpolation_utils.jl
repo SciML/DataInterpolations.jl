@@ -215,9 +215,9 @@ function get_parameters(A::SmoothedConstantInterpolation, idx)
         c_upper = A.p.c[idx + 1]
         d_lower, d_upper, c_lower, c_upper
     else
-        d_lower, c_lower = smoothed_linear_interpolation_parameters(A.u, A.t, A.d_max, idx)
-        d_upper, c_upper = smoothed_linear_interpolation_parameters(
-            A.u, A.t, A.d_max, idx + 1)
+        d_lower, c_lower = smoothed_constant_interpolation_parameters(A.u, A.t, A.d_max, idx, A.extrapolation_left, A.extrapolation_right)
+        d_upper, c_upper = smoothed_constant_interpolation_parameters(
+            A.u, A.t, A.d_max, idx + 1, A.extrapolation_left, A.extrapolation_right)
         d_lower, d_upper, c_lower, c_upper
     end
 end

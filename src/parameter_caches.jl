@@ -39,7 +39,7 @@ end
 
 function SmoothedConstantParameterCache(u, t, cache_parameters, d_max)
     if cache_parameters
-        parameters = smoothed_linear_interpolation_parameters.(
+        parameters = smoothed_constant_interpolation_parameters.(
             Ref(u), Ref(t), d_max, eachindex(t))
         d, c = collect.(eachrow(stack(collect.(parameters))))
         SmoothedConstantParameterCache(d, c)
@@ -48,10 +48,18 @@ function SmoothedConstantParameterCache(u, t, cache_parameters, d_max)
     end
 end
 
-function smoothed_linear_interpolation_parameters(u, t, d_max, idx)
-    # TODO: Add support for making periodic extrapolation smooth
+function smoothed_constant_interpolation_parameters(u, t, d_max, idx, extrapolation_left, extrapolation_right)
     if isone(idx) || (idx == length(t))
-        zero(one(eltype(t))) / 2, zero(one(eltype(u)) / 2)
+        # If extrapolation is periodic, make the transition differentiable
+        if extrapolation_left == extrapolation_right == ExtrapolationType.Periodic
+            if isone(idx)
+                min(t[end] - t[end - 1], t[2] - t[1], 2d_max) / 2, (u[1] - u[end - 1]) / 2
+            else
+                min(t[end] - t[end - 1], t[2] - t[1], 2d_max) / 2, (u[1] - u[end - 1]) / 2
+            end
+        else
+            zero(one(eltype(t)) / 2), zero(one(eltype(u)) / 2)
+        end
     else
         min(t[idx] - t[idx - 1], t[idx + 1] - t[idx], 2d_max) / 2, (u[idx] - u[idx - 1]) / 2
     end
