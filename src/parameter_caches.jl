@@ -37,10 +37,11 @@ struct SmoothedConstantParameterCache{dType, cType}
     c::cType
 end
 
-function SmoothedConstantParameterCache(u, t, cache_parameters, d_max)
+function SmoothedConstantParameterCache(
+        u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right)
     if cache_parameters
         parameters = smoothed_constant_interpolation_parameters.(
-            Ref(u), Ref(t), d_max, eachindex(t))
+            Ref(u), Ref(t), d_max, eachindex(t), extrapolation_left, extrapolation_right)
         d, c = collect.(eachrow(stack(collect.(parameters))))
         SmoothedConstantParameterCache(d, c)
     else
@@ -48,7 +49,8 @@ function SmoothedConstantParameterCache(u, t, cache_parameters, d_max)
     end
 end
 
-function smoothed_constant_interpolation_parameters(u, t, d_max, idx, extrapolation_left, extrapolation_right)
+function smoothed_constant_interpolation_parameters(
+        u, t, d_max, idx, extrapolation_left, extrapolation_right)
     if isone(idx) || (idx == length(t))
         # If extrapolation is periodic, make the transition differentiable
         if extrapolation_left == extrapolation_right == ExtrapolationType.Periodic

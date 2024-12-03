@@ -384,7 +384,7 @@ drifts far from the integral of constant interpolation. In this interpolation ty
   - `d_max`: the maximum distance in `t` from the data points the smoothing is allowed to reach.
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
-    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` (also made smooth at the boundaries) and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
@@ -427,7 +427,8 @@ function SmoothedConstantInterpolation(
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
-    p = SmoothedConstantParameterCache(u, t, cache_parameters, d_max)
+    p = SmoothedConstantParameterCache(
+        u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right)
     A = SmoothedConstantInterpolation(
         u, t, nothing, p, d_max, extrapolation_left,
         extrapolation_right, cache_parameters, assume_linear_t)
