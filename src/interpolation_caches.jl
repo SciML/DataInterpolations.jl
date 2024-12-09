@@ -372,7 +372,7 @@ end
 
 It is a method for interpolating constantly with forward fill, with smoothing around the
 value transitions to make the curve continuously differentiable while the integral never
-drifts far from the integral of constant interpolation. In this interpolation type u[end] is ignored.
+drifts far from the integral of constant interpolation. In this interpolation type, `u[end]` is ignored.
 
 ## Arguments
 
@@ -381,7 +381,8 @@ drifts far from the integral of constant interpolation. In this interpolation ty
 
 ## Keyword Arguments
 
-  - `d_max`: the maximum distance in `t` from the data points the smoothing is allowed to reach.
+  - `d_max`: Around each time point `tᵢ` there is a continuously differentiable (quadratic) transition between `uᵢ₋₁` and `uᵢ`,
+    on the interval `[tᵢ - d, tᵢ + d]`. The distance `d` is determined as `d = min((tᵢ - tᵢ₋₁)/2, (tᵢ₊₁ - tᵢ)/2, d_max)`.
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` (also made smooth at the boundaries) and `ExtrapolationType.Reflective`.
