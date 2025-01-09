@@ -70,7 +70,7 @@ function Base.showerror(io::IO, ::LeftExtrapolationError)
     print(io, LEFT_EXTRAPOLATION_ERROR)
 end
 
-const RIGHT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t > last(A.t) as the `extrapolation_tight` kwarg passed was `ExtrapolationType.None`"
+const RIGHT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t > last(A.t) as the `extrapolation_right` kwarg passed was `ExtrapolationType.None`"
 struct RightExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::RightExtrapolationError)
     print(io, RIGHT_EXTRAPOLATION_ERROR)
