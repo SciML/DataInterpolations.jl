@@ -12,7 +12,7 @@ Pkg.add(&quot;DataInterpolations&quot;)</code></pre><h2 id="Available-Interpolat
   title = {DataInterpolations.jl: Fast Interpolations of 1D data},
   journal = {Journal of Open Source Software}
 }</code></pre><h2 id="Contributing"><a class="docs-heading-anchor" href="#Contributing">Contributing</a><a id="Contributing-1"></a><a class="docs-heading-anchor-permalink" href="#Contributing" title="Permalink"></a></h2><ul><li><p>Please refer to the <a href="https://github.com/SciML/ColPrac/blob/master/README.md">SciML ColPrac: Contributor&#39;s Guide on Collaborative Practices for Community Packages</a> for guidance on PRs, issues, and other matters relating to contributing to SciML.</p></li><li><p>See the <a href="https://github.com/SciML/SciMLStyle">SciML Style Guide</a> for common coding practices and other style decisions.</p></li><li><p>There are a few community forums:</p><ul><li>The #diffeq-bridged and #sciml-bridged channels in the <a href="https://julialang.org/slack/">Julia Slack</a></li><li>The #diffeq-bridged and #sciml-bridged channels in the <a href="https://julialang.zulipchat.com/#narrow/stream/279055-sciml-bridged">Julia Zulip</a></li><li>On the <a href="https://discourse.julialang.org">Julia Discourse forums</a></li><li>See also <a href="https://sciml.ai/community/">SciML Community page</a></li></ul></li></ul><h2 id="Reproducibility"><a class="docs-heading-anchor" href="#Reproducibility">Reproducibility</a><a id="Reproducibility-1"></a><a class="docs-heading-anchor-permalink" href="#Reproducibility" title="Permalink"></a></h2><details><summary>The documentation of this SciML package was built using these direct dependencies,</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Status `~/work/DataInterpolations.jl/DataInterpolations.jl/docs/Project.toml`
-  [82cc6244] DataInterpolations v6.6.0 `~/work/DataInterpolations.jl/DataInterpolations.jl`
+  [82cc6244] DataInterpolations v7.0.0 `~/work/DataInterpolations.jl/DataInterpolations.jl`
   [e30172f5] Documenter v1.8.0
   [961ee093] ModelingToolkit v9.60.0
   [16a59e39] ModelingToolkitStandardLibrary v2.19.0
@@ -34,7 +34,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [47edcb42] ADTypes v1.11.0
   [a4c015fc] ANSIColoredPrinters v0.0.1
   [1520ce14] AbstractTrees v0.4.5
-  [7d9f7c33] Accessors v0.1.39
+  [7d9f7c33] Accessors v0.1.40
   [79e6a3ab] Adapt v4.1.1
   [66dad0bd] AliasTables v1.1.3
   [ec485272] ArnoldiMethod v0.4.0
@@ -70,7 +70,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [adafc99b] CpuId v0.3.1
   [a8cc5b0e] Crayons v4.1.1
   [9a962f9c] DataAPI v1.16.0
-  [82cc6244] DataInterpolations v6.6.0 `~/work/DataInterpolations.jl/DataInterpolations.jl`
+  [82cc6244] DataInterpolations v7.0.0 `~/work/DataInterpolations.jl/DataInterpolations.jl`
   [864edb3b] DataStructures v0.18.20
   [e2d170a0] DataValueInterfaces v1.0.0
   [8bb1440f] DelimitedFiles v1.9.1
@@ -81,7 +81,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [b552c78f] DiffRules v1.15.1
   [a0c0ee7d] DifferentiationInterface v0.6.28
   [8d63f2c5] DispatchDoctor v0.4.19
-  [31c24e10] Distributions v0.25.115
+  [31c24e10] Distributions v0.25.116
   [ffbed154] DocStringExtensions v0.9.3
   [e30172f5] Documenter v1.8.0
   [5b8099bc] DomainSets v0.7.14
@@ -147,7 +147,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [e6f89c97] LoggingExtras v1.1.0
   [bdcacae8] LoopVectorization v0.12.171
   [d8e11817] MLStyle v0.4.17
-  [1914dd2f] MacroTools v0.5.13
+  [1914dd2f] MacroTools v0.5.15
   [d125e4d3] ManualMemory v0.1.8
   [d0879d2d] MarkdownAST v0.1.2
   [bb5d69b7] MaybeInplace v0.1.4
@@ -265,9 +265,9 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [4c63d2b9] StatsFuns v1.3.2
   [7792a7ef] StrideArraysCore v0.5.7
   [892a3eda] StringManipulation v0.4.0
-  [2efcf032] SymbolicIndexingInterface v0.3.36
+  [2efcf032] SymbolicIndexingInterface v0.3.37
   [19f23fe9] SymbolicLimits v0.2.2
-  [d1185830] SymbolicUtils v3.7.2
+  [d1185830] SymbolicUtils v3.8.1
   [0c5d862f] Symbolics v6.22.1
   [3783bdb8] TableTraits v1.0.1
   [bd369af6] Tables v1.12.0
@@ -291,6 +291,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [41fe7b60] Unzip v0.2.0
   [3d5dd08c] VectorizationBase v0.21.71
   [19fa3120] VertexSafeGraphs v0.2.0
+  [897b6980] WeakValueDicts v0.1.0
   [6e34b625] Bzip2_jll v1.0.8+4
   [83423d85] Cairo_jll v1.18.2+1
   [ee1fde0b] Dbus_jll v1.14.10+0
@@ -373,7 +374,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [2db6ffa8] libevdev_jll v1.11.0+0
   [f638f0a6] libfdk_aac_jll v2.0.3+0
   [36db933b] libinput_jll v1.18.0+0
-  [b53b4c65] libpng_jll v1.6.45+0
+  [b53b4c65] libpng_jll v1.6.45+1
   [f27f6e37] libvorbis_jll v1.3.7+2
   [009596ad] mtdev_jll v1.1.6+0
   [1317d2d5] oneTBB_jll v2021.12.0+0
@@ -428,4 +429,4 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [8e850b90] libblastrampoline_jll v5.11.0+0
   [8e850ede] nghttp2_jll v1.59.0+0
   [3f19e933] p7zip_jll v17.4.0+2
-Info Packages marked with ⌅ have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v6.6.0/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v6.6.0/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Tuesday 7 January 2025 05:31">Tuesday 7 January 2025</span>. Using Julia version 1.11.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+Info Packages marked with ⌅ have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v7.0.0/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v7.0.0/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Thursday 9 January 2025 07:33">Thursday 9 January 2025</span>. Using Julia version 1.11.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
