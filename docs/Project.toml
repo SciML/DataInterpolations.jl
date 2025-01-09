@@ -11,7 +11,7 @@ StableRNGs = "860ef19b-820b-49d6-a774-d7a799459cd3"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [compat]
-DataInterpolations = "6"
+DataInterpolations = "6, 7.0"
 Documenter = "1"
 ModelingToolkit = "9"
 ModelingToolkitStandardLibrary = "2"
