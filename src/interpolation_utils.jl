@@ -327,3 +327,6 @@ function transformation_reflective(A, t)
     (n > 0) && (n -= 1)
     t_, n
 end
+
+typed_nan(::AbstractArray{T}) where {T <: AbstractFloat} = T(NaN)
+typed_nan(::AbstractArray{T}) where {T <: Integer} = zero(T)

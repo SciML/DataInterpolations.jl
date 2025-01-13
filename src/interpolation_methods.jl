@@ -14,7 +14,7 @@ function _extrapolate_left(A, t)
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
         slope = derivative(A, first(A.t))
-        first(A.u) + slope * zero(t)
+        first(A.u) + zero(slope * t)
     elseif extrapolation_left == ExtrapolationType.Linear
         slope = derivative(A, first(A.t))
         first(A.u) + slope * (t - first(A.t))
@@ -36,7 +36,7 @@ function _extrapolate_right(A, t)
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
         slope = derivative(A, last(A.t))
-        last(A.u) + slope * zero(t)
+        last(A.u) + zero(slope * t)
     elseif extrapolation_right == ExtrapolationType.Linear
         slope = derivative(A, last(A.t))
         last(A.u) + slope * (t - last(A.t))

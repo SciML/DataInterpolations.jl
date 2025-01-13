@@ -159,11 +159,11 @@ function _derivative(A::ConstantInterpolation, t::Number, iguess)
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
-    return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : eltype(A.u)(NaN)
+    return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : typed_nan(A.u)
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : eltype(A.u)(NaN) .* A.u[:, 1]
+    return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : typed_nan(A.u) .* A.u[:, 1]
 end
 
 # QuadraticSpline Interpolation
