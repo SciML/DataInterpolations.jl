@@ -522,7 +522,7 @@ end
     @test A(-Inf) == first(u)
 
     # Test extrapolation of integer output
-    itp = ConstantInterpolation([2], [0.0]; extrapolation=ExtrapolationType.Constant)
+    itp = ConstantInterpolation([2], [0.0]; extrapolation = ExtrapolationType.Constant)
     @test itp(1.0) == 2
 end
 
