@@ -51,12 +51,18 @@ end
     t = collect(1.0:10.0)
     test_zygote(
         LinearInterpolation, u, t; name = "Linear Interpolation")
+    u2 = Matrix(hcat(u, u)')
+    test_zygote(
+        LinearInterpolation, u2, t; name = "Linear Interpolation with matrix input")
 end
 
 @testset "Quadratic Interpolation" begin
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
     test_zygote(QuadraticInterpolation, u, t; name = "Quadratic Interpolation")
+    u2 = Matrix(hcat(u, u)')
+    test_zygote(
+        QuadraticInterpolation, u2, t; name = "Quadratic Interpolation with matrix input")
 end
 
 @testset "Constant Interpolation" begin
