@@ -18,15 +18,8 @@ function _extrapolate_left(A, t)
     elseif extrapolation_left == ExtrapolationType.Linear
         slope = derivative(A, first(A.t))
         first(A.u) + slope * (t - first(A.t))
-    elseif extrapolation_left == ExtrapolationType.Extension
-        _interpolate(A, t, A.iguesser)
-    elseif extrapolation_left == ExtrapolationType.Periodic
-        t_, _ = transformation_periodic(A, t)
-        _interpolate(A, t_, A.iguesser)
     else
-        # extrapolation_left == ExtrapolationType.Reflective
-        t_, _ = transformation_reflective(A, t)
-        _interpolate(A, t_, A.iguesser)
+        _extrapolate_other(A, t, extrapolation_left)
     end
 end
 
@@ -40,15 +33,44 @@ function _extrapolate_right(A, t)
     elseif extrapolation_right == ExtrapolationType.Linear
         slope = derivative(A, last(A.t))
         last(A.u) + slope * (t - last(A.t))
-    elseif extrapolation_right == ExtrapolationType.Extension
+    else
+        _extrapolate_other(A, t, extrapolation_right)
+    end
+end
+
+function _extrapolate_other(A, t, extrapolation)
+    if extrapolation == ExtrapolationType.Extension
         _interpolate(A, t, A.iguesser)
-    elseif extrapolation_right == ExtrapolationType.Periodic
+    elseif extrapolation == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
         _interpolate(A, t_, A.iguesser)
-    else
-        # extrapolation_right == ExtrapolationType.Reflective
+    elseif extrapolation == ExtrapolationType.Reflective
         t_, _ = transformation_reflective(A, t)
         _interpolate(A, t_, A.iguesser)
+    else
+        throw(ExtrapolationNotImplementedError())
+    end
+end
+
+function _extrapolate_left(A::ConstantInterpolation, t)
+    (; extrapolation_left) = A
+    if extrapolation_left == ExtrapolationType.None
+        throw(LeftExtrapolationError())
+    elseif extrapolation_left in (ExtrapolationType.Constant, ExtrapolationType.Linear)
+        first(A.u)
+    else
+        _extrapolate_other(A, t, extrapolation_left)
+    end
+end
+
+function _extrapolate_right(A::ConstantInterpolation, t)
+    (; extrapolation_right) = A
+    if extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif extrapolation_right in (ExtrapolationType.Constant, ExtrapolationType.Linear)
+        last(A.u)
+    else
+        _extrapolate_other(A, t, extrapolation_right)
     end
 end
 

@@ -100,6 +100,12 @@ function Base.showerror(io::IO, ::IntegralNotInvertibleError)
     print(io, INTEGRAL_NOT_INVERTIBLE_ERROR)
 end
 
+const EXTRAPOLATION_NOT_IMPLEMENTED_ERROR = "The provided extrapolation option is not implemented."
+struct ExtrapolationNotImplementedError <: Exception end
+function Base.showerror(io::IO, ::ExtrapolationNotImplementedError)
+    print(io, EXTRAPOLATION_NOT_IMPLEMENTED_ERROR)
+end
+
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
        BSplineInterpolation, BSplineApprox, CubicHermiteSpline, PCHIPInterpolation,
