@@ -18,9 +18,9 @@ function _extrapolate_derivative_left(A, t, order)
     if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
-        zero(first(A.u) / one(A.t[1]))
+        zero(first(A.u) /t)
     elseif extrapolation_left == ExtrapolationType.Linear
-        (order == 1) ? derivative(A, first(A.t)) : zero(first(A.u) / one(A.t[1]))
+        (order == 1) ? derivative(A, first(A.t)) : zero(first(A.u) / t^2)
     elseif extrapolation_left == ExtrapolationType.Extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
@@ -42,9 +42,9 @@ function _extrapolate_derivative_right(A, t, order)
     if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
-        zero(first(A.u) / one(A.t[1]))
+        zero(first(A.u) / t)
     elseif extrapolation_right == ExtrapolationType.Linear
-        (order == 1) ? derivative(A, last(A.t)) : zero(first(A.u) / one(A.t[1]))
+        (order == 1) ? derivative(A, last(A.t)) : zero(first(A.u) / t^2)
     elseif extrapolation_right == ExtrapolationType.Extension
         iguess = A.iguesser
         (order == 1) ? _derivative(A, t, iguess) :
@@ -155,15 +155,15 @@ function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
 end
 
 function _derivative(A::ConstantInterpolation, t::Number, iguess)
-    return zero(first(A.u))
+    return zero(first(A.u)/t)
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
-    return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : typed_nan(A.u)
+    return isempty(searchsorted(A.t, t)) ? zero(A.u[1]/t) : typed_nan(A.u/t)
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : typed_nan(A.u) .* A.u[:, 1]
+    return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]/t) : typed_nan(A.u/t) .* A.u[:, 1]
 end
 
 # QuadraticSpline Interpolation
