@@ -7,6 +7,7 @@ using StableRNGs
 using RegularizationTools
 using Optim
 using ForwardDiff
+using Unitful
 
 function test_derivatives(method; args = [], kwargs = [], name::String)
     kwargs_extrapolation = (method == Curvefit) ?
@@ -92,6 +93,10 @@ end
     u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
     test_derivatives(
         LinearInterpolation; args = [u, t], name = "Linear Interpolation (Matrix)")
+    # u = vcat(collect(1:5), 2 * collect(6:10))*u"m"
+    # t = 1.0collect(1:10)*u"s"
+    # test_derivatives(
+    #     LinearInterpolation; args = [u, t], name = "Linear Interpolation (Unitful Vector)")
 
     # Issue: https://github.com/SciML/DataInterpolations.jl/issues/303
     u = [3.0, 3.0]
@@ -148,6 +153,13 @@ end
     t2 = collect(0.0:10.0)
     @test all(isnan, derivative.(Ref(A), t))
     @test all(derivative.(Ref(A), t2 .+ 0.1) .== 0.0)
+
+    u_un = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]*u"m"
+    t_un = collect(0.0:10.0)*u"s"
+    A_un = ConstantInterpolation(u_un, t_un, dir=:left)
+    t2_un = collect(0.0:9.0)u"s"
+    @test all(isnan, derivative.(Ref(A_un), t_un))
+    @test all(derivative.(Ref(A_un), t2_un .+ 0.1u"s") .== 0.0u"m/s")
 end
 
 @testset "Quadratic Spline" begin

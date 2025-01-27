@@ -1,6 +1,7 @@
 using DataInterpolations, Test
 using ForwardDiff
 using QuadGK
+using Unitful
 
 function test_extrapolation(method, u, t)
     @testset "Extrapolation errors" begin
@@ -40,6 +41,27 @@ function test_extrapolation(method, u, t)
             @test DataInterpolations.integral(A, t1, t2) ≈
                   quadgk(A, t1, t2; atol = 1e-12, rtol = 1e-12)[1]
         end
+    end
+end
+
+@testset "Constant Interpolation" begin
+    t_un = [1.0, 2.0]u"s"
+    u_un = [1.0, 2.0]u"m"
+
+    for extrapolation_type in [ExtrapolationType.Constant, ExtrapolationType.Linear, ExtrapolationType.Extension]
+        # Left extrapolation
+        A = ConstantInterpolation(u_un, t_un; extrapolation_left = extrapolation_type)
+        t_eval = 0.0u"s"
+        @test A(t_eval) == 1.0u"m"
+        @test DataInterpolations.derivative(A, t_eval) == 0.0u"m/s"
+        @test DataInterpolations.derivative(A, t_eval, 2) == 0.0u"m/s^2"
+
+        # Right extrapolation
+        A = ConstantInterpolation(u_un, t_un; extrapolation_right = extrapolation_type)
+        t_eval = 3.0u"s"
+        @test A(t_eval) == 2.0u"m"
+        @test DataInterpolations.derivative(A, t_eval) == 0.0u"m/s"
+        @test DataInterpolations.derivative(A, t_eval, 2) == 0.0u"m/s^2"
     end
 end
 
