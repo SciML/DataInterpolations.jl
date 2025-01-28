@@ -44,7 +44,7 @@ StableRNGs = "1"
 Symbolics = "5.29, 6"
 Test = "1.10"
 Unitful = "1.21.1"
-Zygote = "0.6.70"
+Zygote = "0.6.70, 0.7"
 julia = "1.10"
 
 [extras]
