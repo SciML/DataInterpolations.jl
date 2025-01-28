@@ -523,7 +523,8 @@ end
 
     # Test extrapolation of integer output
     itp = ConstantInterpolation([2], [0.0]; extrapolation = ExtrapolationType.Constant)
-    @test itp(1.0) == 2
+    @test itp(1.0) === 2
+    @test itp(-1.0) === 2
 end
 
 @testset "QuadraticSpline Interpolation" begin
