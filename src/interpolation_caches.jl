@@ -280,7 +280,7 @@ function AkimaInterpolation(
     m[end - 1] = 2m[end - 2] - m[end - 3]
     m[end] = 2m[end - 1] - m[end - 2]
 
-    b = 0.5 .* (m[4:end] .+ m[1:(end - 3)])
+    b = (m[4:end] .+ m[1:(end - 3)]) ./ 2
     dm = abs.(diff(m))
     f1 = dm[3:(n + 2)]
     f2 = dm[1:n]
@@ -288,8 +288,8 @@ function AkimaInterpolation(
     ind = findall(f12 .> 1e-9 * maximum(f12))
     b[ind] = (f1[ind] .* m[ind .+ 1] .+
               f2[ind] .* m[ind .+ 2]) ./ f12[ind]
-    c = (3.0 .* m[3:(end - 2)] .- 2.0 .* b[1:(end - 1)] .- b[2:end]) ./ dt
-    d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
+    c = (3 .* m[3:(end - 2)] .- 2 .* b[1:(end - 1)] .- b[2:end]) ./ dt
+    d = (b[1:(end - 1)] .+ b[2:end] .- 2 .* m[3:(end - 2)]) ./ dt .^ 2
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
