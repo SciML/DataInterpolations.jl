@@ -57,7 +57,7 @@ function _extrapolate_left(A::ConstantInterpolation, t)
     if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left in (ExtrapolationType.Constant, ExtrapolationType.Linear)
-        first(A.u)
+        dir == :left ? first(A.u) : A.u[min(2, length(A.u))]
     else
         _extrapolate_other(A, t, extrapolation_left)
     end
@@ -68,7 +68,7 @@ function _extrapolate_right(A::ConstantInterpolation, t)
     if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right in (ExtrapolationType.Constant, ExtrapolationType.Linear)
-        last(A.u)
+        dir == :left ? A.u[max(1, length(A.u) - 1)] : last(A.u)
     else
         _extrapolate_other(A, t, extrapolation_right)
     end
