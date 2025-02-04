@@ -50,11 +50,11 @@ function test_integral(method; args = [], kwargs = [], name::String)
 
         # Integrate intervals fully outside data
         qint, err = quadgk(func, t1 - 5.0, t1 - 2.5; atol = 1e-12, rtol = 1e-12)
-        aint = integral(func, t1 - 5.0, (t1 + t2) / 2)
+        aint = integral(func, t1 - 5.0, t1 - 2.5)
         @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
 
-        qint, err = quadgk(func, t1 + 2.5, t1 + 5.0; atol = 1e-12, rtol = 1e-12)
-        aint = integral(func, t1 - 5.0, (t1 + t2) / 2)
+        qint, err = quadgk(func, t2 + 2.5, t2 + 5.0; atol = 1e-12, rtol = 1e-12)
+        aint = integral(func, t2 + 2.5, t2 + 5.0)
         @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
     end
     func = method(args...; kwargs...)

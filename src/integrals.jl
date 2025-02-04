@@ -24,7 +24,7 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     if t1 < first(A.t)
         if t2 < first(A.t)
             # If interval is entirely below data
-            return _extrapolate_integral_left(A, t2) - _extrapolate_integral_left(A, t1)
+            return _extrapolate_integral_left(A, t1) - _extrapolate_integral_left(A, t2)
         end
 
         idx1 -= 1 # Make sure lowest complete interval is included
