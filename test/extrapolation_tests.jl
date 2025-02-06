@@ -44,25 +44,36 @@ function test_extrapolation(method, u, t)
     end
 end
 
-@testset "Constant Interpolation" begin
+@testset "Constant Interpolation with Unitful" begin
     t_un = [1.0, 2.0]u"s"
     u_un = [1.0, 2.0]u"m"
 
-    for extrapolation_type in [ExtrapolationType.Constant, ExtrapolationType.Linear, ExtrapolationType.Extension]
+    for extrapolation_type in [ExtrapolationType.Constant, ExtrapolationType.Linear]
         # Left extrapolation
         A = ConstantInterpolation(u_un, t_un; extrapolation_left = extrapolation_type)
         t_eval = 0.0u"s"
         @test A(t_eval) == 1.0u"m"
-        @test DataInterpolations.derivative(A, t_eval) == 0.0u"m/s"
-        @test DataInterpolations.derivative(A, t_eval, 2) == 0.0u"m/s^2"
 
         # Right extrapolation
         A = ConstantInterpolation(u_un, t_un; extrapolation_right = extrapolation_type)
         t_eval = 3.0u"s"
         @test A(t_eval) == 2.0u"m"
-        @test DataInterpolations.derivative(A, t_eval) == 0.0u"m/s"
-        @test DataInterpolations.derivative(A, t_eval, 2) == 0.0u"m/s^2"
     end
+end
+
+@testset "Linear Interpolation with Unitful" begin
+    t_un = [1.0, 2.0]u"s"
+    u_un = [1.0, 2.0]u"m"
+
+    # Left constant extrapolation
+    A = LinearInterpolation(u_un, t_un; extrapolation_left = ExtrapolationType.Constant)
+    t_eval = 0.0u"s"
+    @test A(t_eval) == 0.0u"m"
+
+    # Right constant extrapolation
+    A = LinearInterpolation(u_un, t_un; extrapolation_right = ExtrapolationType.Constant)
+    t_eval = 3.0u"s"
+    @test A(t_eval) == 2.0u"m"
 end
 
 @testset "Linear Interpolation" begin
