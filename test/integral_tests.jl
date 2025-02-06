@@ -64,7 +64,7 @@ function test_integral(method; args = [], kwargs = [], name::String)
         func, t[1], t[end] + 1.0)
 
     # Test integration with cached parameters
-    if method ∉ [RegularizationSmooth]
+    if method != RegularizationSmooth
         func = method(args...; kwargs..., cache_parameters = true,
             extrapolation = ExtrapolationType.Extension)
         qint, err = quadgk(func, t1 - 1, t1; atol = 1e-12, rtol = 1e-12)
