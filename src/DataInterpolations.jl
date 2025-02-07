@@ -35,19 +35,19 @@ function (interp::AbstractInterpolation)(t::AbstractVector)
     end
 end
 
-function (interp::AbstractInterpolation)(u::AbstractVector, t::AbstractVector)
-    if length(u) != length(t)
+function (interp::AbstractInterpolation)(out::AbstractVector, t::AbstractVector)
+    if length(out) != length(t)
         throw(DimensionMismatch("number of evaluation points and length of the result vector must be equal"))
     end
-    map!(interp, u, t)
-    return u
+    map!(interp, out, t)
+    return out
 end
-function (interp::AbstractInterpolation)(u::AbstractArray, t::AbstractVector)
-    if size(u, ndims(u)) != length(t)
+function (interp::AbstractInterpolation)(out::AbstractArray, t::AbstractVector)
+    if size(out, ndims(out)) != length(t)
         throw(DimensionMismatch("number of evaluation points and last dimension of the result array must be equal"))
     end
-    map!(interp, eachslice(u; dims = ndims(u)), t)
-    return u
+    map!(interp, eachslice(out; dims = ndims(out)), t)
+    return out
 end
 
 const EXTRAPOLATION_ERROR = "Cannot extrapolate as `extrapolate` keyword passed was `false`"
