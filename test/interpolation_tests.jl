@@ -4,6 +4,7 @@ using StableRNGs
 using Optim, ForwardDiff
 using BenchmarkTools
 using Unitful
+using JET
 
 function test_interpolation_type(T)
     @test T <: DataInterpolations.AbstractInterpolation
@@ -920,3 +921,22 @@ f_cubic_spline = c -> square(CubicSpline, c)
 @test ForwardDiff.derivative(f_quadratic_spline, 4.0) ≈ 8.0
 @test ForwardDiff.derivative(f_cubic_spline, 2.0) ≈ 4.0
 @test ForwardDiff.derivative(f_cubic_spline, 4.0) ≈ 8.0
+
+@testset "munge_data" begin
+    t0 = [0.1, 0.2, 0.3]
+    u0 = ["A", "B", "C"]
+
+    for T in (String, Union{String, Missing}), dims in 1:3
+        _u0 = convert(Array{T}, reshape(u0, ntuple(i -> i == dims ? 3 : 1, dims)))
+
+        u, t = @inferred(DataInterpolations.munge_data(_u0, t0))
+        @test u isa Array{String, dims}
+        @test t isa Vector{Float64}
+        if T === String
+            @test u === _u0
+            @test t === t
+        end
+
+        @test_call DataInterpolations.munge_data(_u0, t0)
+    end
+end
