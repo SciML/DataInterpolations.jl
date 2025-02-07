@@ -525,6 +525,13 @@ end
     itp = ConstantInterpolation([2], [0.0]; extrapolation = ExtrapolationType.Constant)
     @test itp(1.0) === 2
     @test itp(-1.0) === 2
+
+    # Test output type of vector evaluation (issue #388)
+    u = [2, 3]
+    t = [0.0, 1.0]
+    itp = ConstantInterpolation(u, t)
+    @test @inferred(itp(t)) == itp.(t)
+    @test typeof(itp(t)) === typeof(itp.(t)) === Vector{Int}
 end
 
 @testset "QuadraticSpline Interpolation" begin
