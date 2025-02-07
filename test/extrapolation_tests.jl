@@ -52,12 +52,16 @@ end
         # Left extrapolation
         A = ConstantInterpolation(u_un, t_un; extrapolation_left = extrapolation_type)
         t_eval = 0.0u"s"
-        @test A(t_eval) == 1.0u"m"
+        @test @inferred(A(t_eval)) == 1.0u"m"
+        @test @inferred(A([t_eval])) == [1.0u"m"]
+        @test A([t_eval]) isa Vector{typeof(1.0u"m")}
 
         # Right extrapolation
         A = ConstantInterpolation(u_un, t_un; extrapolation_right = extrapolation_type)
         t_eval = 3.0u"s"
-        @test A(t_eval) == 2.0u"m"
+        @test @inferred(A(t_eval)) == 2.0u"m"
+        @test @inferred(A([t_eval])) == [2.0u"m"]
+        @test A([t_eval]) isa Vector{typeof(2.0u"m")}
     end
 end
 
@@ -68,22 +72,30 @@ end
     # Left constant extrapolation
     A = LinearInterpolation(u_un, t_un; extrapolation_left = ExtrapolationType.Constant)
     t_eval = 0.0u"s"
-    @test A(t_eval) == 1.0u"m"
+    @test @inferred(A(t_eval)) == 1.0u"m"
+    @test @inferred(A([t_eval])) == [1.0u"m"]
+    @test A([t_eval]) isa Vector{typeof(1.0u"m")}
 
     # Right constant extrapolation
     A = LinearInterpolation(u_un, t_un; extrapolation_right = ExtrapolationType.Constant)
     t_eval = 3.0u"s"
-    @test A(t_eval) == 2.0u"m"
+    @test @inferred(A(t_eval)) == 2.0u"m"
+    @test @inferred(A([t_eval])) == [2.0u"m"]
+    @test A([t_eval]) isa Vector{typeof(2.0u"m")}
 
     # Left linear extrapolation
     A = LinearInterpolation(u_un, t_un; extrapolation_left = ExtrapolationType.Linear)
     t_eval = 0.0u"s"
-    @test A(t_eval) == 0.0u"m"
+    @test @inferred(A(t_eval)) == 0.0u"m"
+    @test @inferred(A([t_eval])) == [0.0u"m"]
+    @test A([t_eval]) isa Vector{typeof(0.0u"m")}
 
     # Right constant extrapolation
     A = LinearInterpolation(u_un, t_un; extrapolation_right = ExtrapolationType.Linear)
     t_eval = 3.0u"s"
-    @test A(t_eval) == 3.0u"m"
+    @test @inferred(A(t_eval)) == 3.0u"m"
+    @test @inferred(A([t_eval])) == [3.0u"m"]
+    @test A([t_eval]) isa Vector{typeof(3.0u"m")}
 end
 
 @testset "Linear Interpolation" begin

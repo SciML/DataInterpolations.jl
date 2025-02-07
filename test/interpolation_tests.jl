@@ -855,33 +855,46 @@ end
 
 @testset "Type of vector returned" begin
     # Issue https://github.com/SciML/DataInterpolations.jl/issues/253
-    t1 = Float32[0.1, 0.2, 0.3, 0.4, 0.5]
-    t2 = Float64[0.1, 0.2, 0.3, 0.4, 0.5]
-    interps_and_types = [
-        (LinearInterpolation(t1, t1), Float32),
-        (LinearInterpolation(t1, t2), Float32),
-        (LinearInterpolation(t2, t1), Float64),
-        (LinearInterpolation(t2, t2), Float64)
-    ]
-    for i in eachindex(interps_and_types)
-        @test eltype(interps_and_types[i][1](t1)) == interps_and_types[i][2]
+    ut1 = Float32[0.1, 0.2, 0.3, 0.4, 0.5]
+    ut2 = Float64[0.1, 0.2, 0.3, 0.4, 0.5]
+    for u in (ut1, ut2), t in (ut1, ut2)
+        interp = LinearInterpolation(ut1, ut2)
+        for xs in (u, t)
+            ys = @inferred(interp(xs))
+            @test ys isa Vector{typeof(interp(first(xs)))}
+            @test all(y == interp(x) for (x, y) in zip(xs, ys))
+        end
     end
 end
 
 @testset "Plugging vector timepoints" begin
     # Issue https://github.com/SciML/DataInterpolations.jl/issues/267
     t = Float64[1.0, 2.0, 3.0, 4.0, 5.0]
+    x = Float64[1.3, 2.2, 4.1]
     @testset "utype - Vectors" begin
         interp = LinearInterpolation(rand(5), t)
-        @test interp(t) isa Vector{Float64}
+        y = interp(x)
+        @test y isa Vector{Float64}
+        @test length(y) == 3
     end
     @testset "utype - Vector of Vectors" begin
         interp = LinearInterpolation([rand(2) for _ in 1:5], t)
-        @test interp(t) isa Vector{Vector{Float64}}
+        y = interp(x)
+        @test y isa Vector{Vector{Float64}}
+        @test length(y) == 3
+        @test all(length(yi) == 2 for yi in y)
     end
     @testset "utype - Matrix" begin
         interp = LinearInterpolation(rand(2, 5), t)
-        @test interp(t) isa Matrix{Float64}
+        y = interp(x)
+        @test y isa Matrix{Float64}
+        @test size(y) == (2, 3)
+    end
+    @testset "utype - Array" begin
+        interp = LinearInterpolation(rand(2, 3, 4, 5), t)
+        y = interp(x)
+        @test y isa Array{Float64, 4}
+        @test size(y) == (2, 3, 4, 3)
     end
 end
 

@@ -25,37 +25,29 @@ include("online.jl")
 include("show.jl")
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
-
 function (interp::AbstractInterpolation)(t::AbstractVector)
-    u = get_u(interp.u, t)
-    interp(u, t)
-end
-
-function get_u(u::AbstractVector, t)
-    return similar(t, promote_type(eltype(u), eltype(t)))
-end
-
-function get_u(u::AbstractVector{<:AbstractVector}, t)
-    type = promote_type(eltype(eltype(u)), eltype(t))
-    return [zeros(type, length(first(u))) for _ in eachindex(t)]
-end
-
-function get_u(u::AbstractMatrix, t)
-    type = promote_type(eltype(u), eltype(t))
-    return zeros(type, (size(u, 1), length(t)))
-end
-
-function (interp::AbstractInterpolation)(u::AbstractMatrix, t::AbstractVector)
-    @inbounds for i in eachindex(t)
-        u[:, i] = interp(t[i])
+    if interp.u isa AbstractVector
+        # Return a vector of interpolated values, on for each element in `t`
+        return map(interp, t)
+    elseif interp.u isa AbstractArray
+        # Stack interpolated values if `u` was stored in matrix/... form
+        return stack(interp, t)
     end
-    u
 end
+
 function (interp::AbstractInterpolation)(u::AbstractVector, t::AbstractVector)
-    @inbounds for i in eachindex(u, t)
-        u[i] = interp(t[i])
+    if length(u) != length(t)
+        throw(DimensionMismatch("number of evaluation points and length of the result vector must be equal"))
     end
-    u
+    map!(interp, u, t)
+    return u
+end
+function (interp::AbstractInterpolation)(u::AbstractArray, t::AbstractVector)
+    if size(u, ndims(u)) != length(t)
+        throw(DimensionMismatch("number of evaluation points and last dimension of the result array must be equal"))
+    end
+    map!(interp, eachslice(u; dims = ndims(u)), t)
+    return u
 end
 
 const EXTRAPOLATION_ERROR = "Cannot extrapolate as `extrapolate` keyword passed was `false`"
