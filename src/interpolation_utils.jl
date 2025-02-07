@@ -189,14 +189,12 @@ function get_idx(A::AbstractInterpolation, t, iguess::Union{<:Integer, Guesser};
     end
 end
 
-function cumulative_integral(A, cache_parameters)
-    if cache_parameters && hasmethod(_integral, Tuple{typeof(A), Number, Number, Number})
-        integral_values = _integral.(
-            Ref(A), 1:(length(A.t) - 1), A.t[1:(end - 1)], A.t[2:end])
-        cumsum(integral_values)
-    else
-        promote_type(eltype(A.u), eltype(A.t))[]
-    end
+cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
+function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameters::Bool)
+    Base.require_one_based_indexing(A.u)
+    idxs = cache_parameters ? (1:(length(A.t) - 1)) : (1:0)
+    return cumsum(_integral(A, idx, t1, t2)
+    for (idx, t1, t2) in zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end])))
 end
 
 function get_parameters(A::LinearInterpolation, idx)

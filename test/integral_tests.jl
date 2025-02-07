@@ -213,3 +213,15 @@ end
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 1.0, 100.0)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 50.0)
 end
+
+@testset "cumulative_integral" begin
+    A = ConstantInterpolation(["A", "B", "C"], [0.0, 0.25, 0.75])
+    for cache_parameter in (true, false)
+        @test @inferred(DataInterpolations.cumulative_integral(A, cache_parameter)) ===
+              nothing
+    end
+
+    A = ConstantInterpolation([3.1, 2.5, 4.7], [0.0, 0.25, 0.75])
+    @test @inferred(DataInterpolations.cumulative_integral(A, false)) == Float64[]
+    @test @inferred(DataInterpolations.cumulative_integral(A, true)) == [0.775, 2.025]
+end
