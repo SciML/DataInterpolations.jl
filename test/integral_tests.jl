@@ -4,6 +4,7 @@ using DataInterpolations: integral
 using Optim, ForwardDiff
 using RegularizationTools
 using StableRNGs
+using Unitful
 
 function test_integral(method; args = [], kwargs = [], name::String)
     func = method(args...; kwargs..., extrapolation_left = ExtrapolationType.Extension,
@@ -212,6 +213,13 @@ end
     A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 1.0, 100.0)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 50.0)
+end
+
+# issue #385
+@testset "Integrals with unitful numbers" begin
+    u = rand(5)u"m"
+    A = ConstantInterpolation(u, (1:5)u"s")
+    @test @inferred(integral(A, 4u"s")) ≈ sum(u[1:3]) * u"s"
 end
 
 @testset "cumulative_integral" begin
