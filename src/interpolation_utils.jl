@@ -104,51 +104,49 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 end
 
 # helper function for data manipulation
-function munge_data(u::AbstractVector{<:Real}, t::AbstractVector{<:Real})
-    return u, t
-end
-
 function munge_data(u::AbstractVector, t::AbstractVector)
-    Tu = Base.nonmissingtype(eltype(u))
-    Tt = Base.nonmissingtype(eltype(t))
-    @assert length(t) == length(u)
-    non_missing_indices = collect(
-        i for i in 1:length(t)
-    if !ismissing(u[i]) && !ismissing(t[i])
-    )
+    Tu = nonmissingtype(eltype(u))
+    Tt = nonmissingtype(eltype(t))
+    if Tu === eltype(u) && Tt === eltype(t)
+        return u, t
+    end
 
-    u = Tu.([u[i] for i in non_missing_indices])
-    t = Tt.([t[i] for i in non_missing_indices])
+    @assert length(t) == length(u)
+    non_missing_mask = map((ui, ti) -> !ismissing(ui) && !ismissing(ti), u, t)
+    u = convert(AbstractVector{Tu}, u[non_missing_mask])
+    t = convert(AbstractVector{Tt}, t[non_missing_mask])
 
     return u, t
 end
 
-function munge_data(U::StridedMatrix, t::AbstractVector)
-    TU = Base.nonmissingtype(eltype(U))
-    Tt = Base.nonmissingtype(eltype(t))
-    @assert length(t) == size(U, 2)
-    non_missing_indices = collect(
-        i for i in 1:length(t)
-    if !any(ismissing, U[:, i]) && !ismissing(t[i])
-    )
+function munge_data(U::AbstractMatrix, t::AbstractVector)
+    TU = nonmissingtype(eltype(U))
+    Tt = nonmissingtype(eltype(t))
+    if TU === eltype(U) && Tt === eltype(t)
+        return U, t
+    end
 
-    U = hcat([TU.(U[:, i]) for i in non_missing_indices]...)
-    t = Tt.([t[i] for i in non_missing_indices])
+    @assert length(t) == size(U, 2)
+    non_missing_mask = map(
+        (uis, ti) -> !any(ismissing, uis) && !ismissing(ti), eachcol(U), t)
+    U = convert(AbstractMatrix{TU}, U[:, non_missing_mask])
+    t = convert(AbstractVector{Tt}, t[non_missing_mask])
 
     return U, t
 end
 
 function munge_data(U::AbstractArray{T, N}, t) where {T, N}
-    TU = Base.nonmissingtype(eltype(U))
-    Tt = Base.nonmissingtype(eltype(t))
-    @assert length(t) == size(U, ndims(U))
-    ax = axes(U)[1:(end - 1)]
-    non_missing_indices = collect(
-        i for i in 1:length(t)
-    if !any(ismissing, U[ax..., i]) && !ismissing(t[i])
-    )
-    U = cat([TU.(U[ax..., i]) for i in non_missing_indices]...; dims = ndims(U))
-    t = Tt.([t[i] for i in non_missing_indices])
+    TU = nonmissingtype(eltype(U))
+    Tt = nonmissingtype(eltype(t))
+    if TU === eltype(U) && Tt === eltype(t)
+        return U, t
+    end
+
+    @assert length(t) == size(U, N)
+    non_missing_mask = map(
+        (uis, ti) -> !any(ismissing, uis) && !ismissing(ti), eachslice(U; dims = N), t)
+    U = convert(AbstractArray{TU, N}, copy(selectdim(U, N, non_missing_mask)))
+    t = convert(AbstractVector{Tt}, t[non_missing_mask])
 
     return U, t
 end
