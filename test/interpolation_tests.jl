@@ -43,8 +43,13 @@ end
         @test A(11) == 22
 
         u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
-        A = @inferred(LinearInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension))
+        @test @inferred(LinearInterpolation(
+            u, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation broken=VERSION <
+                                                                                               v"1.11" &&
+                                                                                               t isa
+                                                                                               AbstractRange
+        A = LinearInterpolation(
+            u, t; extrapolation = ExtrapolationType.Extension)
 
         for (_t, _u) in zip(t, eachcol(u))
             @test A(_t) == _u
@@ -57,8 +62,13 @@ end
         y = 2:4
         u_ = x' .* y
         u = [u_[:, i] for i in 1:size(u_, 2)]
-        A = @inferred(LinearInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension))
+        @test @inferred(LinearInterpolation(
+            u, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation broken=VERSION <
+                                                                                               v"1.11" &&
+                                                                                               t isa
+                                                                                               AbstractRange
+        A = LinearInterpolation(
+            u, t; extrapolation = ExtrapolationType.Extension)
         @test A(0) == [0.0, 0.0, 0.0]
         @test A(5.5) == [11.0, 16.5, 22.0]
         @test A(11) == [22.0, 33.0, 44.0]
@@ -260,7 +270,10 @@ end
 
     # Matrix interpolation test
     u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
-    A = @inferred(QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
+    @test @inferred(QuadraticInterpolation(
+        u, t; extrapolation = ExtrapolationType.Extension)) isa QuadraticInterpolation broken=VERSION <
+                                                                                              v"1.11"
+    A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
     for (_t, _u) in zip(t, eachcol(u))
         @test A(_t) == _u
@@ -568,7 +581,7 @@ end
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
-    A = @inferred(QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension))
+    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(-2.0) == P₁(-2.0) * ones(4)
     @test A(-0.5) == P₁(-0.5) * ones(4)
     @test A(0.7) == P₁(0.7) * ones(4)
@@ -617,7 +630,9 @@ end
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
-    A = @inferred(CubicSpline(u, t; extrapolation = ExtrapolationType.Extension))
+    @test @inferred(CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)) isa
+          CubicSpline broken=VERSION < v"1.11"
+    A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4)
     end
