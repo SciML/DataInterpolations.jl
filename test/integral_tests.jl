@@ -7,8 +7,7 @@ using StableRNGs
 using Unitful
 
 function test_integral(method; args = [], kwargs = [], name::String)
-    func = method(args...; kwargs..., extrapolation_left = ExtrapolationType.Extension,
-        extrapolation_right = ExtrapolationType.Extension)
+    func = method(args...; kwargs..., extrapolation = ExtrapolationType.Extension)
     (; t) = func
     t1 = minimum(t)
     t2 = maximum(t)
@@ -64,6 +63,13 @@ function test_integral(method; args = [], kwargs = [], name::String)
     @test_throws DataInterpolations.LeftExtrapolationError integral(func, t[1] - 1.0, t[2])
     @test_throws DataInterpolations.RightExtrapolationError integral(
         func, t[1], t[end] + 1.0)
+
+    # Test integration with cached parameters
+    func = method(args...; kwargs..., cache_parameters = true,
+        extrapolation = ExtrapolationType.Extension)
+    qint, err = quadgk(func, t1 - 1, t1; atol = 1e-12, rtol = 1e-12)
+    aint = integral(func, t1 - 1, t1)
+    @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
 end
 
 @testset "LinearInterpolation" begin
