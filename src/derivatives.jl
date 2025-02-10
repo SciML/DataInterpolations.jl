@@ -209,7 +209,7 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
 end
 
 function _derivative(
-        A::BSplineInterpolation{<:AbstractArray{<:Number, N}}, t::Number, iguess) where {N}
+        A::BSplineInterpolation{<:AbstractArray{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
     ax_u = axes(A.u)[1:(end - 1)]
     t < A.t[1] && return zeros(size(A.u)[1:(end - 1)]...)
@@ -254,7 +254,7 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
 end
 
 function _derivative(
-        A::BSplineApprox{<:AbstractArray{<:Number, N}}, t::Number, iguess) where {N}
+        A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
     ax_u = axes(A.u)[1:(end - 1)]
     t < A.t[1] && return zeros(size(A.u)[1:(end - 1)]...)
