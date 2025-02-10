@@ -99,10 +99,10 @@ function Base.showerror(io::IO, ::ExtrapolationNotImplementedError)
 end
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
-       AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
-       BSplineInterpolation, BSplineApprox, CubicHermiteSpline, PCHIPInterpolation,
-       QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv,
-       ExtrapolationType
+       AkimaInterpolation, ConstantInterpolation, SmoothedConstantInterpolation,
+       QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox,
+       CubicHermiteSpline, PCHIPInterpolation, QuinticHermiteSpline,
+       LinearInterpolationIntInv, ConstantInterpolationIntInv, ExtrapolationType
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
