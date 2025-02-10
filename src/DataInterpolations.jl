@@ -98,11 +98,23 @@ function Base.showerror(io::IO, ::ExtrapolationNotImplementedError)
     print(io, EXTRAPOLATION_NOT_IMPLEMENTED_ERROR)
 end
 
+"""
+    output_dim(x::AbstractInterpolation)
+
+Return the number of dimension `ndims(x(t))` of interpolation `x` evaluated at a single value `t`
+if `x(t) isa AbstractArray`, or 0 otherwise.
+"""
+output_dim(x::AbstractInterpolation) = _output_dim(x.u)
+_output_dim(::AbstractVector) = 0 # each value is a scalar
+_output_dim(::AbstractVector{<:AbstractArray{<:Any, N}}) where {N} = N # each value is an array but values are not stacked
+_output_dim(::AbstractArray{<:Any, N}) where {N} = N - 1 # each value is an array but multiple values are stacked
+
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
        BSplineInterpolation, BSplineApprox, CubicHermiteSpline, PCHIPInterpolation,
        QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv,
        ExtrapolationType
+export output_dim
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
