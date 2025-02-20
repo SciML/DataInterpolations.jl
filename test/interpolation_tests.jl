@@ -71,7 +71,7 @@ end
                                                                                                AbstractRange
         A = LinearInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension)
-        @test A isa DataInterpolations.AbstractInterpolation{Float64, 1}
+        @test A isa DataInterpolations.AbstractInterpolation{Vector{Int}, 1}
         @test A(0) == [0.0, 0.0, 0.0]
         @test A(5.5) == [11.0, 16.5, 22.0]
         @test A(11) == [22.0, 33.0, 44.0]
@@ -85,7 +85,7 @@ end
     @test_broken @inferred(LinearInterpolation(
         u, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation
     A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 2}
+    @test A isa DataInterpolations.AbstractInterpolation{Matrix{Int64}, 2}
     @test A(0) == [-2.0 0.0; -3.0 0.0; -4.0 0.0]
     @test A(3) == [4.0 6.0; 6.0 9.0; 8.0 12.0]
     @test A(5) == [8.0 10.0; 12.0 15.0; 16.0 20.0]
@@ -199,7 +199,7 @@ end
     u = collect.(2.0collect(1:10))
     t = 1.0collect(1:10)
     A = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 0}
+    @test A isa DataInterpolations.AbstractInterpolation{Array{Float64, 0}, 0}
     @test A(0) == fill(0.0)
     @test A(5.5) == fill(11.0)
     @test A(11) == fill(22)
@@ -263,7 +263,7 @@ end
     u = [1.0, 4.5, 6.0, 2.0]
     t = [1.0, 2.0, 3.0, 4.0]
     A_f = @inferred(QuadraticInterpolation(u, t, :Forward))
-    @test A_a isa DataInterpolations.AbstractInterpolation{Float64, 0}
+    @test A_f isa DataInterpolations.AbstractInterpolation{Float64, 0}
     A_b = @inferred(QuadraticInterpolation(u, t, :Backward))
     @test A_b isa DataInterpolations.AbstractInterpolation{Float64, 0}
     for (_t, _u) in zip(t, u)
@@ -303,7 +303,7 @@ end
     u_ = [1.0, 4.0, 9.0, 16.0]' .* ones(5)
     u = [u_[:, i] for i in 1:size(u_, 2)]
     A = @inferred(QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 1}
+    @test A isa DataInterpolations.AbstractInterpolation{Vector{Float64}, 1}
     @test A(0) == zeros(5)
     @test A(1.5) == 2.25 * ones(5)
     @test A(2.5) == 6.25 * ones(5)
@@ -314,7 +314,7 @@ end
     @test_broken @inferred(QuadraticInterpolation(
         u, t; extrapolation = ExtrapolationType.Extension)) isa QuadraticInterpolation
     A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 2}
+    @test A isa DataInterpolations.AbstractInterpolation{Matrix{Float64}, 2}
     @test A(0) == zeros(5, 3)
     @test A(1.5) == 2.25 * ones(5, 3)
     @test A(2.5) == 6.25 * ones(5, 3)
@@ -363,7 +363,7 @@ end
     u = [u_[:, i] for i in 1:size(u_, 2)]
     t = [1.0, 2.0, 3.0]
     A = @inferred(LagrangeInterpolation(u, t))
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 1}
+    @test A isa DataInterpolations.AbstractInterpolation{Vector{Float64}, 1}
     @test A(2.0) == 4.0 * ones(4)
     @test A(1.5) == 2.25 * ones(4)
 
@@ -371,14 +371,14 @@ end
     u = [u_[:, i] for i in 1:size(u_, 2)]
     t = [1.0, 2.0, 3.0, 4.0]
     A = @inferred(LagrangeInterpolation(u, t))
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 1}
+    @test A isa DataInterpolations.AbstractInterpolation{Vector{Float64}, 1}
     @test A(2.0) == 8.0 * ones(4)
     @test A(1.5) ≈ 3.375 * ones(4)
     @test A(3.5) ≈ 42.875 * ones(4)
 
     u = [repeat(u[i], 1, 3) for i in 1:4]
     A = @inferred(LagrangeInterpolation(u, t))
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 2}
+    @test A isa DataInterpolations.AbstractInterpolation{Matrix{Float64}, 2}
     @test A(2.0) == 8.0 * ones(4, 3)
     @test A(1.5) ≈ 3.375 * ones(4, 3)
     @test A(3.5) ≈ 42.875 * ones(4, 3)
@@ -619,7 +619,7 @@ end
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
     A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 1}
+    @test A isa DataInterpolations.AbstractInterpolation{Vector{Float64}, 1}
     @test A(-2.0) == P₁(-2.0) * ones(4)
     @test A(-0.5) == P₁(-0.5) * ones(4)
     @test A(0.7) == P₁(0.7) * ones(4)
@@ -627,7 +627,7 @@ end
 
     u = [repeat(u[i], 1, 3) for i in 1:3]
     A = @inferred(QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension))
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 2}
+    @test A isa DataInterpolations.AbstractInterpolation{Matrix{Float64}, 2}
     @test A(-2.0) == P₁(-2.0) * ones(4, 3)
     @test A(-0.5) == P₁(-0.5) * ones(4, 3)
     @test A(0.7) == P₁(0.7) * ones(4, 3)
@@ -675,7 +675,7 @@ end
     @test @inferred(CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)) isa
           CubicSpline broken=VERSION < v"1.11"
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 1}
+    @test A isa DataInterpolations.AbstractInterpolation{Vector{Float64}, 1}
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4)
     end
@@ -687,7 +687,7 @@ end
     @test_broken @inferred(CubicSpline(
         u, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
-    @test A isa DataInterpolations.AbstractInterpolation{Float64, 2}
+    @test A isa DataInterpolations.AbstractInterpolation{Matrix{Float64}, 2}
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4, 3)
     end
@@ -725,7 +725,7 @@ end
         u3d = f3d.(t)
         @test_broken @inferred(CubicSpline(u3d, t)) isa CubicSpline
         c = CubicSpline(u3d, t)
-        @test c isa DataInterpolations.AbstractInterpolation{Float64, 2}
+        @test c isa DataInterpolations.AbstractInterpolation{Matrix{Float64}, 2}
         t_test = 0.1:0.05:1.0
         u_test = reduce(hcat, c.(t_test))
         f_test = reduce(hcat, f3d.(t_test))
@@ -959,7 +959,7 @@ end
     ut2 = Float64[0.1, 0.2, 0.3, 0.4, 0.5]
     for u in (ut1, ut2), t in (ut1, ut2)
         interp = @inferred(LinearInterpolation(ut1, ut2))
-        @test interp isa DataInterpolations.AbstractInterpolation{Float64, 0}
+        @test interp isa DataInterpolations.AbstractInterpolation{Float32, 0}
         for xs in (u, t)
             ys = @inferred(interp(xs))
             @test ys isa Vector{typeof(interp(first(xs)))}
