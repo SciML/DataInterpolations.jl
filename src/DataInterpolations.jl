@@ -132,7 +132,7 @@ struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation
             Aitp,
             extrapolation_left,
             extrapolation_right)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), eltype(u), typeof(λ), N, typeof(Aitp)}(
             u,
             û,
@@ -174,7 +174,7 @@ struct CurvefitCache{
     pmin::pminType  # optimized params
     extrapolate::Bool
     function CurvefitCache(u, t, m, p0, ub, lb, alg, pmin, extrapolate)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(m),
             typeof(p0), typeof(ub), typeof(lb),
             typeof(alg), typeof(pmin), eltype(u), N}(u,

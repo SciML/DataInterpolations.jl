@@ -59,18 +59,11 @@ function spline_coefficients!(N, d, k, u::AbstractVector)
     return nothing
 end
 
-# Get Output Dimension for parameterizing AbstractInterpolations
-function get_output_dim(u::AbstractVector{<:Number})
-    return (1,)
-end
-
-function get_output_dim(u::AbstractVector)
-    return (length(first(u)),)
-end
-
-function get_output_dim(u::AbstractArray)
-    return size(u)[1:(end - 1)]
-end
+# Get the number of dimensions `ndims(interp(x))` of the interpolation `interp` evaluated at a single input `x`
+# It is derived from the set of values `u` at the interpolation nodes
+output_ndims(::AbstractVector) = 0 # each value is a scalar
+output_ndims(::AbstractVector{<:AbstractArray{<:Any,N}}) where {N} = N # each value is an array but values are not stacked
+output_ndims(::AbstractArray{<:Any,N}) where {N} = N - 1 # each value is an array but multiple values are stacked
 
 function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 

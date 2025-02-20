@@ -42,7 +42,7 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T, N} <:
     iguesser::Guesser{tType}
     itp::itpType
     function LinearInterpolationIntInv(u, t, A)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(A), eltype(u), N}(
             u, t, A.extrapolation_left, A.extrapolation_right, Guesser(t), A)
     end
@@ -94,7 +94,7 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T, N} <:
     iguesser::Guesser{tType}
     itp::itpType
     function ConstantInterpolationIntInv(u, t, A)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(A), eltype(u), N}(
             u, t, A.extrapolation_left, A.extrapolation_right, Guesser(t), A
         )

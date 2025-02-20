@@ -40,7 +40,7 @@ struct LinearInterpolation{uType, tType, IType, pType, T, N} <: AbstractInterpol
     function LinearInterpolation(u, t, I, p, extrapolation_left, extrapolation_right,
             cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u), N}(
             u, t, I, p, extrapolation_left, extrapolation_right,
             Guesser(t), cache_parameters, linear_lookup)
@@ -111,7 +111,7 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, N} <:
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(I), typeof(p.α), eltype(u), N}(
             u, t, I, p, mode, extrapolation_left, extrapolation_right,
             Guesser(t), cache_parameters, linear_lookup)
@@ -175,7 +175,7 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType, N} <:
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), eltype(u), typeof(bcache), N}(u,
             t,
             n,
@@ -246,7 +246,7 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, N} <:
             u, t, I, b, c, d, extrapolation_left,
             extrapolation_right, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
             typeof(d), eltype(u), N}(u,
             t,
@@ -343,7 +343,7 @@ struct ConstantInterpolation{uType, tType, IType, T, N} <: AbstractInterpolation
             u, t, I, dir, extrapolation_left, extrapolation_right,
             cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(I), eltype(u), N}(
             u, t, I, nothing, dir, extrapolation_left, extrapolation_right,
             Guesser(t), cache_parameters, linear_lookup)
@@ -411,7 +411,7 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, N} <
             u, t, I, p, k, c, sc, extrapolation_left,
             extrapolation_right, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
             typeof(c), typeof(sc), eltype(u), N}(u,
             t,
@@ -532,7 +532,7 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, N} <:
     function CubicSpline(u, t, I, p, h, z, extrapolation_left,
             extrapolation_right, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(I), typeof(p.c₁),
             typeof(h), typeof(z), eltype(u), N}(
             u,
@@ -713,7 +713,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T, N} <:
             extrapolation_right,
             assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u), N}(
             u,
             t,
@@ -948,7 +948,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, N} <:
             assume_linear_t
     )
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u), N}(
             u,
             t,
@@ -1208,7 +1208,7 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T, N} <:
             du, u, t, I, p, extrapolation_left, extrapolation_right,
             cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u), N}(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
             Guesser(t), cache_parameters, linear_lookup)
@@ -1312,7 +1312,7 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T, N} <
             ddu, du, u, t, I, p, extrapolation_left,
             extrapolation_right, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
+        N = output_ndims(u)
         new{typeof(u), typeof(t), typeof(I), typeof(du),
             typeof(ddu), typeof(p.c₁), eltype(u), N}(
             ddu, du, u, t, I, p, extrapolation_left, extrapolation_right,
