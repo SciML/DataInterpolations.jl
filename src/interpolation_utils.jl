@@ -59,19 +59,6 @@ function spline_coefficients!(N, d, k, u::AbstractVector)
     return nothing
 end
 
-# Get Output Dimension for parameterizing AbstractInterpolations
-function get_output_dim(u::AbstractVector{<:Number})
-    return (1,)
-end
-
-function get_output_dim(u::AbstractVector)
-    return (length(first(u)),)
-end
-
-function get_output_dim(u::AbstractArray)
-    return size(u)[1:(end - 1)]
-end
-
 function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 
     # Create knot vector

@@ -230,7 +230,7 @@ function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     I + C + D
 end
 
-function _interpolate(A::CubicSpline{<:AbstractArray{T, N}}, t::Number, iguess) where {T, N}
+function _interpolate(A::CubicSpline{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
@@ -261,9 +261,9 @@ function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
     ucum
 end
 
-function _interpolate(A::BSplineInterpolation{<:AbstractArray{T, N}},
+function _interpolate(A::BSplineInterpolation{<:AbstractArray{<:Number}},
         t::Number,
-        iguess) where {T <: Number, N}
+        iguess)
     ax_u = axes(A.u)[1:(end - 1)]
     t < A.t[1] && return A.u[ax_u..., 1]
     t > A.t[end] && return A.u[ax_u..., end]
@@ -297,7 +297,7 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
 end
 
 function _interpolate(
-        A::BSplineApprox{<:AbstractArray{T, N}}, t::Number, iguess) where {T <: Number, N}
+        A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess)
     ax_u = axes(A.u)[1:(end - 1)]
     t < A.t[1] && return A.u[ax_u..., 1]
     t > A.t[end] && return A.u[ax_u..., end]

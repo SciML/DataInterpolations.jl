@@ -2,7 +2,7 @@ module DataInterpolations
 
 ### Interface Functionality
 
-abstract type AbstractInterpolation{T, N} end
+abstract type AbstractInterpolation{T} end
 
 using LinearAlgebra, RecipesBase
 using PrettyTables
@@ -98,16 +98,28 @@ function Base.showerror(io::IO, ::ExtrapolationNotImplementedError)
     print(io, EXTRAPOLATION_NOT_IMPLEMENTED_ERROR)
 end
 
+"""
+    output_dim(x::AbstractInterpolation)
+
+Return the number of dimension `ndims(x(t))` of interpolation `x` evaluated at a single value `t`
+if `x(t) isa AbstractArray`, or 0 otherwise.
+"""
+output_dim(x::AbstractInterpolation) = _output_dim(x.u)
+_output_dim(::AbstractVector) = 0 # each value is a scalar
+_output_dim(::AbstractVector{<:AbstractArray{<:Any, N}}) where {N} = N # each value is an array but values are not stacked
+_output_dim(::AbstractArray{<:Any, N}) where {N} = N - 1 # each value is an array but multiple values are stacked
+
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
        BSplineInterpolation, BSplineApprox, CubicHermiteSpline, PCHIPInterpolation,
        QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv,
        ExtrapolationType
+export output_dim
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
-struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation{T, N}} <:
-       AbstractInterpolation{T, N}
+struct RegularizationSmooth{uType, tType, T, T2, ITP <: AbstractInterpolation{T}} <:
+       AbstractInterpolation{T}
     u::uType
     û::uType
     t::tType
@@ -132,8 +144,7 @@ struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation
             Aitp,
             extrapolation_left,
             extrapolation_right)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), eltype(u), typeof(λ), N, typeof(Aitp)}(
+        new{typeof(u), typeof(t), eltype(u), typeof(λ), typeof(Aitp)}(
             u,
             û,
             t,
@@ -161,9 +172,8 @@ struct CurvefitCache{
     lbType,
     algType,
     pminType,
-    T,
-    N
-} <: AbstractInterpolation{T, N}
+    T
+} <: AbstractInterpolation{T}
     u::uType
     t::tType
     m::mType        # model type
@@ -174,10 +184,9 @@ struct CurvefitCache{
     pmin::pminType  # optimized params
     extrapolate::Bool
     function CurvefitCache(u, t, m, p0, ub, lb, alg, pmin, extrapolate)
-        N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(m),
             typeof(p0), typeof(ub), typeof(lb),
-            typeof(alg), typeof(pmin), eltype(u), N}(u,
+            typeof(alg), typeof(pmin), eltype(u)}(u,
             t,
             m,
             p0,
