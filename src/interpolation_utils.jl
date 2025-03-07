@@ -231,8 +231,8 @@ function get_parameters(A::QuinticHermiteSpline, idx)
 end
 
 function du_PCHIP(u, t)
-    h = diff(u)
-    δ = h ./ diff(t)
+    h = diff(t)
+    δ = diff(u) ./ h
     s = sign.(δ)
 
     function _du(k)
@@ -255,7 +255,7 @@ function du_PCHIP(u, t)
             else
                 w₁ = 2h[k] + h[k - 1]
                 w₂ = h[k] + 2h[k - 1]
-                δ[k - 1] * δ[k] * (w₁ + w₂) / (w₁ * δ[k] + w₂ * δ[k - 1])
+                (w₁ + w₂) / (w₁ / δ[k - 1] + w₂ / δ[k])
             end
         else
             zero(eltype(δ))
