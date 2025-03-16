@@ -336,3 +336,40 @@ function _interpolate(
     out += Δt₀^3 * (c₁ + Δt₁ * (c₂ + c₃ * Δt₁))
     out
 end
+
+function _interpolate(A::SmoothArcLengthInterpolation, t::Number, iguess)
+    (; out) = A
+    idx = get_idx(A, t, iguess)
+    Δt_circ_seg = A.Δt_circle_segment[idx]
+    Δt_line_seg = A.Δt_line_segment[idx]
+    short_side_left = A.short_side_left[idx]
+    Δt = t - A.t[idx]
+
+    in_circle_arc = if short_side_left
+        Δt < Δt_circ_seg
+    else
+        Δt > Δt_line_seg
+    end
+
+    if in_circle_arc
+        t_circle_seg = short_side_left ? Δt : Δt - Δt_line_seg
+        S, C = sincos(t_circle_seg / A.radius[idx])
+        c = view(A.center, :, idx)
+        v₁ = view(A.dir_1, :, idx)
+        v₂ = view(A.dir_2, :, idx)
+        @. out = c + C * v₁ + S * v₂
+    else
+        if short_side_left
+            u₁ = view(A.u, :, idx + 1)
+            d₁ = view(A.d, :, idx + 1)
+            t_line_seg = A.t[idx + 1] - t
+            @. out = u₁ - t_line_seg * d₁
+        else
+            u₀ = view(A.u, :, idx)
+            d₀ = view(A.d, :, idx)
+            @. out = u₀ + Δt * d₀
+        end
+    end
+
+    out
+end

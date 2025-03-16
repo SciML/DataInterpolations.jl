@@ -313,3 +313,8 @@ end
 
 typed_nan(::AbstractArray{T}) where {T <: AbstractFloat} = T(NaN)
 typed_nan(::AbstractArray{T}) where {T <: Integer} = zero(T)
+
+# Should be replaceable by LinearAlgebra function soon: https://github.com/JuliaLang/LinearAlgebra.jl/pull/1234
+function euclidean(x::AbstractArray, y::AbstractArray)
+    sqrt(mapreduce((xi, yi) -> abs2(yi - xi), +, x, y))
+end

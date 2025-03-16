@@ -300,3 +300,37 @@ function _derivative(
            (3c₁ + (3Δt₁ + Δt₀) * c₂ + (3Δt₁^2 + Δt₀ * 2Δt₁) * c₃)
     out
 end
+
+function _derivative(A::SmoothArcLengthInterpolation, t::Number, iguess)
+    (; out) = A
+    idx = get_idx(A, t, iguess)
+    Δt_circ_seg = A.Δt_circle_segment[idx]
+    Δt_line_seg = A.Δt_line_segment[idx]
+    short_side_left = A.short_side_left[idx]
+    Δt = t - A.t[idx]
+
+    in_circle_arc = if short_side_left
+        Δt < Δt_circ_seg
+    else
+        Δt > Δt_line_seg
+    end
+
+    if in_circle_arc
+        t_circle_seg = short_side_left ? Δt : Δt - Δt_line_seg
+        S, C = sincos(t_circle_seg / A.radius[idx])
+        v₁ = view(A.dir_1, :, idx)
+        v₂ = view(A.dir_2, :, idx)
+        Rⱼ = A.radius[idx]
+        @. out = (-S * v₁ + C * v₂) / Rⱼ
+    else
+        if short_side_left
+            d₁ = view(A.d, :, idx + 1)
+            @. out = d₁
+        else
+            d₀ = view(A.d, :, idx)
+            @. out = d₀
+        end
+    end
+
+    out
+end

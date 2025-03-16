@@ -1325,3 +1325,261 @@ function QuinticHermiteSpline(
         ddu, du, u, t, I, p, extrapolation_left,
         extrapolation_right, cache_parameters, linear_lookup)
 end
+
+"""
+    Signature...
+
+Interpolate in a C¹ smooth way trough the data with unit speed.
+
+## Arguments
+
+...
+
+## Keyword Arguments
+
+...
+"""
+struct SmoothArcLengthInterpolation{
+    uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing}, T} <:
+       AbstractInterpolation{T}
+    u::uType
+    t::tType
+    d::Matrix{D}
+    shape_itp::S
+    Δt_circle_segment::Vector{P}
+    Δt_line_segment::Vector{P}
+    center::Matrix{P}
+    radius::Vector{P}
+    dir_1::Matrix{P}
+    dir_2::Matrix{P}
+    # short_side_left[i] = true means that the line segment comes after the circle segment
+    short_side_left::Vector{Bool}
+    I::IType
+    p::Nothing
+    extrapolation_left::ExtrapolationType.T
+    extrapolation_right::ExtrapolationType.T
+    iguesser::Guesser{tType}
+    cache_parameters::Bool
+    linear_lookup::Bool
+    out::Vector{P}
+    function SmoothArcLengthInterpolation(
+            u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
+            center, radius, dir_1, dir_2, short_side_left,
+            I, extrapolation_left, extrapolation_right,
+            assume_linear_t, out)
+        linear_lookup = seems_linear(assume_linear_t, t)
+        new{typeof(u), typeof(t), typeof(I), eltype(radius),
+            eltype(d), typeof(shape_itp), eltype(u)}(
+            u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
+            center, radius, dir_1, dir_2, short_side_left,
+            I, nothing, extrapolation_left, extrapolation_right,
+            Guesser(t), false, linear_lookup, out
+        )
+    end
+end
+
+function SmoothArcLengthInterpolation(
+        u::AbstractMatrix{U};
+        t::Union{AbstractVector, Nothing} = nothing,
+        interpolation_type::Type{<:AbstractInterpolation} = QuadraticSpline,
+        kwargs...
+) where {U}
+    if isnothing(t)
+        # Compute default t based on point distances
+        N, n = size(u)
+        t = Vector{U}(undef, n)
+        t[1] = zero(U)
+        Δu = Vector{U}(undef, N)
+        for i in 2:n
+            @. Δu = u[:, i] - u[:, i - 1]
+            t[i] = t[i - 1] + norm(Δu)
+        end
+    end
+    shape_itp = interpolation_type(collect.(eachcol(u)), t)
+    SmoothArcLengthInterpolation(shape_itp; kwargs...)
+end
+
+function SmoothArcLengthInterpolation(
+        shape_itp::AbstractInterpolation; m::Integer = 2,
+        kwargs...
+)
+    (; u, t) = shape_itp
+    T = promote_type(eltype(eltype(u)), eltype(t))
+
+    # Resp. the output dimensionality and the number of data points in the original interpolation
+    N = length(first(u))
+    n = length(u)
+
+    # Number of points defining the tangent curve of itp
+    n_tilde = m * (n - 1) + 1
+
+    # The evaluations of itp
+    u_tilde = Matrix{T}(undef, N, n_tilde)
+    d_tilde = Matrix{T}(undef, N, n_tilde)
+
+    j = 1
+
+    for i in 1:(n - 1)
+        for t_eval in range(t[i], t[i + 1], length = m + 1)[1:(end - 1)]
+            u_tilde[:, j] .= shape_itp(t_eval)
+            d_tilde[:, j] .= derivative(shape_itp, t_eval)
+            normalize!(view(d_tilde, :, j))
+            j += 1
+        end
+    end
+
+    u_tilde[:, end] .= shape_itp(last(t))
+    d_tilde[:, end] .= derivative(shape_itp, last(t))
+    normalize!(view(d_tilde, :, n_tilde))
+
+    # Number of points in the augmented tangent curve of itp
+    n_hat = 2 * n_tilde - 1
+
+    # The data defining the augmented tangent curve of itp
+    u_hat = Matrix{T}(undef, N, n_hat)
+    d_hat = Matrix{T}(undef, N, n_hat)
+
+    k = 1
+    Δu_tilde = Vector{T}(undef, N)
+    u_tilde_j_close_left = Vector{T}(undef, N)
+    u_tilde_j_close_right = Vector{T}(undef, N)
+    u_tilde_j_int = Vector{T}(undef, N)
+    u_tilde_j_int_left = Vector{T}(undef, N)
+    u_tilde_j_int_right = Vector{T}(undef, N)
+
+    for j in 1:(n_tilde - 1)
+        u_hat[:, k] .= u_tilde[:, j]
+        d_hat[:, k] .= d_tilde[:, j]
+
+        u_tilde_j = view(u_tilde, :, j)
+        d_tilde_j = view(d_tilde, :, j)
+        u_tilde_j_plus_1 = view(u_tilde, :, j + 1)
+        d_tilde_j_plus_1 = view(d_tilde, :, j + 1)
+        d_tilde_inner = dot(d_tilde_j, d_tilde_j_plus_1)
+
+        @. Δu_tilde = u_tilde_j_plus_1 - u_tilde_j
+
+        inner_1 = dot(Δu_tilde, d_tilde_j)
+        inner_2 = dot(Δu_tilde, d_tilde_j_plus_1)
+        denom = 1 - d_tilde_inner^2
+        d_tilde_j_coef = (inner_1 - d_tilde_inner * inner_2) / denom
+        d_tilde_j_plus_1_coef = (d_tilde_inner * inner_1 - inner_2) / denom
+
+        if !((d_tilde_j_coef >= 0) && (d_tilde_j_plus_1_coef <= 0))
+            error("Some consecutive tangent lines do not converge, consider increasing m.")
+        end
+
+        @. u_tilde_j_close_left = u_tilde_j + d_tilde_j_coef * d_tilde_j
+        @. u_tilde_j_close_right = u_tilde_j_plus_1 +
+                                   d_tilde_j_plus_1_coef * d_tilde_j_plus_1
+        @. u_tilde_j_int = (u_tilde_j_close_left + u_tilde_j_close_right) / 2
+
+        # compute δ_star
+        δ_j = min(
+            euclidean(u_tilde_j_int, u_tilde_j),
+            euclidean(u_tilde_j_int, u_tilde_j_plus_1)
+        )
+        δ_j_star = δ_j * (2 - sqrt(2 + 2 * d_tilde_inner)) / (1 - d_tilde_inner)
+
+        # Compute the points whose connecting line defines the tangent curve augmenting point
+        @. u_tilde_j_int_left = u_tilde_j_close_left - δ_j_star * d_tilde_j
+        @. u_tilde_j_int_right = u_tilde_j_close_right + δ_j_star * d_tilde_j_plus_1
+
+        # Compute tangent curve augmenting point
+        u_tilde_j_plus_half = view(u_hat, :, k + 1)
+        d_tilde_j_plus_half = view(d_hat, :, k + 1)
+
+        @. u_tilde_j_plus_half = (u_tilde_j_int_left + u_tilde_j_int_right) / 2
+        @. d_tilde_j_plus_half = u_tilde_j_int_right - u_tilde_j_int_left
+        normalize!(d_tilde_j_plus_half)
+
+        k += 2
+    end
+
+    u_hat[:, end] .= u_tilde[:, end]
+    d_hat[:, end] .= d_tilde[:, end]
+
+    return SmoothArcLengthInterpolation(u_hat, d_hat; shape_itp, kwargs...)
+end
+
+function SmoothArcLengthInterpolation(
+        u::AbstractMatrix,
+        d::AbstractMatrix;
+        shape_itp::Union{AbstractInterpolation, Nothing} = nothing,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false, assume_linear_t = 1e-2)
+    # Note: this method assumes that consecutive tangent lines are coplanar,
+    # which is generally not the case for >2 dimensional points. Use the other constructors
+    # to make sure this is satisfied.
+
+    N = size(u, 1)
+    n_circle_arcs = size(u, 2) - 1
+
+    P = promote_type(eltype(u), eltype(d))
+    t = zeros(P, n_circle_arcs + 1)
+    Δt_circle_segment = zeros(P, n_circle_arcs)
+    Δt_line_segment = zeros(P, n_circle_arcs)
+    center = Matrix{P}(undef, N, n_circle_arcs)
+    radius = Vector{P}(undef, n_circle_arcs)
+    dir_1 = Matrix{P}(undef, N, n_circle_arcs)
+    dir_2 = Matrix{P}(undef, N, n_circle_arcs)
+    short_side_left = zeros(Bool, n_circle_arcs)
+
+    # Intermediate results
+    Δu = Vector{P}(undef, N)
+    u_int = Vector{P}(undef, N)
+
+    # Compute circle segments and line segments
+    for j in 1:n_circle_arcs
+        uⱼ = view(u, :, j)
+        uⱼ₊₁ = view(u, :, j + 1)
+        @. Δu = uⱼ₊₁ - uⱼ
+
+        dⱼ = view(d, :, j)
+        dⱼ₊₁ = view(d, :, j + 1)
+        d_inner = dot(dⱼ, dⱼ₊₁)
+
+        dⱼ_coef = (dot(Δu, dⱼ) - d_inner * dot(Δu, dⱼ₊₁)) / (1 - d_inner^2)
+        @. u_int = uⱼ + dⱼ_coef * dⱼ
+
+        dist₁ = euclidean(u_int, uⱼ)
+        dist₂ = euclidean(u_int, uⱼ₊₁)
+
+        δⱼ = if dist₁ < dist₂
+            short_side_left[j] = true
+            dist₁
+        else
+            dist₂
+        end
+
+        Rⱼ = δⱼ * sqrt((1 + d_inner) / (1 - d_inner))
+        radius[j] = Rⱼ
+        cⱼ = view(center, :, j)
+        v₁ = view(dir_1, :, j)
+        v₂ = view(dir_2, :, j)
+
+        @. cⱼ = u_int + δⱼ * (dⱼ₊₁ - dⱼ) / (1 - d_inner)
+        @. v₁ = -δⱼ * (dⱼ₊₁ - d_inner * dⱼ) / (1 - d_inner)
+        @. v₂ = Rⱼ * dⱼ
+
+        Δt_circle_seg = 2Rⱼ * atan(δⱼ, Rⱼ)
+        Δt_line_seg = abs(dist₂ - dist₁)
+        Δt_circle_segment[j] = Δt_circle_seg
+        Δt_line_segment[j] = Δt_line_seg
+
+        t[j + 1] = t[j] + Δt_circle_seg + Δt_line_seg
+    end
+
+    extrapolation_left, extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right)
+    linear_lookup = seems_linear(assume_linear_t, t)
+
+    out = Vector{P}(undef, N)
+
+    return SmoothArcLengthInterpolation(
+        u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
+        center, radius, dir_1, dir_2, short_side_left,
+        nothing, extrapolation_left, extrapolation_right, linear_lookup, out)
+end
