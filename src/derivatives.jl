@@ -20,8 +20,6 @@ function _extrapolate_derivative_left(A, t, order)
     elseif extrapolation_left == ExtrapolationType.Constant
         zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.Linear
-        _derivative(A, first(A.t), 1)
-        zero(first(A.u) / one(A.t[1]))
         (order == 1) ? _derivative(A, first(A.t), 1) : zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.Extension
         (order == 1) ? _derivative(A, t, length(A.t)) :
@@ -66,7 +64,7 @@ function _extrapolate_derivative_right(A, t, order)
                 _derivative(A, t, A.iguesser)
             end, t_)
     else
-        # extrapolation_left == ExtrapolationType.Reflective
+        # extrapolation_right == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         sign = iseven(n) ? -1 : 1
         (order == 1) ? sign * _derivative(A, t_, A.iguesser) :
