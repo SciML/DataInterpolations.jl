@@ -20,20 +20,28 @@ function _extrapolate_derivative_left(A, t, order)
     elseif extrapolation_left == ExtrapolationType.Constant
         zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.Linear
-        (order == 1) ? derivative(A, first(A.t)) : zero(first(A.u) / one(A.t[1]))
+        _derivative(A, first(A.t), 1)
+        zero(first(A.u) / one(A.t[1]))
+        (order == 1) ? _derivative(A, first(A.t), 1) : zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.Extension
-        iguess = A.iguesser
-        (order == 1) ? _derivative(A, t, iguess) :
+        (order == 1) ? _derivative(A, t, length(A.t)) :
         ForwardDiff.derivative(t -> begin
-                _derivative(A, t, iguess)
+                _derivative(A, t, length(A.t))
             end, t)
     elseif extrapolation_left == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
-        derivative(A, t_, order)
+        (order == 1) ? _derivative(A, t_, A.iguesser) :
+        ForwardDiff.derivative(t -> begin
+                _derivative(A, t, A.iguesser)
+            end, t_)
     else
         # extrapolation_left == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
-        isodd(n) ? -derivative(A, t_, order) : derivative(A, t_, order)
+        sign = isodd(n) ? -1 : 1
+        (order == 1) ? sign * _derivative(A, t_, A.iguesser) :
+        ForwardDiff.derivative(t -> begin
+                sign * _derivative(A, t, A.iguesser)
+            end, t_)
     end
 end
 
@@ -44,20 +52,27 @@ function _extrapolate_derivative_right(A, t, order)
     elseif extrapolation_right == ExtrapolationType.Constant
         zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_right == ExtrapolationType.Linear
-        (order == 1) ? derivative(A, last(A.t)) : zero(first(A.u) / one(A.t[1]))
+        (order == 1) ? _derivative(A, last(A.t), length(A.t)) :
+        zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_right == ExtrapolationType.Extension
-        iguess = A.iguesser
-        (order == 1) ? _derivative(A, t, iguess) :
+        (order == 1) ? _derivative(A, t, length(A.t)) :
         ForwardDiff.derivative(t -> begin
-                _derivative(A, t, iguess)
+                _derivative(A, t, length(A.t))
             end, t)
     elseif extrapolation_right == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
-        derivative(A, t_, order)
+        (order == 1) ? _derivative(A, t_, A.iguesser) :
+        ForwardDiff.derivative(t -> begin
+                _derivative(A, t, A.iguesser)
+            end, t_)
     else
-        # extrapolation_right == ExtrapolationType.Reflective
+        # extrapolation_left == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
-        iseven(n) ? -derivative(A, t_, order) : derivative(A, t_, order)
+        sign = iseven(n) ? -1 : 1
+        (order == 1) ? sign * _derivative(A, t_, A.iguesser) :
+        ForwardDiff.derivative(t -> begin
+                sign * _derivative(A, t, A.iguesser)
+            end, t_)
     end
 end
 
