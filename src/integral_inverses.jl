@@ -13,12 +13,12 @@ Creates the inverted integral interpolation object from the given interpolation.
 
   - `A`: interpolation object satisfying the above requirements
 """
-invert_integral(A::AbstractInterpolation) = throw(IntegralInverseNotFoundError())
+invert_integral(::AbstractInterpolation) = throw(IntegralInverseNotFoundError())
 
-_integral(A::AbstractIntegralInverseInterpolation, idx, t) = throw(IntegralNotFoundError())
+_integral(::AbstractIntegralInverseInterpolation, idx, t) = throw(IntegralNotFoundError())
 
 function _derivative(A::AbstractIntegralInverseInterpolation, t::Number, iguess)
-    inv(A.itp(A(t)))
+    inv(A.itp(_interpolate(A, t, iguess)))
 end
 
 """
