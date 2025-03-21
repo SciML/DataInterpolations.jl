@@ -40,7 +40,6 @@ A = SmoothArcLengthInterpolation(hcat(u...))
 plot_itp(A)
 ```
 
-
 ## Docstrings
 
 To do: add doc strings for the different constructors and add them here
@@ -51,7 +50,7 @@ SmoothArcLengthInterpolation
 
 ## Method derivation
 
-Say we have an ordered set of points $u_1, \ldots, u_n \in \mathbb{R}^N$ and we want to make a lightweight $C^1$ smooth interpolation by arc-length $\tilde{\gamma}: [0,T] \rightarrow \mathbb{R}^N$ through these points. The first part is easy, just pick your favorite established interpolation method that achieves $C^1$ smoothness. The arc-length part however turns out to be quite [nasty](https://ijpam.eu/contents/2006-31-3/10/10.pdf). Here I propose a method that is quite general and cheap to compute. 
+Say we have an ordered set of points $u_1, \ldots, u_n \in \mathbb{R}^N$ and we want to make a lightweight $C^1$ smooth interpolation by arc-length $\tilde{\gamma}: [0,T] \rightarrow \mathbb{R}^N$ through these points. The first part is easy, just pick your favorite established interpolation method that achieves $C^1$ smoothness. The arc-length part however turns out to be quite [nasty](https://ijpam.eu/contents/2006-31-3/10/10.pdf). Here I propose a method that is quite general and cheap to compute.
 
 ### The 2-dimensional case
 
@@ -61,13 +60,13 @@ Say we have an ordered set of points $u_1, \ldots, u_n \in \mathbb{R}^N$ and we 
     \gamma : [0, T] \rightarrow \mathbb{R}^2
 ```
 
-for which 
+for which
 
 ```math
     \gamma(t_i) = u_i \quad i = 1, \ldots, n,
 ```
 
-given a suitable set of 'time' values 
+given a suitable set of 'time' values
 
 ```math
     0 = t_1 < t_2 < \ldots < t_n = T,
@@ -404,14 +403,15 @@ That's pretty neat, but this method does not directly generalize to higher dimen
 
 Let's try to generalize the method above. The goal is to find a point $\tilde{u}_{j + \frac{1}{2}}$ and unit direction $\tilde{d}_{j + \frac{1}{2}}$ to add to the tangent curve between $\tilde{u}_j$ and $\tilde{u}_{j+1}$ such that:
 
-- the tangent line intersections $\tilde{u}_{j, \text{int left}}, \tilde{u}_{j, \text{int right}}$ exist. This means that the new line is fixed by these 2 points; 
-- constructing $\tilde{\gamma}$ including this point gives gives an identical result to constructing $\tilde{\gamma}$ excluding this point if the tangent line intersection already existed. The latter implies that $\tilde{u}_{j + \frac{1}{2}}$ and $\tilde{d}_{j + \frac{1}{2}}$ yield a tangent line to the constructed circle arc.
+  - the tangent line intersections $\tilde{u}_{j, \text{int left}}, \tilde{u}_{j, \text{int right}}$ exist. This means that the new line is fixed by these 2 points;
+  - constructing $\tilde{\gamma}$ including this point gives gives an identical result to constructing $\tilde{\gamma}$ excluding this point if the tangent line intersection already existed. The latter implies that $\tilde{u}_{j + \frac{1}{2}}$ and $\tilde{d}_{j + \frac{1}{2}}$ yield a tangent line to the constructed circle arc.
 
 Let's assume the tangent line intersection exists, and we define
 
 ```math
     \tilde{u}_{j, \text{int left}} = \tilde{u}_{j, \text{int}} - \delta_j^* \tilde{d}_{j},
 ```
+
 ```math
     \tilde{u}_{j, \text{int right}} = \tilde{u}_{j, \text{int}} + \delta_j^* \tilde{d}_{j+1}.
 ```
@@ -466,11 +466,12 @@ If we generalize the definition of $\tilde{u}_{j, \text{int}}$ then we can compu
     \argmin_{s,\; t \;\in\; \mathbb{R}} \|\tilde{u}_{j+1} + s\tilde{d}_{j+1} - (\tilde{u}_j + t\tilde{d}_j)\|_2.
 ```
 
-This yields 
+This yields
 
 ```math
     \tilde{u}_{j, \text{close left}} = \tilde{u}_j + \frac{\langle\tilde{u}_{j+1}-\tilde{u}_j, \tilde{d}_j\rangle - \langle\tilde{d}_j, \tilde{d}_{j+1}\rangle \langle\tilde{u}_{j+1}-\tilde{u}_j, \tilde{d}_{j+1}\rangle}{1 - \langle\tilde{d}_j, \tilde{d}_{j+1}\rangle^2}\tilde{d}_j,
 ```
+
 ```math
     \tilde{u}_{j, \text{close right}} = \tilde{u}_{j+1} + \frac{\langle\tilde{d}_j, \tilde{d}_{j+1}\rangle\langle\tilde{u}_{j+1}-\tilde{u}_j, \tilde{d}_j\rangle - \langle\tilde{u}_{j+1}-\tilde{u}_j, \tilde{d}_{j+1}\rangle}{1 - \langle\tilde{d}_j, \tilde{d}_{j+1}\rangle^2}\tilde{d}_{j+1}.
 ```
@@ -481,11 +482,12 @@ This is the same as the two expressions for $\tilde{u}_{j, \text{int}}$ from bef
     \tilde{u}_{j, \text{int}} = \frac{\tilde{u}_{j, \text{close left}} + \tilde{u}_{j, \text{close right}}}{2}.
 ```
 
-From this $\delta_j$ and $\delta_j^*$ follow, and 
+From this $\delta_j$ and $\delta_j^*$ follow, and
 
 ```math
     \tilde{u}_{j, \text{int left}} = \tilde{u}_{j, \text{close left}} - \delta_j^* \tilde{d}_{j},
 ```
+
 ```math
     \tilde{u}_{j, \text{int right}} = \tilde{u}_{j, \text{close right}} + \delta_j^* \tilde{d}_{j+1}.
 ```

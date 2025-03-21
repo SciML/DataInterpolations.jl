@@ -1362,18 +1362,20 @@ struct SmoothArcLengthInterpolation{
     cache_parameters::Bool
     linear_lookup::Bool
     out::Vector{P}
+    derivative::Vector{P}
+    in_place::Bool
     function SmoothArcLengthInterpolation(
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, extrapolation_left, extrapolation_right,
-            assume_linear_t, out)
+            assume_linear_t, out, derivative, in_place)
         linear_lookup = seems_linear(assume_linear_t, t)
         new{typeof(u), typeof(t), typeof(I), eltype(radius),
             eltype(d), typeof(shape_itp), eltype(u)}(
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, nothing, extrapolation_left, extrapolation_right,
-            Guesser(t), false, linear_lookup, out
+            Guesser(t), false, linear_lookup, out, derivative, in_place
         )
     end
 end
@@ -1509,7 +1511,9 @@ function SmoothArcLengthInterpolation(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false, assume_linear_t = 1e-2)
+        cache_parameters::Bool = false,
+        assume_linear_t = 1e-2,
+        in_place::Bool = true)
     # Note: this method assumes that consecutive tangent lines are coplanar,
     # which is generally not the case for >2 dimensional points. Use the other constructors
     # to make sure this is satisfied.
@@ -1577,9 +1581,10 @@ function SmoothArcLengthInterpolation(
     linear_lookup = seems_linear(assume_linear_t, t)
 
     out = Vector{P}(undef, N)
+    derivative = Vector{P}(undef, N)
 
     return SmoothArcLengthInterpolation(
         u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
         center, radius, dir_1, dir_2, short_side_left,
-        nothing, extrapolation_left, extrapolation_right, linear_lookup, out)
+        nothing, extrapolation_left, extrapolation_right, linear_lookup, out, derivative, in_place)
 end

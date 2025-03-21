@@ -338,7 +338,8 @@ function _interpolate(
 end
 
 function _interpolate(A::SmoothArcLengthInterpolation, t::Number, iguess)
-    (; out) = A
+    (; out, in_place) = A
+    out = in_place ? out : similar(out, typeof(t))
     idx = get_idx(A, t, iguess)
     Δt_circ_seg = A.Δt_circle_segment[idx]
     Δt_line_seg = A.Δt_line_segment[idx]
@@ -353,7 +354,8 @@ function _interpolate(A::SmoothArcLengthInterpolation, t::Number, iguess)
 
     if in_circle_arc
         t_circle_seg = short_side_left ? Δt : Δt - Δt_line_seg
-        S, C = sincos(t_circle_seg / A.radius[idx])
+        Rⱼ = A.radius[idx]
+        S, C = sincos(t_circle_seg / Rⱼ)
         c = view(A.center, :, idx)
         v₁ = view(A.dir_1, :, idx)
         v₂ = view(A.dir_2, :, idx)
