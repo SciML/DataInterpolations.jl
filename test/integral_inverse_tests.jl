@@ -17,6 +17,8 @@ function test_integral_inverses(method; args = [], kwargs = [])
         adiff = derivative(A_intinv, I)
         @test cdiff ≈ adiff
     end
+
+    @test @inferred(A(ts[37])) == A(ts[37])
 end
 
 @testset "Linear Interpolation" begin
