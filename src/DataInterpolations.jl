@@ -112,8 +112,8 @@ _output_dim(::AbstractArray{<:Any, N}) where {N} = N - 1 # each value is an arra
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,
        BSplineInterpolation, BSplineApprox, CubicHermiteSpline, PCHIPInterpolation,
-       QuinticHermiteSpline, LinearInterpolationIntInv, ConstantInterpolationIntInv,
-       ExtrapolationType
+       QuinticHermiteSpline, SmoothArcLengthInterpolation, LinearInterpolationIntInv,
+       ConstantInterpolationIntInv, ExtrapolationType
 export output_dim
 
 # added for RegularizationSmooth, JJS 11/27/21

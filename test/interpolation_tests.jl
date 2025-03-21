@@ -4,6 +4,7 @@ using StableRNGs
 using Optim, ForwardDiff
 using BenchmarkTools
 using Unitful
+using LinearAlgebra
 
 function test_interpolation_type(T)
     @test T <: DataInterpolations.AbstractInterpolation
@@ -908,6 +909,29 @@ end
     push!(u, 1.0)
     @test_throws AssertionError QuinticHermiteSpline(ddu, du, u, t)
     @test @inferred(output_dim(A)) == 0
+end
+
+@testset "Smooth Arc Length Interpolation" begin
+    # Directly from data (assuming line intersections exist)
+    u = [0.0 0.0 0.0; 1.0 1.0 1.0]
+    d = [0.0 0.0 1.0; inv(sqrt(2)) inv(sqrt(2)) 0.0]
+    A = SmoothArcLengthInterpolation(u', d', Val{false}())
+    @test isnothing(A.shape_itp)
+    @test only(A.Δt_circle_segment) ≈ π / 2
+    @test only(A.Δt_line_segment) ≈ sqrt(2) - 1
+    @test A.center ≈ [inv(sqrt(2)), inv(sqrt(2)), 0]
+    @test only(A.radius) ≈ 1
+    @test A.dir_1 ≈ [-inv(sqrt(2)), -inv(sqrt(2)), 0]
+    @test A.dir_2 ≈ [0.0, 0.0, 1.0]
+    @test only(A.short_side_left)
+
+    # From interpolation object
+    u = [0.3 -1.5 3.1; -0.2 0.2 -1.5; 0.0 0.0 0.0]
+    A = SmoothArcLengthInterpolation(u'; m = 25)
+    L = sum(norm.(diff(A.shape_itp(range(0, A.shape_itp.t[end]; length = 1_000_000)))))
+    @test A.t[end]≈L rtol=1e-4
+    @test all(
+        t_ -> A(prevfloat(t_)) ≈ A(nextfloat(t_)), A.t[2:(end - 1)])
 end
 
 @testset "Curvefit" begin
