@@ -915,7 +915,7 @@ end
     # Directly from data (assuming line intersections exist)
     u = [0.0 0.0 0.0; 1.0 1.0 1.0]
     d = [0.0 0.0 1.0; inv(sqrt(2)) inv(sqrt(2)) 0.0]
-    A = SmoothArcLengthInterpolation(u', d')
+    A = SmoothArcLengthInterpolation(u', d', Val{false}())
     @test isnothing(A.shape_itp)
     @test only(A.Δt_circle_segment) ≈ π / 2
     @test only(A.Δt_line_segment) ≈ sqrt(2) - 1
