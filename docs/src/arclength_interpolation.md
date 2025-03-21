@@ -4,7 +4,7 @@ Arc length interpolation is interpolation between points using a curve that is p
 
 ## Usage
 
-`DataInteprolations.jl` offers an arc length interpolation method that approximates an existing non arc length interpolation by circle and line segments. This can be done by providing an interpolation object:
+`DataInteprolations.jl` offers an arc length interpolation method that approximates an existing non arc length interpolation by circle and line segments. This can be done by providing an interpolation object (the shape interpolation):
 
 ```@example tutorial
 using DataInterpolations
@@ -35,17 +35,20 @@ plot_itp(A)
 Here `m` determines how fine the approximation is. It is also possible to just provide the data points, optionally providing `t` and a preferred interpolation type which determines the shape of the curve.
 
 ```@example tutorial
+using LinearAlgebra
+
 # Example from only u
 A = SmoothArcLengthInterpolation(hcat(u...))
+@show typeof(A.shape_itp)
 plot_itp(A)
 ```
 
 ## Docstrings
 
-To do: add doc strings for the different constructors and add them here
-
 ```@docs
-SmoothArcLengthInterpolation
+SmoothArcLengthInterpolation(::AbstractMatrix{U}) where {U}
+SmoothArcLengthInterpolation(::DataInterpolations.AbstractInterpolation)
+SmoothArcLengthInterpolation(::AbstractMatrix, ::AbstractMatrix)
 ```
 
 ## Method derivation

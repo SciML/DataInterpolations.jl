@@ -318,3 +318,27 @@ typed_nan(::AbstractArray{T}) where {T <: Integer} = zero(T)
 function euclidean(x::AbstractArray, y::AbstractArray)
     sqrt(mapreduce((xi, yi) -> abs2(yi - xi), +, x, y))
 end
+
+function smooth_arc_length_params_1!(Δu, u, d, j)
+    uⱼ = view(u, :, j)
+    uⱼ₊₁ = view(u, :, j + 1)
+    dⱼ = view(d, :, j)
+    dⱼ₊₁ = view(d, :, j + 1)
+    @. Δu = uⱼ₊₁ - uⱼ
+    d_inner = dot(dⱼ, dⱼ₊₁)
+    return uⱼ, uⱼ₊₁, dⱼ, dⱼ₊₁, d_inner
+end
+
+function smooth_arc_length_params_2(u_int, uⱼ, uⱼ₊₁)
+    dist₁ = euclidean(u_int, uⱼ)
+    dist₂ = euclidean(u_int, uⱼ₊₁)
+    Δt_line_seg = abs(dist₂ - dist₁)
+    short_side_left = false
+    δⱼ = if dist₁ < dist₂
+        short_side_left = true
+        dist₁
+    else
+        dist₂
+    end
+    return δⱼ, short_side_left, Δt_line_seg
+end

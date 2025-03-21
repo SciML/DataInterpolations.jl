@@ -1326,19 +1326,6 @@ function QuinticHermiteSpline(
         extrapolation_right, cache_parameters, linear_lookup)
 end
 
-"""
-    Signature...
-
-Interpolate in a C¹ smooth way trough the data with unit speed.
-
-## Arguments
-
-...
-
-## Keyword Arguments
-
-...
-"""
 struct SmoothArcLengthInterpolation{
     uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing}, T} <:
        AbstractInterpolation{T}
@@ -1380,6 +1367,44 @@ struct SmoothArcLengthInterpolation{
     end
 end
 
+"""
+     SmoothArcLengthInterpolation(
+        u::AbstractMatrix{U};
+        t::Union{AbstractVector, Nothing} = nothing,
+        interpolation_type::Type{<:AbstractInterpolation} = QuadraticSpline,
+        kwargs...) where {U}
+
+Interpolate in a C¹ smooth way trough the data with unit speed by approximating
+an interpolation (the shape interpolation) with line segments and circle segments.
+
+## Arguments
+
+  - `u`: The data to be interpolated in matrix form; (ndim, ndata).
+
+NOTE: With this method it is not possible to pass keyword arguments to the constructor of the shape interpolation.
+If you want to do this, construct the shape interpolation yourself and use the
+`SmoothArcLengthInterpolation(shape_itp::AbstractInterpolation; kwargs...)` method.
+
+## Keyword Arguments
+
+  - `t`: The time points of the shape interpolation. By default given by the cumulative sum of the Euclidean
+    distances between the points `u`.
+  - `interpolation_type`: The type of the shape interpolation. Defaults to `QuadraticSpline`. Note that
+    for the `SmoothArcLengthInterpolation` to be C¹ smooth, the `interpolation_type` must be C¹ smooth as well.
+  - `m`: The number of points at which the shape interpolation is evaluated in each interval between time points.
+    The `SmoothArcLengthInterpolation` converges to the shape interpolation (in shape) as m → ∞.
+  - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
+  - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+"""
 function SmoothArcLengthInterpolation(
         u::AbstractMatrix{U};
         t::Union{AbstractVector, Nothing} = nothing,
@@ -1401,8 +1426,38 @@ function SmoothArcLengthInterpolation(
     SmoothArcLengthInterpolation(shape_itp; kwargs...)
 end
 
+"""
+    function SmoothArcLengthInterpolation(
+            shape_itp::AbstractInterpolation;
+            m::Integer = 2,
+            kwargs...)
+
+Approximate the `shape_itp` with a C¹ unit speed interpolation using line segments and circle segments.
+
+## Arguments
+
+  - `shape_itp`: The interpolation to be approximated. Note that
+    for the `SmoothArcLengthInterpolation` to be C¹ smooth, the `shape_itp` must be C¹ smooth as well.
+
+## Keyword Arguments
+
+  - `m`: The number of points at which the shape interpolation is evaluated in each interval between time points.
+    The `SmoothArcLengthInterpolation` converges to the shape interpolation (in shape) as m → ∞.
+  - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
+  - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+"""
 function SmoothArcLengthInterpolation(
-        shape_itp::AbstractInterpolation; m::Integer = 2,
+        shape_itp::AbstractInterpolation;
+        m::Integer = 2,
         kwargs...
 )
     (; u, t) = shape_itp
@@ -1412,10 +1467,10 @@ function SmoothArcLengthInterpolation(
     N = length(first(u))
     n = length(u)
 
-    # Number of points defining the tangent curve of itp
+    # Number of points defining the tangent curve of shape_itp
     n_tilde = m * (n - 1) + 1
 
-    # The evaluations of itp
+    # The evaluations of shape_itp
     u_tilde = Matrix{T}(undef, N, n_tilde)
     d_tilde = Matrix{T}(undef, N, n_tilde)
 
@@ -1434,79 +1489,14 @@ function SmoothArcLengthInterpolation(
     d_tilde[:, end] .= derivative(shape_itp, last(t))
     normalize!(view(d_tilde, :, n_tilde))
 
-    # Number of points in the augmented tangent curve of itp
-    n_hat = 2 * n_tilde - 1
-
-    # The data defining the augmented tangent curve of itp
-    u_hat = Matrix{T}(undef, N, n_hat)
-    d_hat = Matrix{T}(undef, N, n_hat)
-
-    k = 1
-    Δu_tilde = Vector{T}(undef, N)
-    u_tilde_j_close_left = Vector{T}(undef, N)
-    u_tilde_j_close_right = Vector{T}(undef, N)
-    u_tilde_j_int = Vector{T}(undef, N)
-    u_tilde_j_int_left = Vector{T}(undef, N)
-    u_tilde_j_int_right = Vector{T}(undef, N)
-
-    for j in 1:(n_tilde - 1)
-        u_hat[:, k] .= u_tilde[:, j]
-        d_hat[:, k] .= d_tilde[:, j]
-
-        u_tilde_j = view(u_tilde, :, j)
-        d_tilde_j = view(d_tilde, :, j)
-        u_tilde_j_plus_1 = view(u_tilde, :, j + 1)
-        d_tilde_j_plus_1 = view(d_tilde, :, j + 1)
-        d_tilde_inner = dot(d_tilde_j, d_tilde_j_plus_1)
-
-        @. Δu_tilde = u_tilde_j_plus_1 - u_tilde_j
-
-        inner_1 = dot(Δu_tilde, d_tilde_j)
-        inner_2 = dot(Δu_tilde, d_tilde_j_plus_1)
-        denom = 1 - d_tilde_inner^2
-        d_tilde_j_coef = (inner_1 - d_tilde_inner * inner_2) / denom
-        d_tilde_j_plus_1_coef = (d_tilde_inner * inner_1 - inner_2) / denom
-
-        if !((d_tilde_j_coef >= 0) && (d_tilde_j_plus_1_coef <= 0))
-            error("Some consecutive tangent lines do not converge, consider increasing m.")
-        end
-
-        @. u_tilde_j_close_left = u_tilde_j + d_tilde_j_coef * d_tilde_j
-        @. u_tilde_j_close_right = u_tilde_j_plus_1 +
-                                   d_tilde_j_plus_1_coef * d_tilde_j_plus_1
-        @. u_tilde_j_int = (u_tilde_j_close_left + u_tilde_j_close_right) / 2
-
-        # compute δ_star
-        δ_j = min(
-            euclidean(u_tilde_j_int, u_tilde_j),
-            euclidean(u_tilde_j_int, u_tilde_j_plus_1)
-        )
-        δ_j_star = δ_j * (2 - sqrt(2 + 2 * d_tilde_inner)) / (1 - d_tilde_inner)
-
-        # Compute the points whose connecting line defines the tangent curve augmenting point
-        @. u_tilde_j_int_left = u_tilde_j_close_left - δ_j_star * d_tilde_j
-        @. u_tilde_j_int_right = u_tilde_j_close_right + δ_j_star * d_tilde_j_plus_1
-
-        # Compute tangent curve augmenting point
-        u_tilde_j_plus_half = view(u_hat, :, k + 1)
-        d_tilde_j_plus_half = view(d_hat, :, k + 1)
-
-        @. u_tilde_j_plus_half = (u_tilde_j_int_left + u_tilde_j_int_right) / 2
-        @. d_tilde_j_plus_half = u_tilde_j_int_right - u_tilde_j_int_left
-        normalize!(d_tilde_j_plus_half)
-
-        k += 2
-    end
-
-    u_hat[:, end] .= u_tilde[:, end]
-    d_hat[:, end] .= d_tilde[:, end]
-
-    return SmoothArcLengthInterpolation(u_hat, d_hat; shape_itp, kwargs...)
+    return SmoothArcLengthInterpolation(u_tilde, d_tilde; shape_itp, kwargs...)
 end
 
-function SmoothArcLengthInterpolation(
+"""
+    function SmoothArcLengthInterpolation(
         u::AbstractMatrix,
-        d::AbstractMatrix;
+        d::AbstractMatrix
+        [, make_intersections::Val{<:Bool}];
         shape_itp::Union{AbstractInterpolation, Nothing} = nothing,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
@@ -1514,10 +1504,121 @@ function SmoothArcLengthInterpolation(
         cache_parameters::Bool = false,
         assume_linear_t = 1e-2,
         in_place::Bool = true)
-    # Note: this method assumes that consecutive tangent lines are coplanar,
-    # which is generally not the case for >2 dimensional points. Use the other constructors
-    # to make sure this is satisfied.
 
+Make a C¹ smooth unit speed interpolation through the given data with the given tangents using line
+segments and circle segments.
+
+## Arguments
+
+  - `u`: The data to be interpolated in matrix form; (ndim, ndata).
+  - `d`: The tangents to the curve in the points `u`.
+  - `make_intersections`: Whether additional (point, tangent) pairs have to be added in between the provided
+    data to ensure that the consecutive (tangent) lines intersect. Defaults to `Val(true)`.
+
+## Keyword Arguments
+
+  - `shape_itp`: The interpolation that is being approximated, if one exists. Note that this
+    interpolation is not being used; it is just passed along to keep track of where the shape
+    of the `SmoothArcLengthInterpolation` originated.
+  - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
+  - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+"""
+function SmoothArcLengthInterpolation(
+        u::AbstractMatrix,
+        d::AbstractMatrix;
+        kwargs...)
+    SmoothArcLengthInterpolation(u, d, Val{true}(); kwargs...)
+end
+
+function SmoothArcLengthInterpolation(
+        u::AbstractMatrix,
+        d::AbstractMatrix,
+        make_intersections::Val{true};
+        kwargs...)
+    N, n = size(u)
+
+    # Number of points in the augmented tangent curve
+    n_hat = 2 * n - 1
+
+    # The data defining the augmented tangent curve
+    T = promote_type(eltype(eltype(u)), eltype(d))
+    u_hat = Matrix{T}(undef, N, n_hat)
+    d_hat = Matrix{T}(undef, N, n_hat)
+
+    k = 1
+    Δu = Vector{T}(undef, N)
+    uⱼ_close_left = Vector{T}(undef, N)
+    uⱼ_close_right = Vector{T}(undef, N)
+    uⱼ_int = Vector{T}(undef, N)
+    uⱼ_int_left = Vector{T}(undef, N)
+    uⱼ_int_right = Vector{T}(undef, N)
+
+    for j in 1:(n - 1)
+        u_hat[:, k] .= u[:, j]
+        d_hat[:, k] .= d[:, j]
+
+        uⱼ, uⱼ₊₁, dⱼ, dⱼ₊₁, d_inner = smooth_arc_length_params_1!(Δu, u, d, j)
+
+        inner_1 = dot(Δu, dⱼ)
+        inner_2 = dot(Δu, dⱼ₊₁)
+        denom = 1 - d_inner^2
+        dⱼ_coef = (inner_1 - d_inner * inner_2) / denom
+        dⱼ₊₁_coef = (d_inner * inner_1 - inner_2) / denom
+
+        if !((dⱼ_coef >= 0) && (dⱼ₊₁_coef <= 0))
+            error("Some consecutive tangent lines do not converge, consider increasing m.")
+        end
+
+        @. uⱼ_close_left = uⱼ + dⱼ_coef * dⱼ
+        @. uⱼ_close_right = uⱼ₊₁ +
+                            dⱼ₊₁_coef * dⱼ₊₁
+        @. uⱼ_int = (uⱼ_close_left + uⱼ_close_right) / 2
+
+        # compute δ_star
+        δⱼ, _, _ = smooth_arc_length_params_2(uⱼ_int, uⱼ, uⱼ₊₁)
+        δⱼ_star = δⱼ * (2 - sqrt(2 + 2 * d_inner)) / (1 - d_inner)
+
+        # Compute the points whose connecting line defines the tangent curve augmenting point
+        @. uⱼ_int_left = uⱼ_close_left - δⱼ_star * dⱼ
+        @. uⱼ_int_right = uⱼ_close_right + δⱼ_star * dⱼ₊₁
+
+        # Compute tangent curve augmenting point
+        uⱼ_plus_half = view(u_hat, :, k + 1)
+        dⱼ_plus_half = view(d_hat, :, k + 1)
+
+        @. uⱼ_plus_half = (uⱼ_int_left + uⱼ_int_right) / 2
+        @. dⱼ_plus_half = uⱼ_int_right - uⱼ_int_left
+        normalize!(dⱼ_plus_half)
+
+        k += 2
+    end
+
+    u_hat[:, end] .= u[:, end]
+    d_hat[:, end] .= d[:, end]
+
+    return SmoothArcLengthInterpolation(u_hat, d_hat, Val{false}(); kwargs...)
+end
+
+function SmoothArcLengthInterpolation(
+        u::AbstractMatrix,
+        d::AbstractMatrix,
+        ::Val{false};
+        shape_itp::Union{AbstractInterpolation, Nothing} = nothing,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters::Bool = false,
+        assume_linear_t = 1e-2,
+        in_place::Bool = true)
     N = size(u, 1)
     n_circle_arcs = size(u, 2) - 1
 
@@ -1537,26 +1638,13 @@ function SmoothArcLengthInterpolation(
 
     # Compute circle segments and line segments
     for j in 1:n_circle_arcs
-        uⱼ = view(u, :, j)
-        uⱼ₊₁ = view(u, :, j + 1)
-        @. Δu = uⱼ₊₁ - uⱼ
-
-        dⱼ = view(d, :, j)
-        dⱼ₊₁ = view(d, :, j + 1)
-        d_inner = dot(dⱼ, dⱼ₊₁)
+        uⱼ, uⱼ₊₁, dⱼ, dⱼ₊₁, d_inner = smooth_arc_length_params_1!(Δu, u, d, j)
 
         dⱼ_coef = (dot(Δu, dⱼ) - d_inner * dot(Δu, dⱼ₊₁)) / (1 - d_inner^2)
         @. u_int = uⱼ + dⱼ_coef * dⱼ
 
-        dist₁ = euclidean(u_int, uⱼ)
-        dist₂ = euclidean(u_int, uⱼ₊₁)
-
-        δⱼ = if dist₁ < dist₂
-            short_side_left[j] = true
-            dist₁
-        else
-            dist₂
-        end
+        δⱼ, short_side_left_, Δt_line_seg = smooth_arc_length_params_2(u_int, uⱼ, uⱼ₊₁)
+        short_side_left[j] = short_side_left_
 
         Rⱼ = δⱼ * sqrt((1 + d_inner) / (1 - d_inner))
         radius[j] = Rⱼ
@@ -1569,7 +1657,6 @@ function SmoothArcLengthInterpolation(
         @. v₂ = Rⱼ * dⱼ
 
         Δt_circle_seg = 2Rⱼ * atan(δⱼ, Rⱼ)
-        Δt_line_seg = abs(dist₂ - dist₁)
         Δt_circle_segment[j] = Δt_circle_seg
         Δt_line_segment[j] = Δt_line_seg
 
