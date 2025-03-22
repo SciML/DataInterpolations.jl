@@ -15,15 +15,19 @@ function to_plottable(A::AbstractInterpolation; plotdensity = 10_000, denseplot 
     plott, output
 end
 
-@recipe function f(A::AbstractInterpolation; plotdensity = 10_000, denseplot = true)
+@recipe function f(A::AbstractInterpolation; plotdensity = 10_000, denseplot = true,
+        label_interp = string(nameof(typeof(A))), label_data = "Data points")
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> string(nameof(typeof(A)))
+        seriescolor --> seriescolor
+        label --> label_interp
         to_plottable(A; plotdensity = plotdensity, denseplot = denseplot)
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         A.t, A.u
     end
 end
@@ -47,20 +51,25 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "LinearInterpolation",
+        label_data = "Data points")
     T = promote_type(eltype(y), eltype(x))
     nx, ny = to_plottable(LinearInterpolation(T.(y), T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "LinearInterpolation"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
@@ -78,22 +87,27 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "QuadraticInterpolation",
+        label_data = "Data points")
     T = promote_type(eltype(y), eltype(x))
     nx, ny = to_plottable(
         QuadraticInterpolation(T.(y),
             T.(x), mode; extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "QuadraticInterpolation"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
@@ -109,22 +123,27 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "LagrangeInterpolation",
+        label_data = "Data points")
     T = promote_type(eltype(y), eltype(x))
     nx, ny = to_plottable(LagrangeInterpolation(T.(y),
             T.(x),
             n; extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "LagrangeInterpolation"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
@@ -141,21 +160,26 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "QuadraticSpline",
+        label_data = "Data points")
     T = promote_type(eltype(y), eltype(x))
     nx, ny = to_plottable(QuadraticSpline(T.(y),
             T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "QuadraticSpline"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
@@ -172,21 +196,26 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "CubicSpline",
+        label_data = "Data points")
     T = promote_type(eltype(y), eltype(x))
     nx, ny = to_plottable(CubicSpline(T.(y),
             T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "CubicSpline"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
@@ -203,21 +232,26 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "AkimaInterpolation",
+        label_data = "Data points")
     T = promote_type(eltype(y), eltype(x))
     nx, ny = to_plottable(AkimaInterpolation(T.(y),
             T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "AkimaInterpolation"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
@@ -235,7 +269,9 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "BSplineInterpolation",
+        label_data = "Data points")
     T = promote_type(eltype(y), eltype(x))
     nx, ny = to_plottable(
         BSplineInterpolation(T.(y),
@@ -245,15 +281,18 @@ end
             knotVecType; extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "BSplineInterpolation"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
@@ -272,7 +311,9 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "BSplineApprox",
+        label_data = "Data points")
     T = promote_type(eltype(y), eltype(x))
     nx, ny = to_plottable(
         BSplineApprox(T.(y),
@@ -283,15 +324,18 @@ end
             knotVecType; extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "BSplineApprox"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
@@ -309,7 +353,9 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "CubicHermiteSpline",
+        label_data = "Data points")
     isnothing(du) && error("Provide `du` as a keyword argument.")
     T = promote_type(eltype(y), eltype(x))
     nx, ny = to_plottable(
@@ -317,15 +363,18 @@ end
             T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "CubicHermiteSpline"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
@@ -342,21 +391,26 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "PCHIPInterpolation",
+        label_data = "Data points")
     T = promote_type(eltype(y), eltype(x))
     nx, ny = to_plottable(PCHIPInterpolation(T.(y),
             T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "PCHIP Interpolation"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
@@ -375,7 +429,9 @@ end
         extrapolate = false,
         safetycopy = false,
         plotdensity = 10_000,
-        denseplot = true)
+        denseplot = true,
+        label_interp = "QuinticHermiteSpline",
+        label_data = "Data points")
     (isnothing(du) || isnothing(ddu)) &&
         error("Provide `du` and `ddu` as keyword arguments.")
     T = promote_type(eltype(y), eltype(x))
@@ -384,15 +440,18 @@ end
             T.(x); extrapolate, safetycopy);
         plotdensity = plotdensity,
         denseplot = denseplot)
+    seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path
-        label --> "QuinticHermiteSpline"
+        seriescolor --> seriescolor
+        label --> label_interp
         x := nx
         y := ny
     end
     @series begin
         seriestype := :scatter
-        label --> "Data points"
+        seriescolor --> seriescolor
+        label --> label_data
         x := x
         y := y
     end
