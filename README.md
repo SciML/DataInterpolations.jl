@@ -63,6 +63,7 @@ corresponding to `(u,t)` pairs.
   - `CubicHermiteSpline(du, u, t)` - A third order Hermite interpolation, which matches the values and first (`du`) order derivatives in the data points exactly.
   - `PCHIPInterpolation(u, t)` - a type of `CubicHermiteSpline` where the derivative values `du` are derived from the input data in such a way that the interpolation never overshoots the data.
   - `QuinticHermiteSpline(ddu, du, u, t)` - A fifth order Hermite interpolation, which matches the values and first (`du`) and second (`ddu`) order derivatives in the data points exactly.
+  - `SmoothArcLengthInterpolation(u)` create a continuously differentiable interpolation by arc length through the data, by approximating a non-arc length interpolation with line segments and circle segments. See the docs for more details.
 
 ## Extension Methods
 
