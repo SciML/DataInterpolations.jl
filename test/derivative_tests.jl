@@ -272,7 +272,7 @@ end
         SmoothArcLengthInterpolation, args = [u], kwargs = Pair[
             :m => 5, :in_place => false],
         name = "Smooth Arc Length Interpolation")
-    A = SmoothArcLengthInterpolation(u'; m = 25, in_place = false)
+    A = SmoothArcLengthInterpolation(u'; m = 25)
     @test all(t -> norm(derivative(A, t)) ≈ 1, range(0, A.t[end]; length = 100))
     @test all(
         t_ -> derivative(A, prevfloat(t_)) ≈ derivative(A, nextfloat(t_)), A.t[2:(end - 1)])
