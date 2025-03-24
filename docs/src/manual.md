@@ -20,4 +20,5 @@ QuinticHermiteSpline
 ```@docs
 DataInterpolations.looks_linear
 DataInterpolations.output_dim
+DataInterpolations.output_size
 ```
