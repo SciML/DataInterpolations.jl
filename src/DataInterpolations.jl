@@ -116,8 +116,8 @@ Return the size `size(x(t))` of interpolation `x` evaluated at a single value `t
 """
 output_size(x::AbstractInterpolation) = _output_size(x.u)
 _output_size(::AbstractVector{<:Number}) = (1,)
-_output_size(::AbstractVector) = size(first(u)),
-_output_size(::AbstractArray) = Base.front(size(u))
+_output_size(u::AbstractVector) = size(first(u))
+_output_size(u::AbstractArray) = Base.front(size(u))
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, QuadraticSpline, CubicSpline,

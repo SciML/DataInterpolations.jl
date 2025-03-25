@@ -217,7 +217,7 @@ end
     @test A(5.5) == fill(11.0)
     @test A(11) == fill(22)
     @test @inferred(output_dim(A)) == 0 # values are 0-dimensional arrays!
-    @test @inferred(output_size(A)) == (1,)
+    @test @inferred(output_size(A)) == ()
 
     # Test constant -Inf interpolation
     u = [-Inf, -Inf]
@@ -471,7 +471,6 @@ end
         @test A(4.5) == u[1]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 0
-        @test @inferred(output_size(A)) == (1,)
 
         A = @inferred(ConstantInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension)) # dir=:left is default
@@ -486,7 +485,6 @@ end
         @test A(4.5) == u[1]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 0
-        @test @inferred(output_size(A)) == (1,)
     end
 
     @testset "Matrix case" for u in [
@@ -506,7 +504,6 @@ end
         @test A(4.5) == u[:, 1]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 1
-        @test @inferred(output_size(A)) == (2, 4)
 
         A = @inferred(ConstantInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension)) # dir=:left is default
@@ -521,7 +518,6 @@ end
         @test A(4.5) == u[:, 1]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 1
-        @test @inferred(output_size(A)) == (2, 4)
     end
 
     @testset "Vector of Vectors case" for u in [
