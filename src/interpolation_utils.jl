@@ -70,7 +70,7 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 
     # Create linear system Ac = u, where:
     # - A consists of basis function evaulations in t
-    # - c are 1D control points 
+    # - c are 1D control points
     n = length(t)
     dtype_sc = typeof(t[1] / t[1])
 
@@ -235,6 +235,19 @@ function du_PCHIP(u, t)
     δ = diff(u) ./ h
     s = sign.(δ)
 
+    # Special handling of the slope at the endpoints, see
+    # Cleve Moler, Numerical Computing with MATLAB, Chap 3.6 (file pchiptx.m, function pchipend())
+    function _edge_case(h₁, h₂, δ₁, δ₂)
+        d = ((2 * h₁ + h₂) * δ₁ - h₁ * δ₂) / (h₁ + h₂)
+        if sign(d) != sign(δ₁)
+            zero(eltype(δ))
+        elseif sign(δ₁) != sign(δ₂) && abs(d) > 3 * abs(δ₁)
+            3 * δ₁
+        else
+            d
+        end
+    end
+
     function _du(k)
         sₖ₋₁, sₖ = if k == 1
             s[1], s[2]
@@ -248,17 +261,22 @@ function du_PCHIP(u, t)
             zero(eltype(δ))
         elseif sₖ₋₁ == sₖ
             if k == 1
-                ((2 * h[1] + h[2]) * δ[1] - h[1] * δ[2]) / (h[1] + h[2])
+                _edge_case(h[1], h[2], δ[1], δ[2])
             elseif k == lastindex(t)
-                ((2 * h[end] + h[end - 1]) * δ[end] - h[end] * δ[end - 1]) /
-                (h[end] + h[end - 1])
+                _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
             else
                 w₁ = 2h[k] + h[k - 1]
                 w₂ = h[k] + 2h[k - 1]
                 (w₁ + w₂) / (w₁ / δ[k - 1] + w₂ / δ[k])
             end
         else
-            zero(eltype(δ))
+            if k == 1
+                _edge_case(h[1], h[2], δ[1], δ[2])
+            elseif k == lastindex(t)
+                _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
+            else
+                zero(eltype(δ))
+            end
         end
     end
 
