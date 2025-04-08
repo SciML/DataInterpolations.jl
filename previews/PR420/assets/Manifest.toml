@@ -2212,9 +2212,9 @@ version = "2.24.0"
 
 [[deps.SparseMatrixColorings]]
 deps = ["ADTypes", "DocStringExtensions", "LinearAlgebra", "Random", "SparseArrays"]
-git-tree-sha1 = "d59566cf03c67733edce6d80e0fb17e183ab31ba"
+git-tree-sha1 = "3abb70c9055dd01344fe2992b7909928ab60c1c5"
 uuid = "0a514795-09f3-496d-8182-132a7b665d35"
-version = "0.4.16"
+version = "0.4.17"
 
     [deps.SparseMatrixColorings.extensions]
     SparseMatrixColoringsCliqueTreesExt = "CliqueTrees"
