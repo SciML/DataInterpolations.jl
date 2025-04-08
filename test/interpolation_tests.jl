@@ -43,6 +43,7 @@ end
         @test A(5.5) == 11.0
         @test A(11) == 22
         @test @inferred(output_dim(A)) == 0
+        @test @inferred(output_size(A)) == ()
 
         u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
         @test @inferred(LinearInterpolation(
@@ -60,6 +61,7 @@ end
         @test A(5.5) == [11.0, 16.5]
         @test A(11) == [22, 33]
         @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
 
         x = 1:10
         y = 2:4
@@ -76,6 +78,7 @@ end
         @test A(5.5) == [11.0, 16.5, 22.0]
         @test A(11) == [22.0, 33.0, 44.0]
         @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (3,)
     end
 
     x = 1:10
@@ -92,6 +95,7 @@ end
     @test A(5) == [8.0 10.0; 12.0 15.0; 16.0 20.0]
     test_cached_index(A)
     @test @inferred(output_dim(A)) == 2
+    @test @inferred(output_size(A)) == (3, 2)
 
     # with NaNs (#113)
     u = [NaN, 1.0, 2.0, 3.0]
@@ -103,6 +107,7 @@ end
     @test A(3.0) == 2.0
     @test A(4.0) == 3.0
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     u = [0.0, NaN, 2.0, 3.0]
     A = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
@@ -112,6 +117,7 @@ end
     @test A(3.0) == 2.0
     @test A(4.0) == 3.0
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     u = [0.0, 1.0, NaN, 3.0]
     A = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
@@ -121,6 +127,7 @@ end
     @test isnan(A(3.0))
     @test A(4.0) == 3.0
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     u = [0.0, 1.0, 2.0, NaN]
     A = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
@@ -130,6 +137,7 @@ end
     @test isnan(A(3.5))
     @test isnan(A(4.0))
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     u = [0.0, 1.0, 2.0, NaN]
     A = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
@@ -139,6 +147,7 @@ end
     @test isnan(A(3.5))
     @test isnan(A(4.0))
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     # Test type stability
     u = Float32.(1:5)
@@ -170,11 +179,12 @@ end
     end
 
     # NaN time value for Unitful arrays: issue #365
-    t = (0:3)u"s" # Unitful quantities  
+    t = (0:3)u"s" # Unitful quantities
     u = [0, -2, -1, -2]u"m"
     A = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
     @test isnan(A(NaN * u"s"))
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     # Nan time value:
     t = 0.0:3  # Floats
@@ -183,6 +193,7 @@ end
     dA = t -> ForwardDiff.derivative(A, t)
     @test isnan(dA(NaN))
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     t = 0:3  # Integers
     u = [0, -2, -1, -2]
@@ -190,6 +201,7 @@ end
     dA = t -> ForwardDiff.derivative(A, t)
     @test isnan(dA(NaN))
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     # Test derivative at point gives derivative to the right (except last is to left):
     ts = t[begin:(end - 1)]
@@ -205,6 +217,7 @@ end
     @test A(5.5) == fill(11.0)
     @test A(11) == fill(22)
     @test @inferred(output_dim(A)) == 0 # values are 0-dimensional arrays!
+    @test @inferred(output_size(A)) == ()
 
     # Test constant -Inf interpolation
     u = [-Inf, -Inf]
@@ -242,6 +255,7 @@ end
     @test A(5.0) == 25
     test_cached_index(A)
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     # backward-looking interpolation
     u = [1.0, 4.0, 9.0, 16.0]
@@ -299,6 +313,7 @@ end
     @test A(3.5) == [12.25, 12.25]
     @test A(5.0) == [25.0, 25.0]
     @test @inferred(output_dim(A)) == 1
+    @test @inferred(output_size(A)) == (2,)
 
     u_ = [1.0, 4.0, 9.0, 16.0]' .* ones(5)
     u = [u_[:, i] for i in 1:size(u_, 2)]
@@ -309,6 +324,7 @@ end
     @test A(3.5) == 12.25 * ones(5)
     @test A(5.0) == 25.0 * ones(5)
     @test @inferred(output_dim(A)) == 1
+    @test @inferred(output_size(A)) == (5,)
 
     u = [repeat(u[i], 1, 3) for i in 1:4]
     @test_broken @inferred(QuadraticInterpolation(
@@ -320,6 +336,7 @@ end
     @test A(3.5) == 12.25 * ones(5, 3)
     @test A(5.0) == 25.0 * ones(5, 3)
     @test @inferred(output_dim(A)) == 2
+    @test @inferred(output_size(A)) == (5, 3)
 
     # Test extrapolation
     u = [1.0, 4.5, 6.0, 2.0]
@@ -342,6 +359,7 @@ end
     @test A(2.0) == 4.0
     @test A(1.5) == 2.25
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     u = [1.0, 8.0, 27.0, 64.0]
     t = [1.0, 2.0, 3.0, 4.0]
@@ -358,6 +376,7 @@ end
     @test A(1.5) ≈ [2.25, 2.25]
     @test A(3.5) ≈ [12.25, 12.25]
     @test @inferred(output_dim(A)) == 1
+    @test @inferred(output_size(A)) == (2,)
 
     u_ = [1.0, 4.0, 9.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
@@ -367,6 +386,7 @@ end
     @test A(2.0) == 4.0 * ones(4)
     @test A(1.5) == 2.25 * ones(4)
     @test @inferred(output_dim(A)) == 1
+    @test @inferred(output_size(A)) == (4,)
 
     u_ = [1.0, 8.0, 27.0, 64.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
@@ -377,6 +397,7 @@ end
     @test A(1.5) ≈ 3.375 * ones(4)
     @test A(3.5) ≈ 42.875 * ones(4)
     @test @inferred(output_dim(A)) == 1
+    @test @inferred(output_size(A)) == (4,)
 
     u = [repeat(u[i], 1, 3) for i in 1:4]
     A = @inferred(LagrangeInterpolation(u, t))
@@ -385,6 +406,7 @@ end
     @test A(1.5) ≈ 3.375 * ones(4, 3)
     @test A(3.5) ≈ 42.875 * ones(4, 3)
     @test @inferred(output_dim(A)) == 2
+    @test @inferred(output_size(A)) == (4, 3)
 
     # Test extrapolation
     u = [1.0, 4.0, 9.0]
@@ -419,6 +441,7 @@ end
     @test A(10.0) ≈ 3.0
     test_cached_index(A)
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     # Test extrapolation
     A = @inferred(AkimaInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
@@ -513,6 +536,7 @@ end
         @test A(4.5) == u[4]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
 
         A = @inferred(ConstantInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension)) # dir=:left is default
@@ -527,6 +551,7 @@ end
         @test A(4.5) == u[4]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
     end
 
     @testset "Vector of Matrices case" for u in [
@@ -545,6 +570,7 @@ end
         @test A(4.5) == u[4]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 2
+        @test @inferred(output_size(A)) == (2, 2)
 
         A = @inferred(ConstantInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension)) # dir=:left is default
@@ -559,6 +585,7 @@ end
         @test A(4.5) == u[4]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 2
+        @test @inferred(output_size(A)) == (2, 2)
     end
 
     # Test extrapolation
@@ -611,6 +638,7 @@ end
     @test A(2.0) == P₁(2.0)
     test_cached_index(A)
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
@@ -620,6 +648,7 @@ end
     @test A(0.7) == P₁(0.7) * ones(4)
     @test A(2.0) == P₁(2.0) * ones(4)
     @test @inferred(output_dim(A)) == 1
+    @test @inferred(output_size(A)) == (4,)
 
     u = [repeat(u[i], 1, 3) for i in 1:3]
     A = @inferred(QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension))
@@ -628,6 +657,7 @@ end
     @test A(0.7) == P₁(0.7) * ones(4, 3)
     @test A(2.0) == P₁(2.0) * ones(4, 3)
     @test @inferred(output_dim(A)) == 2
+    @test @inferred(output_size(A)) == (4, 3)
 
     # Test extrapolation
     u = [0.0, 1.0, 3.0]
@@ -663,6 +693,7 @@ end
         @test A(x) ≈ P₂(x)
     end
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
@@ -676,6 +707,7 @@ end
         @test A(x) ≈ P₂(x) * ones(4)
     end
     @test @inferred(output_dim(A)) == 1
+    @test @inferred(output_size(A)) == (4,)
 
     u = [repeat(u[i], 1, 3) for i in 1:3]
     @test_broken @inferred(CubicSpline(
@@ -688,6 +720,7 @@ end
         @test A(x) ≈ P₂(x) * ones(4, 3)
     end
     @test @inferred(output_dim(A)) == 2
+    @test @inferred(output_size(A)) == (4, 3)
 
     # Test extrapolation
     u = [0.0, 1.0, 3.0]
@@ -737,6 +770,7 @@ end
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 0
+        @test @inferred(output_size(A)) == ()
 
         # Test extrapolation
         A = @inferred(BSplineInterpolation(
@@ -777,12 +811,14 @@ end
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
             @test @inferred(output_dim(A)) == 1
+            @test @inferred(output_size(A)) == (2,)
 
             A = @inferred(BSplineInterpolation(u2d, t, 2, :ArcLen, :Average))
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
             @test @inferred(output_dim(A)) == 1
+            @test @inferred(output_size(A)) == (2,)
         end
         @testset "AbstractArray{T, 3}" begin
             f3d(t) = [sin(t) cos(t);
@@ -795,12 +831,14 @@ end
             f_test = reduce(hcat, f3d.(t_test))
             @test isapprox(u_test, f_test, atol = 1e-2)
             @test @inferred(output_dim(A)) == 2
+            @test @inferred(output_size(A)) == (2, 2)
 
             A = @inferred(BSplineInterpolation(u3d, t, 2, :ArcLen, :Average))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test, f_test, atol = 1e-2)
             @test @inferred(output_dim(A)) == 2
+            @test @inferred(output_size(A)) == (2, 2)
         end
     end
 
@@ -874,6 +912,7 @@ end
     @test A(100.0)≈10.106770 rtol=1e-5
     @test A(300.0)≈9.901542 rtol=1e-5
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
     test_cached_index(A)
     push!(u, 1.0)
     @test_throws AssertionError CubicHermiteSpline(du, u, t)
@@ -890,6 +929,7 @@ end
     @test all(maximum(u) .>= us)
     @test all(A.du[3:4] .== 0.0)
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 end
 
 @testset "Quintic Hermite Spline" begin
@@ -906,9 +946,11 @@ end
     @test A(300.0)≈11.364162 rtol=1e-5
     test_cached_index(A)
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
     push!(u, 1.0)
     @test_throws AssertionError QuinticHermiteSpline(ddu, du, u, t)
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 end
 
 @testset "Smooth Arc Length Interpolation" begin
@@ -955,6 +997,7 @@ end
     us = A.(ts)
     @test vs ≈ us
     @test @inferred(output_dim(A)) == 0
+    @test @inferred(output_size(A)) == ()
 
     # Test extrapolation
     A = Curvefit(u, t, model, p0, LBFGS(); extrapolate = true)
