@@ -76,24 +76,6 @@ The follow methods require extra dependencies and will be loaded as package exte
 
 DataInterpolations.jl is tied into the Plots.jl ecosystem, by way of RecipesBase. Any interpolation can be plotted using the `plot` command (or any other), since they have type recipes associated with them. For convenience, and to allow keyword arguments to propagate properly, DataInterpolations.jl also defines several series types, corresponding to different interpolations.
 
-The series types defined are:
-
-  - `:linear_interp`
-  - `:quadratic_interp`
-  - `:lagrange_interp`
-  - `:quadratic_spline`
-  - `:cubic_spline`
-  - `:akima_interp`
-  - `:bspline_interp`
-  - `:bspline_approx`
-  - `:cubic_hermite_spline`
-  - `:pchip_interp`
-  - `:quintic_hermite_spline`
-
-By and large, these accept the same keywords as their function counterparts.
-
-Some keywords differ from regular plots. `label_interp` is used to label the interpolation line plot, while `label_data` labels the data points. By default, both are plotted in the same color.
-
 ## Citing
 
 If you use this software in your work, please cite:
