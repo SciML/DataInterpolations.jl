@@ -91,14 +91,15 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 end
 
 # helper function for data manipulation
-function munge_data(u::AbstractVector, t::AbstractVector)
+function munge_data(u::AbstractVector, t::AbstractVector;
+        check_sorted = t, sorted_arg_name = "second")
     Tu = nonmissingtype(eltype(u))
     Tt = nonmissingtype(eltype(t))
 
     if Tu === eltype(u) && Tt === eltype(t)
-        if !(issorted(t) || issorted(t, rev = true))
+        if !(issorted(check_sorted) || issorted(check_sorted, rev = true))
             # there is likely an user error
-            msg = "The second argument, which is used for the interpolation domain, is not sorted."
+            msg = "The $sorted_arg_name argument, which is used for the interpolation domain, is not sorted."
             if (issorted(u) || issorted(u, rev = true))
                 msg *= "\nIt looks like the arguments were inversed, make sure you used the arguments in the correct order."
             end
