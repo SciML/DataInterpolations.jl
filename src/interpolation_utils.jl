@@ -91,14 +91,26 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 end
 
 # helper function for data manipulation
-function munge_data(u::AbstractVector, t::AbstractVector)
+function munge_data(u::AbstractVector, t::AbstractVector;
+        check_sorted = t, sorted_arg_name = ("second", "t"))
     Tu = nonmissingtype(eltype(u))
     Tt = nonmissingtype(eltype(t))
+
     if Tu === eltype(u) && Tt === eltype(t)
+        if !issorted(check_sorted)
+            # there is likely an user error
+            msg = "The $(sorted_arg_name[1]) argument (`$(sorted_arg_name[2])`), which is used for the interpolation domain, is not sorted."
+            if issorted(u)
+                msg *= "\nIt looks like the arguments `u` and `$(sorted_arg_name[2])` were inversed, make sure you used the arguments in the correct order."
+            end
+            throw(ArgumentError(msg))
+        end
+
         return u, t
     end
 
     @assert length(t) == length(u)
+
     non_missing_mask = map((ui, ti) -> !ismissing(ui) && !ismissing(ti), u, t)
     u = convert(AbstractVector{Tu}, u[non_missing_mask])
     t = convert(AbstractVector{Tt}, t[non_missing_mask])
