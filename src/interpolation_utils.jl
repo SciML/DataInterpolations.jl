@@ -94,11 +94,22 @@ end
 function munge_data(u::AbstractVector, t::AbstractVector)
     Tu = nonmissingtype(eltype(u))
     Tt = nonmissingtype(eltype(t))
+
     if Tu === eltype(u) && Tt === eltype(t)
+        if !(issorted(t) || issorted(t, rev = true))
+            # there is likely an user error
+            msg = "The second argument, which is used for the interpolation domain, is not sorted."
+            if (issorted(u) || issorted(u, rev = true))
+                msg *= "\nIt looks like the arguments were inversed, make sure you used the arguments in the correct order."
+            end
+            throw(ArgumentError(msg))
+        end
+
         return u, t
     end
 
     @assert length(t) == length(u)
+
     non_missing_mask = map((ui, ti) -> !ismissing(ui) && !ismissing(ti), u, t)
     u = convert(AbstractVector{Tu}, u[non_missing_mask])
     t = convert(AbstractVector{Tt}, t[non_missing_mask])

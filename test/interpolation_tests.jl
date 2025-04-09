@@ -1105,3 +1105,8 @@ f_cubic_spline = c -> square(CubicSpline, c)
         end
     end
 end
+
+@testset "user error" begin
+    @test_throws ArgumentError LinearInterpolation(rand(10), rand(10))
+    @test_throws ArgumentError LinearInterpolation(0:10, rand(10))
+end
