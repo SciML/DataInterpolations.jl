@@ -76,7 +76,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
         cache_parameters::Bool = false)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
-    u, t = munge_data(u, t; check_sorted = t̂, sorted_arg_name = "third")
+    u, t = munge_data(u, t; check_sorted = t̂, sorted_arg_name = ("third", "t̂"))
     M = _mapping_matrix(t̂, t)
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = LA.diagm(sqrt.(wr))
@@ -139,7 +139,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
         cache_parameters::Bool = false)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
-    u, t = munge_data(u, t; check_sorted = t̂, sorted_arg_name = "third")
+    u, t = munge_data(u, t; check_sorted = t̂, sorted_arg_name = ("third", "t̂"))
     N, N̂ = length(t), length(t̂)
     M = _mapping_matrix(t̂, t)
     Wls½ = Array{Float64}(LA.I, N, N)
@@ -176,7 +176,7 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
         cache_parameters::Bool = false)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
-    u, t = munge_data(u, t; check_sorted = t̂, sorted_arg_name = "third")
+    u, t = munge_data(u, t; check_sorted = t̂, sorted_arg_name = ("third", "t̂"))
     N, N̂ = length(t), length(t̂)
     M = _mapping_matrix(t̂, t)
     Wls½ = LA.diagm(sqrt.(wls))
