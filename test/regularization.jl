@@ -191,3 +191,10 @@ end
     A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
     @test @inferred(A(1.0)) == A(1.0)
 end
+
+@testset "User error" begin
+    @test_throws ArgumentError RegularizationSmooth(tₒ, uₒ; alg = :fixed)
+    N̂ = 20
+    t̂ = collect(range(xmin, xmin + xspan, length = N̂))
+    @test_throws ArgumentError RegularizationSmooth(u, t̂, t)
+end
