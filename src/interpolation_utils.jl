@@ -388,3 +388,24 @@ function smooth_arc_length_params_2(u_int, uⱼ, uⱼ₊₁)
     end
     return δⱼ, short_side_left, Δt_line_seg
 end
+
+function get_transition_ts(A::SmoothedConstantInterpolation)
+    out = similar(A.t, 2 * length(A.t))
+
+    for idx in 1:(length(A.t) - 1)
+        d_lower, d_upper, _, _ = get_parameters(A, idx)
+        if idx == 1
+            out[1] = A.t[idx]
+            out[2] = A.t[idx] + d_lower
+        else
+            out[2idx - 1] = A.t[idx] - d_upper
+            out[2idx] = A.t[idx] + d_lower
+        end
+    end
+
+    d_lower, _, _, _ = get_parameters(A, 1)
+    out[end - 1] = A.t[end] - d_lower
+    out[end] = A.t[end]
+
+    out
+end
