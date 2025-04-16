@@ -1,6 +1,6 @@
 name = "DataInterpolations"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
-version = "6.6.0"
+version = "8.0.0"
 
 [deps]
 EnumX = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
@@ -44,7 +44,7 @@ StableRNGs = "1"
 Symbolics = "5.29, 6"
 Test = "1.10"
 Unitful = "1.21.1"
-Zygote = "0.6.70"
+Zygote = "0.6.70, 0.7"
 julia = "1.10"
 
 [extras]

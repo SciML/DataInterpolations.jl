@@ -13,20 +13,13 @@ function _extrapolate_left(A, t)
     if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
-        slope = derivative(A, first(A.t))
-        first(A.u) + slope * zero(t)
+        slope = _derivative(A, first(A.t), 1)
+        first(A.u) + zero(slope * t)
     elseif extrapolation_left == ExtrapolationType.Linear
-        slope = derivative(A, first(A.t))
+        slope = _derivative(A, first(A.t), 1)
         first(A.u) + slope * (t - first(A.t))
-    elseif extrapolation_left == ExtrapolationType.Extension
-        _interpolate(A, t, A.iguesser)
-    elseif extrapolation_left == ExtrapolationType.Periodic
-        t_, _ = transformation_periodic(A, t)
-        _interpolate(A, t_, A.iguesser)
     else
-        # extrapolation_left == ExtrapolationType.Reflective
-        t_, _ = transformation_reflective(A, t)
-        _interpolate(A, t_, A.iguesser)
+        _extrapolate_other(A, t, extrapolation_left)
     end
 end
 
@@ -35,20 +28,49 @@ function _extrapolate_right(A, t)
     if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
-        slope = derivative(A, last(A.t))
-        last(A.u) + slope * zero(t)
+        slope = _derivative(A, last(A.t), length(A.t))
+        last(A.u) + zero(slope * t)
     elseif extrapolation_right == ExtrapolationType.Linear
-        slope = derivative(A, last(A.t))
+        slope = _derivative(A, last(A.t), length(A.t))
         last(A.u) + slope * (t - last(A.t))
-    elseif extrapolation_right == ExtrapolationType.Extension
+    else
+        _extrapolate_other(A, t, extrapolation_right)
+    end
+end
+
+function _extrapolate_other(A, t, extrapolation)
+    if extrapolation == ExtrapolationType.Extension
         _interpolate(A, t, A.iguesser)
-    elseif extrapolation_right == ExtrapolationType.Periodic
+    elseif extrapolation == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
         _interpolate(A, t_, A.iguesser)
-    else
-        # extrapolation_right == ExtrapolationType.Reflective
+    elseif extrapolation == ExtrapolationType.Reflective
         t_, _ = transformation_reflective(A, t)
         _interpolate(A, t_, A.iguesser)
+    else
+        throw(ExtrapolationNotImplementedError())
+    end
+end
+
+function _extrapolate_left(A::ConstantInterpolation, t)
+    (; extrapolation_left) = A
+    if extrapolation_left == ExtrapolationType.None
+        throw(LeftExtrapolationError())
+    elseif extrapolation_left in (ExtrapolationType.Constant, ExtrapolationType.Linear)
+        first(A.u)
+    else
+        _extrapolate_other(A, t, extrapolation_left)
+    end
+end
+
+function _extrapolate_right(A::ConstantInterpolation, t)
+    (; extrapolation_right) = A
+    if extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif extrapolation_right in (ExtrapolationType.Constant, ExtrapolationType.Linear)
+        last(A.u)
+    else
+        _extrapolate_other(A, t, extrapolation_right)
     end
 end
 
@@ -224,7 +246,7 @@ function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     I + C + D
 end
 
-function _interpolate(A::CubicSpline{<:AbstractArray{T, N}}, t::Number, iguess) where {T, N}
+function _interpolate(A::CubicSpline{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
@@ -255,9 +277,9 @@ function _interpolate(A::BSplineInterpolation{<:AbstractVector{<:Number}},
     ucum
 end
 
-function _interpolate(A::BSplineInterpolation{<:AbstractArray{T, N}},
+function _interpolate(A::BSplineInterpolation{<:AbstractArray{<:Number}},
         t::Number,
-        iguess) where {T <: Number, N}
+        iguess)
     ax_u = axes(A.u)[1:(end - 1)]
     t < A.t[1] && return A.u[ax_u..., 1]
     t > A.t[end] && return A.u[ax_u..., end]
@@ -291,7 +313,7 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
 end
 
 function _interpolate(
-        A::BSplineApprox{<:AbstractArray{T, N}}, t::Number, iguess) where {T <: Number, N}
+        A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess)
     ax_u = axes(A.u)[1:(end - 1)]
     t < A.t[1] && return A.u[ax_u..., 1]
     t > A.t[end] && return A.u[ax_u..., end]
@@ -328,5 +350,44 @@ function _interpolate(
     out = A.u[idx] + Δt₀ * (A.du[idx] + A.ddu[idx] * Δt₀ / 2)
     c₁, c₂, c₃ = get_parameters(A, idx)
     out += Δt₀^3 * (c₁ + Δt₁ * (c₂ + c₃ * Δt₁))
+    out
+end
+
+function _interpolate(A::SmoothArcLengthInterpolation, t::Number, iguess)
+    (; out, in_place) = A
+    out = in_place ? out : similar(out, typeof(t))
+    idx = get_idx(A, t, iguess)
+    Δt_circ_seg = A.Δt_circle_segment[idx]
+    Δt_line_seg = A.Δt_line_segment[idx]
+    short_side_left = A.short_side_left[idx]
+    Δt = t - A.t[idx]
+
+    in_circle_arc = if short_side_left
+        Δt < Δt_circ_seg
+    else
+        Δt > Δt_line_seg
+    end
+
+    if in_circle_arc
+        t_circle_seg = short_side_left ? Δt : Δt - Δt_line_seg
+        Rⱼ = A.radius[idx]
+        S, C = sincos(t_circle_seg / Rⱼ)
+        c = view(A.center, :, idx)
+        v₁ = view(A.dir_1, :, idx)
+        v₂ = view(A.dir_2, :, idx)
+        @. out = c + C * v₁ + S * v₂
+    else
+        if short_side_left
+            u₁ = view(A.u, :, idx + 1)
+            d₁ = view(A.d, :, idx + 1)
+            t_line_seg = A.t[idx + 1] - t
+            @. out = u₁ - t_line_seg * d₁
+        else
+            u₀ = view(A.u, :, idx)
+            d₀ = view(A.d, :, idx)
+            @. out = u₀ + Δt * d₀
+        end
+    end
+
     out
 end

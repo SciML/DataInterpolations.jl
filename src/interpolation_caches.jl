@@ -27,7 +27,7 @@ Extrapolation extends the last linear polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct LinearInterpolation{uType, tType, IType, pType, T, N} <: AbstractInterpolation{T, N}
+struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -40,8 +40,7 @@ struct LinearInterpolation{uType, tType, IType, pType, T, N} <: AbstractInterpol
     function LinearInterpolation(u, t, I, p, extrapolation_left, extrapolation_right,
             cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u), N}(
+        new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
             u, t, I, p, extrapolation_left, extrapolation_right,
             Guesser(t), cache_parameters, linear_lookup)
     end
@@ -93,8 +92,8 @@ Extrapolation extends the last quadratic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct QuadraticInterpolation{uType, tType, IType, pType, T, N} <:
-       AbstractInterpolation{T, N}
+struct QuadraticInterpolation{uType, tType, IType, pType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -111,8 +110,7 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, N} <:
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.α), eltype(u), N}(
+        new{typeof(u), typeof(t), typeof(I), typeof(p.α), eltype(u)}(
             u, t, I, p, mode, extrapolation_left, extrapolation_right,
             Guesser(t), cache_parameters, linear_lookup)
     end
@@ -161,8 +159,8 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
 """
-struct LagrangeInterpolation{uType, tType, T, bcacheType, N} <:
-       AbstractInterpolation{T, N}
+struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     n::Int
@@ -175,8 +173,7 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType, N} <:
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), eltype(u), typeof(bcache), N}(u,
+        new{typeof(u), typeof(t), eltype(u), typeof(bcache)}(u,
             t,
             n,
             bcache,
@@ -229,8 +226,8 @@ Extrapolation extends the last cubic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, N} <:
-       AbstractInterpolation{T, N}
+struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -246,9 +243,8 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, N} <:
             u, t, I, b, c, d, extrapolation_left,
             extrapolation_right, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
-            typeof(d), eltype(u), N}(u,
+            typeof(d), eltype(u)}(u,
             t,
             I,
             b,
@@ -280,7 +276,7 @@ function AkimaInterpolation(
     m[end - 1] = 2m[end - 2] - m[end - 3]
     m[end] = 2m[end - 1] - m[end - 2]
 
-    b = 0.5 .* (m[4:end] .+ m[1:(end - 3)])
+    b = (m[4:end] .+ m[1:(end - 3)]) ./ 2
     dm = abs.(diff(m))
     f1 = dm[3:(n + 2)]
     f2 = dm[1:n]
@@ -288,8 +284,8 @@ function AkimaInterpolation(
     ind = findall(f12 .> 1e-9 * maximum(f12))
     b[ind] = (f1[ind] .* m[ind .+ 1] .+
               f2[ind] .* m[ind .+ 2]) ./ f12[ind]
-    c = (3.0 .* m[3:(end - 2)] .- 2.0 .* b[1:(end - 1)] .- b[2:end]) ./ dt
-    d = (b[1:(end - 1)] .+ b[2:end] .- 2.0 .* m[3:(end - 2)]) ./ dt .^ 2
+    c = (3 .* m[3:(end - 2)] .- 2 .* b[1:(end - 1)] .- b[2:end]) ./ dt
+    d = (b[1:(end - 1)] .+ b[2:end] .- 2 .* m[3:(end - 2)]) ./ dt .^ 2
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
@@ -328,7 +324,7 @@ Extrapolation extends the last constant polynomial at the end points on each sid
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct ConstantInterpolation{uType, tType, IType, T, N} <: AbstractInterpolation{T, N}
+struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -343,8 +339,7 @@ struct ConstantInterpolation{uType, tType, IType, T, N} <: AbstractInterpolation
             u, t, I, dir, extrapolation_left, extrapolation_right,
             cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(I), eltype(u), N}(
+        new{typeof(u), typeof(t), typeof(I), eltype(u)}(
             u, t, I, nothing, dir, extrapolation_left, extrapolation_right,
             Guesser(t), cache_parameters, linear_lookup)
     end
@@ -466,8 +461,8 @@ Extrapolation extends the last quadratic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, N} <:
-       AbstractInterpolation{T, N}
+struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -484,9 +479,8 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, N} <
             u, t, I, p, k, c, sc, extrapolation_left,
             extrapolation_right, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
-            typeof(c), typeof(sc), eltype(u), N}(u,
+            typeof(c), typeof(sc), eltype(u)}(u,
             t,
             I,
             p,
@@ -589,8 +583,8 @@ Second derivative on both ends are zero, which are also called "natural" boundar
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct CubicSpline{uType, tType, IType, pType, hType, zType, T, N} <:
-       AbstractInterpolation{T, N}
+struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -605,9 +599,8 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, N} <:
     function CubicSpline(u, t, I, p, h, z, extrapolation_left,
             extrapolation_right, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(I), typeof(p.c₁),
-            typeof(h), typeof(z), eltype(u), N}(
+            typeof(h), typeof(z), eltype(u)}(
             u,
             t,
             I,
@@ -623,12 +616,11 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, N} <:
     end
 end
 
-function CubicSpline(u::uType,
+function CubicSpline(u::AbstractVector{<:Number},
         t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1e-2) where {uType <:
-                                       AbstractVector{<:Number}}
+        assume_linear_t = 1e-2)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
@@ -658,12 +650,11 @@ function CubicSpline(u::uType,
         extrapolation_right, cache_parameters, linear_lookup)
 end
 
-function CubicSpline(u::uType,
+function CubicSpline(u::AbstractArray{T, N},
         t;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1e-2) where {uType <:
-                                       AbstractArray{T, N}} where {T, N}
+        assume_linear_t = 1e-2) where {T, N}
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
@@ -698,11 +689,10 @@ function CubicSpline(u::uType,
 end
 
 function CubicSpline(
-        u::uType, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        u::AbstractVector, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1e-2) where {uType <:
-                                       AbstractVector}
+        assume_linear_t = 1e-2)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
@@ -758,8 +748,8 @@ Extrapolation is a constant polynomial of the end points on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T, N} <:
-       AbstractInterpolation{T, N}
+struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     d::Int    # degree
@@ -786,8 +776,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T, N} <:
             extrapolation_right,
             assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u), N}(
+        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u)}(
             u,
             t,
             d,
@@ -881,11 +870,11 @@ function BSplineInterpolation(
 end
 
 function BSplineInterpolation(
-        u::AbstractArray{T, N}, t, d, pVecType, knotVecType;
+        u::AbstractArray, t, d, pVecType, knotVecType;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        assume_linear_t = 1e-2) where {T, N}
+        assume_linear_t = 1e-2)
     extrapolation_left, extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
     u, t = munge_data(u, t)
@@ -990,8 +979,8 @@ Extrapolation is a constant polynomial of the end points on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, N} <:
-       AbstractInterpolation{T, N}
+struct BSplineApprox{uType, tType, pType, kType, cType, scType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     d::Int    # degree
@@ -1021,8 +1010,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, N} <:
             assume_linear_t
     )
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u), N}(
+        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u)}(
             u,
             t,
             d,
@@ -1219,7 +1207,7 @@ function BSplineApprox(
         q[ax_u..., k] = u[ax_u..., k] - sc[k, 1] * u[ax_u..., 1] -
                         sc[k, h] * u[ax_u..., end]
     end
-    Q = Array{eltype(u), N}(undef, size(u)[1:(end - 1)]..., h - 2)
+    Q = Array{T, N}(undef, size(u)[1:(end - 1)]..., h - 2)
     for i in 2:(h - 1)
         s = zeros(eltype(sc), size(u)[1:(end - 1)]...)
         for k in 2:(n - 1)
@@ -1265,8 +1253,8 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct CubicHermiteSpline{uType, tType, IType, duType, pType, T, N} <:
-       AbstractInterpolation{T, N}
+struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <:
+       AbstractInterpolation{T}
     du::duType
     u::uType
     t::tType
@@ -1281,8 +1269,7 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T, N} <:
             du, u, t, I, p, extrapolation_left, extrapolation_right,
             cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u), N}(
+        new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u)}(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
             Guesser(t), cache_parameters, linear_lookup)
     end
@@ -1368,8 +1355,8 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T, N} <:
-       AbstractInterpolation{T, N}
+struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
+       AbstractInterpolation{T}
     ddu::dduType
     du::duType
     u::uType
@@ -1385,9 +1372,8 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T, N} <
             ddu, du, u, t, I, p, extrapolation_left,
             extrapolation_right, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(I), typeof(du),
-            typeof(ddu), typeof(p.c₁), eltype(u), N}(
+            typeof(ddu), typeof(p.c₁), eltype(u)}(
             ddu, du, u, t, I, p, extrapolation_left, extrapolation_right,
             Guesser(t), cache_parameters, linear_lookup)
     end
@@ -1411,4 +1397,354 @@ function QuinticHermiteSpline(
     QuinticHermiteSpline(
         ddu, du, u, t, I, p, extrapolation_left,
         extrapolation_right, cache_parameters, linear_lookup)
+end
+
+struct SmoothArcLengthInterpolation{
+    uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing}, T} <:
+       AbstractInterpolation{T}
+    u::uType
+    t::tType
+    d::Matrix{D}
+    shape_itp::S
+    Δt_circle_segment::Vector{P}
+    Δt_line_segment::Vector{P}
+    center::Matrix{P}
+    radius::Vector{P}
+    dir_1::Matrix{P}
+    dir_2::Matrix{P}
+    # short_side_left[i] = true means that the line segment comes after the circle segment
+    short_side_left::Vector{Bool}
+    I::IType
+    p::Nothing
+    extrapolation_left::ExtrapolationType.T
+    extrapolation_right::ExtrapolationType.T
+    iguesser::Guesser{tType}
+    cache_parameters::Bool
+    linear_lookup::Bool
+    out::Vector{P}
+    derivative::Vector{P}
+    in_place::Bool
+    function SmoothArcLengthInterpolation(
+            u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
+            center, radius, dir_1, dir_2, short_side_left,
+            I, extrapolation_left, extrapolation_right,
+            assume_linear_t, out, derivative, in_place)
+        linear_lookup = seems_linear(assume_linear_t, t)
+        new{typeof(u), typeof(t), typeof(I), eltype(radius),
+            eltype(d), typeof(shape_itp), eltype(u)}(
+            u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
+            center, radius, dir_1, dir_2, short_side_left,
+            I, nothing, extrapolation_left, extrapolation_right,
+            Guesser(t), false, linear_lookup, out, derivative, in_place
+        )
+    end
+end
+
+"""
+     SmoothArcLengthInterpolation(
+        u::AbstractMatrix{U};
+        t::Union{AbstractVector, Nothing} = nothing,
+        interpolation_type::Type{<:AbstractInterpolation} = QuadraticSpline,
+        kwargs...) where {U}
+
+Interpolate in a C¹ smooth way trough the data with unit speed by approximating
+an interpolation (the shape interpolation) with line segments and circle segments.
+
+## Arguments
+
+  - `u`: The data to be interpolated in matrix form; (ndim, ndata).
+
+NOTE: With this method it is not possible to pass keyword arguments to the constructor of the shape interpolation.
+If you want to do this, construct the shape interpolation yourself and use the
+`SmoothArcLengthInterpolation(shape_itp::AbstractInterpolation; kwargs...)` method.
+
+## Keyword Arguments
+
+  - `t`: The time points of the shape interpolation. By default given by the cumulative sum of the Euclidean
+    distances between the points `u`.
+  - `interpolation_type`: The type of the shape interpolation. Defaults to `QuadraticSpline`. Note that
+    for the `SmoothArcLengthInterpolation` to be C¹ smooth, the `interpolation_type` must be C¹ smooth as well.
+  - `m`: The number of points at which the shape interpolation is evaluated in each interval between time points.
+    The `SmoothArcLengthInterpolation` converges to the shape interpolation (in shape) as m → ∞.
+  - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
+  - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+"""
+function SmoothArcLengthInterpolation(
+        u::AbstractMatrix{U};
+        t::Union{AbstractVector, Nothing} = nothing,
+        interpolation_type::Type{<:AbstractInterpolation} = QuadraticSpline,
+        kwargs...
+) where {U}
+    if isnothing(t)
+        # Compute default t based on point distances
+        N, n = size(u)
+        t = Vector{U}(undef, n)
+        t[1] = zero(U)
+        Δu = Vector{U}(undef, N)
+        for i in 2:n
+            @. Δu = u[:, i] - u[:, i - 1]
+            t[i] = t[i - 1] + norm(Δu)
+        end
+    end
+    shape_itp = interpolation_type(collect.(eachcol(u)), t)
+    SmoothArcLengthInterpolation(shape_itp; kwargs...)
+end
+
+"""
+    function SmoothArcLengthInterpolation(
+            shape_itp::AbstractInterpolation;
+            m::Integer = 2,
+            kwargs...)
+
+Approximate the `shape_itp` with a C¹ unit speed interpolation using line segments and circle segments.
+
+## Arguments
+
+  - `shape_itp`: The interpolation to be approximated. Note that
+    for the `SmoothArcLengthInterpolation` to be C¹ smooth, the `shape_itp` must be C¹ smooth as well.
+
+## Keyword Arguments
+
+  - `m`: The number of points at which the shape interpolation is evaluated in each interval between time points.
+    The `SmoothArcLengthInterpolation` converges to the shape interpolation (in shape) as m → ∞.
+  - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
+  - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+"""
+function SmoothArcLengthInterpolation(
+        shape_itp::AbstractInterpolation;
+        m::Integer = 2,
+        kwargs...
+)
+    (; u, t) = shape_itp
+    T = promote_type(eltype(eltype(u)), eltype(t))
+
+    # Resp. the output dimensionality and the number of data points in the original interpolation
+    N = length(first(u))
+    n = length(u)
+
+    # Number of points defining the tangent curve of shape_itp
+    n_tilde = m * (n - 1) + 1
+
+    # The evaluations of shape_itp
+    u_tilde = Matrix{T}(undef, N, n_tilde)
+    d_tilde = Matrix{T}(undef, N, n_tilde)
+
+    j = 1
+
+    for i in 1:(n - 1)
+        for t_eval in range(t[i], t[i + 1], length = m + 1)[1:(end - 1)]
+            u_tilde[:, j] .= shape_itp(t_eval)
+            d_tilde[:, j] .= derivative(shape_itp, t_eval)
+            normalize!(view(d_tilde, :, j))
+            j += 1
+        end
+    end
+
+    u_tilde[:, end] .= shape_itp(last(t))
+    d_tilde[:, end] .= derivative(shape_itp, last(t))
+    normalize!(view(d_tilde, :, n_tilde))
+
+    return SmoothArcLengthInterpolation(u_tilde, d_tilde; shape_itp, kwargs...)
+end
+
+"""
+    function SmoothArcLengthInterpolation(
+        u::AbstractMatrix,
+        d::AbstractMatrix
+        [, make_intersections::Val{<:Bool}];
+        shape_itp::Union{AbstractInterpolation, Nothing} = nothing,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters::Bool = false,
+        assume_linear_t = 1e-2,
+        in_place::Bool = true)
+
+Make a C¹ smooth unit speed interpolation through the given data with the given tangents using line
+segments and circle segments.
+
+## Arguments
+
+  - `u`: The data to be interpolated in matrix form; (ndim, ndata).
+  - `d`: The tangents to the curve in the points `u`.
+  - `make_intersections`: Whether additional (point, tangent) pairs have to be added in between the provided
+    data to ensure that the consecutive (tangent) lines intersect. Defaults to `Val(true)`.
+
+## Keyword Arguments
+
+  - `shape_itp`: The interpolation that is being approximated, if one exists. Note that this
+    interpolation is not being used; it is just passed along to keep track of where the shape
+    of the `SmoothArcLengthInterpolation` originated.
+  - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
+  - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+"""
+function SmoothArcLengthInterpolation(
+        u::AbstractMatrix,
+        d::AbstractMatrix;
+        kwargs...)
+    SmoothArcLengthInterpolation(u, d, Val{true}(); kwargs...)
+end
+
+function SmoothArcLengthInterpolation(
+        u::AbstractMatrix,
+        d::AbstractMatrix,
+        make_intersections::Val{true};
+        kwargs...)
+    N, n = size(u)
+
+    # Number of points in the augmented tangent curve
+    n_hat = 2 * n - 1
+
+    # The data defining the augmented tangent curve
+    T = promote_type(eltype(eltype(u)), eltype(d))
+    u_hat = Matrix{T}(undef, N, n_hat)
+    d_hat = Matrix{T}(undef, N, n_hat)
+
+    k = 1
+    Δu = Vector{T}(undef, N)
+    uⱼ_close_left = Vector{T}(undef, N)
+    uⱼ_close_right = Vector{T}(undef, N)
+    uⱼ_int = Vector{T}(undef, N)
+    uⱼ_int_left = Vector{T}(undef, N)
+    uⱼ_int_right = Vector{T}(undef, N)
+
+    for j in 1:(n - 1)
+        u_hat[:, k] .= u[:, j]
+        d_hat[:, k] .= d[:, j]
+
+        uⱼ, uⱼ₊₁, dⱼ, dⱼ₊₁, d_inner = smooth_arc_length_params_1!(Δu, u, d, j)
+
+        inner_1 = dot(Δu, dⱼ)
+        inner_2 = dot(Δu, dⱼ₊₁)
+        denom = 1 - d_inner^2
+        dⱼ_coef = (inner_1 - d_inner * inner_2) / denom
+        dⱼ₊₁_coef = (d_inner * inner_1 - inner_2) / denom
+
+        if !((dⱼ_coef >= 0) && (dⱼ₊₁_coef <= 0))
+            error("Some consecutive tangent lines do not converge, consider increasing m.")
+        end
+
+        @. uⱼ_close_left = uⱼ + dⱼ_coef * dⱼ
+        @. uⱼ_close_right = uⱼ₊₁ +
+                            dⱼ₊₁_coef * dⱼ₊₁
+        @. uⱼ_int = (uⱼ_close_left + uⱼ_close_right) / 2
+
+        # compute δ_star
+        δⱼ, _, _ = smooth_arc_length_params_2(uⱼ_int, uⱼ, uⱼ₊₁)
+        δⱼ_star = δⱼ * (2 - sqrt(2 + 2 * d_inner)) / (1 - d_inner)
+
+        # Compute the points whose connecting line defines the tangent curve augmenting point
+        @. uⱼ_int_left = uⱼ_close_left - δⱼ_star * dⱼ
+        @. uⱼ_int_right = uⱼ_close_right + δⱼ_star * dⱼ₊₁
+
+        # Compute tangent curve augmenting point
+        uⱼ_plus_half = view(u_hat, :, k + 1)
+        dⱼ_plus_half = view(d_hat, :, k + 1)
+
+        @. uⱼ_plus_half = (uⱼ_int_left + uⱼ_int_right) / 2
+        @. dⱼ_plus_half = uⱼ_int_right - uⱼ_int_left
+        normalize!(dⱼ_plus_half)
+
+        k += 2
+    end
+
+    u_hat[:, end] .= u[:, end]
+    d_hat[:, end] .= d[:, end]
+
+    return SmoothArcLengthInterpolation(u_hat, d_hat, Val{false}(); kwargs...)
+end
+
+function SmoothArcLengthInterpolation(
+        u::AbstractMatrix,
+        d::AbstractMatrix,
+        ::Val{false};
+        shape_itp::Union{AbstractInterpolation, Nothing} = nothing,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters::Bool = false,
+        assume_linear_t = 1e-2,
+        in_place::Bool = true)
+    N = size(u, 1)
+    n_circle_arcs = size(u, 2) - 1
+
+    P = promote_type(eltype(u), eltype(d))
+    t = zeros(P, n_circle_arcs + 1)
+    Δt_circle_segment = zeros(P, n_circle_arcs)
+    Δt_line_segment = zeros(P, n_circle_arcs)
+    center = Matrix{P}(undef, N, n_circle_arcs)
+    radius = Vector{P}(undef, n_circle_arcs)
+    dir_1 = Matrix{P}(undef, N, n_circle_arcs)
+    dir_2 = Matrix{P}(undef, N, n_circle_arcs)
+    short_side_left = zeros(Bool, n_circle_arcs)
+
+    # Intermediate results
+    Δu = Vector{P}(undef, N)
+    u_int = Vector{P}(undef, N)
+
+    # Compute circle segments and line segments
+    for j in 1:n_circle_arcs
+        uⱼ, uⱼ₊₁, dⱼ, dⱼ₊₁, d_inner = smooth_arc_length_params_1!(Δu, u, d, j)
+
+        dⱼ_coef = (dot(Δu, dⱼ) - d_inner * dot(Δu, dⱼ₊₁)) / (1 - d_inner^2)
+        @. u_int = uⱼ + dⱼ_coef * dⱼ
+
+        δⱼ, short_side_left_, Δt_line_seg = smooth_arc_length_params_2(u_int, uⱼ, uⱼ₊₁)
+        short_side_left[j] = short_side_left_
+
+        Rⱼ = δⱼ * sqrt((1 + d_inner) / (1 - d_inner))
+        radius[j] = Rⱼ
+        cⱼ = view(center, :, j)
+        v₁ = view(dir_1, :, j)
+        v₂ = view(dir_2, :, j)
+
+        @. cⱼ = u_int + δⱼ * (dⱼ₊₁ - dⱼ) / (1 - d_inner)
+        @. v₁ = -δⱼ * (dⱼ₊₁ - d_inner * dⱼ) / (1 - d_inner)
+        @. v₂ = Rⱼ * dⱼ
+
+        Δt_circle_seg = 2Rⱼ * atan(δⱼ, Rⱼ)
+        Δt_circle_segment[j] = Δt_circle_seg
+        Δt_line_segment[j] = Δt_line_seg
+
+        t[j + 1] = t[j] + Δt_circle_seg + Δt_line_seg
+    end
+
+    extrapolation_left, extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right)
+    linear_lookup = seems_linear(assume_linear_t, t)
+
+    out = Vector{P}(undef, N)
+    derivative = Vector{P}(undef, N)
+
+    return SmoothArcLengthInterpolation(
+        u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
+        center, radius, dir_1, dir_2, short_side_left,
+        nothing, extrapolation_left, extrapolation_right, linear_lookup, out, derivative, in_place)
 end

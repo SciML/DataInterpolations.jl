@@ -2,7 +2,7 @@ module DataInterpolations
 
 ### Interface Functionality
 
-abstract type AbstractInterpolation{T, N} end
+abstract type AbstractInterpolation{T} end
 
 using LinearAlgebra, RecipesBase
 using PrettyTables
@@ -25,37 +25,29 @@ include("online.jl")
 include("show.jl")
 
 (interp::AbstractInterpolation)(t::Number) = _interpolate(interp, t)
-
 function (interp::AbstractInterpolation)(t::AbstractVector)
-    u = get_u(interp.u, t)
-    interp(u, t)
-end
-
-function get_u(u::AbstractVector, t)
-    return similar(t, promote_type(eltype(u), eltype(t)))
-end
-
-function get_u(u::AbstractVector{<:AbstractVector}, t)
-    type = promote_type(eltype(eltype(u)), eltype(t))
-    return [zeros(type, length(first(u))) for _ in eachindex(t)]
-end
-
-function get_u(u::AbstractMatrix, t)
-    type = promote_type(eltype(u), eltype(t))
-    return zeros(type, (size(u, 1), length(t)))
-end
-
-function (interp::AbstractInterpolation)(u::AbstractMatrix, t::AbstractVector)
-    @inbounds for i in eachindex(t)
-        u[:, i] = interp(t[i])
+    if interp.u isa AbstractVector
+        # Return a vector of interpolated values, on for each element in `t`
+        return map(interp, t)
+    elseif interp.u isa AbstractArray
+        # Stack interpolated values if `u` was stored in matrix/... form
+        return stack(interp, t)
     end
-    u
 end
-function (interp::AbstractInterpolation)(u::AbstractVector, t::AbstractVector)
-    @inbounds for i in eachindex(u, t)
-        u[i] = interp(t[i])
+
+function (interp::AbstractInterpolation)(out::AbstractVector, t::AbstractVector)
+    if length(out) != length(t)
+        throw(DimensionMismatch("number of evaluation points and length of the result vector must be equal"))
     end
-    u
+    map!(interp, out, t)
+    return out
+end
+function (interp::AbstractInterpolation)(out::AbstractArray, t::AbstractVector)
+    if size(out, ndims(out)) != length(t)
+        throw(DimensionMismatch("number of evaluation points and last dimension of the result array must be equal"))
+    end
+    map!(interp, eachslice(out; dims = ndims(out)), t)
+    return out
 end
 
 const EXTRAPOLATION_ERROR = "Cannot extrapolate as `extrapolate` keyword passed was `false`"
@@ -70,7 +62,7 @@ function Base.showerror(io::IO, ::LeftExtrapolationError)
     print(io, LEFT_EXTRAPOLATION_ERROR)
 end
 
-const RIGHT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t > last(A.t) as the `extrapolation_tight` kwarg passed was `ExtrapolationType.None`"
+const RIGHT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t > last(A.t) as the `extrapolation_right` kwarg passed was `ExtrapolationType.None`"
 struct RightExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::RightExtrapolationError)
     print(io, RIGHT_EXTRAPOLATION_ERROR)
@@ -100,16 +92,44 @@ function Base.showerror(io::IO, ::IntegralNotInvertibleError)
     print(io, INTEGRAL_NOT_INVERTIBLE_ERROR)
 end
 
+const EXTRAPOLATION_NOT_IMPLEMENTED_ERROR = "The provided extrapolation option is not implemented."
+struct ExtrapolationNotImplementedError <: Exception end
+function Base.showerror(io::IO, ::ExtrapolationNotImplementedError)
+    print(io, EXTRAPOLATION_NOT_IMPLEMENTED_ERROR)
+end
+
+"""
+    output_dim(x::AbstractInterpolation)
+
+Return the number of dimensions `ndims(x(t))` of interpolation `x` for a scalar `t`.
+"""
+output_dim(x::AbstractInterpolation) = _output_dim(x.u)
+_output_dim(::AbstractVector) = 0 # each value is a scalar
+_output_dim(::AbstractVector{<:AbstractArray{<:Any, N}}) where {N} = N # each value is an array but values are not stacked
+_output_dim(::AbstractArray{<:Any, N}) where {N} = N - 1 # each value is an array but multiple values are stacked
+
+"""
+    output_size(x::AbstractInterpolation)
+
+Return the size `size(x(t))` of interpolation `x` for a scalar `t`.
+"""
+output_size(x::AbstractInterpolation) = _output_size(x.u)
+_output_size(::AbstractVector{<:Number}) = ()
+_output_size(u::AbstractVector) = size(first(u))
+_output_size(u::AbstractArray) = Base.front(size(u))
+
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
        AkimaInterpolation, ConstantInterpolation, SmoothedConstantInterpolation,
        QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox,
        CubicHermiteSpline, PCHIPInterpolation, QuinticHermiteSpline,
-       LinearInterpolationIntInv, ConstantInterpolationIntInv, ExtrapolationType
+       SmoothArcLengthInterpolation, LinearInterpolationIntInv,
+       ConstantInterpolationIntInv, ExtrapolationType
+export output_dim, output_size
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
-struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation{T, N}} <:
-       AbstractInterpolation{T, N}
+struct RegularizationSmooth{uType, tType, T, T2, ITP <: AbstractInterpolation{T}} <:
+       AbstractInterpolation{T}
     u::uType
     û::uType
     t::tType
@@ -134,8 +154,7 @@ struct RegularizationSmooth{uType, tType, T, T2, N, ITP <: AbstractInterpolation
             Aitp,
             extrapolation_left,
             extrapolation_right)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), eltype(u), typeof(λ), N, typeof(Aitp)}(
+        new{typeof(u), typeof(t), eltype(u), typeof(λ), typeof(Aitp)}(
             u,
             û,
             t,
@@ -163,9 +182,8 @@ struct CurvefitCache{
     lbType,
     algType,
     pminType,
-    T,
-    N
-} <: AbstractInterpolation{T, N}
+    T
+} <: AbstractInterpolation{T}
     u::uType
     t::tType
     m::mType        # model type
@@ -176,10 +194,9 @@ struct CurvefitCache{
     pmin::pminType  # optimized params
     extrapolate::Bool
     function CurvefitCache(u, t, m, p0, ub, lb, alg, pmin, extrapolate)
-        N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(m),
             typeof(p0), typeof(ub), typeof(lb),
-            typeof(alg), typeof(pmin), eltype(u), N}(u,
+            typeof(alg), typeof(pmin), eltype(u)}(u,
             t,
             m,
             p0,

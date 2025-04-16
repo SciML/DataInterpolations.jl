@@ -1,4 +1,4 @@
-abstract type AbstractIntegralInverseInterpolation{T, N} <: AbstractInterpolation{T, N} end
+abstract type AbstractIntegralInverseInterpolation{T} <: AbstractInterpolation{T} end
 
 """
     invert_integral(A::AbstractInterpolation)::AbstractIntegralInverseInterpolation
@@ -13,12 +13,12 @@ Creates the inverted integral interpolation object from the given interpolation.
 
   - `A`: interpolation object satisfying the above requirements
 """
-invert_integral(A::AbstractInterpolation) = throw(IntegralInverseNotFoundError())
+invert_integral(::AbstractInterpolation) = throw(IntegralInverseNotFoundError())
 
-_integral(A::AbstractIntegralInverseInterpolation, idx, t) = throw(IntegralNotFoundError())
+_integral(::AbstractIntegralInverseInterpolation, idx, t) = throw(IntegralNotFoundError())
 
 function _derivative(A::AbstractIntegralInverseInterpolation, t::Number, iguess)
-    inv(A.itp(A(t)))
+    inv(A.itp(_interpolate(A, t, iguess)))
 end
 
 """
@@ -33,8 +33,8 @@ Can be easily constructed with `invert_integral(A::LinearInterpolation{<:Abstrac
   - `t` : Given by `A.I` (the cumulative integral of `A`)
   - `A` : The `LinearInterpolation` object
 """
-struct LinearInterpolationIntInv{uType, tType, itpType, T, N} <:
-       AbstractIntegralInverseInterpolation{T, N}
+struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
+       AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
     extrapolation_left::ExtrapolationType.T
@@ -42,8 +42,7 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T, N} <:
     iguesser::Guesser{tType}
     itp::itpType
     function LinearInterpolationIntInv(u, t, A)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(A), eltype(u), N}(
+        new{typeof(u), typeof(t), typeof(A), eltype(u)}(
             u, t, A.extrapolation_left, A.extrapolation_right, Guesser(t), A)
     end
 end
@@ -85,8 +84,8 @@ Can be easily constructed with `invert_integral(A::ConstantInterpolation{<:Abstr
   - `t` : Given by `A.I` (the cumulative integral of `A`)
   - `A` : The `ConstantInterpolation` object
 """
-struct ConstantInterpolationIntInv{uType, tType, itpType, T, N} <:
-       AbstractIntegralInverseInterpolation{T, N}
+struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
+       AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
     extrapolation_left::ExtrapolationType.T
@@ -94,8 +93,7 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T, N} <:
     iguesser::Guesser{tType}
     itp::itpType
     function ConstantInterpolationIntInv(u, t, A)
-        N = get_output_dim(u)
-        new{typeof(u), typeof(t), typeof(A), eltype(u), N}(
+        new{typeof(u), typeof(t), typeof(A), eltype(u)}(
             u, t, A.extrapolation_left, A.extrapolation_right, Guesser(t), A
         )
     end

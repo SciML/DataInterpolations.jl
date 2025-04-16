@@ -184,7 +184,7 @@ where ``(d)`` denotes derivative order and ``\lambda`` is the regularization
 ``t`` values for the first term and ``\hat{t}`` values for the second term
 (equal to ``t`` if not provided). Regularization smoothing is a global method
 that creates a smooth curve directly. See [Stickel (2010)
-Comput. Chem. Eng. 34:467](http://dx.doi.org/10.1016/j.compchemeng.2009.10.007)
+Comput. Chem. Eng. 34:467](https://dx.doi.org/10.1016/j.compchemeng.2009.10.007)
 for details. The implementation in this package uses cubic splines to
 interpolate between the smoothed points after they are determined.
 

@@ -4,10 +4,10 @@ using DataInterpolations: integral
 using Optim, ForwardDiff
 using RegularizationTools
 using StableRNGs
+using Unitful
 
 function test_integral(method; args = [], kwargs = [], name::String)
-    func = method(args...; kwargs..., extrapolation_left = ExtrapolationType.Extension,
-        extrapolation_right = ExtrapolationType.Extension)
+    func = method(args...; kwargs..., extrapolation = ExtrapolationType.Extension)
     (; t) = func
     t1 = minimum(t)
     t2 = maximum(t)
@@ -47,6 +47,15 @@ function test_integral(method; args = [], kwargs = [], name::String)
         qint, err = quadgk(func, (t1 + t2) / 2, t2 + 5.0; atol = 1e-12, rtol = 1e-12)
         aint = integral(func, (t1 + t2) / 2, t2 + 5.0)
         @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
+
+        # Integrate intervals fully outside data
+        qint, err = quadgk(func, t1 - 5.0, t1 - 2.5; atol = 1e-12, rtol = 1e-12)
+        aint = integral(func, t1 - 5.0, t1 - 2.5)
+        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
+
+        qint, err = quadgk(func, t2 + 2.5, t2 + 5.0; atol = 1e-12, rtol = 1e-12)
+        aint = integral(func, t2 + 2.5, t2 + 5.0)
+        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
     end
     func = method(args...; kwargs...)
     @test_throws DataInterpolations.LeftExtrapolationError integral(func, t[1] - 1.0)
@@ -54,6 +63,13 @@ function test_integral(method; args = [], kwargs = [], name::String)
     @test_throws DataInterpolations.LeftExtrapolationError integral(func, t[1] - 1.0, t[2])
     @test_throws DataInterpolations.RightExtrapolationError integral(
         func, t[1], t[end] + 1.0)
+
+    # Test integration with cached parameters
+    func = method(args...; kwargs..., cache_parameters = true,
+        extrapolation = ExtrapolationType.Extension)
+    qint, err = quadgk(func, t1 - 1, t1; atol = 1e-12, rtol = 1e-12)
+    aint = integral(func, t1 - 1, t1)
+    @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
 end
 
 @testset "LinearInterpolation" begin
@@ -217,4 +233,23 @@ end
     A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 1.0, 100.0)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 50.0)
+end
+
+# issue #385
+@testset "Integrals with unitful numbers" begin
+    u = rand(5)u"m"
+    A = ConstantInterpolation(u, (1:5)u"s")
+    @test @inferred(integral(A, 4u"s")) ≈ sum(u[1:3]) * u"s"
+end
+
+@testset "cumulative_integral" begin
+    A = ConstantInterpolation(["A", "B", "C"], [0.0, 0.25, 0.75])
+    for cache_parameter in (true, false)
+        @test @inferred(DataInterpolations.cumulative_integral(A, cache_parameter)) ===
+              nothing
+    end
+
+    A = ConstantInterpolation([3.1, 2.5, 4.7], [0.0, 0.25, 0.75])
+    @test @inferred(DataInterpolations.cumulative_integral(A, false)) == Float64[]
+    @test @inferred(DataInterpolations.cumulative_integral(A, true)) == [0.775, 2.025]
 end

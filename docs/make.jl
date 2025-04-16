@@ -12,9 +12,15 @@ makedocs(modules = [DataInterpolations],
     linkcheck = true,
     format = Documenter.HTML(assets = ["assets/favicon.ico"],
         canonical = "https://docs.sciml.ai/DataInterpolations/stable/"),
-    pages = ["index.md", "Interpolation methods" => "methods.md",
+    pages = [
+        "index.md",
+        "Interpolation methods" => "methods.md",
         "Extrapolation methods" => "extrapolation_methods.md",
-        "Interface" => "interface.md", "Using with Symbolics/ModelingToolkit" => "symbolics.md",
-        "Manual" => "manual.md", "Inverting Integrals" => "inverting_integrals.md"])
+        "Interface" => "interface.md",
+        "Using with Symbolics/ModelingToolkit" => "symbolics.md",
+        "Manual" => "manual.md",
+        "Smooth arc length interpolation" => "arclength_interpolation.md",
+        "Inverting Integrals" => "inverting_integrals.md"
+    ])
 
 deploydocs(repo = "github.com/SciML/DataInterpolations.jl"; push_preview = true)

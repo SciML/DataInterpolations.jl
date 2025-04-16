@@ -59,19 +59,6 @@ function spline_coefficients!(N, d, k, u::AbstractVector)
     return nothing
 end
 
-# Get Output Dimension for parameterizing AbstractInterpolations
-function get_output_dim(u::AbstractVector{<:Number})
-    return (1,)
-end
-
-function get_output_dim(u::AbstractVector)
-    return (length(first(u)),)
-end
-
-function get_output_dim(u::AbstractArray)
-    return size(u)[1:(end - 1)]
-end
-
 function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 
     # Create knot vector
@@ -83,7 +70,7 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 
     # Create linear system Ac = u, where:
     # - A consists of basis function evaulations in t
-    # - c are 1D control points 
+    # - c are 1D control points
     n = length(t)
     dtype_sc = typeof(t[1] / t[1])
 
@@ -104,51 +91,61 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 end
 
 # helper function for data manipulation
-function munge_data(u::AbstractVector{<:Real}, t::AbstractVector{<:Real})
-    return u, t
-end
+function munge_data(u::AbstractVector, t::AbstractVector;
+        check_sorted = t, sorted_arg_name = ("second", "t"))
+    Tu = nonmissingtype(eltype(u))
+    Tt = nonmissingtype(eltype(t))
 
-function munge_data(u::AbstractVector, t::AbstractVector)
-    Tu = Base.nonmissingtype(eltype(u))
-    Tt = Base.nonmissingtype(eltype(t))
+    if Tu === eltype(u) && Tt === eltype(t)
+        if !issorted(check_sorted)
+            # there is likely an user error
+            msg = "The $(sorted_arg_name[1]) argument (`$(sorted_arg_name[2])`), which is used for the interpolation domain, is not sorted."
+            if issorted(u)
+                msg *= "\nIt looks like the arguments `u` and `$(sorted_arg_name[2])` were inversed, make sure you used the arguments in the correct order."
+            end
+            throw(ArgumentError(msg))
+        end
+
+        return u, t
+    end
+
     @assert length(t) == length(u)
-    non_missing_indices = collect(
-        i for i in 1:length(t)
-    if !ismissing(u[i]) && !ismissing(t[i])
-    )
 
-    u = Tu.([u[i] for i in non_missing_indices])
-    t = Tt.([t[i] for i in non_missing_indices])
+    non_missing_mask = map((ui, ti) -> !ismissing(ui) && !ismissing(ti), u, t)
+    u = convert(AbstractVector{Tu}, u[non_missing_mask])
+    t = convert(AbstractVector{Tt}, t[non_missing_mask])
 
     return u, t
 end
 
-function munge_data(U::StridedMatrix, t::AbstractVector)
-    TU = Base.nonmissingtype(eltype(U))
-    Tt = Base.nonmissingtype(eltype(t))
-    @assert length(t) == size(U, 2)
-    non_missing_indices = collect(
-        i for i in 1:length(t)
-    if !any(ismissing, U[:, i]) && !ismissing(t[i])
-    )
+function munge_data(U::AbstractMatrix, t::AbstractVector)
+    TU = nonmissingtype(eltype(U))
+    Tt = nonmissingtype(eltype(t))
+    if TU === eltype(U) && Tt === eltype(t)
+        return U, t
+    end
 
-    U = hcat([TU.(U[:, i]) for i in non_missing_indices]...)
-    t = Tt.([t[i] for i in non_missing_indices])
+    @assert length(t) == size(U, 2)
+    non_missing_mask = map(
+        (uis, ti) -> !any(ismissing, uis) && !ismissing(ti), eachcol(U), t)
+    U = convert(AbstractMatrix{TU}, U[:, non_missing_mask])
+    t = convert(AbstractVector{Tt}, t[non_missing_mask])
 
     return U, t
 end
 
 function munge_data(U::AbstractArray{T, N}, t) where {T, N}
-    TU = Base.nonmissingtype(eltype(U))
-    Tt = Base.nonmissingtype(eltype(t))
-    @assert length(t) == size(U, ndims(U))
-    ax = axes(U)[1:(end - 1)]
-    non_missing_indices = collect(
-        i for i in 1:length(t)
-    if !any(ismissing, U[ax..., i]) && !ismissing(t[i])
-    )
-    U = cat([TU.(U[ax..., i]) for i in non_missing_indices]...; dims = ndims(U))
-    t = Tt.([t[i] for i in non_missing_indices])
+    TU = nonmissingtype(eltype(U))
+    Tt = nonmissingtype(eltype(t))
+    if TU === eltype(U) && Tt === eltype(t)
+        return U, t
+    end
+
+    @assert length(t) == size(U, N)
+    non_missing_mask = map(
+        (uis, ti) -> !any(ismissing, uis) && !ismissing(ti), eachslice(U; dims = N), t)
+    U = convert(AbstractArray{TU, N}, copy(selectdim(U, N, non_missing_mask)))
+    t = convert(AbstractVector{Tt}, t[non_missing_mask])
 
     return U, t
 end
@@ -189,14 +186,12 @@ function get_idx(A::AbstractInterpolation, t, iguess::Union{<:Integer, Guesser};
     end
 end
 
-function cumulative_integral(A, cache_parameters)
-    if cache_parameters && hasmethod(_integral, Tuple{typeof(A), Number, Number, Number})
-        integral_values = _integral.(
-            Ref(A), 1:(length(A.t) - 1), A.t[1:(end - 1)], A.t[2:end])
-        cumsum(integral_values)
-    else
-        promote_type(eltype(A.u), eltype(A.t))[]
-    end
+cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
+function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameters::Bool)
+    Base.require_one_based_indexing(A.u)
+    idxs = cache_parameters ? (1:(length(A.t) - 1)) : (1:0)
+    return cumsum(_integral(A, idx, t1, t2)
+    for (idx, t1, t2) in zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end])))
 end
 
 function get_parameters(A::LinearInterpolation, idx)
@@ -264,9 +259,22 @@ function get_parameters(A::QuinticHermiteSpline, idx)
 end
 
 function du_PCHIP(u, t)
-    h = diff(u)
-    δ = h ./ diff(t)
+    h = diff(t)
+    δ = diff(u) ./ h
     s = sign.(δ)
+
+    # Special handling of the slope at the endpoints, see
+    # Cleve Moler, Numerical Computing with MATLAB, Chap 3.6 (file pchiptx.m, function pchipend())
+    function _edge_case(h₁, h₂, δ₁, δ₂)
+        d = ((2 * h₁ + h₂) * δ₁ - h₁ * δ₂) / (h₁ + h₂)
+        if sign(d) != sign(δ₁)
+            zero(eltype(δ))
+        elseif sign(δ₁) != sign(δ₂) && abs(d) > 3 * abs(δ₁)
+            3 * δ₁
+        else
+            d
+        end
+    end
 
     function _du(k)
         sₖ₋₁, sₖ = if k == 1
@@ -281,17 +289,22 @@ function du_PCHIP(u, t)
             zero(eltype(δ))
         elseif sₖ₋₁ == sₖ
             if k == 1
-                ((2 * h[1] + h[2]) * δ[1] - h[1] * δ[2]) / (h[1] + h[2])
+                _edge_case(h[1], h[2], δ[1], δ[2])
             elseif k == lastindex(t)
-                ((2 * h[end] + h[end - 1]) * δ[end] - h[end] * δ[end - 1]) /
-                (h[end] + h[end - 1])
+                _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
             else
                 w₁ = 2h[k] + h[k - 1]
                 w₂ = h[k] + 2h[k - 1]
-                δ[k - 1] * δ[k] * (w₁ + w₂) / (w₁ * δ[k] + w₂ * δ[k - 1])
+                (w₁ + w₂) / (w₁ / δ[k - 1] + w₂ / δ[k])
             end
         else
-            zero(eltype(δ))
+            if k == 1
+                _edge_case(h[1], h[2], δ[1], δ[2])
+            elseif k == lastindex(t)
+                _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
+            else
+                zero(eltype(δ))
+            end
         end
     end
 
@@ -342,4 +355,36 @@ function transformation_reflective(A, t)
     t_ = isodd(n) ? last(A.t) - t_ : first(A.t) + t_
     (n > 0) && (n -= 1)
     t_, n
+end
+
+typed_nan(::AbstractArray{T}) where {T <: AbstractFloat} = T(NaN)
+typed_nan(::AbstractArray{T}) where {T <: Integer} = zero(T)
+
+# Should be replaceable by LinearAlgebra function soon: https://github.com/JuliaLang/LinearAlgebra.jl/pull/1234
+function euclidean(x::AbstractArray, y::AbstractArray)
+    sqrt(mapreduce((xi, yi) -> abs2(yi - xi), +, x, y))
+end
+
+function smooth_arc_length_params_1!(Δu, u, d, j)
+    uⱼ = view(u, :, j)
+    uⱼ₊₁ = view(u, :, j + 1)
+    dⱼ = view(d, :, j)
+    dⱼ₊₁ = view(d, :, j + 1)
+    @. Δu = uⱼ₊₁ - uⱼ
+    d_inner = dot(dⱼ, dⱼ₊₁)
+    return uⱼ, uⱼ₊₁, dⱼ, dⱼ₊₁, d_inner
+end
+
+function smooth_arc_length_params_2(u_int, uⱼ, uⱼ₊₁)
+    dist₁ = euclidean(u_int, uⱼ)
+    dist₂ = euclidean(u_int, uⱼ₊₁)
+    Δt_line_seg = abs(dist₂ - dist₁)
+    short_side_left = false
+    δⱼ = if dist₁ < dist₂
+        short_side_left = true
+        dist₁
+    else
+        dist₂
+    end
+    return δⱼ, short_side_left, Δt_line_seg
 end

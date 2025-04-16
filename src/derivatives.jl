@@ -20,20 +20,26 @@ function _extrapolate_derivative_left(A, t, order)
     elseif extrapolation_left == ExtrapolationType.Constant
         zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.Linear
-        (order == 1) ? derivative(A, first(A.t)) : zero(first(A.u) / one(A.t[1]))
+        (order == 1) ? _derivative(A, first(A.t), 1) : zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.Extension
-        iguess = A.iguesser
-        (order == 1) ? _derivative(A, t, iguess) :
+        (order == 1) ? _derivative(A, t, length(A.t)) :
         ForwardDiff.derivative(t -> begin
-                _derivative(A, t, iguess)
+                _derivative(A, t, length(A.t))
             end, t)
     elseif extrapolation_left == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
-        derivative(A, t_, order)
+        (order == 1) ? _derivative(A, t_, A.iguesser) :
+        ForwardDiff.derivative(t -> begin
+                _derivative(A, t, A.iguesser)
+            end, t_)
     else
         # extrapolation_left == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
-        isodd(n) ? -derivative(A, t_, order) : derivative(A, t_, order)
+        sign = isodd(n) ? -1 : 1
+        (order == 1) ? sign * _derivative(A, t_, A.iguesser) :
+        ForwardDiff.derivative(t -> begin
+                sign * _derivative(A, t, A.iguesser)
+            end, t_)
     end
 end
 
@@ -44,20 +50,27 @@ function _extrapolate_derivative_right(A, t, order)
     elseif extrapolation_right == ExtrapolationType.Constant
         zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_right == ExtrapolationType.Linear
-        (order == 1) ? derivative(A, last(A.t)) : zero(first(A.u) / one(A.t[1]))
+        (order == 1) ? _derivative(A, last(A.t), length(A.t)) :
+        zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_right == ExtrapolationType.Extension
-        iguess = A.iguesser
-        (order == 1) ? _derivative(A, t, iguess) :
+        (order == 1) ? _derivative(A, t, length(A.t)) :
         ForwardDiff.derivative(t -> begin
-                _derivative(A, t, iguess)
+                _derivative(A, t, length(A.t))
             end, t)
     elseif extrapolation_right == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
-        derivative(A, t_, order)
+        (order == 1) ? _derivative(A, t_, A.iguesser) :
+        ForwardDiff.derivative(t -> begin
+                _derivative(A, t, A.iguesser)
+            end, t_)
     else
         # extrapolation_right == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
-        iseven(n) ? -derivative(A, t_, order) : derivative(A, t_, order)
+        sign = iseven(n) ? -1 : 1
+        (order == 1) ? sign * _derivative(A, t_, A.iguesser) :
+        ForwardDiff.derivative(t -> begin
+                sign * _derivative(A, t, A.iguesser)
+            end, t_)
     end
 end
 
@@ -172,11 +185,11 @@ function _derivative(A::ConstantInterpolation, t::Number, iguess)
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
-    return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : eltype(A.u)(NaN)
+    return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : typed_nan(A.u)
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : eltype(A.u)(NaN) .* A.u[:, 1]
+    return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : typed_nan(A.u) .* A.u[:, 1]
 end
 
 # QuadraticSpline Interpolation
@@ -222,7 +235,7 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
 end
 
 function _derivative(
-        A::BSplineInterpolation{<:AbstractArray{<:Number, N}}, t::Number, iguess) where {N}
+        A::BSplineInterpolation{<:AbstractArray{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
     ax_u = axes(A.u)[1:(end - 1)]
     t < A.t[1] && return zeros(size(A.u)[1:(end - 1)]...)
@@ -267,7 +280,7 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
 end
 
 function _derivative(
-        A::BSplineApprox{<:AbstractArray{<:Number, N}}, t::Number, iguess) where {N}
+        A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess)
     # change t into param [0 1]
     ax_u = axes(A.u)[1:(end - 1)]
     t < A.t[1] && return zeros(size(A.u)[1:(end - 1)]...)
@@ -312,4 +325,39 @@ function _derivative(
     out += Δt₀^2 *
            (3c₁ + (3Δt₁ + Δt₀) * c₂ + (3Δt₁^2 + Δt₀ * 2Δt₁) * c₃)
     out
+end
+
+function _derivative(A::SmoothArcLengthInterpolation, t::Number, iguess)
+    (; derivative, in_place) = A
+    derivative = in_place ? derivative : similar(derivative, typeof(t))
+    idx = get_idx(A, t, iguess)
+    Δt_circ_seg = A.Δt_circle_segment[idx]
+    Δt_line_seg = A.Δt_line_segment[idx]
+    short_side_left = A.short_side_left[idx]
+    Δt = t - A.t[idx]
+
+    in_circle_arc = if short_side_left
+        Δt < Δt_circ_seg
+    else
+        Δt > Δt_line_seg
+    end
+
+    if in_circle_arc
+        t_circle_seg = short_side_left ? Δt : Δt - Δt_line_seg
+        Rⱼ = A.radius[idx]
+        S, C = sincos(t_circle_seg / Rⱼ)
+        v₁ = view(A.dir_1, :, idx)
+        v₂ = view(A.dir_2, :, idx)
+        @. derivative = (-S * v₁ + C * v₂) / Rⱼ
+    else
+        if short_side_left
+            d₁ = view(A.d, :, idx + 1)
+            @. derivative = d₁
+        else
+            d₀ = view(A.d, :, idx)
+            @. derivative = d₀
+        end
+    end
+
+    derivative
 end

@@ -7,6 +7,7 @@ using StableRNGs
 using RegularizationTools
 using Optim
 using ForwardDiff
+using LinearAlgebra
 
 function test_derivatives(method; args = [], kwargs = [], name::String)
     kwargs_extrapolation = (method == Curvefit) ?
@@ -28,10 +29,12 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             @test isapprox(cdiff2, adiff2, atol = 1e-8)
         end
 
+        func isa SmoothArcLengthInterpolation && return
+
         # Interpolation time points
         for _t in t[2:(end - 1)]
-            if func isa BSplineInterpolation || func isa BSplineApprox ||
-               func isa CubicHermiteSpline || func isa SmoothedConstantInterpolation
+            if func isa Union{BSplineInterpolation, BSplineApprox,
+                CubicHermiteSpline, SmoothedConstantInterpolation}
                 fdiff = forward_fdm(5, 1; geom = true)(func, _t)
                 fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
             else
@@ -53,7 +56,8 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
         fdiff = forward_fdm(5, 1; geom = true)(func, t[1])
         adiff = derivative(func, t[1])
         @test isapprox(fdiff, adiff, atol = 1e-8)
-        if !(func isa BSplineInterpolation || func isa BSplineApprox)
+        if !(func isa
+             Union{BSplineInterpolation, BSplineApprox, SmoothArcLengthInterpolation})
             fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), t[1])
             adiff2 = derivative(func, t[1], 2)
             @test isapprox(fdiff2, adiff2, atol = 1e-8)
@@ -63,7 +67,8 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
         fdiff = backward_fdm(5, 1; geom = true)(func, t[end])
         adiff = derivative(func, t[end])
         @test isapprox(fdiff, adiff, atol = 1e-8)
-        if !(func isa BSplineInterpolation || func isa BSplineApprox)
+        if !(func isa
+             Union{BSplineInterpolation, BSplineApprox, SmoothArcLengthInterpolation})
             fdiff2 = backward_fdm(5, 1; geom = true)(t -> derivative(func, t), t[end])
             adiff2 = derivative(func, t[end], 2)
             @test isapprox(fdiff2, adiff2, atol = 1e-8)
@@ -267,6 +272,18 @@ end
     @test derivative.(Ref(A), t, 2) ≈ ddu
     @test derivative(A, 100.0)≈0.0103916 rtol=1e-5
     @test derivative(A, 300.0)≈0.0331361 rtol=1e-5
+end
+
+@testset "Smooth Arc Length Interpolation" begin
+    u = [0.3 -1.5 3.1; -0.2 0.2 -1.5; 10.4 -37.2 -5.8]
+    test_derivatives(
+        SmoothArcLengthInterpolation, args = [u], kwargs = Pair[
+            :m => 5, :in_place => false],
+        name = "Smooth Arc Length Interpolation")
+    A = SmoothArcLengthInterpolation(u'; m = 25, in_place = false)
+    @test all(t -> norm(derivative(A, t)) ≈ 1, range(0, A.t[end]; length = 100))
+    @test all(
+        t_ -> derivative(A, prevfloat(t_)) ≈ derivative(A, nextfloat(t_)), A.t[2:(end - 1)])
 end
 
 @testset "RegularizationSmooth" begin
