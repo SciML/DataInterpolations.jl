@@ -391,8 +391,8 @@ drifts far from the integral of constant interpolation. In this interpolation ty
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType, T, N} <:
-       AbstractInterpolation{T, N}
+struct SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType, T} <:
+       AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -407,9 +407,8 @@ struct SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType
             u, t, I, p, d_max, extrapolation_left,
             extrapolation_right, cache_parameters, assume_linear_t)
         linear_lookup = seems_linear(assume_linear_t, t)
-        N = get_output_dim(u)
         new{typeof(u), typeof(t), typeof(I), typeof(p.d),
-            typeof(p.c), typeof(d_max), eltype(u), N}(
+            typeof(p.c), typeof(d_max), eltype(u)}(
             u, t, I, p, d_max, extrapolation_left, extrapolation_right,
             Guesser(t), cache_parameters, linear_lookup)
     end
