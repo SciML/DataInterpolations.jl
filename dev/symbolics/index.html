@@ -22,36 +22,4 @@ ex2 = expand_derivatives(D(ex1))
 # Higher Order Derivatives
 ex3 = expand_derivatives(D(D(A(τ))))
 
-@test substitute(ex3, Dict(τ =&gt; 0.5)) == DataInterpolations.derivative(A, 0.5, 2) # true</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr32"><span class="sgr1">Test Passed</span></span></code></pre><h2 id="Using-with-ModelingToolkit.jl"><a class="docs-heading-anchor" href="#Using-with-ModelingToolkit.jl">Using with ModelingToolkit.jl</a><a id="Using-with-ModelingToolkit.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Using-with-ModelingToolkit.jl" title="Permalink"></a></h2><p>Most common use case with <a href="https://docs.sciml.ai/ModelingToolkit/stable/">ModelingToolkit.jl</a> is to plug in interpolation objects as input functions. This can be done using <code>TimeVaryingFunction</code> component of <a href="https://docs.sciml.ai/ModelingToolkitStandardLibrary/stable/">ModelingToolkitStandardLibrary.jl</a>.</p><pre><code class="language-julia hljs">using DataInterpolations
-using ModelingToolkitStandardLibrary.Blocks
-using ModelingToolkit
-using ModelingToolkit: t_nounits as t, D_nounits as D
-using OrdinaryDiffEq
-
-us = [0.0, 1.5, 0.0]
-times = [0.0, 0.5, 1.0]
-A = LinearInterpolation(us, times)
-
-@named src = TimeVaryingFunction(A)
-vars = @variables x(t) out(t)
-eqs = [out ~ src.output.u, D(x) ~ 1 + out]
-@named sys = ODESystem(eqs, t, vars, []; systems = [src])
-
-sys = structural_simplify(sys)
-prob = ODEProblem(sys, [x =&gt; 0.0], (times[1], times[end]))
-sol = solve(prob)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">retcode: Success
-Interpolation: 3rd order Hermite
-t: 6-element Vector{Float64}:
- 0.0
- 9.999999999999999e-5
- 0.0010999999999999998
- 0.011099999999999997
- 0.11109999999999996
- 1.0
-u: 6-element Vector{Vector{Float64}}:
- [0.0]
- [0.000100015]
- [0.001101815]
- [0.011284814999999995]
- [0.12961481499999997]
- [1.7391324646940696]</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../interface/">« Interface</a><a class="docs-footer-nextpage" href="../manual/">Manual »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.1 on <span class="colophon-date" title="Sunday 13 April 2025 20:57">Sunday 13 April 2025</span>. Using Julia version 1.11.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+@test substitute(ex3, Dict(τ =&gt; 0.5)) == DataInterpolations.derivative(A, 0.5, 2) # true</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr32"><span class="sgr1">Test Passed</span></span></code></pre><h2 id="Using-with-ModelingToolkit.jl"><a class="docs-heading-anchor" href="#Using-with-ModelingToolkit.jl">Using with ModelingToolkit.jl</a><a id="Using-with-ModelingToolkit.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Using-with-ModelingToolkit.jl" title="Permalink"></a></h2><p>We recommend using the  <a href="https://docs.sciml.ai/ModelingToolkitStandardLibrary/stable/tutorials/input_component/">ModelingToolkitStandardLibrary Interoplation Blocks</a>  in order to use DataInterpolations.jl in MTK models.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../interface/">« Interface</a><a class="docs-footer-nextpage" href="../manual/">Manual »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.1 on <span class="colophon-date" title="Friday 18 April 2025 16:16">Friday 18 April 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
