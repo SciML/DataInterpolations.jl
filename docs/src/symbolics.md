@@ -41,5 +41,6 @@ ex3 = expand_derivatives(D(D(A(τ))))
 
 ## Using with ModelingToolkit.jl
 
-We recommend using the [ModelingToolkitStandardLibrary Interoplation Blocks](https://docs.sciml.ai/ModelingToolkitStandardLibrary/stable/tutorials/input_component/) in order to
-use DataInterpolations.jl in MTK models.
+We recommend using the 
+[ModelingToolkitStandardLibrary Interoplation Blocks](https://docs.sciml.ai/ModelingToolkitStandardLibrary/stable/tutorials/input_component/) 
+in order to use DataInterpolations.jl in MTK models.
