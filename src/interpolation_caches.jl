@@ -362,6 +362,78 @@ function ConstantInterpolation(
 end
 
 """
+    SmoothedConstantInterpolation(u, t; d_max = Inf, extrapolate = false,
+        cache_parameters = false, assume_linear_t = 1e-2)
+
+It is a method for interpolating constantly with forward fill, with smoothing around the
+value transitions to make the curve continuously differentiable while the integral never
+drifts far from the integral of constant interpolation. In this interpolation type, `u[end]` is ignored.
+
+## Arguments
+
+  - `u`: data points.
+  - `t`: time points.
+
+## Keyword Arguments
+
+  - `d_max`: Around each time point `tᵢ` there is a continuously differentiable (quadratic) transition between `uᵢ₋₁` and `uᵢ`,
+    on the interval `[tᵢ - d, tᵢ + d]`. The distance `d` is determined as `d = min((tᵢ - tᵢ₋₁)/2, (tᵢ₊₁ - tᵢ)/2, d_max)`.
+  - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` (also made smooth at the boundaries) and `ExtrapolationType.Reflective`.
+  - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behavior for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+"""
+struct SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType, T} <:
+       AbstractInterpolation{T}
+    u::uType
+    t::tType
+    I::IType
+    p::SmoothedConstantParameterCache{dType, cType}
+    d_max::dmaxType
+    extrapolation_left::ExtrapolationType.T
+    extrapolation_right::ExtrapolationType.T
+    iguesser::Guesser{tType}
+    cache_parameters::Bool
+    linear_lookup::Bool
+    function SmoothedConstantInterpolation(
+            u, t, I, p, d_max, extrapolation_left,
+            extrapolation_right, cache_parameters, assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
+        new{typeof(u), typeof(t), typeof(I), typeof(p.d),
+            typeof(p.c), typeof(d_max), eltype(u)}(
+            u, t, I, p, d_max, extrapolation_left, extrapolation_right,
+            Guesser(t), cache_parameters, linear_lookup)
+    end
+end
+
+function SmoothedConstantInterpolation(
+        u, t; d_max = Inf, extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false, assume_linear_t = 1e-2)
+    extrapolation_left, extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right)
+    u, t = munge_data(u, t)
+    p = SmoothedConstantParameterCache(
+        u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right)
+    A = SmoothedConstantInterpolation(
+        u, t, nothing, p, d_max, extrapolation_left,
+        extrapolation_right, cache_parameters, assume_linear_t)
+    I = cumulative_integral(A, cache_parameters)
+    SmoothedConstantInterpolation(
+        u, t, I, p, d_max, extrapolation_left,
+        extrapolation_right, cache_parameters, assume_linear_t)
+end
+
+"""
     QuadraticSpline(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
 
