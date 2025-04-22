@@ -1024,6 +1024,7 @@ end
     ut1 = Float32[0.1, 0.2, 0.3, 0.4, 0.5]
     ut2 = Float64[0.1, 0.2, 0.3, 0.4, 0.5]
     for u in (ut1, ut2), t in (ut1, ut2)
+
         interp = @inferred(LinearInterpolation(ut1, ut2))
         for xs in (u, t)
             ys = @inferred(interp(xs))
@@ -1106,6 +1107,7 @@ f_cubic_spline = c -> square(CubicSpline, c)
     iszero_allocations(u, t) = iszero(@allocated(DataInterpolations.munge_data(u, t)))
 
     for T in (String, Union{String, Missing}), dims in 1:3
+
         _u0 = convert(Array{T}, reshape(u0, ntuple(i -> i == dims ? 3 : 1, dims)))
 
         u, t = @inferred(DataInterpolations.munge_data(_u0, t0))

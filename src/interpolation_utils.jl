@@ -191,7 +191,8 @@ function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameter
     Base.require_one_based_indexing(A.u)
     idxs = cache_parameters ? (1:(length(A.t) - 1)) : (1:0)
     return cumsum(_integral(A, idx, t1, t2)
-    for (idx, t1, t2) in zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end])))
+    for (idx, t1, t2) in
+        zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end])))
 end
 
 function get_parameters(A::LinearInterpolation, idx)
@@ -210,9 +211,11 @@ function get_parameters(A::SmoothedConstantInterpolation, idx)
         c_upper = A.p.c[idx + 1]
         d_lower, d_upper, c_lower, c_upper
     else
-        d_lower, c_lower = smoothed_constant_interpolation_parameters(
+        d_lower,
+        c_lower = smoothed_constant_interpolation_parameters(
             A.u, A.t, A.d_max, idx, A.extrapolation_left, A.extrapolation_right)
-        d_upper, c_upper = smoothed_constant_interpolation_parameters(
+        d_upper,
+        c_upper = smoothed_constant_interpolation_parameters(
             A.u, A.t, A.d_max, idx + 1, A.extrapolation_left, A.extrapolation_right)
         d_lower, d_upper, c_lower, c_upper
     end
