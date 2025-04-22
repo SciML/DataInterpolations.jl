@@ -84,7 +84,7 @@ function _extrapolate_right(A::SmoothedConstantInterpolation, t)
             A.u[end]
         else
             c = (A.u[end] - A.u[end - 1]) / 2
-            A.u[end - 1] - c * (((t - A.t[end]) / d)^2 - 2 * ((t - A.t[end]) / d) - 1)
+            -c * (((t - A.t[end]) / d)^2 - 2 * ((t - A.t[end]) / d) - 1)
         end
 
     else

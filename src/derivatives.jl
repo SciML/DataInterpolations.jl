@@ -74,6 +74,24 @@ function _extrapolate_derivative_right(A, t, order)
     end
 end
 
+function _extrapolate_derivative_right(A::SmoothedConstantInterpolation, t, order)
+    if A.extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif A.extrapolation_right in (
+        ExtrapolationType.Constant, ExtrapolationType.Extension)
+        d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
+        if A.t[end] + d < t
+            zero(eltype(A.u))
+        else
+            c = (A.u[end] - A.u[end - 1]) / 2
+            c * (2((t - A.t[end]) / d) - 2)
+        end
+
+    else
+        _extrapolate_other(A, t, A.extrapolation_right)
+    end
+end
+
 function _derivative(A::LinearInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, ub_shift = -1, side = :first)
     slope = get_parameters(A, idx)
