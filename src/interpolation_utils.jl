@@ -191,8 +191,7 @@ function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameter
     Base.require_one_based_indexing(A.u)
     idxs = cache_parameters ? (1:(length(A.t) - 1)) : (1:0)
     return cumsum(_integral(A, idx, t1, t2)
-    for (idx, t1, t2) in
-        zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end])))
+    for (idx, t1, t2) in zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end])))
 end
 
 function get_parameters(A::LinearInterpolation, idx)

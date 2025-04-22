@@ -1,7 +1,7 @@
 using DataInterpolations, Test
 using FindFirstFunctions: searchsortedfirstcorrelated
 using FiniteDifferences
-using DataInterpolations: derivative
+using DataInterpolations: derivative, get_transition_ts
 using Symbolics
 using StableRNGs
 using RegularizationTools
@@ -15,7 +15,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
                            [:extrapolation_right => ExtrapolationType.Extension,
         :extrapolation_left => ExtrapolationType.Extension]
     func = method(args...; kwargs..., kwargs_extrapolation...)
-    (; t) = func
+    t = get_transition_ts(func)
     trange = collect(range(minimum(t) - 5.0, maximum(t) + 5.0, step = 0.1))
     trange_exclude = filter(x -> !in(x, t), trange)
     @testset "$name" begin
