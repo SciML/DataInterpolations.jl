@@ -74,6 +74,24 @@ function _extrapolate_right(A::ConstantInterpolation, t)
     end
 end
 
+function _extrapolate_right(A::SmoothedConstantInterpolation, t)
+    if A.extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif A.extrapolation_right in (
+        ExtrapolationType.Constant, ExtrapolationType.Extension)
+        d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
+        if A.t[end] + d < t
+            A.u[end]
+        else
+            c = (A.u[end] - A.u[end - 1]) / 2
+            A.u[end - 1] - c * (((t - A.t[end]) / d)^2 - 2 * ((t - A.t[end]) / d) - 1)
+        end
+
+    else
+        _extrapolate_other(A, t, A.extrapolation_right)
+    end
+end
+
 # Linear Interpolation
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     if isnan(t)

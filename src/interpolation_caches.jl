@@ -367,7 +367,8 @@ end
 
 It is a method for interpolating constantly with forward fill, with smoothing around the
 value transitions to make the curve continuously differentiable while the integral never
-drifts far from the integral of constant interpolation. In this interpolation type, `u[end]` is ignored.
+drifts far from the integral of constant interpolation. `u[end]` is ignored for extrapolation types
+`None` (default) and `Periodic`.
 
 ## Arguments
 

@@ -409,3 +409,5 @@ function get_transition_ts(A::SmoothedConstantInterpolation)
 
     out
 end
+
+get_transition_ts(A::AbstractInterpolation) = A.t
