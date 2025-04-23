@@ -135,6 +135,50 @@ function _extrapolate_integral_right(A, t)
     end
 end
 
+function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
+    (; extrapolation_right) = A
+    if extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif A.extrapolation_right in (
+        ExtrapolationType.Constant, ExtrapolationType.Extension)
+        d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
+        c = (A.u[end] - A.u[end - 1]) / 2
+
+        Δt_transition = min(t - A.t[end], d)
+        Δt_constant = max(0, t - A.t[end] - d)
+        out = Δt_transition * A.u[end - 1] -
+              c *
+              (((Δt_transition / d)^3) / (3 / d) - ((Δt_transition^2) / d) -
+               Δt_transition) +
+              Δt_constant * A.u[end]
+
+    elseif extrapolation_right == ExtrapolationType.Linear
+        slope = derivative(A, last(A.t))
+        Δt = t - last(A.t)
+        (last(A.u) + slope * Δt / 2) * Δt
+        _extrapolate_other(A, t, A.extrapolation_right)
+    elseif extrapolation_right == ExtrapolationType.Periodic
+        t_, n = transformation_periodic(A, t)
+        out = integral(A, first(A.t), t_)
+        if !iszero(n)
+            out += n * integral(A, first(A.t), last(A.t))
+        end
+        out
+    else
+        # extrapolation_right == ExtrapolationType.Reflective
+        t_, n = transformation_reflective(A, t)
+        out = if iseven(n)
+            integral(A, t_, last(A.t))
+        else
+            integral(A, t_)
+        end
+        if !iszero(n)
+            out += n * integral(A, first(A.t), last(A.t))
+        end
+        out
+    end
+end
+
 function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
         idx::Number, t1::Number, t2::Number)
     slope = get_parameters(A, idx)

@@ -84,7 +84,7 @@ function _extrapolate_derivative_right(A::SmoothedConstantInterpolation, t, orde
             zero(eltype(A.u))
         else
             c = (A.u[end] - A.u[end - 1]) / 2
-            c * (2((t - A.t[end]) / d) - 2)
+            -c * (2((t - A.t[end]) / d) - 2) / d
         end
 
     else
