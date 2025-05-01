@@ -13,7 +13,7 @@ A = QuadraticSpline(u, t)
 plot(A)
 ```
 
-Extrapolation behavior can be set left and right of the data simultaneously with the `extension` keyword, or left and right separately with the `extrapolation_left` and `extrapolation_right` keywords respectively.
+Extrapolation behavior can be set left and right of the data simultaneously with the `extrapolation` keyword, or left and right separately with the `extrapolation_left` and `extrapolation_right` keywords respectively.
 
 ## `ExtrapolationType.None`
 
