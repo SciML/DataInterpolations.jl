@@ -93,7 +93,7 @@ A = SmoothedConstantInterpolation(u, t; d_max = 10)
 plot!(A)
 ```
 
-Note that `u[end]` is ignored.
+Note that `u[end]` is ignored, except when using extrapolation types `Constant` or `Extension`.
 
 ## Quadratic Spline
 
