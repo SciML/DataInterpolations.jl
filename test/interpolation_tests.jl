@@ -1025,7 +1025,6 @@ end
     ut1 = Float32[0.1, 0.2, 0.3, 0.4, 0.5]
     ut2 = Float64[0.1, 0.2, 0.3, 0.4, 0.5]
     for u in (ut1, ut2), t in (ut1, ut2)
-
         interp = @inferred(LinearInterpolation(ut1, ut2))
         for xs in (u, t)
             ys = @inferred(interp(xs))
@@ -1108,7 +1107,6 @@ f_cubic_spline = c -> square(CubicSpline, c)
     iszero_allocations(u, t) = iszero(@allocated(DataInterpolations.munge_data(u, t)))
 
     for T in (String, Union{String, Missing}), dims in 1:3
-
         _u0 = convert(Array{T}, reshape(u0, ntuple(i -> i == dims ? 3 : 1, dims)))
 
         u, t = @inferred(DataInterpolations.munge_data(_u0, t0))
@@ -1137,12 +1135,12 @@ end
     li = LinearInterpolation(x, t)
 
     @test isequal(ci(0.425), x[42])
-    @test isequal(li(0.425), x[42] + 0.5*(x[43] - x[42]))
+    @test isequal(li(0.425), x[42] + 0.5 * (x[43] - x[42]))
 
     xvals = rand(rng, 100)
     @test Symbolics.substitute(ci(0.425), Dict(x => xvals)) == xvals[42]
     @test Symbolics.substitute(li(0.425), Dict(x => xvals)) ==
-          xvals[42] + 0.5*(xvals[43] - xvals[42])
+          xvals[42] + 0.5 * (xvals[43] - xvals[42])
 
     @variables dx[1:100]
     @test_nowarn chs = CubicHermiteSpline(dx, x, t)
@@ -1150,7 +1148,7 @@ end
     @test_nowarn li = LagrangeInterpolation(x, t)
     @test_nowarn cs = CubicSpline(x, t)
 
-    @test_throws Exception ai = AkimaInterpolation(x, t)
-    @test_throws Exception bsi = BSplineInterpolation(x, t, 3, :ArcLen, :Average)
-    @test_throws Exception pc = PCHIPInterpolation(x, t)
+    @test_throws Exception ai=AkimaInterpolation(x, t)
+    @test_throws Exception bsi=BSplineInterpolation(x, t, 3, :ArcLen, :Average)
+    @test_throws Exception pc=PCHIPInterpolation(x, t)
 end
