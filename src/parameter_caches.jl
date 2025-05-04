@@ -15,7 +15,7 @@ end
 
 # Prevent e.g. Inf - Inf = NaN
 function safe_diff(b, a::T) where {T}
-    b == a ? zero(T) : b - a
+    isequal(b, a) ? zero(T) : b - a
 end
 
 function linear_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {T, N}

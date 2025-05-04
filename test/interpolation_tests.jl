@@ -5,6 +5,7 @@ using Optim, ForwardDiff
 using BenchmarkTools
 using Unitful
 using LinearAlgebra
+using Symbolics
 
 function test_interpolation_type(T)
     @test T <: DataInterpolations.AbstractInterpolation
@@ -1124,4 +1125,31 @@ end
 @testset "user error" begin
     @test_throws ArgumentError LinearInterpolation(rand(10), rand(10))
     @test_throws ArgumentError LinearInterpolation(0:10, rand(10))
+end
+
+@testset "Symbolic interpolation" begin
+    rng = StableRNG(50225)
+
+    t = 0.01:0.01:1.00
+    @variables x[1:100]
+
+    ci = ConstantInterpolation(x, t)
+    li = LinearInterpolation(x, t)
+
+    @test isequal(ci(0.425), x[42])
+    @test isequal(li(0.425), x[42] + 0.5*(x[43] - x[42]))
+
+    xvals = rand(rng, 100)
+    @test Symbolics.substitute(ci(0.425), Dict(x => xvals)) == xvals[42]
+    @test Symbolics.substitute(li(0.425), Dict(x => xvals)) == xvals[42] + 0.5*(xvals[43] - xvals[42])
+
+    @variables dx[1:100]
+    @test_nowarn chs = CubicHermiteSpline(dx, x, t)
+    @test_nowarn qi = QuadraticInterpolation(x, t)
+    @test_nowarn li = LagrangeInterpolation(x, t)
+    @test_nowarn cs = CubicSpline(x, t)
+
+    @test_throws Exception ai = AkimaInterpolation(x, t)
+    @test_throws Exception bsi = BSplineInterpolation(x, t, 3, :ArcLen, :Average)
+    @test_throws Exception pc = PCHIPInterpolation(x, t)
 end
