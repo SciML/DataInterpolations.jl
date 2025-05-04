@@ -74,10 +74,41 @@ function _extrapolate_derivative_right(A, t, order)
     end
 end
 
+function _extrapolate_derivative_right(A::SmoothedConstantInterpolation, t, order)
+    if A.extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif A.extrapolation_right in (
+        ExtrapolationType.Constant, ExtrapolationType.Extension)
+        d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
+        if A.t[end] + d < t
+            zero(eltype(A.u))
+        else
+            c = (A.u[end] - A.u[end - 1]) / 2
+            -c * (2((t - A.t[end]) / d) - 2) / d
+        end
+
+    else
+        _extrapolate_other(A, t, A.extrapolation_right)
+    end
+end
+
 function _derivative(A::LinearInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, ub_shift = -1, side = :first)
     slope = get_parameters(A, idx)
     slope
+end
+
+function _derivative(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
+
+    if (t - A.t[idx]) < d_lower
+        -2c_lower * ((t - A.t[idx]) / d_lower - 1) / d_lower
+    elseif (A.t[idx + 1] - t) < d_upper
+        2c_upper * (1 - (A.t[idx + 1] - t) / d_upper) / d_upper
+    else
+        zero(c_upper / oneunit(t))
+    end
 end
 
 function _derivative(A::QuadraticInterpolation, t::Number, iguess)

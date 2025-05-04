@@ -83,6 +83,20 @@ end
         name = "Linear Interpolation (Vector) with random points")
 end
 
+@testset "SmoothedConstantInterpolation" begin
+    u = [1.0, 4.0, 9.0, 16.0]
+    t = [1.0, 2.0, 3.0, 4.0]
+    test_integral(
+        SmoothedConstantInterpolation; args = [u, t], name = "Smoothed constant interpolation")
+
+    A_constant = ConstantInterpolation(u, t)
+    I_ref = DataInterpolations.integral(A_constant, first(t), last(t))
+    I_smoothed = [DataInterpolations.integral(
+                      SmoothedConstantInterpolation(u, t; d_max), first(t), last(t))
+                  for d_max in 0.0:0.1:1.0]
+    @test all(I_smoothed .≈ I_ref)
+end
+
 @testset "QuadraticInterpolation" begin
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]

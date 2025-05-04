@@ -74,6 +74,24 @@ function _extrapolate_right(A::ConstantInterpolation, t)
     end
 end
 
+function _extrapolate_right(A::SmoothedConstantInterpolation, t)
+    if A.extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif A.extrapolation_right in (
+        ExtrapolationType.Constant, ExtrapolationType.Extension)
+        d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
+        if A.t[end] + d < t
+            A.u[end]
+        else
+            c = (A.u[end] - A.u[end - 1]) / 2
+            A.u[end - 1] - c * (((t - A.t[end]) / d)^2 - 2 * ((t - A.t[end]) / d) - 1)
+        end
+
+    else
+        _extrapolate_other(A, t, A.extrapolation_right)
+    end
+end
+
 # Linear Interpolation
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     if isnan(t)
@@ -186,7 +204,7 @@ function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess
     @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
 end
 
-# ConstantInterpolation Interpolation
+# Constant Interpolation
 function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     if A.dir === :left
         # :left means that value to the left is used for interpolation
@@ -207,6 +225,22 @@ function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, igu
         idx = get_idx(A, t, iguess; side = :first, lb = 1, ub_shift = 0)
     end
     A.u[:, idx]
+end
+
+# Smoothed constant Interpolation
+function _interpolate(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
+
+    out = A.u[idx]
+
+    if (t - A.t[idx]) < d_lower
+        out -= c_lower * ((t - A.t[idx]) / d_lower - 1)^2
+    elseif (A.t[idx + 1] - t) < d_upper
+        out += c_upper * (1 - (A.t[idx + 1] - t) / d_upper)^2
+    end
+
+    out
 end
 
 # QuadraticSpline Interpolation

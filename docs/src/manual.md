@@ -6,6 +6,7 @@ QuadraticInterpolation
 LagrangeInterpolation
 AkimaInterpolation
 ConstantInterpolation
+SmoothedConstantInterpolation
 QuadraticSpline
 CubicSpline
 BSplineInterpolation

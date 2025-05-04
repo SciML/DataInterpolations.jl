@@ -1,7 +1,7 @@
 using DataInterpolations, Test
 using FindFirstFunctions: searchsortedfirstcorrelated
 using FiniteDifferences
-using DataInterpolations: derivative
+using DataInterpolations: derivative, get_transition_ts
 using Symbolics
 using StableRNGs
 using RegularizationTools
@@ -15,7 +15,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
                            [:extrapolation_right => ExtrapolationType.Extension,
         :extrapolation_left => ExtrapolationType.Extension]
     func = method(args...; kwargs..., kwargs_extrapolation...)
-    (; t) = func
+    t = filter(_t -> first(func.t) ≤ _t ≤ last(func.t), get_transition_ts(func))
     trange = collect(range(minimum(t) - 5.0, maximum(t) + 5.0, step = 0.1))
     trange_exclude = filter(x -> !in(x, t), trange)
     @testset "$name" begin
@@ -24,18 +24,23 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             cdiff = central_fdm(5, 1; geom = true)(func, _t)
             adiff = derivative(func, _t)
             @test isapprox(cdiff, adiff, atol = 1e-8)
-            adiff2 = derivative(func, _t, 2)
-            cdiff2 = central_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
-            @test isapprox(cdiff2, adiff2, atol = 1e-8)
+            if !(func isa SmoothedConstantInterpolation)
+                adiff2 = derivative(func, _t, 2)
+                cdiff2 = central_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
+                @test isapprox(cdiff2, adiff2, atol = 1e-8)
+            end
         end
 
         func isa SmoothArcLengthInterpolation && return
 
-        # Interpolation time points
+        # Interpolation transition points
         for _t in t[2:(end - 1)]
-            if func isa Union{BSplineInterpolation, BSplineApprox, CubicHermiteSpline}
+            if func isa Union{BSplineInterpolation, BSplineApprox,
+                CubicHermiteSpline}
                 fdiff = forward_fdm(5, 1; geom = true)(func, _t)
                 fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
+            elseif func isa SmoothedConstantInterpolation
+                continue
             else
                 fdiff = backward_fdm(5, 1; geom = true)(func, _t)
                 fdiff2 = backward_fdm(5, 1; geom = true)(t -> derivative(func, t), _t)
@@ -152,6 +157,17 @@ end
     t2 = collect(0.0:10.0)
     @test all(isnan, derivative.(Ref(A), t))
     @test all(derivative.(Ref(A), t2 .+ 0.1) .== 0.0)
+end
+
+@testset "SmoothedConstantInterpolation" begin
+    u = [5.5, 2.7, 5.1, 3.0]
+    t = [2.55, 5.62, 6.32, 8.95]
+    test_derivatives(SmoothedConstantInterpolation; args = [u, t],
+        name = "Smoothed constant interpolation")
+
+    A = SmoothedConstantInterpolation(
+        u, t; extrapolation = ExtrapolationType.Extension)
+    @test all(_t -> abs(derivative(A, _t)) < 1e-10, setdiff(get_transition_ts(A), t))
 end
 
 @testset "Quadratic Spline" begin

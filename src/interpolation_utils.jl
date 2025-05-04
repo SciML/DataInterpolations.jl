@@ -202,6 +202,24 @@ function get_parameters(A::LinearInterpolation, idx)
     end
 end
 
+function get_parameters(A::SmoothedConstantInterpolation, idx)
+    if A.cache_parameters
+        d_lower = A.p.d[idx]
+        d_upper = A.p.d[idx + 1]
+        c_lower = A.p.c[idx]
+        c_upper = A.p.c[idx + 1]
+        d_lower, d_upper, c_lower, c_upper
+    else
+        d_lower,
+        c_lower = smoothed_constant_interpolation_parameters(
+            A.u, A.t, A.d_max, idx, A.extrapolation_left, A.extrapolation_right)
+        d_upper,
+        c_upper = smoothed_constant_interpolation_parameters(
+            A.u, A.t, A.d_max, idx + 1, A.extrapolation_left, A.extrapolation_right)
+        d_lower, d_upper, c_lower, c_upper
+    end
+end
+
 function get_parameters(A::QuadraticInterpolation, idx)
     if A.cache_parameters
         A.p.α[idx], A.p.β[idx]
@@ -372,3 +390,28 @@ function smooth_arc_length_params_2(u_int, uⱼ, uⱼ₊₁)
     end
     return δⱼ, short_side_left, Δt_line_seg
 end
+
+function get_transition_ts(A::SmoothedConstantInterpolation)
+    out = similar(A.t, 3 * length(A.t))
+
+    for idx in 1:(length(A.t) - 1)
+        d_lower, d_upper, _, _ = get_parameters(A, idx)
+        if idx == 1
+            out[1] = A.t[1]
+            out[2] = A.t[1]
+            out[3] = A.t[1] + d_lower
+        else
+            out[3idx - 2] = A.t[idx] - d_upper
+            out[3idx - 1] = A.t[idx]
+            out[3idx] = A.t[idx] + d_lower
+        end
+    end
+
+    d_lower, _, _, _ = get_parameters(A, 1)
+    out[end - 1] = A.t[end] - d_lower
+    out[end] = A.t[end]
+
+    out
+end
+
+get_transition_ts(A::AbstractInterpolation) = A.t

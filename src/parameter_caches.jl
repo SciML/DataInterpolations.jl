@@ -32,6 +32,42 @@ function linear_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {
     return slope
 end
 
+struct SmoothedConstantParameterCache{dType, cType}
+    d::dType
+    c::cType
+end
+
+function SmoothedConstantParameterCache(
+        u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right)
+    if cache_parameters
+        parameters = smoothed_constant_interpolation_parameters.(
+            Ref(u), Ref(t), d_max, eachindex(t), extrapolation_left, extrapolation_right)
+        d, c = collect.(eachrow(stack(collect.(parameters))))
+        SmoothedConstantParameterCache(d, c)
+    else
+        SmoothedConstantParameterCache(eltype(t)[], eltype(u)[])
+    end
+end
+
+function smoothed_constant_interpolation_parameters(
+        u, t, d_max, idx, extrapolation_left, extrapolation_right)
+    if isone(idx) || (idx == length(t))
+        # If extrapolation is periodic, make the transition differentiable
+        if extrapolation_left == extrapolation_right == ExtrapolationType.Periodic
+            min(t[end] - t[end - 1], t[2] - t[1], 2d_max) / 2, (u[1] - u[end - 1]) / 2
+        elseif (idx == length(t)) && (extrapolation_right in (
+            ExtrapolationType.Constant, ExtrapolationType.Extension))
+            min(t[end] - t[end - 1], 2d_max) / 2, (u[end] - u[end - 1]) / 2
+        else
+            d = isone(idx) ? min(t[2] - t[1], 2d_max) / 2 :
+                min(t[end] - t[end - 1], 2d_max) / 2
+            d, zero(one(eltype(u)) / 2)
+        end
+    else
+        min(t[idx] - t[idx - 1], t[idx + 1] - t[idx], 2d_max) / 2, (u[idx] - u[idx - 1]) / 2
+    end
+end
+
 struct QuadraticParameterCache{pType}
     α::pType
     β::pType

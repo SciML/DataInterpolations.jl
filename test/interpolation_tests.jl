@@ -619,6 +619,19 @@ end
     @test typeof(itp(t)) === typeof(itp.(t)) === Vector{Int}
 end
 
+@testset "Smoothed constant Interpolation" begin
+    test_interpolation_type(SmoothedConstantInterpolation)
+    u = [0.0, 2.0, 1.0, 3.0]
+    t = [1.2, 2.5, 5.7, 8.7]
+    d_max = 0.5
+    A = SmoothedConstantInterpolation(u, t; d_max)
+    test_cached_index(A)
+
+    @test A(1.9) == u[1]
+    @test A(3.1) == u[2]
+    @test A(2.5) ≈ (u[1] + u[2]) / 2
+end
+
 @testset "QuadraticSpline Interpolation" begin
     test_interpolation_type(QuadraticSpline)
 
@@ -1122,11 +1135,12 @@ end
     li = LinearInterpolation(x, t)
 
     @test isequal(ci(0.425), x[42])
-    @test isequal(li(0.425), x[42] + 0.5*(x[43] - x[42]))
+    @test isequal(li(0.425), x[42] + 0.5 * (x[43] - x[42]))
 
     xvals = rand(rng, 100)
     @test Symbolics.substitute(ci(0.425), Dict(x => xvals)) == xvals[42]
-    @test Symbolics.substitute(li(0.425), Dict(x => xvals)) == xvals[42] + 0.5*(xvals[43] - xvals[42])
+    @test Symbolics.substitute(li(0.425), Dict(x => xvals)) ==
+          xvals[42] + 0.5 * (xvals[43] - xvals[42])
 
     @variables dx[1:100]
     @test_nowarn chs = CubicHermiteSpline(dx, x, t)
@@ -1134,7 +1148,7 @@ end
     @test_nowarn li = LagrangeInterpolation(x, t)
     @test_nowarn cs = CubicSpline(x, t)
 
-    @test_throws Exception ai = AkimaInterpolation(x, t)
-    @test_throws Exception bsi = BSplineInterpolation(x, t, 3, :ArcLen, :Average)
-    @test_throws Exception pc = PCHIPInterpolation(x, t)
+    @test_throws Exception ai=AkimaInterpolation(x, t)
+    @test_throws Exception bsi=BSplineInterpolation(x, t, 3, :ArcLen, :Average)
+    @test_throws Exception pc=PCHIPInterpolation(x, t)
 end

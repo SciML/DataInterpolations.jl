@@ -135,6 +135,50 @@ function _extrapolate_integral_right(A, t)
     end
 end
 
+function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
+    (; extrapolation_right) = A
+    if extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif A.extrapolation_right in (
+        ExtrapolationType.Constant, ExtrapolationType.Extension)
+        d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
+        c = (A.u[end] - A.u[end - 1]) / 2
+
+        Δt_transition = min(t - A.t[end], d)
+        Δt_constant = max(0, t - A.t[end] - d)
+        out = Δt_transition * A.u[end - 1] -
+              c *
+              (((Δt_transition / d)^3) / (3 / d) - ((Δt_transition^2) / d) -
+               Δt_transition) +
+              Δt_constant * A.u[end]
+
+    elseif extrapolation_right == ExtrapolationType.Linear
+        slope = derivative(A, last(A.t))
+        Δt = t - last(A.t)
+        (last(A.u) + slope * Δt / 2) * Δt
+        _extrapolate_other(A, t, A.extrapolation_right)
+    elseif extrapolation_right == ExtrapolationType.Periodic
+        t_, n = transformation_periodic(A, t)
+        out = integral(A, first(A.t), t_)
+        if !iszero(n)
+            out += n * integral(A, first(A.t), last(A.t))
+        end
+        out
+    else
+        # extrapolation_right == ExtrapolationType.Reflective
+        t_, n = transformation_reflective(A, t)
+        out = if iseven(n)
+            integral(A, t_, last(A.t))
+        else
+            integral(A, t_)
+        end
+        if !iszero(n)
+            out += n * integral(A, first(A.t), last(A.t))
+        end
+        out
+    end
+end
+
 function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
         idx::Number, t1::Number, t2::Number)
     slope = get_parameters(A, idx)
@@ -152,6 +196,38 @@ function _integral(
         # :right means that value to the right is used for interpolation
         return A.u[idx + 1] * Δt
     end
+end
+
+function _integral(A::SmoothedConstantInterpolation{<:AbstractVector},
+        idx::Number, t1::Number, t2::Number)
+    d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
+
+    bound_lower = A.t[idx] + d_lower
+    bound_upper = A.t[idx + 1] - d_upper
+
+    out = A.u[idx] * (t2 - t1)
+
+    # Fix extrapolation behavior as constant for now
+    if t1 <= first(A.t)
+        t1 = first(A.t)
+    elseif t2 >= last(A.t)
+        t2 = last(A.t)
+    end
+
+    if t1 < bound_lower
+        t2_ = min(t2, bound_lower)
+        out -= c_lower * d_lower *
+               (((t2_ - A.t[idx]) / d_lower - 1)^3 - ((t1 - A.t[idx]) / d_lower - 1)^3) / 3
+    end
+
+    if t2 > bound_upper
+        t1_ = max(t1, bound_upper)
+        out += c_upper * d_upper *
+               ((1 - (A.t[idx + 1] - t2) / d_upper)^3 -
+                (1 - (A.t[idx + 1] - t1_) / d_upper)^3) / 3
+    end
+
+    out
 end
 
 function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
