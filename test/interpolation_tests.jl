@@ -1141,7 +1141,8 @@ end
 
     xvals = rand(rng, 100)
     @test Symbolics.substitute(ci(0.425), Dict(x => xvals)) == xvals[42]
-    @test Symbolics.substitute(li(0.425), Dict(x => xvals)) == xvals[42] + 0.5*(xvals[43] - xvals[42])
+    @test Symbolics.substitute(li(0.425), Dict(x => xvals)) ==
+          xvals[42] + 0.5*(xvals[43] - xvals[42])
 
     @variables dx[1:100]
     @test_nowarn chs = CubicHermiteSpline(dx, x, t)
