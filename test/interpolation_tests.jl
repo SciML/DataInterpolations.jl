@@ -627,6 +627,8 @@ end
     A = SmoothedConstantInterpolation(u, t; d_max)
     test_cached_index(A)
 
+    @test DataInterpolations.get_transition_ts(A) == [
+        1.2, 1.7, 2.0, 2.5, 3.0, 5.2, 5.7, 6.2, 8.2, 8.7]
     @test A(1.9) == u[1]
     @test A(3.1) == u[2]
     @test A(2.5) ≈ (u[1] + u[2]) / 2
