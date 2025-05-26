@@ -1,6 +1,5 @@
 using DataInterpolations
 using DataInterpolations: integral, derivative, invert_integral
-using FiniteDifferences
 
 function test_integral_inverses(method; args = [], kwargs = [])
     A = method(args...; kwargs..., extrapolation = ExtrapolationType.Extension)
@@ -21,6 +20,21 @@ function test_integral_inverses(method; args = [], kwargs = [])
     @test @inferred(A(ts[37])) == A(ts[37])
 end
 
+function test_integral_inverse_extrapolation()
+    # Linear function with constant extrapolation
+    t = collect(0:4)
+    u = [0.0, 2.0, 3.0, 4.0]
+    A = LinearInterpolation(u, t, extrapolation = ExtrapolationType.Constant)
+
+    A_intinv = invert_integral(A, extrapolation_left = ExtrapolationType.Extension,
+        extrapolation_right = ExtrapolationType.Extension)
+
+    # for a linear function, the integral is quadratic
+    # but the constant extrapolation part is linear.
+    A_5 = 1 / 2 * 4.0^2 + 5.0
+    @test A_int_inv(A_5) ≈ 5.0
+end
+
 @testset "Linear Interpolation" begin
     t = collect(1:5)
     u = [1.0, 1.0, 2.0, 4.0, 3.0]
@@ -29,6 +43,8 @@ end
     u = [1.0, -1.0, 2.0, 4.0, 3.0]
     A = LinearInterpolation(u, t)
     @test_throws DataInterpolations.IntegralNotInvertibleError invert_integral(A)
+
+    test_integral_inverse_extrapolation()
 end
 
 @testset "Constant Interpolation" begin
