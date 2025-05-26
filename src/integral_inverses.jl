@@ -41,8 +41,8 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     itp::itpType
-    function LinearInterpolationIntInv(u, t, A, extrapolation_left = A.extrapolation_left,
-            extrapolation_right = A.extrapolation_right)
+    function LinearInterpolationIntInv(u, t, A, extrapolation_left,
+            extrapolation_right)
         new{typeof(u), typeof(t), typeof(A), eltype(u)}(
             u, t, extrapolation_left, extrapolation_right, Guesser(t), A)
     end
@@ -98,8 +98,7 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
     iguesser::Guesser{tType}
     itp::itpType
     function ConstantInterpolationIntInv(
-            u, t, A, extrapolation_left = A.extrapolation_left,
-            extrapolation_right = A.extrapolation_right)
+            u, t, A, extrapolation_left, extrapolation_right)
         new{typeof(u), typeof(t), typeof(A), eltype(u)}(
             u, t, extrapolation_left, extrapolation_right, Guesser(t), A
         )
