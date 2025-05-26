@@ -38,6 +38,21 @@ function test_integral_inverse_extrapolation()
     @test A_intinv(area) ≈ 5.0
 end
 
+function test_integral_inverse_const_extrapolation()
+    # Constant function with constant extrapolation
+    t = collect(1:4)
+    u = [1.0, 1.0, 1.0, 1.0]
+    A = ConstantInterpolation(u, t, extrapolation = ExtrapolationType.Extension)
+
+    A_intinv = invert_integral(A, ExtrapolationType.Extension, ExtrapolationType.Extension)
+
+    area_0_to_4 = 1.0 * (4.0 - 1.0)
+    area_4_to_5 = 1.0
+    area = area_0_to_4 + area_4_to_5
+
+    @test A_intinv(area) ≈ 5.0
+end
+
 @testset "Linear Interpolation" begin
     t = collect(1:5)
     u = [1.0, 1.0, 2.0, 4.0, 3.0]
@@ -59,6 +74,8 @@ end
     u = [1.0, -1.0, 2.0, 4.0, 3.0]
     A = ConstantInterpolation(u, t)
     @test_throws DataInterpolations.IntegralNotInvertibleError invert_integral(A)
+
+    test_integral_inverse_const_extrapolation()
 end
 
 t = collect(1:5)

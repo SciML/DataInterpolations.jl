@@ -57,7 +57,8 @@ function get_I(A::AbstractInterpolation)
     I
 end
 
-function invert_integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
+function invert_integral(
+        A::LinearInterpolation{<:AbstractVector{<:Number}},
         extrapolation_left::ExtrapolationType.T = A.extrapolation_left,
         extrapolation_right::ExtrapolationType.T = A.extrapolation_right)
     !invertible_integral(A) && throw(IntegralNotInvertibleError())
