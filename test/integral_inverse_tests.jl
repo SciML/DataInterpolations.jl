@@ -27,7 +27,8 @@ function test_integral_inverse_extrapolation()
     u = [1.0, 2.0, 3.0, 4.0]
     A = LinearInterpolation(u, t, extrapolation = ExtrapolationType.Constant)
 
-    A_intinv = invert_integral(A, ExtrapolationType.Extension, ExtrapolationType.Extension)
+    A_intinv = invert_integral(A, extrapolation_left = ExtrapolationType.Extension,
+        extrapolation_right = ExtrapolationType.Extension)
 
     # for a linear function, the integral is quadratic
     # but the constant extrapolation part is linear.
@@ -44,7 +45,8 @@ function test_integral_inverse_const_extrapolation()
     u = [1.0, 1.0, 1.0, 1.0]
     A = ConstantInterpolation(u, t, extrapolation = ExtrapolationType.Extension)
 
-    A_intinv = invert_integral(A, ExtrapolationType.Extension, ExtrapolationType.Extension)
+    A_intinv = invert_integral(A, extrapolation_left = ExtrapolationType.Extension,
+        extrapolation_right = ExtrapolationType.Extension)
 
     area_0_to_4 = 1.0 * (4.0 - 1.0)
     area_4_to_5 = 1.0
