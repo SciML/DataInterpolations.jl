@@ -21,6 +21,40 @@ function test_integral_inverses(method; args = [], kwargs = [])
     @test @inferred(A(ts[37])) == A(ts[37])
 end
 
+function test_integral_inverse_extrapolation()
+    # Linear function with constant extrapolation
+    t = collect(1:4)
+    u = [1.0, 2.0, 3.0, 4.0]
+    A = LinearInterpolation(u, t, extrapolation = ExtrapolationType.Constant)
+
+    A_intinv = invert_integral(A, extrapolation_left = ExtrapolationType.Extension,
+        extrapolation_right = ExtrapolationType.Extension)
+
+    # for a linear function, the integral is quadratic
+    # but the constant extrapolation part is linear.
+    area_0_to_4 = 0.5 * 4.0^2
+    area_4_to_5 = 4.0
+    area = area_0_to_4 + area_4_to_5
+
+    @test A_intinv(area) ≈ 5.0
+end
+
+function test_integral_inverse_const_extrapolation()
+    # Constant function with constant extrapolation
+    t = collect(1:4)
+    u = [1.0, 1.0, 1.0, 1.0]
+    A = ConstantInterpolation(u, t, extrapolation = ExtrapolationType.Extension)
+
+    A_intinv = invert_integral(A, extrapolation_left = ExtrapolationType.Extension,
+        extrapolation_right = ExtrapolationType.Extension)
+
+    area_0_to_4 = 1.0 * (4.0 - 1.0)
+    area_4_to_5 = 1.0
+    area = area_0_to_4 + area_4_to_5
+
+    @test A_intinv(area) ≈ 5.0
+end
+
 @testset "Linear Interpolation" begin
     t = collect(1:5)
     u = [1.0, 1.0, 2.0, 4.0, 3.0]
@@ -29,6 +63,8 @@ end
     u = [1.0, -1.0, 2.0, 4.0, 3.0]
     A = LinearInterpolation(u, t)
     @test_throws DataInterpolations.IntegralNotInvertibleError invert_integral(A)
+
+    test_integral_inverse_extrapolation()
 end
 
 @testset "Constant Interpolation" begin
@@ -40,6 +76,8 @@ end
     u = [1.0, -1.0, 2.0, 4.0, 3.0]
     A = ConstantInterpolation(u, t)
     @test_throws DataInterpolations.IntegralNotInvertibleError invert_integral(A)
+
+    test_integral_inverse_const_extrapolation()
 end
 
 t = collect(1:5)
