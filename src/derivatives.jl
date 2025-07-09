@@ -10,8 +10,8 @@ function derivative(A, t, order = 1)
             return _derivative(A, t, iguess)
         end
         return ForwardDiff.derivative(t -> begin
-                _derivative(A, t, iguess)
-            end, t) # take derivative backwards in t to make it a left rather than right derivative
+                -_derivative(A, -t, iguess)
+            end, -t) # take derivative backwards in t to make it a left rather than right derivative
     end
 end
 
