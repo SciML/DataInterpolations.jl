@@ -23,8 +23,6 @@ This is a continuously differentiable linear interpolation with an interval arou
 ```@example tutorial
 A = LinearInterpolation(u, t)
 plot(A)
-A = SmoothedLinearInterpolation(u, t)
-plot(A)
 ```
 
 ## Smoothed Linear Interpolation
@@ -34,6 +32,8 @@ This is a linear interpolation where.
 ```@example tutorial
 A = LinearInterpolation(u, t)
 plot(A)
+A = SmoothedLinearInterpolation(u, t)
+plot!(A)
 ```
 
 ## Quadratic Interpolation
