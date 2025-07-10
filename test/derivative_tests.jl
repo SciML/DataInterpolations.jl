@@ -111,7 +111,7 @@ end
 
 @testset "Smoothed Linear Interpolation" begin
     u = [3.8, 6.7, 1.8, 2.3]
-    t = [1.0, 2.6, 6.7, 8.9]
+    t = [1.05, 2.6, 6.7, 8.9]
 
     for λ in [0.0, 0.25, 0.5]
         test_derivatives(
