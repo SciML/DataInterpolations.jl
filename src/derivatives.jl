@@ -98,6 +98,26 @@ function _derivative(A::LinearInterpolation, t::Number, iguess)
     slope
 end
 
+function _derivative(A::SmoothedLinearInterpolation, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+
+    # Check against boundary points between linear and spline interpolation
+    left = (t < A.p.t_tilde[2idx])
+    right = (t > A.p.t_tilde[2idx + 1])
+
+    # Spline interpolation
+    if left && idx != 1
+        return U_deriv(A, t, idx)
+    end
+
+    if right && idx != length(A.u) - 1
+        return U_deriv(A, t, idx + 1)
+    end
+
+    # Linear interpolation
+    return A.p.slope[idx + 1]
+end
+
 function _derivative(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)

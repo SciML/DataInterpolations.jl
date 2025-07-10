@@ -129,6 +129,27 @@ function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess
     return A.u[ax..., idx] + slope * Δt
 end
 
+# Smoothed linear interpolation
+function _interpolate(A::SmoothedLinearInterpolation, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+
+    # Check against boundary points between linear and spline interpolation
+    left = (t < A.p.t_tilde[2idx])
+    right = (t > A.p.t_tilde[2idx + 1])
+
+    # Spline interpolation
+    if left && idx != 1
+        return U(A, t, idx)
+    end
+
+    if right && idx != length(A.u) - 1
+        return U(A, t, idx + 1)
+    end
+
+    # Linear interpolation
+    return A.p.u_tilde[2 * idx] + A.p.slope[idx + 1] * (t - A.p.t_tilde[2 * idx])
+end
+
 # Quadratic Interpolation
 function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess)

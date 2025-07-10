@@ -2,6 +2,7 @@
 
 ```@docs
 LinearInterpolation
+SmoothedLinearInterpolation
 QuadraticInterpolation
 LagrangeInterpolation
 AkimaInterpolation

@@ -191,8 +191,7 @@ function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameter
     Base.require_one_based_indexing(A.u)
     idxs = cache_parameters ? (1:(length(A.t) - 1)) : (1:0)
     return cumsum(_integral(A, idx, t1, t2)
-    for (idx, t1, t2) in
-        zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end])))
+    for (idx, t1, t2) in zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end])))
 end
 
 function get_parameters(A::LinearInterpolation, idx)
@@ -415,3 +414,86 @@ function get_transition_ts(A::SmoothedConstantInterpolation)
 end
 
 get_transition_ts(A::AbstractInterpolation) = A.t
+
+"""
+Compute the spline parametrization value s ∈ [0,1]
+"""
+function S(A::SmoothedLinearInterpolation, t, idx)
+    (; Δt, ΔΔt, degenerate_ΔΔt, t_tilde, λ) = A.p
+    Δtᵢ = Δt[idx]
+    ΔΔtᵢ = ΔΔt[idx]
+    tdiff = t - t_tilde[2 * idx - 1]
+    @assert tdiff >= 0
+
+    s = if degenerate_ΔΔt[idx]
+        # Degenerate case Δtᵢ₊₁ ≈ Δtᵢ
+        @show "yeet"
+        tdiff / (λ * Δtᵢ)
+    else
+        (-Δtᵢ + sqrt(Δtᵢ^2 + 2 * ΔΔtᵢ * tdiff / λ)) / ΔΔtᵢ
+    end
+    ε = 1e-5
+    @assert -ε<=s<=1+ε "s should be in [0,1], got $s."
+    return s
+end
+
+"""
+Compute the value of a spline section of SmoothedLinearInterpolation
+as a function of t
+"""
+function U(A::SmoothedLinearInterpolation, t, idx)
+    s = S(A, t, idx)
+    return U_s(A, s, idx)
+end
+
+"""
+Compute the value of a spline section of SmoothedLinearInterpolation
+as a function of the spline parametrization value s
+"""
+function U_s(A::SmoothedLinearInterpolation, s, idx)
+    (; Δu, ΔΔu, u_tilde, λ) = A.p
+    Δuᵢ = Δu[idx]
+    ΔΔuᵢ = ΔΔu[idx]
+    return λ / 2 * ΔΔuᵢ * s^2 + λ * Δuᵢ * s + u_tilde[2 * idx - 1]
+end
+
+"""
+Compute the derivative of a spline section of SmoothedLinearInterpolation
+as a function of t
+"""
+function U_deriv(A::SmoothedLinearInterpolation, t, idx)
+    s = S(A, t, idx)
+    s_deriv = S_deriv(A, t, idx)
+    return U_s_deriv(A, s, idx) * s_deriv
+end
+
+"""
+Compute the derivative of the spline parametrization value s
+with respect to t
+"""
+function S_deriv(A::SmoothedLinearInterpolation, t, idx)
+    (; Δt, ΔΔt, degenerate_ΔΔt, t_tilde, λ) = A.p
+    Δtᵢ = Δt[idx]
+    ΔΔtᵢ = ΔΔt[idx]
+    tdiff = t - t_tilde[2 * idx - 1]
+    @assert tdiff >= 0
+
+    if degenerate_ΔΔt[idx]
+        # Degenerate case Δtᵢ₊₁ ≈ Δtᵢ
+        s_deriv = 1 / (λ * Δtᵢ)
+    else
+        s_deriv = 1 / (λ * sqrt(Δtᵢ^2 + 2 * ΔΔtᵢ * tdiff / λ))
+    end
+    return s_deriv
+end
+
+"""
+Compute the derivative of a spline section of SmoothedLinearInterpolation
+as a function of the spline parametrization value s
+"""
+function U_s_deriv(A::AbstractInterpolation, s, idx)
+    (; Δu, ΔΔu, λ) = A.p
+    Δuᵢ = Δu[idx]
+    ΔΔuᵢ = ΔΔu[idx]
+    return λ * ΔΔuᵢ * s + λ * Δuᵢ
+end
