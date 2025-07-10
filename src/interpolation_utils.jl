@@ -428,7 +428,6 @@ function S(A::SmoothedLinearInterpolation, t, idx)
 
     s = if degenerate_ΔΔt[idx]
         # Degenerate case Δtᵢ₊₁ ≈ Δtᵢ
-        @show "yeet"
         tdiff / (λ * Δtᵢ)
     else
         (-Δtᵢ + sqrt(Δtᵢ^2 + 2 * ΔΔtᵢ * tdiff / λ)) / ΔΔtᵢ
