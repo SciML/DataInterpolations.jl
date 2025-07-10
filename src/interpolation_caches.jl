@@ -96,7 +96,7 @@ end
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
   - `λ`: The fraction of the interval on either side of each data point that is described by a spline section. Choose
-    in [0, 0.5], defaults to 0.25
+    in [0, 1.0], defaults to 0.25
 """
 struct SmoothedLinearInterpolation{uType, tType, IType, pType, T} <:
        AbstractInterpolation{T}
