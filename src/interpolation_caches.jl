@@ -1290,8 +1290,8 @@ function BSplineApprox(
     end
     for k in 2:(n - 1)
         q[ax_u...,
-        k] = u[ax_u..., k] - sc[k, 1] * u[ax_u..., 1] -
-             sc[k, h] * u[ax_u..., end]
+            k] = u[ax_u..., k] - sc[k, 1] * u[ax_u..., 1] -
+                 sc[k, h] * u[ax_u..., end]
     end
     Q = Array{T, N}(undef, size(u)[1:(end - 1)]..., h - 2)
     for i in 2:(h - 1)
