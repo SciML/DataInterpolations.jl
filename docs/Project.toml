@@ -11,7 +11,7 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [compat]
 Documenter = "1"
-ModelingToolkit = "9, 10.0"
+ModelingToolkit = "9, 10.1"
 ModelingToolkitStandardLibrary = "2"
 Optim = "1"
 OrdinaryDiffEq = "6"
