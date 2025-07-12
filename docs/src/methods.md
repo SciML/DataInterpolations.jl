@@ -18,7 +18,7 @@ to show the fitting curve.
 
 ## Linear Interpolation
 
-This is a continuously differentiable linear interpolation with an interval around each data point replaced by spline section.
+This is a linear interpolation between the ends points of the interval of input data points.
 
 ```@example tutorial
 A = LinearInterpolation(u, t)
@@ -27,7 +27,7 @@ plot(A)
 
 ## Smoothed Linear Interpolation
 
-This is a linear interpolation where.
+This is a continuously differentiable linear interpolation with an interval around each data point replaced by spline section.
 
 ```@example tutorial
 A = LinearInterpolation(u, t)
