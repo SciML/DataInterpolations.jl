@@ -239,6 +239,20 @@ end
     @test_throws DataInterpolations.LeftExtrapolationError A([-1.0, 11.0])
 end
 
+@testset "Smoothed Linear Interpolation" begin
+    test_interpolation_type(SmoothedLinearInterpolation)
+
+    u = [3.8, 6.7, 1.8, 2.3]
+    t = [1.0, 2.6, 6.7, 8.9]
+    A = SmoothedLinearInterpolation(u, t)
+
+    @test A.p.t_tilde ≈ [1.0, 1.2, 2.4, 3.1125, 6.1875, 6.975, 8.625, 8.9]
+    @test A.p.u_tilde ≈ [3.8, 4.1625, 6.3375, 6.0875, 2.4125, 1.8625, 2.2375, 2.3]
+
+    t_eval = A.p.t_tilde[1:(end - 1)] + diff(A.p.t_tilde) / 2
+    @test A(t_eval)≈[3.98125, 5.25, 6.41932, 4.25, 2.01298, 2.05, 2.26875] rtol=1e-4
+end
+
 @testset "Quadratic Interpolation" begin
     test_interpolation_type(QuadraticInterpolation)
 

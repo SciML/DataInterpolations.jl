@@ -20,6 +20,7 @@ corresponding to `(u,t)` pairs.
 
   - `SmoothedConstantInterpolation(u,t)` - An integral preserving continuously differentiable approximation of constant interpolation.
   - `LinearInterpolation(u,t)` - A linear interpolation.
+  - `SmoothedLinearInterpolation(u,t;  λ = 0.25)` - A continuously differentiable linear interpolation with an interval around each data point replaced by spline section.
   - `QuadraticInterpolation(u,t)` - A quadratic interpolation.
   - `LagrangeInterpolation(u,t,n)` - A Lagrange interpolation of order `n`.
   - `QuadraticSpline(u,t)` - A quadratic spline interpolation.

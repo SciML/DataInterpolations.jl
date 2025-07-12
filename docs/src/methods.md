@@ -25,6 +25,17 @@ A = LinearInterpolation(u, t)
 plot(A)
 ```
 
+## Smoothed Linear Interpolation
+
+This is a continuously differentiable linear interpolation with an interval around each data point replaced by spline section.
+
+```@example tutorial
+A = LinearInterpolation(u, t)
+plot(A)
+A = SmoothedLinearInterpolation(u, t)
+plot!(A)
+```
+
 ## Quadratic Interpolation
 
 This function fits a parabola passing through the two nearest points from the input
