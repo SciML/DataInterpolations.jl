@@ -1098,15 +1098,33 @@ function BSplineApprox(
             k[i] = k[1] + (i - d - 1) // (h - d) * (k[end] - k[1])
         end
     elseif knotVecType == :Average
-        # NOTE: verify that average method can be applied when size of k is less than size of p
         # average spaced knot vector
-        idx = 1
-        if d + 2 <= h
+        # We need h - d - 1 internal knots distributed across the parameter domain
+        num_internal_knots = h - d - 1
+        if num_internal_knots > 0
+            # First internal knot uses the same formula as original
             k[d + 2] = 1 // d * ps[d]
-        end
-        for i in (d + 3):h
-            k[i] = 1 // d * (ps[idx + d] - ps[idx])
-            idx += 1
+            
+            # For remaining knots, distribute the sampling across the ps array
+            if num_internal_knots > 1
+                for i in 2:num_internal_knots
+                    knot_idx = d + 1 + i
+                    # In the original algorithm, idx goes from 1 to n-d-2
+                    # We want to distribute our sampling across this same range
+                    min_idx = 1
+                    max_idx = n - d - 2  # This gives us the same range as the original
+                    
+                    if max_idx >= min_idx
+                        # Linear interpolation to distribute sampling points
+                        sample_idx = min_idx + round(Int, (i - 2) * (max_idx - min_idx) / (num_internal_knots - 2))
+                        sample_idx = min(sample_idx, max_idx)
+                        
+                        # Use the difference formula: (ps[sample_idx + d] - ps[sample_idx]) / d
+                        ps_high_idx = sample_idx + d
+                        k[knot_idx] = 1 // d * (ps[ps_high_idx] - ps[sample_idx])
+                    end
+                end
+            end
         end
     end
     # control points
