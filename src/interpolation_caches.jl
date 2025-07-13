@@ -816,43 +816,47 @@ function BSplineInterpolation(
     u, t = munge_data(u, t)
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d+1) points.")
-    
+
     # Initialize parameter vector
     param_vec = zero(t)
     param_vec[1] = zero(eltype(t))
     param_vec[end] = one(eltype(t))
-    
+
     # Initialize knot vector
     knot_vec = zeros(eltype(t), n + d + 1)
 
     # Compute parameter vector based on type
     if pVecType == :Uniform
         for i in 2:(n - 1)
-            param_vec[i] = param_vec[1] + (i - 1) * (param_vec[end] - param_vec[1]) / (n - 1)
+            param_vec[i] = param_vec[1] +
+                           (i - 1) * (param_vec[end] - param_vec[1]) / (n - 1)
         end
     elseif pVecType == :ArcLen
         # Only compute arc lengths when needed, using diff and broadcasting
-        distances = sqrt.((diff(t)).^2 .+ (diff(u)).^2)
+        distances = sqrt.((diff(t)) .^ 2 .+ (diff(u)) .^ 2)
         cumulative_distances = cumsum(distances)
         total_distance = cumulative_distances[end]
         for i in 2:(n - 1)
-            param_vec[i] = param_vec[1] + cumulative_distances[i - 1] / total_distance * (param_vec[end] - param_vec[1])
+            param_vec[i] = param_vec[1] +
+                           cumulative_distances[i - 1] / total_distance *
+                           (param_vec[end] - param_vec[1])
         end
     end
 
     # Set boundary knots using vectorized assignment
-    knot_vec[1:d+1] .= param_vec[1]
-    knot_vec[end-d:end] .= param_vec[end]
+    knot_vec[1:(d + 1)] .= param_vec[1]
+    knot_vec[(end - d):end] .= param_vec[end]
 
     # Compute cumulative parameter sum for internal knots using cumsum
-    param_cumsum = cumsum(param_vec[2:end-1])
+    param_cumsum = cumsum(param_vec[2:(end - 1)])
 
     if knotVecType == :Uniform
         # uniformly spaced knot vector
         # this method is not recommended because, if it is used with the chord length method for global interpolation,
         # the system of linear equations would be singular.
         for i in (d + 2):n
-            knot_vec[i] = knot_vec[1] + (i - d - 1) // (n - d) * (knot_vec[end] - knot_vec[1])
+            knot_vec[i] = knot_vec[1] +
+                          (i - d - 1) // (n - d) * (knot_vec[end] - knot_vec[1])
         end
     elseif knotVecType == :Average
         # average spaced knot vector
@@ -865,7 +869,7 @@ function BSplineInterpolation(
             index += 1
         end
     end
-    
+
     # control points
     spline_coeffs = zeros(eltype(t), n, n)
     spline_coefficients!(spline_coeffs, d, knot_vec, param_vec)
@@ -888,12 +892,12 @@ function BSplineInterpolation(
     u, t = munge_data(u, t)
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d+1) points.")
-    
+
     # Initialize parameter vector
     param_vec = zero(t)
     param_vec[1] = zero(eltype(t))
     param_vec[end] = one(eltype(t))
-    
+
     # Initialize knot vector
     knot_vec = zeros(eltype(t), n + d + 1)
 
@@ -902,33 +906,38 @@ function BSplineInterpolation(
 
     if pVecType == :Uniform
         for i in 2:(n - 1)
-            param_vec[i] = param_vec[1] + (i - 1) * (param_vec[end] - param_vec[1]) / (n - 1)
+            param_vec[i] = param_vec[1] +
+                           (i - 1) * (param_vec[end] - param_vec[1]) / (n - 1)
         end
     elseif pVecType == :ArcLen
         # Only compute arc lengths when needed, using diff and broadcasting
         time_diffs = diff(t)
-        spatial_diffs = [sqrt(sum((u[array_axes..., i+1] - u[array_axes..., i]).^2)) for i in 1:(n-1)]
-        distances = sqrt.(time_diffs.^2 .+ spatial_diffs.^2)
+        spatial_diffs = [sqrt(sum((u[array_axes..., i + 1] - u[array_axes..., i]) .^ 2))
+                         for i in 1:(n - 1)]
+        distances = sqrt.(time_diffs .^ 2 .+ spatial_diffs .^ 2)
         cumulative_distances = cumsum(distances)
         total_distance = cumulative_distances[end]
         for i in 2:(n - 1)
-            param_vec[i] = param_vec[1] + cumulative_distances[i - 1] / total_distance * (param_vec[end] - param_vec[1])
+            param_vec[i] = param_vec[1] +
+                           cumulative_distances[i - 1] / total_distance *
+                           (param_vec[end] - param_vec[1])
         end
     end
 
     # Set boundary knots using vectorized assignment
-    knot_vec[1:d+1] .= param_vec[1]
-    knot_vec[end-d:end] .= param_vec[end]
+    knot_vec[1:(d + 1)] .= param_vec[1]
+    knot_vec[(end - d):end] .= param_vec[end]
 
     # Compute cumulative parameter sum for internal knots using cumsum
-    param_cumsum = cumsum(param_vec[2:end-1])
+    param_cumsum = cumsum(param_vec[2:(end - 1)])
 
     if knotVecType == :Uniform
         # uniformly spaced knot vector
         # this method is not recommended because, if it is used with the chord length method for global interpolation,
         # the system of linear equations would be singular.
         for i in (d + 2):n
-            knot_vec[i] = knot_vec[1] + (i - d - 1) // (n - d) * (knot_vec[end] - knot_vec[1])
+            knot_vec[i] = knot_vec[1] +
+                          (i - d - 1) // (n - d) * (knot_vec[end] - knot_vec[1])
         end
     elseif knotVecType == :Average
         # average spaced knot vector
@@ -941,7 +950,7 @@ function BSplineInterpolation(
             index += 1
         end
     end
-    
+
     # control points
     spline_coeffs = zeros(eltype(t), n, n)
     spline_coefficients!(spline_coeffs, d, knot_vec, param_vec)
@@ -1045,43 +1054,47 @@ function BSplineApprox(
     u, t = munge_data(u, t)
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d+1) control points.")
-    
+
     # Initialize parameter vector
     param_vec = zero(t)
     param_vec[1] = zero(eltype(t))
     param_vec[end] = one(eltype(t))
-    
+
     # Initialize knot vector
     knot_vec = zeros(eltype(t), h + d + 1)
 
     # Compute parameter vector based on type
     if pVecType == :Uniform
         for i in 2:(n - 1)
-            param_vec[i] = param_vec[1] + (i - 1) * (param_vec[end] - param_vec[1]) / (n - 1)
+            param_vec[i] = param_vec[1] +
+                           (i - 1) * (param_vec[end] - param_vec[1]) / (n - 1)
         end
     elseif pVecType == :ArcLen
         # Only compute arc lengths when needed, using diff and broadcasting
-        distances = sqrt.((diff(t)).^2 .+ (diff(u)).^2)
+        distances = sqrt.((diff(t)) .^ 2 .+ (diff(u)) .^ 2)
         cumulative_distances = cumsum(distances)
         total_distance = cumulative_distances[end]
         for i in 2:(n - 1)
-            param_vec[i] = param_vec[1] + cumulative_distances[i - 1] / total_distance * (param_vec[end] - param_vec[1])
+            param_vec[i] = param_vec[1] +
+                           cumulative_distances[i - 1] / total_distance *
+                           (param_vec[end] - param_vec[1])
         end
     end
 
     # Set boundary knots using vectorized assignment
-    knot_vec[1:d+1] .= param_vec[1]
-    knot_vec[end-d:end] .= param_vec[end]
+    knot_vec[1:(d + 1)] .= param_vec[1]
+    knot_vec[(end - d):end] .= param_vec[end]
 
     # Compute cumulative parameter sum for internal knots using cumsum
-    param_cumsum = cumsum(param_vec[2:end-1])
+    param_cumsum = cumsum(param_vec[2:(end - 1)])
 
     if knotVecType == :Uniform
         # uniformly spaced knot vector
         # this method is not recommended because, if it is used with the chord length method for global interpolation,
         # the system of linear equations would be singular.
         for i in (d + 2):h
-            knot_vec[i] = knot_vec[1] + (i - d - 1) // (h - d) * (knot_vec[end] - knot_vec[1])
+            knot_vec[i] = knot_vec[1] +
+                          (i - d - 1) // (h - d) * (knot_vec[end] - knot_vec[1])
         end
     elseif knotVecType == :Average
         # average spaced knot vector using improved distribution
@@ -1096,11 +1109,11 @@ function BSplineApprox(
                 knot_vec[d + 2] = param_interp(0.5)
             else
                 internal_positions = range(0, 1, length = num_internal_knots)
-                knot_vec[(d+2):h] .= param_interp.(internal_positions)
+                knot_vec[(d + 2):h] .= param_interp.(internal_positions)
             end
         end
     end
-    
+
     # control points
     control_points = zeros(eltype(u), h)
     control_points[1] = u[1]
@@ -1143,12 +1156,12 @@ function BSplineApprox(
     u, t = munge_data(u, t)
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d+1) control points.")
-    
+
     # Initialize parameter vector
     param_vec = zero(t)
     param_vec[1] = zero(eltype(t))
     param_vec[end] = one(eltype(t))
-    
+
     # Initialize knot vector
     knot_vec = zeros(eltype(t), h + d + 1)
 
@@ -1157,33 +1170,38 @@ function BSplineApprox(
 
     if pVecType == :Uniform
         for i in 2:(n - 1)
-            param_vec[i] = param_vec[1] + (i - 1) * (param_vec[end] - param_vec[1]) / (n - 1)
+            param_vec[i] = param_vec[1] +
+                           (i - 1) * (param_vec[end] - param_vec[1]) / (n - 1)
         end
     elseif pVecType == :ArcLen
         # Only compute arc lengths when needed, using diff and broadcasting
         time_diffs = diff(t)
-        spatial_diffs = [sqrt(sum((u[array_axes..., i+1] - u[array_axes..., i]).^2)) for i in 1:(n-1)]
-        distances = sqrt.(time_diffs.^2 .+ spatial_diffs.^2)
+        spatial_diffs = [sqrt(sum((u[array_axes..., i + 1] - u[array_axes..., i]) .^ 2))
+                         for i in 1:(n - 1)]
+        distances = sqrt.(time_diffs .^ 2 .+ spatial_diffs .^ 2)
         cumulative_distances = cumsum(distances)
         total_distance = cumulative_distances[end]
         for i in 2:(n - 1)
-            param_vec[i] = param_vec[1] + cumulative_distances[i - 1] / total_distance * (param_vec[end] - param_vec[1])
+            param_vec[i] = param_vec[1] +
+                           cumulative_distances[i - 1] / total_distance *
+                           (param_vec[end] - param_vec[1])
         end
     end
 
     # Set boundary knots using vectorized assignment
-    knot_vec[1:d+1] .= param_vec[1]
-    knot_vec[end-d:end] .= param_vec[end]
+    knot_vec[1:(d + 1)] .= param_vec[1]
+    knot_vec[(end - d):end] .= param_vec[end]
 
     # Compute cumulative parameter sum for internal knots using cumsum
-    param_cumsum = cumsum(param_vec[2:end-1])
+    param_cumsum = cumsum(param_vec[2:(end - 1)])
 
     if knotVecType == :Uniform
         # uniformly spaced knot vector
         # this method is not recommended because, if it is used with the chord length method for global interpolation,
         # the system of linear equations would be singular.
         for i in (d + 2):h
-            knot_vec[i] = knot_vec[1] + (i - d - 1) // (h - d) * (knot_vec[end] - knot_vec[1])
+            knot_vec[i] = knot_vec[1] +
+                          (i - d - 1) // (h - d) * (knot_vec[end] - knot_vec[1])
         end
     elseif knotVecType == :Average
         # average spaced knot vector using improved distribution
@@ -1198,11 +1216,11 @@ function BSplineApprox(
                 knot_vec[d + 2] = param_interp(0.5)
             else
                 internal_positions = range(0, 1, length = num_internal_knots)
-                knot_vec[(d+2):h] .= param_interp.(internal_positions)
+                knot_vec[(d + 2):h] .= param_interp.(internal_positions)
             end
         end
     end
-    
+
     # control points
     control_points = zeros(eltype(u), size(u)[1:(end - 1)]..., h)
     control_points[array_axes..., 1] = u[array_axes..., 1]
@@ -1221,7 +1239,8 @@ function BSplineApprox(
     for i in 2:(h - 1)
         residual_sum = zeros(eltype(spline_coeffs), size(u)[1:(end - 1)]...)
         for k in 2:(n - 1)
-            residual_sum = residual_sum + spline_coeffs[k, i] * data_residual[array_axes..., k]
+            residual_sum = residual_sum +
+                           spline_coeffs[k, i] * data_residual[array_axes..., k]
         end
         coeff_matrix[array_axes..., i - 1] = residual_sum
     end
