@@ -8,6 +8,7 @@ using SafeTestsets
 @safetestset "Integral Tests" include("integral_tests.jl")
 @safetestset "Integral Inverse Tests" include("integral_inverse_tests.jl")
 @safetestset "Extrapolation Tests" include("extrapolation_tests.jl")
+@safetestset "SparseConnectivityTracer Tests" include("online_tests.jl")
 @safetestset "Online Tests" include("online_tests.jl")
 @safetestset "Regularization Smoothing Tests" include("regularization.jl")
 @safetestset "Show methods Tests" include("show.jl")
