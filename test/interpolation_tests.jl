@@ -799,8 +799,8 @@ end
 
         A = @inferred(BSplineInterpolation(u, t, 2, :ArcLen, :Average))
 
-        @test [A(25.0), A(80.0)] == [13.363814458968486, 10.685201117692609]
-        @test [A(190.0), A(225.0)] == [13.437481084762863, 11.367034741256463]
+        @test [A(25.0), A(80.0)] ≈ [13.363814458968486, 10.685201117692609]
+        @test [A(190.0), A(225.0)] ≈ [13.437481084762863, 11.367034741256463]
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
 
         @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
@@ -913,6 +913,38 @@ end
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test, f_test, atol = 1e-2)
+        end
+
+        @testset ":Average knot distribution" begin
+            # Test for proper knot distribution across parameter domain (Issue #439)
+            x_test = 0:0.1:10
+            y_test = randn(101)
+            sp = BSplineApprox(y_test, x_test, 3, 20, :ArcLen, :Average)
+
+            # Extract internal knots (skip the repeated boundary knots)
+            d = sp.d
+            h = sp.h
+            internal_knots = sp.k[(d + 2):h]
+
+            # Check that knots span a reasonable portion of the parameter domain
+            param_range = maximum(sp.p) - minimum(sp.p)
+            knot_coverage = maximum(internal_knots) - minimum(internal_knots)
+            coverage_ratio = knot_coverage / param_range
+
+            # The coverage ratio should be at least 0.8 (80% of parameter domain)
+            # Before the fix, this was only ~0.136 (13.6%)
+            @test coverage_ratio >= 0.8
+
+            # Test that the interpolation works correctly
+            @test sp(x_test[1]) ≈ y_test[1]
+            @test sp(x_test[end]) ≈ y_test[end]
+
+            # Test interpolation at some intermediate points
+            test_points = [2.5, 5.0, 7.5]
+            for t in test_points
+                @test !isnan(sp(t))
+                @test isfinite(sp(t))
+            end
         end
     end
 end
