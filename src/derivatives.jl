@@ -6,10 +6,12 @@ function derivative(A, t, order = 1)
         _extrapolate_derivative_right(A, t, order)
     else
         iguess = A.iguesser
-        (order == 1) ? _derivative(A, t, iguess) :
-        ForwardDiff.derivative(t -> begin
-                _derivative(A, t, iguess)
-            end, t)
+        if order == 1
+            return _derivative(A, t, iguess)
+        end
+        return ForwardDiff.derivative(t -> begin
+                -_derivative(A, -t, iguess)
+            end, -t) # take derivative backwards in t to make it a left rather than right derivative
     end
 end
 
@@ -333,9 +335,8 @@ function _derivative(
         ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / (A.k[A.d + 2])
     else
         for i in 1:(A.h - 1)
-            ducum = ducum +
-                    sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
-                    (A.k[i + A.d + 1] - A.k[i + 1])
+            ducum += sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
+                     (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
     ducum * A.d * scale
