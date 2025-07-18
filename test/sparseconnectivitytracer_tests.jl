@@ -37,7 +37,7 @@ function InterpolationTest(
     N = isempty(sz) ? 1 : only(sz)
     return InterpolationTest{N, I}(interp, is_der1_zero, is_der2_zero)
 end
-testname(t::InterpolationTest{N}) where {N} = "$N-dim $(typeof(t.interp))" #================#
+testname(t::InterpolationTest{N}) where {N} = "$N-dim $(typeof(t.interp))"
 
 # Jacobian Tests
 function test_jacobian(t::InterpolationTest)
