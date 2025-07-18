@@ -232,20 +232,22 @@ end
 
 @testset "1D Interpolations" begin
     @testset "$(testname(t))" for t in (
+
+            InterpolationTest(AkimaInterpolation(u, t)),
+            InterpolationTest(BSplineApprox(u, t, 3, 4, :ArcLen, :Average)),
+            InterpolationTest(BSplineInterpolation(u, t, 3, :ArcLen, :Average)),
             InterpolationTest(
                 ConstantInterpolation(u, t); is_der1_zero = true, is_der2_zero = true
             ),
-            InterpolationTest(LinearInterpolation(u, t); is_der2_zero = true),
-            InterpolationTest(QuadraticInterpolation(u, t)),
-            InterpolationTest(LagrangeInterpolation(u, t)),
-            InterpolationTest(AkimaInterpolation(u, t)),
-            InterpolationTest(QuadraticSpline(u, t)),
-            InterpolationTest(CubicSpline(u, t)),
-            InterpolationTest(BSplineInterpolation(u, t, 3, :ArcLen, :Average)),
-            InterpolationTest(BSplineApprox(u, t, 3, 4, :ArcLen, :Average)),
-            InterpolationTest(PCHIPInterpolation(u, t)),
             InterpolationTest(CubicHermiteSpline(du, u, t)),
+            InterpolationTest(CubicSpline(u, t)),
+            InterpolationTest(LagrangeInterpolation(u, t)),
+            InterpolationTest(LinearInterpolation(u, t); is_der2_zero = true),
+            InterpolationTest(PCHIPInterpolation(u, t)),
+            InterpolationTest(QuadraticInterpolation(u, t)),
+            InterpolationTest(QuadraticSpline(u, t)),
             InterpolationTest(QuinticHermiteSpline(ddu, du, u, t)),
+            InterpolationTest(SmoothedLinearInterpolation(u, t))
         )
         test_jacobian(t)
         test_hessian(t)
