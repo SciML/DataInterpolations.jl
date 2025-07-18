@@ -65,7 +65,7 @@ function _sct_interpolate(
     t = hessian_tracer_1_to_1(t, is_der_1_zero, is_der_2_zero)
     N = only(output_size(interp))
     return Fill(t, N)
-end #===========#
+end
 
 # Overloads #
 
