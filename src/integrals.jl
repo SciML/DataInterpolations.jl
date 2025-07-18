@@ -296,3 +296,7 @@ function _integral(
     integrate_quintic_polynomial(t1, t2, tᵢ, A.u[idx], A.du[idx], A.ddu[idx] / 2,
         c₁ + Δt * (-c₂ + c₃ * Δt), c₂ - 2c₃ * Δt, c₃)
 end
+
+function _integral(A::SmoothedLinearInterpolation, idx::Number, t1::Number, t2::Number)
+    throw(IntegralNotFoundError())
+end

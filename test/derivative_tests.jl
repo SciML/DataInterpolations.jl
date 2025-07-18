@@ -35,7 +35,8 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
 
         # Interpolation transition points
         for _t in t[2:(end - 1)]
-            if func isa Union{SmoothedConstantInterpolation, BSplineInterpolation, BSplineApprox}
+            if func isa
+               Union{SmoothedConstantInterpolation, BSplineInterpolation, BSplineApprox}
                 # TODO fix interpolations
                 continue
             else
@@ -104,6 +105,16 @@ end
     t = [0.0, 2.0]
     test_derivatives(
         LinearInterpolation; args = [u, t], name = "Linear Interpolation with two points")
+end
+
+@testset "Smoothed Linear Interpolation" begin
+    u = [3.8, 6.7, 1.8, 2.3]
+    t = [1.05, 2.6, 6.7, 8.9]
+
+    for λ in [0.0, 0.25, 0.5]
+        test_derivatives(
+            SmoothedLinearInterpolation, args = [u, t], name = "Smoothed Linear Interpolation (λ = $λ)")
+    end
 end
 
 @testset "Quadratic Interpolation" begin
