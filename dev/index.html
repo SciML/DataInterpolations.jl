@@ -14,10 +14,10 @@ Pkg.add(&quot;DataInterpolations&quot;)</code></pre><h2 id="Available-Interpolat
 }</code></pre><h2 id="Contributing"><a class="docs-heading-anchor" href="#Contributing">Contributing</a><a id="Contributing-1"></a><a class="docs-heading-anchor-permalink" href="#Contributing" title="Permalink"></a></h2><ul><li><p>Please refer to the <a href="https://github.com/SciML/ColPrac/blob/master/README.md">SciML ColPrac: Contributor&#39;s Guide on Collaborative Practices for Community Packages</a> for guidance on PRs, issues, and other matters relating to contributing to SciML.</p></li><li><p>See the <a href="https://github.com/SciML/SciMLStyle">SciML Style Guide</a> for common coding practices and other style decisions.</p></li><li><p>There are a few community forums:</p><ul><li>The #diffeq-bridged and #sciml-bridged channels in the <a href="https://julialang.org/slack/">Julia Slack</a></li><li>The #diffeq-bridged and #sciml-bridged channels in the <a href="https://julialang.zulipchat.com/#narrow/stream/279055-sciml-bridged">Julia Zulip</a></li><li>On the <a href="https://discourse.julialang.org">Julia Discourse forums</a></li><li>See also <a href="https://sciml.ai/community/">SciML Community page</a></li></ul></li></ul><h2 id="Reproducibility"><a class="docs-heading-anchor" href="#Reproducibility">Reproducibility</a><a id="Reproducibility-1"></a><a class="docs-heading-anchor-permalink" href="#Reproducibility" title="Permalink"></a></h2><details><summary>The documentation of this SciML package was built using these direct dependencies,</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Status `~/work/DataInterpolations.jl/DataInterpolations.jl/docs/Project.toml`
   [82cc6244] DataInterpolations v8.3.1 `~/work/DataInterpolations.jl/DataInterpolations.jl`
   [e30172f5] Documenter v1.14.1
-  [961ee093] ModelingToolkit v10.13.0
+  [961ee093] ModelingToolkit v10.14.0
   [16a59e39] ModelingToolkitStandardLibrary v2.25.0
   [429524aa] Optim v1.13.2
-  [1dea7af3] OrdinaryDiffEq v6.99.0
+  [1dea7af3] OrdinaryDiffEq v6.101.0
   [91a5bcdd] Plots v1.40.17
   [29dad682] RegularizationTools v0.6.0
   [860ef19b] StableRNGs v1.0.3
@@ -39,7 +39,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [66dad0bd] AliasTables v1.1.3
   [ec485272] ArnoldiMethod v0.4.0
   [4fba245c] ArrayInterface v7.19.0
-  [4c555306] ArrayLayouts v1.11.1
+  [4c555306] ArrayLayouts v1.11.2
   [e2ed5e7c] Bijections v0.2.2
   [d1d4a3ce] BitFlags v0.1.9
   [62783981] BitTwiddlingConvenienceFunctions v0.1.6
@@ -73,7 +73,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [864edb3b] DataStructures v0.18.22
   [e2d170a0] DataValueInterfaces v1.0.0
   [8bb1440f] DelimitedFiles v1.9.1
-  [2b5f629d] DiffEqBase v6.178.0
+  [2b5f629d] DiffEqBase v6.179.0
   [459566f4] DiffEqCallbacks v4.8.0
   [77a26b50] DiffEqNoiseProcess v5.24.1
   [163ba53b] DiffResults v1.1.0
@@ -92,7 +92,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [d4d017d3] ExponentialUtilities v1.27.0
   [e2ba6199] ExprTools v0.1.10
   [55351af7] ExproniconLite v0.10.14
-  [c87230d0] FFMPEG v0.4.2
+  [c87230d0] FFMPEG v0.4.4
   [7034ab61] FastBroadcast v0.3.5
   [9aa1b823] FastClosures v0.3.2
   [442a2c76] FastGaussQuadrature v1.0.2
@@ -102,7 +102,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [6a86dc24] FiniteDiff v2.27.0
   [53c48c17] FixedPointNumbers v0.8.5
   [1fa38f19] Format v1.3.7
-⌅ [f6369f11] ForwardDiff v0.10.38
+  [f6369f11] ForwardDiff v1.0.1
   [069b7b12] FunctionWrappers v1.1.3
   [77dc65aa] FunctionWrappersWrappers v0.1.3
   [d9f16b24] Functors v0.5.2
@@ -117,7 +117,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [34004b35] HypergeometricFunctions v0.3.28
   [b5f81e59] IOCapture v0.2.5
   [615f187c] IfElse v0.1.1
-  [3263718b] ImplicitDiscreteSolve v0.1.2
+  [3263718b] ImplicitDiscreteSolve v0.1.3
   [d25df0c9] Inflate v0.1.5
   [18e54dd8] IntegerMathUtils v0.1.3
   [8197267c] IntervalSets v0.7.11
@@ -125,7 +125,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [92d709cd] IrrationalConstants v0.2.4
   [82899510] IteratorInterfaceExtensions v1.0.0
   [1019f520] JLFzf v0.1.11
-  [692b3bcd] JLLWrappers v1.7.0
+  [692b3bcd] JLLWrappers v1.7.1
   [682c06a0] JSON v0.21.4
   [ae98c720] Jieko v0.2.1
   [98e50ef6] JuliaFormatter v2.1.2
@@ -137,11 +137,11 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [10f19ff3] LayoutPointers v0.1.17
   [0e77f7df] LazilyInitializedFields v1.3.0
   [50d2b5c4] Lazy v0.15.1
-  [5078a376] LazyArrays v2.6.1
+  [5078a376] LazyArrays v2.6.2
   [0fc2ff8b] LeastSquaresOptim v0.8.7
   [87fe0de2] LineSearch v0.1.4
   [d3d80556] LineSearches v7.4.0
-  [7ed4a6bd] LinearSolve v3.21.0
+  [7ed4a6bd] LinearSolve v3.23.0
   [2ab3a3ac] LogExpFunctions v0.3.29
   [e6f89c97] LoggingExtras v1.1.0
   [d8e11817] MLStyle v0.4.17
@@ -153,7 +153,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [442fdcdd] Measures v0.3.2
   [c03570c3] Memoize v0.4.4
   [e1d29d7a] Missings v1.2.0
-  [961ee093] ModelingToolkit v10.13.0
+  [961ee093] ModelingToolkit v10.14.0
   [16a59e39] ModelingToolkitStandardLibrary v2.25.0
   [2e0e35c7] Moshi v0.3.7
   [46d2c3a1] MuladdMacro v0.2.4
@@ -163,44 +163,44 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [77ba4419] NaNMath v1.1.3
   [8913a72c] NonlinearSolve v4.10.0
   [be0214bd] NonlinearSolveBase v1.13.0
-  [5959db7a] NonlinearSolveFirstOrder v1.5.0
-  [9a2c21bd] NonlinearSolveQuasiNewton v1.6.0
+  [5959db7a] NonlinearSolveFirstOrder v1.6.0
+  [9a2c21bd] NonlinearSolveQuasiNewton v1.7.0
   [26075421] NonlinearSolveSpectralMethods v1.2.0
   [6fe1bfb0] OffsetArrays v1.17.0
   [4d8831e6] OpenSSL v1.5.0
   [429524aa] Optim v1.13.2
   [bac558e1] OrderedCollections v1.8.1
-  [1dea7af3] OrdinaryDiffEq v6.99.0
+  [1dea7af3] OrdinaryDiffEq v6.101.0
   [89bda076] OrdinaryDiffEqAdamsBashforthMoulton v1.2.0
-  [6ad6398a] OrdinaryDiffEqBDF v1.6.0
+  [6ad6398a] OrdinaryDiffEqBDF v1.7.0
   [bbf590c4] OrdinaryDiffEqCore v1.26.2
   [50262376] OrdinaryDiffEqDefault v1.5.0
   [4302a76b] OrdinaryDiffEqDifferentiation v1.10.1
   [9286f039] OrdinaryDiffEqExplicitRK v1.1.0
-  [e0540318] OrdinaryDiffEqExponentialRK v1.4.0
+  [e0540318] OrdinaryDiffEqExponentialRK v1.5.0
   [becaefa8] OrdinaryDiffEqExtrapolation v1.5.0
-  [5960d6e9] OrdinaryDiffEqFIRK v1.12.0
+  [5960d6e9] OrdinaryDiffEqFIRK v1.13.0
   [101fe9f7] OrdinaryDiffEqFeagin v1.1.0
-  [d3585ca7] OrdinaryDiffEqFunctionMap v1.1.1
-  [d28bc4f8] OrdinaryDiffEqHighOrderRK v1.1.0
-  [9f002381] OrdinaryDiffEqIMEXMultistep v1.3.0
+  [d3585ca7] OrdinaryDiffEqFunctionMap v1.2.0
+  [d28bc4f8] OrdinaryDiffEqHighOrderRK v1.2.0
+  [9f002381] OrdinaryDiffEqIMEXMultistep v1.4.0
   [521117fe] OrdinaryDiffEqLinear v1.3.0
-  [1344f307] OrdinaryDiffEqLowOrderRK v1.2.0
+  [1344f307] OrdinaryDiffEqLowOrderRK v1.3.0
   [b0944070] OrdinaryDiffEqLowStorageRK v1.3.0
   [127b3ac7] OrdinaryDiffEqNonlinearSolve v1.11.0
   [c9986a66] OrdinaryDiffEqNordsieck v1.1.0
   [5dd0a6cf] OrdinaryDiffEqPDIRK v1.3.1
   [5b33eab2] OrdinaryDiffEqPRK v1.1.0
   [04162be5] OrdinaryDiffEqQPRK v1.1.0
-  [af6ede74] OrdinaryDiffEqRKN v1.1.0
-  [43230ef6] OrdinaryDiffEqRosenbrock v1.11.0
-  [2d112036] OrdinaryDiffEqSDIRK v1.3.0
+  [af6ede74] OrdinaryDiffEqRKN v1.2.0
+  [43230ef6] OrdinaryDiffEqRosenbrock v1.12.0
+  [2d112036] OrdinaryDiffEqSDIRK v1.4.0
   [669c94d9] OrdinaryDiffEqSSPRK v1.3.0
   [e3e12d00] OrdinaryDiffEqStabilizedIRK v1.3.0
-  [358294b1] OrdinaryDiffEqStabilizedRK v1.1.2
-  [fa646aed] OrdinaryDiffEqSymplecticRK v1.3.0
-  [b1df2697] OrdinaryDiffEqTsit5 v1.1.0
-  [79d7bb75] OrdinaryDiffEqVerner v1.2.0
+  [358294b1] OrdinaryDiffEqStabilizedRK v1.2.0
+  [fa646aed] OrdinaryDiffEqSymplecticRK v1.4.0
+  [b1df2697] OrdinaryDiffEqTsit5 v1.2.0
+  [79d7bb75] OrdinaryDiffEqVerner v1.3.0
   [90014a1f] PDMats v0.11.35
   [d96e819e] Parameters v0.12.3
   [69de0a69] Parsers v2.8.3
@@ -234,15 +234,15 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [9dfe8606] SCCNonlinearSolve v1.4.0
   [94e857df] SIMDTypes v0.1.0
   [0bca4576] SciMLBase v2.104.0
-  [19f34311] SciMLJacobianOperators v0.1.7
-  [c0aeaf25] SciMLOperators v1.3.1
+  [19f34311] SciMLJacobianOperators v0.1.8
+  [c0aeaf25] SciMLOperators v1.4.0
   [431bcebd] SciMLPublic v1.0.0
   [53ae85a6] SciMLStructures v1.7.0
   [6c6a2e73] Scratch v1.3.0
   [efcf1570] Setfield v1.1.2
   [992d4aef] Showoff v1.0.3
   [777ac1f9] SimpleBufferStream v1.2.0
-  [727e6d20] SimpleNonlinearSolve v2.6.0
+  [727e6d20] SimpleNonlinearSolve v2.7.0
   [699a6c99] SimpleTraits v0.9.4
   [ce78b400] SimpleUnPack v1.1.0
   [a2af1166] SortingAlgorithms v1.2.1
@@ -288,7 +288,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [ee1fde0b] Dbus_jll v1.16.2+0
   [2702e6a9] EpollShim_jll v0.0.20230411+1
   [2e619515] Expat_jll v2.6.5+0
-⌅ [b22a6f82] FFMPEG_jll v4.4.4+1
+  [b22a6f82] FFMPEG_jll v7.1.1+0
   [a3f928ae] Fontconfig_jll v2.16.0+0
   [d7e528f0] FreeType2_jll v2.13.4+0
   [559328eb] FriBidi_jll v1.0.17+0
@@ -354,7 +354,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [35ca27e7] eudev_jll v3.2.14+0
   [214eeab7] fzf_jll v0.61.1+0
   [a4ae2306] libaom_jll v3.12.1+0
-⌅ [0ac62f75] libass_jll v0.15.2+0
+  [0ac62f75] libass_jll v0.17.4+0
   [1183f4f0] libdecor_jll v0.2.2+0
   [2db6ffa8] libevdev_jll v1.13.4+0
   [f638f0a6] libfdk_aac_jll v2.0.4+0
@@ -363,8 +363,8 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [f27f6e37] libvorbis_jll v1.3.8+0
   [009596ad] mtdev_jll v1.1.7+0
   [1317d2d5] oneTBB_jll v2022.0.0+0
-⌅ [1270edf5] x264_jll v2021.5.5+0
-⌅ [dfaa095f] x265_jll v3.5.0+0
+  [1270edf5] x264_jll v10164.0.1+0
+  [dfaa095f] x265_jll v4.1.0+0
   [d8fb68d0] xkbcommon_jll v1.9.2+0
   [0dad84c5] ArgTools v1.1.2
   [56f22d72] Artifacts v1.11.0
@@ -414,4 +414,4 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [8e850b90] libblastrampoline_jll v5.11.0+0
   [8e850ede] nghttp2_jll v1.59.0+0
   [3f19e933] p7zip_jll v17.4.0+2
-Info Packages marked with ⌅ have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.3.1/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.3.1/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Sunday 20 July 2025 21:06">Sunday 20 July 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+Info Packages marked with ⌅ have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.3.1/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.3.1/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Sunday 27 July 2025 03:48">Sunday 27 July 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
