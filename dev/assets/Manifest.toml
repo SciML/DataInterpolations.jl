@@ -1985,9 +1985,9 @@ version = "0.6.12"
 
 [[deps.RecursiveArrayTools]]
 deps = ["Adapt", "ArrayInterface", "DocStringExtensions", "GPUArraysCore", "IteratorInterfaceExtensions", "LinearAlgebra", "RecipesBase", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables"]
-git-tree-sha1 = "4dd1a95cc16d5abdccc4eac5faf6bc73904be1a2"
+git-tree-sha1 = "f8726bd5a8b7f5f5d3f6c0ce4793454a599b5243"
 uuid = "731186ca-8d62-57ce-b412-fbd966d074cd"
-version = "3.35.0"
+version = "3.36.0"
 
     [deps.RecursiveArrayTools.extensions]
     RecursiveArrayToolsFastBroadcastExt = "FastBroadcast"
@@ -2083,9 +2083,9 @@ version = "0.1.0"
 
 [[deps.SciMLBase]]
 deps = ["ADTypes", "Accessors", "Adapt", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "Moshi", "PrecompileTools", "Preferences", "Printf", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLOperators", "SciMLStructures", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface"]
-git-tree-sha1 = "c9dc4c04bcb0146a35dd6af726073c5738b80e3b"
+git-tree-sha1 = "57d3969321911e101c94dde1d1ff54d6308669fd"
 uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
-version = "2.104.0"
+version = "2.105.0"
 
     [deps.SciMLBase.extensions]
     SciMLBaseChainRulesCoreExt = "ChainRulesCore"
