@@ -6,8 +6,7 @@ import DataInterpolations: munge_data,
                            ExtrapolationError,
                            integral, IntegralNotFoundError, DerivativeNotFoundError
 
-isdefined(Base, :get_extension) ? (using Optim, ForwardDiff) :
-(using ..Optim, ..ForwardDiff)
+using Optim, ForwardDiff
 
 ### Curvefit
 function Curvefit(u,

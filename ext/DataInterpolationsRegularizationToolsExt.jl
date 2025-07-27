@@ -6,8 +6,7 @@ import DataInterpolations: munge_data, munge_extrapolation,
                            integral
 using LinearAlgebra
 
-isdefined(Base, :get_extension) ? (import RegularizationTools as RT) :
-(import ..RegularizationTools as RT)
+import RegularizationTools as RT
 
 # TODO:
 # x midpoint rule
