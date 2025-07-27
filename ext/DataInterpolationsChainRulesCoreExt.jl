@@ -1,19 +1,11 @@
 module DataInterpolationsChainRulesCoreExt
-if isdefined(Base, :get_extension)
-    using DataInterpolations: _interpolate, derivative, AbstractInterpolation,
-                              LinearInterpolation, QuadraticInterpolation,
-                              LagrangeInterpolation, AkimaInterpolation,
-                              BSplineInterpolation, BSplineApprox, get_idx, get_parameters,
-                              munge_data
-    using ChainRulesCore
-else
-    using ..DataInterpolations: _interpolate, derivative, AbstractInterpolation,
-                                LinearInterpolation, QuadraticInterpolation,
-                                LagrangeInterpolation, AkimaInterpolation,
-                                BSplineInterpolation, BSplineApprox, get_parameters,
-                                munge_data
-    using ..ChainRulesCore
-end
+
+using DataInterpolations: _interpolate, derivative, AbstractInterpolation,
+                            LinearInterpolation, QuadraticInterpolation,
+                            LagrangeInterpolation, AkimaInterpolation,
+                            BSplineInterpolation, BSplineApprox, get_idx, get_parameters,
+                            munge_data
+using ChainRulesCore
 
 function ChainRulesCore.rrule(::typeof(munge_data), u, t)
     u_out, t_out = munge_data(u, t)

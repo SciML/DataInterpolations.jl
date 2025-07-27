@@ -1,16 +1,9 @@
 module DataInterpolationsSymbolicsExt
 
-if isdefined(Base, :get_extension)
-    using DataInterpolations: AbstractInterpolation
-    import DataInterpolations: derivative
-    using Symbolics
-    using Symbolics: Num, unwrap, SymbolicUtils
-else
-    using ..DataInterpolations: AbstractInterpolation
-    import ..DataInterpolations: derivative
-    using ..Symbolics
-    using ..Symbolics: Num, unwrap, SymbolicUtils
-end
+using DataInterpolations: AbstractInterpolation
+import DataInterpolations: derivative
+using Symbolics
+using Symbolics: Num, unwrap, SymbolicUtils
 
 @register_symbolic (interp::AbstractInterpolation)(t)
 Base.nameof(interp::AbstractInterpolation) = :Interpolation
