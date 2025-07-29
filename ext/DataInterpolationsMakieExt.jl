@@ -35,7 +35,8 @@ function Makie.convert_arguments(
         plotdensity = 10_000,
         denseplot = true
 )
-    densex, densey = convert_arguments(
+    densex,
+    densey = convert_arguments(
         Makie.PointBased(), A; plotdensity = plotdensity, denseplot = denseplot)
     return [
         Makie.SpecApi.Lines(densex, densey),

@@ -18,11 +18,9 @@ using DataInterpolations:
                           CubicHermiteSpline,
 # PCHIPInterpolation,
                           QuinticHermiteSpline,
-                          output_size
+                          output_size#===========##===========#
 
-#===========#
 # Utilities #
-#===========#
 
 # Limit support to `u` begin an AbstractVector{<:Number} or AbstractMatrix{<:Number},
 # to avoid any cases where the output size is dependent on the input value.
@@ -67,11 +65,9 @@ function _sct_interpolate(
     t = hessian_tracer_1_to_1(t, is_der_1_zero, is_der_2_zero)
     N = only(output_size(interp))
     return Fill(t, N)
-end
+end#===========##===========#
 
-#===========#
 # Overloads #
-#===========#
 
 # We assume that with the exception of ConstantInterpolation and LinearInterpolation,
 # all interpolations have a non-zero second derivative at some point in the input domain.
