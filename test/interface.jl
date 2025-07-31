@@ -59,7 +59,7 @@ end
 @testset "Output Type" begin
     # Test consistency between eltype(u) and type of the output
     u = Float32[-0.676367f0, 0.8449812f0, 1.2366607f0, -0.13347931f0, 1.9928657f0,
-        -0.63596356f0, 0.76009744f0, -0.30632544f0, 0.34649512f0, -0.3846099f0]
+    -0.63596356f0, 0.76009744f0, -0.30632544f0, 0.34649512f0, -0.3846099f0]
     t = 0.1f0:0.1f0:1.0f0
     for extrapolation_flag in instances(ExtrapolationType.T)
         (extrapolation_flag == ExtrapolationType.None) && continue
