@@ -35,8 +35,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
 
         # Interpolation transition points
         for _t in t[2:(end - 1)]
-            if func isa
-               Union{SmoothedConstantInterpolation, BSplineInterpolation, BSplineApprox}
+            if func isa Union{SmoothedConstantInterpolation, BSplineInterpolation, BSplineApprox}
                 # TODO fix interpolations
                 continue
             else
