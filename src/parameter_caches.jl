@@ -32,6 +32,48 @@ function linear_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {
     return slope
 end
 
+struct SmoothedLinearParameterCache{uType, tType, λType}
+    Δu::uType
+    Δt::tType
+    ΔΔu::uType
+    ΔΔt::tType
+    u_tilde::uType
+    t_tilde::tType
+    slope::uType
+    # Whether ΔΔt is sufficiently close to 0
+    degenerate_ΔΔt::Vector{Bool}
+    λ::λType
+end
+
+function get_spline_ends(u, Δu, λ)
+    u_tilde = zeros(2 * length(u))
+    u_tilde[1] = u[1]
+    u_tilde[2:2:(end - 1)] = u[1:(end - 1)] .+ (λ / 2) .* Δu[2:(end - 1)]
+    u_tilde[3:2:end] = u[2:end] .- (λ / 2) .* Δu[2:(end - 1)]
+    u_tilde[end] = u[end]
+    return u_tilde
+end
+
+function SmoothedLinearParameterCache(u::AbstractVector, t, λ, cache_parameters)
+    @assert cache_parameters "Parameter caching is mandatory for SmoothedLinearInterpolation"
+
+    Δu = diff(u)
+    Δt = diff(t)
+    pushfirst!(Δt, last(Δt))
+    push!(Δt, first(Δt))
+    pushfirst!(Δu, last(Δu))
+    push!(Δu, first(Δu))
+    ΔΔu = diff(Δu)
+    ΔΔt = diff(Δt)
+    u_tilde = get_spline_ends(u, Δu, λ)
+    t_tilde = get_spline_ends(t, Δt, λ)
+    slope = Δu ./ Δt
+    degenerate_ΔΔt = collect(isapprox.(ΔΔt, 0, atol = 1e-5))
+
+    return SmoothedLinearParameterCache(
+        Δu, Δt, ΔΔu, ΔΔt, u_tilde, t_tilde, slope, degenerate_ΔΔt, λ)
+end
+
 struct SmoothedConstantParameterCache{dType, cType}
     d::dType
     c::cType

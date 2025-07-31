@@ -65,6 +65,76 @@ function LinearInterpolation(
 end
 
 """
+    SmoothedLinearInterpolation(
+    u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+    extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+    extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+    cache_parameters = true, assume_linear_t = 1e-2, λ = 0.25)
+
+    A linear interpolation method where a section around each data point is replaced by spline
+    section to make the transition at the datapoint differentiable. The spline section is guaranteed
+    to be in the convex hull of the boundary points of the spline and the original data point.
+
+    ## Arguments
+
+  - `u`: data points.
+  - `t`: time points.
+
+## Keyword Arguments
+
+  - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
+  - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `cache_parameters`: precompute parameters at initialization for faster interpolation
+    computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `assume_linear_t`: boolean value to specify a faster index lookup behavior for
+    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
+    for a test based on the normalized standard deviation of the difference with respect
+    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `λ`: The fraction of the interval on either side of each data point that is described by a spline section. Choose
+    in [0, 1.0], defaults to 0.25
+"""
+struct SmoothedLinearInterpolation{uType, tType, IType, pType, T} <:
+       AbstractInterpolation{T}
+    u::uType
+    t::tType
+    I::IType
+    p::SmoothedLinearParameterCache{pType}
+    extrapolation_left::ExtrapolationType.T
+    extrapolation_right::ExtrapolationType.T
+    iguesser::Guesser{tType}
+    cache_parameters::Bool
+    linear_lookup::Bool
+    function SmoothedLinearInterpolation(
+            u, t, I, p, extrapolation_left, extrapolation_right,
+            cache_parameters, assume_linear_t)
+        linear_lookup = seems_linear(assume_linear_t, t)
+        new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
+            u, t, I, p, extrapolation_left, extrapolation_right,
+            Guesser(t), cache_parameters, linear_lookup)
+    end
+end
+
+function SmoothedLinearInterpolation(
+        u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = true, assume_linear_t = 1e-2, λ = 0.25)
+    extrapolation_left,
+    extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right)
+    u, t = munge_data(u, t)
+    p = SmoothedLinearParameterCache(u, t, λ, cache_parameters)
+    return SmoothedLinearInterpolation(
+        u, t, nothing, p, extrapolation_left,
+        extrapolation_right, cache_parameters, assume_linear_t)
+end
+
+"""
     QuadraticInterpolation(u, t, mode = :Forward; extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, 
         cache_parameters = false)
