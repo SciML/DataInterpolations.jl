@@ -28,12 +28,14 @@ jobs:
           - "1"
           - "lts"
           - "pre"
-        os:
-          - "ubuntu-latest"
-          - "macos-latest"
-          - "windows-latest"
+        group:
+          - Core
+          - Methods
+          - Extensions
+          - Misc
+          - QA
     uses: "SciML/.github/.github/workflows/tests.yml@v1"
     with:
       julia-version: "${{ matrix.version }}"
-      os: "${{ matrix.os }}"
+      group: "${{ matrix.group }}"
     secrets: "inherit"
