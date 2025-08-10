@@ -719,7 +719,7 @@ function CubicSpline(
         1:(n + 1))
     d = transpose(reshape(reduce(hcat, d_), :, n + 1))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
-    z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
+    z = [convert(eltype(u), z_s) for z_s in eachslice(z_, dims = ndims(z_))]
 
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
