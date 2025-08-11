@@ -824,7 +824,7 @@ function BSplineInterpolation(
     p[end] = one(eltype(t))
 
     for i in 2:n
-        s += √((t[i] - t[i - 1])^2 + (u[i] - u[i - 1])^2)
+        s += hypot(t[i] - t[i - 1], u[i] - u[i - 1])
         l[i - 1] = s
     end
     if pVecType == :Uniform
@@ -1061,7 +1061,7 @@ function BSplineApprox(
     p[end] = one(eltype(t))
 
     for i in 2:n
-        s += √((t[i] - t[i - 1])^2 + (u[i] - u[i - 1])^2)
+        s += hypot(t[i] - t[i - 1], u[i] - u[i - 1])
         l[i - 1] = s
     end
     if pVecType == :Uniform
