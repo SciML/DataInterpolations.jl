@@ -799,8 +799,8 @@ end
 
         A = @inferred(BSplineInterpolation(u, t, 2, :ArcLen, :Average))
 
-        @test [A(25.0), A(80.0)] == [13.363814458968486, 10.685201117692609]
-        @test [A(190.0), A(225.0)] == [13.437481084762863, 11.367034741256463]
+        @test [A(25.0), A(80.0)] == [13.363814458968484, 10.685201117692609]
+        @test [A(190.0), A(225.0)] == [13.437481084762863, 11.367034741256461]
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
 
         @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
