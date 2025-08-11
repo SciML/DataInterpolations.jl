@@ -346,7 +346,7 @@ version = "1.16.0"
 
 [[deps.DataInterpolations]]
 deps = ["EnumX", "FindFirstFunctions", "ForwardDiff", "LinearAlgebra", "PrettyTables", "RecipesBase", "Reexport"]
-path = "/home/chrisrackauckas/github-runners/deepsea4-9/_work/DataInterpolations.jl/DataInterpolations.jl"
+path = "/home/runner/work/DataInterpolations.jl/DataInterpolations.jl"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
 version = "8.5.0"
 
@@ -2134,9 +2134,9 @@ version = "0.1.8"
 
 [[deps.SciMLOperators]]
 deps = ["Accessors", "ArrayInterface", "DocStringExtensions", "LinearAlgebra", "MacroTools"]
-git-tree-sha1 = "7d3a1519dc4d433a6b20035eaff20bde8be77c66"
+git-tree-sha1 = "aea915a39b547c48a18ee041120db1ae8df5a691"
 uuid = "c0aeaf25-5076-4817-a8d5-81caf7dfa961"
-version = "1.4.0"
+version = "1.5.0"
 weakdeps = ["SparseArrays", "StaticArraysCore"]
 
     [deps.SciMLOperators.extensions]
