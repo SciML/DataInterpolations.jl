@@ -503,11 +503,10 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T} <:
 end
 
 function QuadraticSpline(
-        u::uType, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        u::AbstractVector{<:Number}, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false, assume_linear_t = 1e-2) where {uType <:
-                                                                 AbstractVector{<:Number}}
+        cache_parameters = false, assume_linear_t = 1e-2)
     extrapolation_left,
     extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
@@ -529,11 +528,10 @@ function QuadraticSpline(
 end
 
 function QuadraticSpline(
-        u::uType, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        u::AbstractVector, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1e-2) where {uType <:
-                                       AbstractVector}
+        assume_linear_t = 1e-2)
     extrapolation_left,
     extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right)
