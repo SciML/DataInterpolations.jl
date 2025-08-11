@@ -1463,7 +1463,7 @@ end
         interpolation_type::Type{<:AbstractInterpolation} = QuadraticSpline,
         kwargs...) where {U}
 
-Interpolate in a C¹ smooth way trough the data with unit speed by approximating
+Interpolate in a C¹ smooth way through the data with unit speed by approximating
 an interpolation (the shape interpolation) with line segments and circle segments.
 
 ## Arguments
