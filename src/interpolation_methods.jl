@@ -361,7 +361,7 @@ end
 
 # Quintic Hermite Spline
 function _interpolate(
-        A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
+        A::QuinticHermiteSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
