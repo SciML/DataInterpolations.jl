@@ -932,6 +932,19 @@ end
     test_cached_index(A)
     push!(u, 1.0)
     @test_throws AssertionError CubicHermiteSpline(du, u, t)
+
+    @testset "Vector of Vectors case" begin
+        u2 = [[u[i], u[i] + 1] for i in eachindex(u)]
+        du2 = [[du[i], du[i]] for i in eachindex(du)]
+        A2 = CubicHermiteSpline(du2, u2, t)
+        @test u2 ≈ A2.(t)
+    end
+    @testset "Vector of Matrices case" begin
+        u3 = [[u[i] u[i] + 1] for i in eachindex(u)]
+        du3 = [[du[i] du[i]] for i in eachindex(du)]
+        A3 = CubicHermiteSpline(du3, u3, t)
+        @test u3 ≈ A3.(t)
+    end
 end
 
 @testset "PCHIPInterpolation" begin
