@@ -932,6 +932,21 @@ end
     test_cached_index(A)
     push!(u, 1.0)
     @test_throws AssertionError CubicHermiteSpline(du, u, t)
+
+    deleteat!(u, lastindex(u))
+    @testset "Vector of Vectors case" begin
+        u2 = [[u[i], u[i] + 1] for i in eachindex(u)]
+        du2 = [[du[i], du[i]] for i in eachindex(du)]
+        A2 = CubicHermiteSpline(du2, u2, t)
+        @test u2 ≈ A2.(t)
+    end
+    @testset "Vector of Matrices case" begin
+        u3 = [[u[i] u[i] + 1] for i in eachindex(u)]
+        du3 = [[du[i] du[i]] for i in eachindex(du)]
+        @test length(u3) == length(du3)
+        A3 = CubicHermiteSpline(du3, u3, t)
+        @test u3 ≈ A3.(t)
+    end
 end
 
 @testset "PCHIPInterpolation" begin
@@ -967,6 +982,22 @@ end
     @test_throws AssertionError QuinticHermiteSpline(ddu, du, u, t)
     @test @inferred(output_dim(A)) == 0
     @test @inferred(output_size(A)) == ()
+
+    deleteat!(u, lastindex(u))
+    @testset "Vector of Vectors case" begin
+        u2 = [[u[i], u[i] + 1] for i in eachindex(u)]
+        du2 = [[du[i], du[i]] for i in eachindex(du)]
+        ddu2 = [[ddu[i], ddu[i]] for i in eachindex(ddu)]
+        A2 = QuinticHermiteSpline(ddu2, du2, u2, t)
+        @test u2 ≈ A2.(t)
+    end
+    @testset "Vector of Matrices case" begin
+        u3 = [[u[i] u[i] + 1] for i in eachindex(u)]
+        du3 = [[du[i] du[i]] for i in eachindex(du)]
+        ddu3 = [[ddu[i] ddu[i]] for i in eachindex(ddu)]
+        A3 = QuinticHermiteSpline(ddu3, du3, u3, t)
+        @test u3 ≈ A3.(t)
+    end
 end
 
 @testset "Smooth Arc Length Interpolation" begin
