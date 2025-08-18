@@ -6,6 +6,10 @@ using BenchmarkTools
 using Unitful
 using LinearAlgebra
 using Symbolics
+using AllocCheck: @check_allocs
+using StaticArrays: SVector, @SVector
+
+@check_allocs(test_allocs(itp, x) = itp(x)) # Reuse function definition to save on compilation time
 
 function test_interpolation_type(T)
     @test T <: DataInterpolations.AbstractInterpolation
@@ -80,6 +84,20 @@ end
         @test A(11) == [22.0, 33.0, 44.0]
         @test @inferred(output_dim(A)) == 1
         @test @inferred(output_size(A)) == (3,)
+
+        # Test allocation-free interpolation with StaticArrays
+        u_s = [convert(SVector{length(y), eltype(u_)}, i) for i in u]
+        @test @inferred(LinearInterpolation(
+            u_s, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation broken=VERSION <
+                                                                                               v"1.11" &&
+                                                                                               t isa
+                                                                                               AbstractRange
+        A_s = LinearInterpolation(u_s, t; extrapolation = ExtrapolationType.Extension)
+        for _x in (0, 5.5, 11)
+            @test A(x) == A_s(x)
+        end
+        @test A_s(0) isa SVector{length(y)}
+        @test_nowarn test_allocs(A_s, 0)
     end
 
     x = 1:10
