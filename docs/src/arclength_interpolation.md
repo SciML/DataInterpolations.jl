@@ -4,7 +4,7 @@ Arc length interpolation is interpolation between points using a curve that is p
 
 ## Usage
 
-`DataInteprolations.jl` offers an arc length interpolation method that approximates an existing non arc length interpolation by circle and line segments. This can be done by providing an interpolation object (the shape interpolation):
+`DataInteprolations.jl` offers an arc length interpolation method that approximates an existing non arc length interpolation piecewise by circle and line segments. This can be done by providing an interpolation object (the shape interpolation):
 
 ```@example tutorial
 using DataInterpolations
