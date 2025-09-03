@@ -331,6 +331,7 @@ end
     @test @inferred(output_dim(A)) == 1
     @test @inferred(output_size(A)) == (2,)
 
+    # Vector{Vector} interpolation test
     u_ = [1.0, 4.0, 9.0, 16.0]' .* ones(5)
     u = [u_[:, i] for i in 1:size(u_, 2)]
     A = @inferred(QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
@@ -341,7 +342,18 @@ end
     @test A(5.0) == 25.0 * ones(5)
     @test @inferred(output_dim(A)) == 1
     @test @inferred(output_size(A)) == (5,)
+    # Test allocation-free interpolation with Vector{StaticArrays.SVector}
+    u_s = [convert(SVector{length(u[1])}, i) for i in u]
+    @test @inferred(QuadraticInterpolation(
+        u_s, t; extrapolation = ExtrapolationType.Extension)) isa QuadraticInterpolation
+    A_s = QuadraticInterpolation(u_s, t; extrapolation = ExtrapolationType.Extension)
+    for x in (0, 1.5, 2.5, 3.5, 5.0)
+        @test A(x) == A_s(x)
+    end
+    @test A_s(0) isa SVector{length(u[1])}
+    @test_nowarn test_allocs(A_s, 0)
 
+    # Vector{Matrix} interpolation test
     u = [repeat(u[i], 1, 3) for i in 1:4]
     @test_broken @inferred(QuadraticInterpolation(
         u, t; extrapolation = ExtrapolationType.Extension)) isa QuadraticInterpolation
