@@ -580,6 +580,16 @@ end
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 1
         @test @inferred(output_size(A)) == (2,)
+
+        # Test allocation-free interpolation with StaticArrays
+        u_s = [convert(SVector{length(first(u))}, i) for i in u]
+        A_s = @inferred(ConstantInterpolation(
+            u_s, t; extrapolation = ExtrapolationType.Extension))
+        for x in 0.5:0.5:4.5
+            @test A(x) == A_s(x)
+        end
+        @test A_s(0) isa SVector{length(first(u))}
+        @test_nowarn test_allocs(A_s, 0)
     end
 
     @testset "Vector of Matrices case" for u in [
