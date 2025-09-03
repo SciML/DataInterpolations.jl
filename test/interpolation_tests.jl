@@ -90,7 +90,7 @@ end
         @test @inferred(LinearInterpolation(
             u_s, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation
         A_s = LinearInterpolation(u_s, t; extrapolation = ExtrapolationType.Extension)
-        for _x in (0, 5.5, 11)
+        for x in (0, 5.5, 11)
             @test A(x) == A_s(x)
         end
         @test A_s(0) isa SVector{length(y)}
@@ -331,6 +331,7 @@ end
     @test @inferred(output_dim(A)) == 1
     @test @inferred(output_size(A)) == (2,)
 
+    # Vector{Vector} interpolation test
     u_ = [1.0, 4.0, 9.0, 16.0]' .* ones(5)
     u = [u_[:, i] for i in 1:size(u_, 2)]
     A = @inferred(QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
@@ -341,7 +342,18 @@ end
     @test A(5.0) == 25.0 * ones(5)
     @test @inferred(output_dim(A)) == 1
     @test @inferred(output_size(A)) == (5,)
+    # Test allocation-free interpolation with Vector{StaticArrays.SVector}
+    u_s = [convert(SVector{length(u[1])}, i) for i in u]
+    @test @inferred(QuadraticInterpolation(
+        u_s, t; extrapolation = ExtrapolationType.Extension)) isa QuadraticInterpolation
+    A_s = QuadraticInterpolation(u_s, t; extrapolation = ExtrapolationType.Extension)
+    for x in (0, 1.5, 2.5, 3.5, 5.0)
+        @test A(x) == A_s(x)
+    end
+    @test A_s(0) isa SVector{length(u[1])}
+    @test_nowarn test_allocs(A_s, 0)
 
+    # Vector{Matrix} interpolation test
     u = [repeat(u[i], 1, 3) for i in 1:4]
     @test_broken @inferred(QuadraticInterpolation(
         u, t; extrapolation = ExtrapolationType.Extension)) isa QuadraticInterpolation
@@ -568,6 +580,16 @@ end
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 1
         @test @inferred(output_size(A)) == (2,)
+
+        # Test allocation-free interpolation with StaticArrays
+        u_s = [convert(SVector{length(first(u))}, i) for i in u]
+        A_s = @inferred(ConstantInterpolation(
+            u_s, t; extrapolation = ExtrapolationType.Extension))
+        for x in 0.5:0.5:4.5
+            @test A(x) == A_s(x)
+        end
+        @test A_s(0) isa SVector{length(first(u))}
+        @test_nowarn test_allocs(A_s, 0)
     end
 
     @testset "Vector of Matrices case" for u in [
@@ -647,6 +669,30 @@ end
     @test A(1.9) == u[1]
     @test A(3.1) == u[2]
     @test A(2.5) ≈ (u[1] + u[2]) / 2
+
+    u_ = u' .* ones(5) # [u for i in 1:length(t)]
+    uv = [u_[:, i] for i in 1:size(u_, 2)]
+    # Test Vector{Vector} interpolation
+    A = SmoothedConstantInterpolation(uv, t; d_max)
+    @test A(1.9) == uv[1]
+    @test A(3.1) == uv[2]
+    @test A(2.5) ≈ (uv[1] + uv[2]) / 2
+    # Test allocation-free interpolation with Vector{StaticArrays.SVector}
+    u_s = [convert(SVector{length(uv[1])}, i) for i in uv]
+    @test_broken @inferred(SmoothedConstantInterpolation(
+        u_s, t; d_max)) isa SmoothedConstantInterpolation
+    A_s = SmoothedConstantInterpolation(u_s, t; d_max)
+    for x in (1.9, 3.1, 2.5)
+        @test A(x) == A_s(x)
+    end
+    @test A_s(1.9) isa SVector{length(uv[1])}
+    @test_nowarn test_allocs(A_s, 1.9)
+    # Test Vector{Matrix} interpolation
+    um = [repeat(uv[i], 1, 3) for i in 1:length(t)]
+    A = SmoothedConstantInterpolation(um, t; d_max)
+    @test A(1.9) == u[1] * ones(5, 3)
+    @test A(3.1) == u[2] * ones(5, 3)
+    @test A(2.5) ≈ ((u[1] + u[2]) / 2) * ones(5, 3)
 end
 
 @testset "QuadraticSpline Interpolation" begin
@@ -671,6 +717,7 @@ end
     @test @inferred(output_dim(A)) == 0
     @test @inferred(output_size(A)) == ()
 
+    # Test Vector{Vector} interpolation
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
     A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
@@ -680,7 +727,16 @@ end
     @test A(2.0) == P₁(2.0) * ones(4)
     @test @inferred(output_dim(A)) == 1
     @test @inferred(output_size(A)) == (4,)
+    # Test allocation-free interpolation with Vector{StaticArrays.SVector}
+    u_s = [convert(SVector{length(u[1])}, i) for i in u]
+    A_s = @inferred(QuadraticSpline(u_s, t; extrapolation = ExtrapolationType.Extension))
+    for x in (-2.0, -0.5, 0.7, 2.0)
+        @test A(x) == A_s(x)
+    end
+    @test A_s(0.7) isa SVector{length(u[1])}
+    @test_nowarn test_allocs(A_s, 0.7)
 
+    # Test Vector{Matrix} interpolation
     u = [repeat(u[i], 1, 3) for i in 1:3]
     A = @inferred(QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension))
     @test A(-2.0) == P₁(-2.0) * ones(4, 3)
@@ -728,8 +784,9 @@ end
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
+    # Test Vector{Vector} interpolation
     @test @inferred(CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)) isa
-          CubicSpline broken=VERSION < v"1.11"
+          CubicSpline
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4)
@@ -739,9 +796,20 @@ end
     end
     @test @inferred(output_dim(A)) == 1
     @test @inferred(output_size(A)) == (4,)
-
-    u = [repeat(u[i], 1, 3) for i in 1:3]
+    # Test allocation-free interpolation with StaticArrays
+    u_s = [convert(SVector{length(first(u))}, i) for i in u]
     @test_broken @inferred(CubicSpline(
+        u_s, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline
+    A_s = CubicSpline(u_s, t; extrapolation = ExtrapolationType.Extension)
+    for x in (-1.5, -0.5, -0.7)
+        @test A(x) == A_s(x)
+    end
+    @test A_s(0) isa SVector{length(first(u))}
+    @test_nowarn test_allocs(A_s, 0)
+
+    # Test Vector{Matrix} interpolation
+    u = [repeat(u[i], 1, 3) for i in 1:3]
+    @test @inferred(CubicSpline(
         u, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
@@ -778,7 +846,7 @@ end
                   0.0 cos(2t)]
         t = 0.1:0.1:1.0
         u3d = f3d.(t)
-        @test_broken @inferred(CubicSpline(u3d, t)) isa CubicSpline
+        @test @inferred(CubicSpline(u3d, t)) isa CubicSpline
         c = CubicSpline(u3d, t)
         t_test = 0.1:0.05:1.0
         u_test = reduce(hcat, c.(t_test))
@@ -952,8 +1020,18 @@ end
     @testset "Vector of Vectors case" begin
         u2 = [[u[i], u[i] + 1] for i in eachindex(u)]
         du2 = [[du[i], du[i]] for i in eachindex(du)]
-        A2 = CubicHermiteSpline(du2, u2, t)
+        A2 = CubicHermiteSpline(du2, u2, t; extrapolation = ExtrapolationType.Extension)
         @test u2 ≈ A2.(t)
+        @test A2(100.0) ≈ repeat([10.106770], 2) + [0, 1] rtol=1e-5
+        @test A2(300.0) ≈ repeat([9.901542], 2) + [0, 1] rtol=1e-5
+        # Test allocation-free interpolation with Vector{StaticArrays.SVector}
+        u2_s = [convert(SVector{length(u2[1])}, i) for i in u2]
+        du2_s = [convert(SVector{length(du2[1])}, i) for i in du2]
+        A2_s = @inferred(CubicHermiteSpline(du2_s, u2_s, t; extrapolation = ExtrapolationType.Extension))
+        @test A2_s(100.0) == A2(100.0)
+        @test A2_s(300.0) == A2(300.0)
+        @test A2_s(0.7) isa SVector{length(u2[1])}
+        @test_nowarn test_allocs(A2_s, 0.7)
     end
     @testset "Vector of Matrices case" begin
         u3 = [[u[i] u[i] + 1] for i in eachindex(u)]
@@ -1003,8 +1081,19 @@ end
         u2 = [[u[i], u[i] + 1] for i in eachindex(u)]
         du2 = [[du[i], du[i]] for i in eachindex(du)]
         ddu2 = [[ddu[i], ddu[i]] for i in eachindex(ddu)]
-        A2 = QuinticHermiteSpline(ddu2, du2, u2, t)
+        A2 = QuinticHermiteSpline(ddu2, du2, u2, t; extrapolation = ExtrapolationType.Extension)
         @test u2 ≈ A2.(t)
+        @test A2(100.0) ≈ repeat([10.107996], 2) + [0, 1] rtol=1e-5
+        @test A2(300.0) ≈ repeat([11.364162], 2) + [0, 1] rtol=1e-5
+        # Test allocation-free interpolation with Vector{StaticArrays.SVector}
+        u2_s = [convert(SVector{length(u2[1])}, i) for i in u2]
+        du2_s = [convert(SVector{length(du2[1])}, i) for i in du2]
+        ddu2_s = [convert(SVector{length(du2[1])}, i) for i in ddu2]
+        A2_s = @inferred(QuinticHermiteSpline(ddu2_s, du2_s, u2_s, t; extrapolation = ExtrapolationType.Extension))
+        @test A2_s(100.0) == A2(100.0)
+        @test A2_s(300.0) == A2(300.0)
+        @test A2_s(0.7) isa SVector{length(u2[1])}
+        @test_nowarn test_allocs(A2_s, 0.7)
     end
     @testset "Vector of Matrices case" begin
         u3 = [[u[i] u[i] + 1] for i in eachindex(u)]

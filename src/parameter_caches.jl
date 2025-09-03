@@ -61,7 +61,7 @@ function smoothed_constant_interpolation_parameters(
         else
             d = isone(idx) ? min(t[2] - t[1], 2d_max) / 2 :
                 min(t[end] - t[end - 1], 2d_max) / 2
-            d, zero(one(eltype(u)) / 2)
+            d, zero(first(u) / 2)
         end
     else
         min(t[idx] - t[idx - 1], t[idx + 1] - t[idx], 2d_max) / 2, (u[idx] - u[idx - 1]) / 2
