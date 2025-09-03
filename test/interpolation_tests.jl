@@ -717,6 +717,7 @@ end
     @test @inferred(output_dim(A)) == 0
     @test @inferred(output_size(A)) == ()
 
+    # Test Vector{Vector} interpolation
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
     A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
@@ -726,7 +727,16 @@ end
     @test A(2.0) == P₁(2.0) * ones(4)
     @test @inferred(output_dim(A)) == 1
     @test @inferred(output_size(A)) == (4,)
+    # Test allocation-free interpolation with Vector{StaticArrays.SVector}
+    u_s = [convert(SVector{length(u[1])}, i) for i in u]
+    A_s = @inferred(QuadraticSpline(u_s, t; extrapolation = ExtrapolationType.Extension))
+    for x in (-2.0, -0.5, 0.7, 2.0)
+        @test A(x) == A_s(x)
+    end
+    @test A_s(0.7) isa SVector{length(u[1])}
+    @test_nowarn test_allocs(A_s, 0.7)
 
+    # Test Vector{Matrix} interpolation
     u = [repeat(u[i], 1, 3) for i in 1:3]
     A = @inferred(QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension))
     @test A(-2.0) == P₁(-2.0) * ones(4, 3)
