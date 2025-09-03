@@ -764,6 +764,7 @@ end
 
     u_ = [0.0, 1.0, 3.0]' .* ones(4)
     u = [u_[:, i] for i in 1:size(u_, 2)]
+    # Test Vector{Vector} interpolation
     @test @inferred(CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)) isa
           CubicSpline broken=VERSION < v"1.11"
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
@@ -775,7 +776,18 @@ end
     end
     @test @inferred(output_dim(A)) == 1
     @test @inferred(output_size(A)) == (4,)
+    # Test allocation-free interpolation with StaticArrays
+    u_s = [convert(SVector{length(first(u))}, i) for i in u]
+    @test_broken @inferred(CubicSpline(
+        u_s, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline
+    A_s = CubicSpline(u_s, t; extrapolation = ExtrapolationType.Extension)
+    for x in (-1.5, -0.5, -0.7)
+        @test A(x) == A_s(x)
+    end
+    @test A_s(0) isa SVector{length(first(u))}
+    @test_nowarn test_allocs(A_s, 0)
 
+    # Test Vector{Matrix} interpolation
     u = [repeat(u[i], 1, 3) for i in 1:3]
     @test @inferred(CubicSpline(
         u, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline broken=VERSION < v"1.11"
