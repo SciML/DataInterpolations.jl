@@ -90,7 +90,7 @@ end
         @test @inferred(LinearInterpolation(
             u_s, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation
         A_s = LinearInterpolation(u_s, t; extrapolation = ExtrapolationType.Extension)
-        for _x in (0, 5.5, 11)
+        for x in (0, 5.5, 11)
             @test A(x) == A_s(x)
         end
         @test A_s(0) isa SVector{length(y)}
