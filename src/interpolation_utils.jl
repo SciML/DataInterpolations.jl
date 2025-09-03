@@ -38,7 +38,7 @@ function spline_coefficients!(N, d, k, u::Number)
         N[end] = one(u)
         return length(N):length(N)
     else
-        i = findfirst(x -> x > u, k) - 1
+        i = findfirst(x -> x > u, k)::Int - 1
         N[i] = one(u)
         for deg in 1:d
             N[i - deg] = (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) * N[i - deg + 1]
