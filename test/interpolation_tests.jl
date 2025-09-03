@@ -659,6 +659,30 @@ end
     @test A(1.9) == u[1]
     @test A(3.1) == u[2]
     @test A(2.5) ≈ (u[1] + u[2]) / 2
+
+    u_ = u' .* ones(5) # [u for i in 1:length(t)]
+    uv = [u_[:, i] for i in 1:size(u_, 2)]
+    # Test Vector{Vector} interpolation
+    A = SmoothedConstantInterpolation(uv, t; d_max)
+    @test A(1.9) == uv[1]
+    @test A(3.1) == uv[2]
+    @test A(2.5) ≈ (uv[1] + uv[2]) / 2
+    # Test allocation-free interpolation with Vector{StaticArrays.SVector}
+    u_s = [convert(SVector{length(uv[1])}, i) for i in uv]
+    @test_broken @inferred(SmoothedConstantInterpolation(
+        u_s, t; d_max)) isa SmoothedConstantInterpolation
+    A_s = SmoothedConstantInterpolation(u_s, t; d_max)
+    for x in (1.9, 3.1, 2.5)
+        @test A(x) == A_s(x)
+    end
+    @test A_s(1.9) isa SVector{length(uv[1])}
+    @test_nowarn test_allocs(A_s, 1.9)
+    # Test Vector{Matrix} interpolation
+    um = [repeat(uv[i], 1, 3) for i in 1:length(t)]
+    A = SmoothedConstantInterpolation(um, t; d_max)
+    @test A(1.9) == u[1] * ones(5, 3)
+    @test A(3.1) == u[2] * ones(5, 3)
+    @test A(2.5) ≈ ((u[1] + u[2]) / 2) * ones(5, 3)
 end
 
 @testset "QuadraticSpline Interpolation" begin
