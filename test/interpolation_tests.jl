@@ -777,8 +777,8 @@ end
     @test @inferred(output_size(A)) == (4,)
 
     u = [repeat(u[i], 1, 3) for i in 1:3]
-    @test_broken @inferred(CubicSpline(
-        u, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline
+    @test @inferred(CubicSpline(
+        u, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline broken=VERSION < v"1.11"
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4, 3)
@@ -814,7 +814,7 @@ end
                   0.0 cos(2t)]
         t = 0.1:0.1:1.0
         u3d = f3d.(t)
-        @test_broken @inferred(CubicSpline(u3d, t)) isa CubicSpline
+        @test @inferred(CubicSpline(u3d, t)) isa CubicSpline broken=VERSION < v"1.11"
         c = CubicSpline(u3d, t)
         t_test = 0.1:0.05:1.0
         u_test = reduce(hcat, c.(t_test))
