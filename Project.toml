@@ -30,6 +30,7 @@ DataInterpolationsSymbolicsExt = "Symbolics"
 DataInterpolationsMakieExt = "Makie"
 
 [compat]
+AllocCheck = "0.2"
 Aqua = "0.8"
 BenchmarkTools = "1"
 ChainRulesCore = "1.25"
@@ -49,6 +50,7 @@ RegularizationTools = "0.6"
 SafeTestsets = "0.1"
 SparseConnectivityTracer = "1"
 StableRNGs = "1"
+StaticArrays = "1.9"
 Symbolics = "6.46"
 Test = "1.10"
 Unitful = "1.21.1"
@@ -56,6 +58,7 @@ Zygote = "0.6.77, 0.7"
 julia = "1.10"
 
 [extras]
+AllocCheck = "9b6a8646-10ed-4001-bbdc-1d2f46dfbb1a"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -68,10 +71,11 @@ RegularizationTools = "29dad682-9a27-4bc3-9c72-016788665182"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 StableRNGs = "860ef19b-820b-49d6-a774-d7a799459cd3"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [targets]
-test = ["Aqua", "BenchmarkTools", "SafeTestsets", "ChainRulesCore", "Optim", "RegularizationTools", "Test", "StableRNGs", "FiniteDifferences", "QuadGK", "ForwardDiff", "Symbolics", "Unitful", "Zygote", "SparseConnectivityTracer"]
+test = ["Aqua", "AllocCheck", "BenchmarkTools", "SafeTestsets", "ChainRulesCore", "Optim", "RegularizationTools", "Test", "StableRNGs", "FiniteDifferences", "QuadGK", "ForwardDiff", "StaticArrays", "Symbolics", "Unitful", "Zygote", "SparseConnectivityTracer"]

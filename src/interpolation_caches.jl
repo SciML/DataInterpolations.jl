@@ -717,7 +717,7 @@ function CubicSpline(
         1:(n + 1))
     d = transpose(reshape(reduce(hcat, d_), :, n + 1))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
-    z = [z_s for z_s in eachslice(z_, dims = ndims(z_))]
+    z = [convert(eltype(u), z_s) for z_s in eachslice(z_, dims = ndims(z_))]
 
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
@@ -1463,7 +1463,7 @@ end
         interpolation_type::Type{<:AbstractInterpolation} = QuadraticSpline,
         kwargs...) where {U}
 
-Interpolate in a C¹ smooth way trough the data with unit speed by approximating
+Interpolate in a C¹ smooth way through the data with unit speed by approximating
 an interpolation (the shape interpolation) with line segments and circle segments.
 
 ## Arguments
