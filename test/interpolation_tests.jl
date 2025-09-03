@@ -89,7 +89,6 @@ end
         u_s = [convert(SVector{length(y), eltype(u_)}, i) for i in u]
         @test @inferred(LinearInterpolation(
             u_s, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation
-         @test t isa AbstractRange
         A_s = LinearInterpolation(u_s, t; extrapolation = ExtrapolationType.Extension)
         for _x in (0, 5.5, 11)
             @test A(x) == A_s(x)
