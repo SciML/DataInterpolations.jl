@@ -786,7 +786,7 @@ end
     u = [u_[:, i] for i in 1:size(u_, 2)]
     # Test Vector{Vector} interpolation
     @test @inferred(CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)) isa
-          CubicSpline broken=VERSION < v"1.11"
+          CubicSpline
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4)
@@ -810,7 +810,7 @@ end
     # Test Vector{Matrix} interpolation
     u = [repeat(u[i], 1, 3) for i in 1:3]
     @test @inferred(CubicSpline(
-        u, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline broken=VERSION < v"1.11"
+        u, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4, 3)
@@ -846,7 +846,7 @@ end
                   0.0 cos(2t)]
         t = 0.1:0.1:1.0
         u3d = f3d.(t)
-        @test @inferred(CubicSpline(u3d, t)) isa CubicSpline broken=VERSION < v"1.11"
+        @test @inferred(CubicSpline(u3d, t)) isa CubicSpline
         c = CubicSpline(u3d, t)
         t_test = 0.1:0.05:1.0
         u_test = reduce(hcat, c.(t_test))
