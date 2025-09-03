@@ -1081,8 +1081,19 @@ end
         u2 = [[u[i], u[i] + 1] for i in eachindex(u)]
         du2 = [[du[i], du[i]] for i in eachindex(du)]
         ddu2 = [[ddu[i], ddu[i]] for i in eachindex(ddu)]
-        A2 = QuinticHermiteSpline(ddu2, du2, u2, t)
+        A2 = QuinticHermiteSpline(ddu2, du2, u2, t; extrapolation = ExtrapolationType.Extension)
         @test u2 ≈ A2.(t)
+        @test A2(100.0) ≈ repeat([10.107996], 2) + [0, 1] rtol=1e-5
+        @test A2(300.0) ≈ repeat([11.364162], 2) + [0, 1] rtol=1e-5
+        # Test allocation-free interpolation with Vector{StaticArrays.SVector}
+        u2_s = [convert(SVector{length(u2[1])}, i) for i in u2]
+        du2_s = [convert(SVector{length(du2[1])}, i) for i in du2]
+        ddu2_s = [convert(SVector{length(du2[1])}, i) for i in ddu2]
+        A2_s = @inferred(QuinticHermiteSpline(ddu2_s, du2_s, u2_s, t; extrapolation = ExtrapolationType.Extension))
+        @test A2_s(100.0) == A2(100.0)
+        @test A2_s(300.0) == A2(300.0)
+        @test A2_s(0.7) isa SVector{length(u2[1])}
+        @test_nowarn test_allocs(A2_s, 0.7)
     end
     @testset "Vector of Matrices case" begin
         u3 = [[u[i] u[i] + 1] for i in eachindex(u)]
