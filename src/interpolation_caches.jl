@@ -281,7 +281,13 @@ function AkimaInterpolation(
     m[end] = 2m[end - 1] - m[end - 2]
 
     b = (m[4:end] .+ m[1:(end - 3)]) ./ 2
-    dm = abs.(diff(m))
+    dm = if eltype(u) <: AbstractVector
+        # For Vector of Vectors, use norm instead of abs
+        norm.(diff(m))
+    else
+        # For scalar values, use abs as before
+        abs.(diff(m))
+    end
     f1 = dm[3:(n + 2)]
     f2 = dm[1:n]
     f12 = f1 + f2
@@ -895,15 +901,21 @@ function BSplineInterpolation(
     u, t = munge_data(u, t)
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d+1) points.")
-    s = zero(eltype(u))
+    s = zero(eltype(t))
     p = zero(t)
     k = zeros(eltype(t), n + d + 1)
-    l = zeros(eltype(u), n - 1)
+    l = zeros(eltype(t), n - 1)
     p[1] = zero(eltype(t))
     p[end] = one(eltype(t))
 
     for i in 2:n
-        s += hypot(t[i] - t[i - 1], u[i] - u[i - 1])
+        if eltype(u) <: AbstractVector
+            # For Vector of Vectors, use norm for the vector difference
+            s += sqrt((t[i] - t[i - 1])^2 + norm(u[i] - u[i - 1])^2)
+        else
+            # For scalar values, use hypot as before
+            s += hypot(t[i] - t[i - 1], u[i] - u[i - 1])
+        end
         l[i - 1] = s
     end
     if pVecType == :Uniform
@@ -1132,15 +1144,21 @@ function BSplineApprox(
     u, t = munge_data(u, t)
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d+1) control points.")
-    s = zero(eltype(u))
+    s = zero(eltype(t))
     p = zero(t)
     k = zeros(eltype(t), h + d + 1)
-    l = zeros(eltype(u), n - 1)
+    l = zeros(eltype(t), n - 1)
     p[1] = zero(eltype(t))
     p[end] = one(eltype(t))
 
     for i in 2:n
-        s += hypot(t[i] - t[i - 1], u[i] - u[i - 1])
+        if eltype(u) <: AbstractVector
+            # For Vector of Vectors, use norm for the vector difference
+            s += sqrt((t[i] - t[i - 1])^2 + norm(u[i] - u[i - 1])^2)
+        else
+            # For scalar values, use hypot as before
+            s += hypot(t[i] - t[i - 1], u[i] - u[i - 1])
+        end
         l[i - 1] = s
     end
     if pVecType == :Uniform
@@ -1189,10 +1207,10 @@ function BSplineApprox(
         end
     end
     # control points
-    c = zeros(eltype(u), h)
+    c = [zero(first(u)) for _ in 1:h]
     c[1] = u[1]
     c[end] = u[end]
-    q = zeros(eltype(u), n)
+    q = [zero(first(u)) for _ in 1:n]
     sc = zeros(eltype(t), n, h)
     for i in 1:n
         spline_coefficients!(view(sc, i, :), d, k, p[i])

@@ -523,6 +523,33 @@ end
         @test @inferred(output_dim(A_large)) == 1
         @test @inferred(output_size(A_large)) == (3,)
     end
+
+    # Test Vector of Vectors support  
+    @testset "Vector of Vectors" begin
+        t = 0.0:0.2:1.0
+        u_vec_of_vec = [[sin(ti), cos(ti)] for ti in t]
+        A = AkimaInterpolation(u_vec_of_vec, t; extrapolation = ExtrapolationType.Extension)
+        
+        # Test interpolation at original points
+        for (i, ti) in enumerate(t)
+            expected = u_vec_of_vec[i]
+            @test A(ti) ≈ expected
+        end
+        
+        # Test interpolation at intermediate points
+        result_half = A(0.5)
+        @test length(result_half) == 2
+        @test result_half[1] ≈ sin(0.5) atol=0.1
+        @test result_half[2] ≈ cos(0.5) atol=0.1
+        
+        # Test extrapolation
+        result_extrap = A(-0.1)
+        @test length(result_extrap) == 2
+        
+        # Test output dimensions
+        @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
+    end
 end
 
 @testset "ConstantInterpolation" begin
