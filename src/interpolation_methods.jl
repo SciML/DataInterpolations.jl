@@ -263,26 +263,19 @@ function _interpolate(A::QuadraticSpline{<:AbstractMatrix}, t::Number, iguess)
     uᵢ = A.u[:, idx]
     Δt_scaled = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
     
-    # Compute parameters for each row
+    # Compute parameters for each row (always compute on the fly for matrices)
     result = similar(uᵢ)
     for row in 1:size(A.u, 1)
-        # Extract row-specific parameters by computing them directly
-        # This is equivalent to what get_parameters would do for each row
-        if A.cache_parameters
-            α_row = A.p.α[idx][row]  # Assuming α is stored appropriately
-            β_row = A.p.β[idx][row]
-        else
-            # Compute parameters on the fly for this row
-            tᵢ₊ = (A.t[idx] + A.t[idx + 1]) / 2
-            sc = zeros(eltype(A.t), length(A.t))
-            nonzero_coefficient_idxs = spline_coefficients!(sc, 2, A.k, tᵢ₊)
-            uᵢ₊ = zero(eltype(A.u))
-            for j in nonzero_coefficient_idxs
-                uᵢ₊ += sc[j] * A.c[row, j]
-            end
-            α_row = 2 * (A.u[row, idx + 1] + A.u[row, idx]) - 4uᵢ₊
-            β_row = 4 * (uᵢ₊ - A.u[row, idx]) - (A.u[row, idx + 1] - A.u[row, idx])
+        # Compute parameters on the fly for this row
+        tᵢ₊ = (A.t[idx] + A.t[idx + 1]) / 2
+        sc = zeros(eltype(A.t), length(A.t))
+        nonzero_coefficient_idxs = spline_coefficients!(sc, 2, A.k, tᵢ₊)
+        uᵢ₊ = zero(eltype(A.u))
+        for j in nonzero_coefficient_idxs
+            uᵢ₊ += sc[j] * A.c[row, j]
         end
+        α_row = 2 * (A.u[row, idx + 1] + A.u[row, idx]) - 4uᵢ₊
+        β_row = 4 * (uᵢ₊ - A.u[row, idx]) - (A.u[row, idx + 1] - A.u[row, idx])
         
         result[row] = Δt_scaled * (α_row * Δt_scaled + β_row) + A.u[row, idx]
     end

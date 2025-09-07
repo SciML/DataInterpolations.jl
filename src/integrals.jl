@@ -253,6 +253,33 @@ function _integral(
 end
 
 function _integral(
+        A::QuadraticSpline{<:AbstractMatrix}, idx::Number, t1::Number, t2::Number)
+    tᵢ = A.t[idx]
+    t1_rel = t1 - tᵢ
+    t2_rel = t2 - tᵢ
+    Δt = t2 - t1
+    
+    # Compute integral for each row
+    result = similar(A.u, size(A.u, 1))
+    for row in 1:size(A.u, 1)
+        # Compute parameters on the fly for this row (same logic as in vector _integral)
+        tᵢ₊ = (A.t[idx] + A.t[idx + 1]) / 2
+        sc = zeros(eltype(A.t), length(A.t))
+        nonzero_coefficient_idxs = spline_coefficients!(sc, 2, A.k, tᵢ₊)
+        uᵢ₊ = zero(eltype(A.u))
+        for j in nonzero_coefficient_idxs
+            uᵢ₊ += sc[j] * A.c[row, j]
+        end
+        α_row = 2 * (A.u[row, idx + 1] + A.u[row, idx]) - 4uᵢ₊
+        β_row = 4 * (uᵢ₊ - A.u[row, idx]) - (A.u[row, idx + 1] - A.u[row, idx])
+        uᵢ_row = A.u[row, idx]
+        result[row] = Δt * (α_row * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β_row * (t2_rel + t1_rel) / 2 + uᵢ_row)
+    end
+    
+    result
+end
+
+function _integral(
         A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
     tᵢ = A.t[idx]
     tᵢ₊₁ = A.t[idx + 1]
@@ -264,6 +291,16 @@ end
 function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
         idx::Number, t1::Number, t2::Number)
     integrate_cubic_polynomial(t1, t2, A.t[idx], A.u[idx], A.b[idx], A.c[idx], A.d[idx])
+end
+
+function _integral(A::AkimaInterpolation{<:AbstractMatrix},
+        idx::Number, t1::Number, t2::Number)
+    # Compute integral for each row
+    result = similar(A.u, size(A.u, 1))
+    for row in 1:size(A.u, 1)
+        result[row] = integrate_cubic_polynomial(t1, t2, A.t[idx], A.u[row, idx], A.b[row, idx], A.c[row, idx], A.d[row, idx])
+    end
+    result
 end
 
 function _integral(A::LagrangeInterpolation, idx::Number, t1::Number, t2::Number)
