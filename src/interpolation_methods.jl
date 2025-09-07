@@ -204,6 +204,12 @@ function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess
     @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
 end
 
+function _interpolate(A::AkimaInterpolation{<:AbstractMatrix}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    wj = t - A.t[idx]
+    @evalpoly wj A.u[:, idx] A.b[:, idx] A.c[:, idx] A.d[:, idx]
+end
+
 # Constant Interpolation
 function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     if A.dir === :left
@@ -250,6 +256,38 @@ function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     uᵢ = A.u[idx]
     Δt_scaled = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
     Δt_scaled * (α * Δt_scaled + β) + uᵢ
+end
+
+function _interpolate(A::QuadraticSpline{<:AbstractMatrix}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    uᵢ = A.u[:, idx]
+    Δt_scaled = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
+    
+    # Compute parameters for each row
+    result = similar(uᵢ)
+    for row in 1:size(A.u, 1)
+        # Extract row-specific parameters by computing them directly
+        # This is equivalent to what get_parameters would do for each row
+        if A.cache_parameters
+            α_row = A.p.α[idx][row]  # Assuming α is stored appropriately
+            β_row = A.p.β[idx][row]
+        else
+            # Compute parameters on the fly for this row
+            tᵢ₊ = (A.t[idx] + A.t[idx + 1]) / 2
+            sc = zeros(eltype(A.t), length(A.t))
+            nonzero_coefficient_idxs = spline_coefficients!(sc, 2, A.k, tᵢ₊)
+            uᵢ₊ = zero(eltype(A.u))
+            for j in nonzero_coefficient_idxs
+                uᵢ₊ += sc[j] * A.c[row, j]
+            end
+            α_row = 2 * (A.u[row, idx + 1] + A.u[row, idx]) - 4uᵢ₊
+            β_row = 4 * (uᵢ₊ - A.u[row, idx]) - (A.u[row, idx + 1] - A.u[row, idx])
+        end
+        
+        result[row] = Δt_scaled * (α_row * Δt_scaled + β_row) + A.u[row, idx]
+    end
+    
+    result
 end
 
 # CubicSpline Interpolation

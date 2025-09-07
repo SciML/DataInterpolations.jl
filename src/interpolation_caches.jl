@@ -299,6 +299,57 @@ function AkimaInterpolation(
         extrapolation_right, cache_parameters, linear_lookup)
 end
 
+function AkimaInterpolation(
+        u::AbstractMatrix, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1e-2)
+    extrapolation_left,
+    extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right)
+    u, t = munge_data(u, t)
+    linear_lookup = seems_linear(assume_linear_t, t)
+    n = length(t)
+    dt = diff(t)
+    
+    # Handle each row of the matrix independently
+    nrows = size(u, 1)
+    b = similar(u, nrows, n)
+    c = similar(u, nrows, n - 1) 
+    d = similar(u, nrows, n - 1)
+    
+    for row in 1:nrows
+        u_row = u[row, :]
+        m = Array{eltype(u_row)}(undef, n + 3)
+        m[3:(end - 2)] = diff(u_row) ./ dt
+        m[2] = 2m[3] - m[4]
+        m[1] = 2m[2] - m[3]
+        m[end - 1] = 2m[end - 2] - m[end - 3]
+        m[end] = 2m[end - 1] - m[end - 2]
+
+        b_row = (m[4:end] .+ m[1:(end - 3)]) ./ 2
+        dm = abs.(diff(m))
+        f1 = dm[3:(n + 2)]
+        f2 = dm[1:n]
+        f12 = f1 + f2
+        ind = findall(f12 .> 1e-9 * maximum(f12))
+        b_row[ind] = (f1[ind] .* m[ind .+ 1] .+
+                      f2[ind] .* m[ind .+ 2]) ./ f12[ind]
+        c_row = (3 .* m[3:(end - 2)] .- 2 .* b_row[1:(end - 1)] .- b_row[2:end]) ./ dt
+        d_row = (b_row[1:(end - 1)] .+ b_row[2:end] .- 2 .* m[3:(end - 2)]) ./ dt .^ 2
+        
+        b[row, :] = b_row
+        c[row, :] = c_row  
+        d[row, :] = d_row
+    end
+
+    A = AkimaInterpolation(
+        u, t, nothing, b, c, d, extrapolation_left,
+        extrapolation_right, cache_parameters, linear_lookup)
+    I = cumulative_integral(A, cache_parameters)
+    AkimaInterpolation(u, t, I, b, c, d, extrapolation_left,
+        extrapolation_right, cache_parameters, linear_lookup)
+end
+
 """
     ConstantInterpolation(u, t; dir = :left, extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
@@ -558,6 +609,36 @@ function QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
         extrapolation_right, cache_parameters, assume_linear_t)
     I = cumulative_integral(A, cache_parameters)
+    QuadraticSpline(u, t, I, p, k, c, sc, extrapolation_left,
+        extrapolation_right, cache_parameters, assume_linear_t)
+end
+
+function QuadraticSpline(
+        u::AbstractMatrix, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
+        assume_linear_t = 1e-2)
+    extrapolation_left,
+    extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right)
+    u, t = munge_data(u, t)
+
+    n = length(t)
+    dtype_sc = typeof(t[1] / t[1])
+    sc = zeros(dtype_sc, n)
+    k, A = quadratic_spline_params(t, sc)
+    
+    # For matrices, solve the system for each row/column independently
+    c = similar(u)  # Same shape as u
+    for i in axes(u, 1)
+        c[i, :] = A \ u[i, :]
+    end
+
+    p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
+    A_spline = QuadraticSpline(
+        u, t, nothing, p, k, c, sc, extrapolation_left,
+        extrapolation_right, cache_parameters, assume_linear_t)
+    I = cumulative_integral(A_spline, cache_parameters)
     QuadraticSpline(u, t, I, p, k, c, sc, extrapolation_left,
         extrapolation_right, cache_parameters, assume_linear_t)
 end
