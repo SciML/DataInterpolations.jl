@@ -95,6 +95,10 @@ end
                       SmoothedConstantInterpolation(u, t; d_max), first(t), last(t))
                   for d_max in 0.0:0.1:1.0]
     @test all(I_smoothed .≈ I_ref)
+
+    A = SmoothedConstantInterpolation(
+        u, t; extrapolation = ExtrapolationType.Constant, d_max = 0)
+    @test DataInterpolations.integral(A, 5.0, 6.0) == 16.0
 end
 
 @testset "QuadraticInterpolation" begin

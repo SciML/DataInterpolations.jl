@@ -26,6 +26,4 @@ makedocs(modules = [DataInterpolations],
         "Inverting Integrals" => "inverting_integrals.md"
     ])
 
-
-
 deploydocs(repo = "github.com/SciML/DataInterpolations.jl"; push_preview = true)
