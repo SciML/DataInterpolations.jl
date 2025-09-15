@@ -142,16 +142,18 @@ function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
     elseif A.extrapolation_right in (
         ExtrapolationType.Constant, ExtrapolationType.Extension)
         d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
-        c = (A.u[end] - A.u[end - 1]) / 2
-
-        Δt_transition = min(t - A.t[end], d)
         Δt_constant = max(0, t - A.t[end] - d)
-        out = Δt_transition * A.u[end - 1] -
-              c *
-              (((Δt_transition / d)^3) / (3 / d) - ((Δt_transition^2) / d) -
-               Δt_transition) +
-              Δt_constant * A.u[end]
+        out = Δt_constant * A.u[end]
 
+        if !iszero(d)
+            c = (A.u[end] - A.u[end - 1]) / 2
+            Δt_transition = min(t - A.t[end], d)
+            out += Δt_transition * A.u[end - 1] -
+                   c *
+                   (((Δt_transition / d)^3) / (3 / d) - ((Δt_transition^2) / d) -
+                    Δt_transition)
+        end
+        out
     elseif extrapolation_right == ExtrapolationType.Linear
         slope = derivative(A, last(A.t))
         Δt = t - last(A.t)
