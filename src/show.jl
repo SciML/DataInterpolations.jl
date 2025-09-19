@@ -4,7 +4,7 @@ function Base.show(io::IO, mime::MIME"text/plain", interp::AbstractInterpolation
     print(io, get_show(interp))
     header = ["time", get_names(interp.u)...]
     data = hcat(interp.t, get_data(interp.u))
-    pretty_table(io, data; header = header, vcrop_mode = :middle)
+    pretty_table(io, data; column_labels = header, vertical_crop_mode = :middle)
 end
 
 function get_show(interp::AbstractInterpolation)
