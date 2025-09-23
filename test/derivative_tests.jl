@@ -150,9 +150,9 @@ end
 
 @testset "Constant Interpolation" begin
     u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
-    t = collect(0.0:11.0)
+    t = collect(0.0:10.0)
     A = ConstantInterpolation(u, t)
-    t2 = collect(0.0:10.0)
+    t2 = collect(0.0:9.0)
     @test all(isnan, derivative.(Ref(A), t))
     @test all(derivative.(Ref(A), t2 .+ 0.1) .== 0.0)
 end
