@@ -1263,7 +1263,8 @@ end
 
 @testset "user error" begin
     @test_throws ArgumentError LinearInterpolation(rand(10), rand(10))
-    @test_throws ArgumentError LinearInterpolation(0:10, rand(10))
+    @test_throws ArgumentError LinearInterpolation(1:10, rand(10))
+    @test_throws ArgumentError LinearInterpolation(1:3, 1:5)
 end
 
 @testset "Symbolic interpolation" begin

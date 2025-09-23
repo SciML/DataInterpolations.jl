@@ -93,7 +93,8 @@ end
 # helper function for data manipulation
 function munge_data(u::AbstractVector, t::AbstractVector;
         check_sorted = t, sorted_arg_name = ("second", "t"))
-    length(t) == length(u) || error("`u`, `t` length mismatch: length(t) ≠ length(u)")
+    length(t) == length(u) ||
+        throw(ArgumentError("`u`, `t` length mismatch: length(t) ≠ length(u)"))
 
     Tu = nonmissingtype(eltype(u))
     Tt = nonmissingtype(eltype(t))
@@ -119,7 +120,8 @@ function munge_data(u::AbstractVector, t::AbstractVector;
 end
 
 function munge_data(U::AbstractMatrix, t::AbstractVector)
-    length(t) == size(U, 2) || error("`u`, `t` length mismatch: length(t) ≠ size(U, 2)")
+    length(t) == size(U, 2) ||
+        throw(ArgumentError("`u`, `t` length mismatch: length(t) ≠ size(U, 2)"))
 
     TU = nonmissingtype(eltype(U))
     Tt = nonmissingtype(eltype(t))
@@ -136,7 +138,8 @@ function munge_data(U::AbstractMatrix, t::AbstractVector)
 end
 
 function munge_data(U::AbstractArray{T, N}, t) where {T, N}
-    length(t) == size(U, N) || error("`u`, `t` length mismatch: length(t) ≠ size(U, N)")
+    length(t) == size(U, N) ||
+        throw(ArgumentError("`u`, `t` length mismatch: length(t) ≠ size(U, N)"))
 
     TU = nonmissingtype(eltype(U))
     Tt = nonmissingtype(eltype(t))
