@@ -93,6 +93,9 @@ end
 # helper function for data manipulation
 function munge_data(u::AbstractVector, t::AbstractVector;
         check_sorted = t, sorted_arg_name = ("second", "t"))
+    length(t) == length(u) ||
+        throw(ArgumentError("`u`, `t` length mismatch: length(t) ≠ length(u)"))
+
     Tu = nonmissingtype(eltype(u))
     Tt = nonmissingtype(eltype(t))
 
@@ -109,8 +112,6 @@ function munge_data(u::AbstractVector, t::AbstractVector;
         return u, t
     end
 
-    @assert length(t) == length(u)
-
     non_missing_mask = map((ui, ti) -> !ismissing(ui) && !ismissing(ti), u, t)
     u = convert(AbstractVector{Tu}, u[non_missing_mask])
     t = convert(AbstractVector{Tt}, t[non_missing_mask])
@@ -119,13 +120,15 @@ function munge_data(u::AbstractVector, t::AbstractVector;
 end
 
 function munge_data(U::AbstractMatrix, t::AbstractVector)
+    length(t) == size(U, 2) ||
+        throw(ArgumentError("`u`, `t` length mismatch: length(t) ≠ size(U, 2)"))
+
     TU = nonmissingtype(eltype(U))
     Tt = nonmissingtype(eltype(t))
     if TU === eltype(U) && Tt === eltype(t)
         return U, t
     end
 
-    @assert length(t) == size(U, 2)
     non_missing_mask = map(
         (uis, ti) -> !any(ismissing, uis) && !ismissing(ti), eachcol(U), t)
     U = convert(AbstractMatrix{TU}, U[:, non_missing_mask])
@@ -135,13 +138,15 @@ function munge_data(U::AbstractMatrix, t::AbstractVector)
 end
 
 function munge_data(U::AbstractArray{T, N}, t) where {T, N}
+    length(t) == size(U, N) ||
+        throw(ArgumentError("`u`, `t` length mismatch: length(t) ≠ size(U, N)"))
+
     TU = nonmissingtype(eltype(U))
     Tt = nonmissingtype(eltype(t))
     if TU === eltype(U) && Tt === eltype(t)
         return U, t
     end
 
-    @assert length(t) == size(U, N)
     non_missing_mask = map(
         (uis, ti) -> !any(ismissing, uis) && !ismissing(ti), eachslice(U; dims = N), t)
     U = convert(AbstractArray{TU, N}, copy(selectdim(U, N, non_missing_mask)))

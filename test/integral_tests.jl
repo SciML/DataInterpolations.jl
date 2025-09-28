@@ -112,7 +112,7 @@ end
         args = [u, t, :Backward],
         name = "Quadratic Interpolation (Vector)")
     u = round.(rand(100), digits = 5)
-    t = 1.0collect(1:10)
+    t = 1.0collect(1:100)
     test_integral(QuadraticInterpolation; args = [u, t],
         name = "Quadratic Interpolation (Vector) with random points")
 end
