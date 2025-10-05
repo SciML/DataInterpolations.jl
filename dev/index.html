@@ -14,7 +14,7 @@ Pkg.add(&quot;DataInterpolations&quot;)</code></pre><h2 id="Available-Interpolat
 }</code></pre><h2 id="Contributing"><a class="docs-heading-anchor" href="#Contributing">Contributing</a><a id="Contributing-1"></a><a class="docs-heading-anchor-permalink" href="#Contributing" title="Permalink"></a></h2><ul><li><p>Please refer to the <a href="https://github.com/SciML/ColPrac/blob/master/README.md">SciML ColPrac: Contributor&#39;s Guide on Collaborative Practices for Community Packages</a> for guidance on PRs, issues, and other matters relating to contributing to SciML.</p></li><li><p>See the <a href="https://github.com/SciML/SciMLStyle">SciML Style Guide</a> for common coding practices and other style decisions.</p></li><li><p>There are a few community forums:</p><ul><li>The #diffeq-bridged and #sciml-bridged channels in the <a href="https://julialang.org/slack/">Julia Slack</a></li><li>The #diffeq-bridged and #sciml-bridged channels in the <a href="https://julialang.zulipchat.com/#narrow/stream/279055-sciml-bridged">Julia Zulip</a></li><li>On the <a href="https://discourse.julialang.org">Julia Discourse forums</a></li><li>See also <a href="https://sciml.ai/community/">SciML Community page</a></li></ul></li></ul><h2 id="Reproducibility"><a class="docs-heading-anchor" href="#Reproducibility">Reproducibility</a><a id="Reproducibility-1"></a><a class="docs-heading-anchor-permalink" href="#Reproducibility" title="Permalink"></a></h2><details><summary>The documentation of this SciML package was built using these direct dependencies,</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Status `~/work/DataInterpolations.jl/DataInterpolations.jl/docs/Project.toml`
   [82cc6244] DataInterpolations v8.6.1 `~/work/DataInterpolations.jl/DataInterpolations.jl`
   [e30172f5] Documenter v1.14.1
-  [961ee093] ModelingToolkit v10.23.0
+  [961ee093] ModelingToolkit v10.24.0
   [16a59e39] ModelingToolkitStandardLibrary v2.25.0
   [429524aa] Optim v1.13.2
   [1dea7af3] OrdinaryDiffEq v6.102.1
@@ -44,7 +44,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [d1d4a3ce] BitFlags v0.1.9
   [62783981] BitTwiddlingConvenienceFunctions v0.1.6
   [8e7c35d0] BlockArrays v1.7.2
-  [70df07ce] BracketingNonlinearSolve v1.4.0
+  [70df07ce] BracketingNonlinearSolve v1.5.0
   [2a0fbf3d] CPUSummary v0.2.7
   [49dc2e85] Calculus v0.5.2
   [d360d2e6] ChainRulesCore v1.26.0
@@ -80,7 +80,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [b552c78f] DiffRules v1.15.1
   [a0c0ee7d] DifferentiationInterface v0.7.8
   [8d63f2c5] DispatchDoctor v0.4.26
-  [31c24e10] Distributions v0.25.120
+  [31c24e10] Distributions v0.25.122
   [ffbed154] DocStringExtensions v0.9.5
   [e30172f5] Documenter v1.14.1
   [5b8099bc] DomainSets v0.7.16
@@ -108,12 +108,12 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [d9f16b24] Functors v0.5.2
   [46192b85] GPUArraysCore v0.2.0
   [28b8d3ca] GR v0.73.17
-  [c145ed77] GenericSchur v0.5.5
+  [c145ed77] GenericSchur v0.5.6
   [d7ba0133] Git v1.5.0
   [c27321d9] Glob v1.3.1
   [86223c79] Graphs v1.13.1
   [42e2da0e] Grisu v1.0.2
-  [cd3eb016] HTTP v1.10.17
+  [cd3eb016] HTTP v1.10.19
   [34004b35] HypergeometricFunctions v0.3.28
   [b5f81e59] IOCapture v0.2.5
   [615f187c] IfElse v0.1.1
@@ -126,7 +126,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [82899510] IteratorInterfaceExtensions v1.0.0
   [1019f520] JLFzf v0.1.11
   [692b3bcd] JLLWrappers v1.7.1
-  [682c06a0] JSON v0.21.4
+  [682c06a0] JSON v1.0.1
   [ae98c720] Jieko v0.2.1
   [98e50ef6] JuliaFormatter v2.1.6
 ⌅ [70703baa] JuliaSyntax v0.4.10
@@ -137,13 +137,13 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [10f19ff3] LayoutPointers v0.1.17
   [0e77f7df] LazilyInitializedFields v1.3.0
   [50d2b5c4] Lazy v0.15.1
-  [5078a376] LazyArrays v2.6.3
+  [5078a376] LazyArrays v2.7.0
   [0fc2ff8b] LeastSquaresOptim v0.8.7
   [87fe0de2] LineSearch v0.1.4
   [d3d80556] LineSearches v7.4.0
-  [7ed4a6bd] LinearSolve v3.40.2
+  [7ed4a6bd] LinearSolve v3.41.0
   [2ab3a3ac] LogExpFunctions v0.3.29
-  [e6f89c97] LoggingExtras v1.1.0
+  [e6f89c97] LoggingExtras v1.2.0
   [d8e11817] MLStyle v0.4.17
   [1914dd2f] MacroTools v0.5.16
   [d125e4d3] ManualMemory v0.1.8
@@ -153,7 +153,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [442fdcdd] Measures v0.3.2
   [c03570c3] Memoize v0.4.4
   [e1d29d7a] Missings v1.2.0
-  [961ee093] ModelingToolkit v10.23.0
+  [961ee093] ModelingToolkit v10.24.0
   [16a59e39] ModelingToolkitStandardLibrary v2.25.0
   [2e0e35c7] Moshi v0.3.7
   [46d2c3a1] MuladdMacro v0.2.4
@@ -161,11 +161,11 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [d8a4904e] MutableArithmetics v1.6.6
   [d41bc354] NLSolversBase v7.10.0
   [77ba4419] NaNMath v1.1.3
-  [8913a72c] NonlinearSolve v4.11.0
-  [be0214bd] NonlinearSolveBase v1.16.1
-  [5959db7a] NonlinearSolveFirstOrder v1.8.0
-  [9a2c21bd] NonlinearSolveQuasiNewton v1.9.0
-  [26075421] NonlinearSolveSpectralMethods v1.4.0
+  [8913a72c] NonlinearSolve v4.12.0
+  [be0214bd] NonlinearSolveBase v2.0.0
+  [5959db7a] NonlinearSolveFirstOrder v1.9.0
+  [9a2c21bd] NonlinearSolveQuasiNewton v1.10.0
+  [26075421] NonlinearSolveSpectralMethods v1.5.0
   [6fe1bfb0] OffsetArrays v1.17.0
   [4d8831e6] OpenSSL v1.5.0
   [429524aa] Optim v1.13.2
@@ -207,7 +207,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [ccf2f8ad] PlotThemes v3.3.0
   [995b91a9] PlotUtils v1.4.3
   [91a5bcdd] Plots v1.41.1
-  [e409e4f3] PoissonRandom v0.4.6
+  [e409e4f3] PoissonRandom v0.4.7
   [f517fe37] Polyester v0.7.18
   [1d0040c9] PolyesterWeave v0.2.2
   [85a6dd25] PositiveFactorizations v0.2.4
@@ -231,7 +231,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [ae5879a3] ResettableStacks v1.1.1
   [79098fc4] Rmath v0.8.0
   [7e49a35a] RuntimeGeneratedFunctions v0.5.15
-  [9dfe8606] SCCNonlinearSolve v1.5.0
+  [9dfe8606] SCCNonlinearSolve v1.6.0
   [94e857df] SIMDTypes v0.1.0
   [0bca4576] SciMLBase v2.120.0
   [19f34311] SciMLJacobianOperators v0.1.11
@@ -242,12 +242,12 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [efcf1570] Setfield v1.1.2
   [992d4aef] Showoff v1.0.3
   [777ac1f9] SimpleBufferStream v1.2.0
-  [727e6d20] SimpleNonlinearSolve v2.8.0
+  [727e6d20] SimpleNonlinearSolve v2.9.0
   [699a6c99] SimpleTraits v0.9.5
   [ce78b400] SimpleUnPack v1.1.0
   [a2af1166] SortingAlgorithms v1.2.2
   [0a514795] SparseMatrixColorings v0.4.21
-  [276daf66] SpecialFunctions v2.5.1
+  [276daf66] SpecialFunctions v2.6.1
   [860ef19b] StableRNGs v1.0.3
   [aedffcd0] Static v1.3.0
   [0d7ed370] StaticArrayInterface v1.8.0
@@ -259,6 +259,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [4c63d2b9] StatsFuns v1.5.0
   [7792a7ef] StrideArraysCore v0.5.8
   [892a3eda] StringManipulation v0.4.1
+  [ec057cc2] StructUtils v2.5.0
   [2efcf032] SymbolicIndexingInterface v0.3.45
 ⌃ [19f23fe9] SymbolicLimits v0.2.3
 ⌅ [d1185830] SymbolicUtils v3.32.0
@@ -314,7 +315,7 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [856f044c] MKL_jll v2025.2.0+0
   [e7412a2a] Ogg_jll v1.3.6+0
   [9bd350c2] OpenSSH_jll v10.0.2+0
-  [458c3c95] OpenSSL_jll v3.5.2+0
+  [458c3c95] OpenSSL_jll v3.5.4+0
   [efe28fd5] OpenSpecFun_jll v0.5.6+0
   [91d4177d] Opus_jll v1.5.2+0
   [36c8627f] Pango_jll v1.56.4+0
@@ -414,4 +415,4 @@ Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   [8e850b90] libblastrampoline_jll v5.11.0+0
   [8e850ede] nghttp2_jll v1.59.0+0
   [3f19e933] p7zip_jll v17.4.0+2
-Info Packages marked with ⌃ and ⌅ have new versions available. Those with ⌃ may be upgradable, but those with ⌅ are restricted by compatibility constraints from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.6.1/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.6.1/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Tuesday 30 September 2025 15:43">Tuesday 30 September 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+Info Packages marked with ⌃ and ⌅ have new versions available. Those with ⌃ may be upgradable, but those with ⌅ are restricted by compatibility constraints from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.6.1/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.6.1/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Sunday 5 October 2025 20:59">Sunday 5 October 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
