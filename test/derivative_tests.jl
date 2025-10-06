@@ -284,9 +284,9 @@ end
     u = [0.3 -1.5 3.1; -0.2 0.2 -1.5; 10.4 -37.2 -5.8]
     test_derivatives(
         SmoothArcLengthInterpolation, args = [u], kwargs = Pair[
-            :m => 5, :in_place => false],
+            :m => 5],
         name = "Smooth Arc Length Interpolation")
-    A = SmoothArcLengthInterpolation(u'; m = 25, in_place = false)
+    A = SmoothArcLengthInterpolation(u'; m = 25)
     @test all(t -> norm(derivative(A, t)) ≈ 1, range(0, A.t[end]; length = 100))
     @test all(
         t_ -> derivative(A, prevfloat(t_)) ≈ derivative(A, nextfloat(t_)), A.t[2:(end - 1)])

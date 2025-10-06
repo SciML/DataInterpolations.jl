@@ -1482,6 +1482,8 @@ If you want to do this, construct the shape interpolation yourself and use the
     for the `SmoothArcLengthInterpolation` to be C¹ smooth, the `interpolation_type` must be C¹ smooth as well.
   - `m`: The number of points at which the shape interpolation is evaluated in each interval between time points.
     The `SmoothArcLengthInterpolation` converges to the shape interpolation (in shape) as m → ∞.
+  - `in_place`: Whether the value of the interpolation should be calculated in pre-allocated memory. This saves
+    allocations, but is not compatible with e.g. ForwardDiff. Defaults to `false`.
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
@@ -1532,6 +1534,8 @@ Approximate the `shape_itp` with a C¹ unit speed interpolation using line segme
 
   - `m`: The number of points at which the shape interpolation is evaluated in each interval between time points.
     The `SmoothArcLengthInterpolation` converges to the shape interpolation (in shape) as m → ∞.
+  - `in_place`: Whether the value of the interpolation should be calculated in pre-allocated memory. This saves
+    allocations, but is not compatible with e.g. ForwardDiff. Defaults to `false`.
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
@@ -1609,6 +1613,8 @@ segments and circle segments.
   - `shape_itp`: The interpolation that is being approximated, if one exists. Note that this
     interpolation is not being used; it is just passed along to keep track of where the shape
     of the `SmoothArcLengthInterpolation` originated.
+  - `in_place`: Whether the value of the interpolation should be calculated in pre-allocated memory. This saves
+    allocations, but is not compatible with e.g. ForwardDiff. Defaults to `false`.
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
@@ -1707,7 +1713,7 @@ function SmoothArcLengthInterpolation(
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters::Bool = false,
         assume_linear_t = 1e-2,
-        in_place::Bool = true)
+        in_place::Bool = false)
     N = size(u, 1)
     n_circle_arcs = size(u, 2) - 1
 
