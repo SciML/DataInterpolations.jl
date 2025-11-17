@@ -23,9 +23,9 @@ end
     @variables t x(t)
     substitute(A(t), Dict(t => x))
     t_val = 2.7
-    @test substitute(A(t), Dict(t => t_val)) == A(t_val)
-    @test substitute(B(A(t)), Dict(t => t_val)) == B(A(t_val))
-    @test substitute(A(B(A(t))), Dict(t => t_val)) == A(B(A(t_val)))
+    @test substitute(A(t), Dict(t => t_val); fold = Val(true)) == A(t_val)
+    @test substitute(B(A(t)), Dict(t => t_val); fold = Val(true)) == B(A(t_val))
+    @test substitute(A(B(A(t))), Dict(t => t_val); fold = Val(true)) == A(B(A(t_val)))
 end
 
 @testset "Type Inference" begin

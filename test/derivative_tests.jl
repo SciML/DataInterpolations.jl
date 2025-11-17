@@ -335,8 +335,8 @@ end
     expr = A(ω)
     @test isequal(Symbolics.derivative(expr, τ), D(ω) * DataInterpolations.derivative(A, ω))
 
-    derivexpr1 = expand_derivatives(substitute(D(A(ω)), Dict(ω => 0.5τ)))
-    derivexpr2 = expand_derivatives(substitute(D2(A(ω)), Dict(ω => 0.5τ)))
+    derivexpr1 = expand_derivatives(substitute(D(A(ω)), Dict(ω => 0.5τ); filterer = Returns(true)))
+    derivexpr2 = expand_derivatives(substitute(D2(A(ω)), Dict(ω => 0.5τ); filterer = Returns(true)))
     symfunc1 = Symbolics.build_function(derivexpr1, τ; expression = Val{false})
     symfunc2 = Symbolics.build_function(derivexpr2, τ; expression = Val{false})
     @test symfunc1(0.5) == 1.5
