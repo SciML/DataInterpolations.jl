@@ -643,9 +643,9 @@ version = "2.7.3+0"
 
 [[deps.ExponentialUtilities]]
 deps = ["Adapt", "ArrayInterface", "GPUArraysCore", "GenericSchur", "LinearAlgebra", "PrecompileTools", "Printf", "SparseArrays", "libblastrampoline_jll"]
-git-tree-sha1 = "cae251c76f353e32d32d76fae2fea655eab652af"
+git-tree-sha1 = "664daa6edba2f1cc848d5a4cd1928306919238cc"
 uuid = "d4d017d3-3776-5f7e-afef-a10c40355c18"
-version = "1.27.0"
+version = "1.28.0"
 weakdeps = ["StaticArrays"]
 
     [deps.ExponentialUtilities.extensions]
