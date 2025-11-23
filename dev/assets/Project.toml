@@ -10,6 +10,9 @@ RegularizationTools = "29dad682-9a27-4bc3-9c72-016788665182"
 StableRNGs = "860ef19b-820b-49d6-a774-d7a799459cd3"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
+[sources]
+DataInterpolations = {path = "/home/runner/work/DataInterpolations.jl/DataInterpolations.jl"}
+
 [compat]
 Documenter = "1"
 ModelingToolkit = "9, 10.1"
