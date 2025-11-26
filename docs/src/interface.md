@@ -32,10 +32,49 @@ A2(300.0)
 ```
 
 !!! note
-    
+
     The values computed beyond the range of the time points provided during interpolation will not be reliable, as these methods only perform well within the range and the first/last piece polynomial fit is extrapolated on either side which might not reflect the true nature of the data.
 
 The keyword `cache_parameters = true` can be passed to precalculate parameters at initialization, making evaluations cheaper to compute. This is not compatible with modifying `u` and `t`. The default `cache_parameters = false` does however not prevent allocation in every interpolation constructor call.
+
+### In-place Evaluation (Allocation-free)
+
+When performance is critical, such as in ODE solvers or tight loops, you can use the in-place variant to avoid memory allocations. This is particularly useful when you need to interpolate at many points repeatedly.
+
+To use in-place interpolation, pass a pre-allocated output array as the first argument:
+
+```@example interface
+# Pre-allocate output array
+t_eval = [50.0, 100.0, 150.0, 200.0]
+u_out = similar(u, length(t_eval))
+
+# In-place interpolation: interp(output, t_values)
+A1(u_out, t_eval)
+
+u_out
+```
+
+The in-place form `interp(out, t)` writes the interpolated values directly into `out`, avoiding allocation of a new array. The output array must have the same length as the input time vector.
+
+For multi-dimensional data (where `u` is a matrix or higher-dimensional array), the output array should have the same leading dimensions as `u`, with the last dimension matching the length of `t`:
+
+```@example interface
+# Multi-dimensional example
+u_matrix = [14.7 11.51 10.41 14.95 12.24 11.22;
+            7.35 5.76 5.21 7.48 6.12 5.61]
+A_matrix = CubicSpline(u_matrix, t)
+
+# Pre-allocate for 3 evaluation points
+out_matrix = zeros(2, 3)
+t_eval_3 = [50.0, 100.0, 150.0]
+A_matrix(out_matrix, t_eval_3)
+
+out_matrix
+```
+
+!!! tip "Performance tip"
+
+    Using in-place interpolation can significantly reduce allocations in performance-critical code. For example, in an ODE derivative function, switching from `interp(t_vec)` to `interp(out, t_vec)` can eliminate allocations entirely within the hot loop.
 
 ## Derivatives
 
