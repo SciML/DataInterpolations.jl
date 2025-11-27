@@ -4,7 +4,11 @@ function Base.show(io::IO, mime::MIME"text/plain", interp::AbstractInterpolation
     print(io, get_show(interp))
     header = ["t", get_names(interp.u)...]
     data = hcat(interp.t, get_data(interp.u))
-    pretty_table(io, data; column_labels = header, vertical_crop_mode = :middle)
+    @static if pkgversion(PrettyTables) >= v"3"
+        pretty_table(io, data; column_labels = header, vertical_crop_mode = :middle)
+    else
+        pretty_table(io, data; header = header, vcrop_mode = :middle)
+    end
 end
 
 function get_show(interp::AbstractInterpolation)
