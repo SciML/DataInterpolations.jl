@@ -56,17 +56,31 @@ u_out
 
 The in-place form `interp(out, t)` writes the interpolated values directly into `out`, avoiding allocation of a new array. The output array must have the same length as the input time vector.
 
+For vector-of-arrays data (where `u` is a `Vector{Vector}` or `Vector{Matrix}`), the output should be a pre-allocated vector of arrays with the same structure:
+
+```@example interface
+# Vector of vectors example
+u_vov = [[14.7, 7.35], [11.51, 5.76], [10.41, 5.21], [14.95, 7.48], [12.24, 6.12], [11.22, 5.61]]
+A_vov = CubicSpline(u_vov, t)
+
+# Pre-allocate output as Vector{Vector}
+t_eval_3 = [50.0, 100.0, 150.0]
+out_vov = [zeros(2) for _ in 1:length(t_eval_3)]
+A_vov(out_vov, t_eval_3)
+
+out_vov
+```
+
 For multi-dimensional data (where `u` is a matrix or higher-dimensional array), the output array should have the same leading dimensions as `u`, with the last dimension matching the length of `t`:
 
 ```@example interface
-# Multi-dimensional example
+# Matrix example (stacked form)
 u_matrix = [14.7 11.51 10.41 14.95 12.24 11.22;
             7.35 5.76 5.21 7.48 6.12 5.61]
 A_matrix = CubicSpline(u_matrix, t)
 
 # Pre-allocate for 3 evaluation points
 out_matrix = zeros(2, 3)
-t_eval_3 = [50.0, 100.0, 150.0]
 A_matrix(out_matrix, t_eval_3)
 
 out_matrix
