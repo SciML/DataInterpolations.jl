@@ -177,7 +177,9 @@ plot(A)
 Smoothing by regularization (a.k.a. ridge regression) finds a function ``\hat{u}``
 that minimizes the objective function:
 
-``Q(\hat{u}) = \int_{t_1}^{t_N} |\hat{u}(t) - u(t)|^2 \mathrm{d}t + \lambda \int_{\hat{t}_1}^{\hat{t}_N} |\hat{u}^{(d)}(\hat{t})|^2 \mathrm{d} \hat{t}``
+```math
+Q(\hat{u}) = \int_{t_1}^{t_N} \left|\hat{u}(t) - u(t)\right|^2 \mathrm{d}t + \lambda \int_{\hat{t}_1}^{\hat{t}_N} \left|\hat{u}^{(d)}(\hat{t})\right|^2 \mathrm{d} \hat{t}
+```
 
 where ``(d)`` denotes derivative order and ``\lambda`` is the regularization
 (smoothing) parameter. The integrals are evaluated numerically at the set of
