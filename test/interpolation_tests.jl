@@ -478,6 +478,78 @@ end
     A = @inferred(AkimaInterpolation(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
     @test_throws DataInterpolations.RightExtrapolationError A(11.0)
+
+    # Test AbstractMatrix interpolation
+    @testset "AbstractMatrix" begin
+        t = 0.0:0.2:1.0
+        u_matrix = [sin.(t) cos.(t)]'  # 2x6 matrix
+        A = AkimaInterpolation(u_matrix, t; extrapolation = ExtrapolationType.Extension)
+        
+        # Test interpolation at original points
+        for (i, ti) in enumerate(t)
+            expected = u_matrix[:, i]
+            @test A(ti) ≈ expected
+        end
+        
+        # Test interpolation at intermediate points
+        result_half = A(0.5)
+        @test length(result_half) == 2
+        @test result_half[1] ≈ sin(0.5) atol=0.1  # Akima may not be exact
+        @test result_half[2] ≈ cos(0.5) atol=0.1
+        
+        # Test extrapolation
+        result_extrap = A(-0.1)
+        @test length(result_extrap) == 2
+        
+        # Test output dimensions
+        @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
+        
+        # Test edge cases
+        # Single row matrix
+        u_single_row = reshape([0.0, 1.0, 2.0, 3.0, 4.0], 1, :)
+        A_single = AkimaInterpolation(u_single_row, collect(0:4))
+        result_single = A_single(2.5)
+        @test length(result_single) == 1
+        @test @inferred(output_dim(A_single)) == 1
+        @test @inferred(output_size(A_single)) == (1,)
+        
+        # Larger matrix (3x5)
+        t_large = 0.0:0.25:1.0
+        u_large = [sin.(t_large) cos.(t_large) (t_large.^2)]'  # 3x5 matrix  
+        A_large = AkimaInterpolation(u_large, t_large)
+        result_large = A_large(0.6)
+        @test length(result_large) == 3
+        @test @inferred(output_dim(A_large)) == 1
+        @test @inferred(output_size(A_large)) == (3,)
+    end
+
+    # Test Vector of Vectors support  
+    @testset "Vector of Vectors" begin
+        t = 0.0:0.2:1.0
+        u_vec_of_vec = [[sin(ti), cos(ti)] for ti in t]
+        A = AkimaInterpolation(u_vec_of_vec, t; extrapolation = ExtrapolationType.Extension)
+        
+        # Test interpolation at original points
+        for (i, ti) in enumerate(t)
+            expected = u_vec_of_vec[i]
+            @test A(ti) ≈ expected
+        end
+        
+        # Test interpolation at intermediate points
+        result_half = A(0.5)
+        @test length(result_half) == 2
+        @test result_half[1] ≈ sin(0.5) atol=0.1
+        @test result_half[2] ≈ cos(0.5) atol=0.1
+        
+        # Test extrapolation
+        result_extrap = A(-0.1)
+        @test length(result_extrap) == 2
+        
+        # Test output dimensions
+        @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
+    end
 end
 
 @testset "ConstantInterpolation" begin
@@ -745,6 +817,51 @@ end
     @test A(2.0) == P₁(2.0) * ones(4, 3)
     @test @inferred(output_dim(A)) == 2
     @test @inferred(output_size(A)) == (4, 3)
+
+    # Test AbstractMatrix interpolation
+    @testset "AbstractMatrix" begin
+        t = [-1.0, 0.0, 1.0]
+        u_matrix = [0.0 1.0 3.0; 2.0 3.0 5.0]  # 2x3 matrix
+        A = QuadraticSpline(u_matrix, t; extrapolation = ExtrapolationType.Extension)
+        
+        # Test interpolation at original points
+        for (i, ti) in enumerate(t)
+            expected = u_matrix[:, i]
+            @test A(ti) ≈ expected
+        end
+        
+        # Test interpolation at intermediate points
+        result_half = A(0.5)
+        @test length(result_half) == 2
+        
+        # For the first row: uses P₁(x) = 0.5 * (x + 1) * (x + 2) with points [0.0, 1.0, 3.0]
+        # For the second row: same pattern but with points [2.0, 3.0, 5.0]
+        # At x = 0.5: P₁(0.5) = 0.5 * (1.5) * (2.5) = 1.875
+        @test result_half[1] ≈ P₁(0.5)
+        
+        # Test extrapolation
+        result_extrap = A(-2.0)
+        @test length(result_extrap) == 2
+        @test result_extrap[1] ≈ P₁(-2.0)
+        
+        # Test output dimensions
+        @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
+        
+        # Test edge cases  
+        # Single row matrix
+        u_single_row = reshape([2.0, 3.0, 5.0], 1, :)
+        A_single = QuadraticSpline(u_single_row, t; extrapolation = ExtrapolationType.Extension)
+        result_single = A_single(0.5)
+        @test length(result_single) == 1
+        @test @inferred(output_dim(A_single)) == 1
+        @test @inferred(output_size(A_single)) == (1,)
+        
+        # Test with cache_parameters=true
+        A_cached = QuadraticSpline(u_matrix, t; cache_parameters=true, extrapolation = ExtrapolationType.Extension)
+        result_cached = A_cached(0.5)
+        @test result_cached ≈ A(0.5)
+    end
 
     # Test extrapolation
     u = [0.0, 1.0, 3.0]
