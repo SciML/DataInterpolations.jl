@@ -140,10 +140,10 @@ uuid = "e2ed5e7c-b2de-5872-ae92-c73ca462fb04"
 version = "0.2.2"
 
 [[deps.BipartiteGraphs]]
-deps = ["DataStructures", "DocStringExtensions", "Graphs"]
-git-tree-sha1 = "800e388a6ecbe060654ccd8bfd01735400193c68"
+deps = ["DataStructures", "DocStringExtensions", "Graphs", "PrecompileTools"]
+git-tree-sha1 = "2a5a9365f2e0a62c5c797e9a9b787615c27acc37"
 uuid = "caf10ac8-0290-4205-88aa-f15908547e8d"
-version = "0.1.4"
+version = "0.1.5"
 weakdeps = ["SparseArrays"]
 
     [deps.BipartiteGraphs.extensions]
@@ -2154,10 +2154,10 @@ uuid = "431bcebd-1456-4ced-9d72-93c2757fff0b"
 version = "1.0.1"
 
 [[deps.SciMLStructures]]
-deps = ["ArrayInterface"]
-git-tree-sha1 = "2cc94f8d86a425a0e280c815c9dca7c744522999"
+deps = ["ArrayInterface", "PrecompileTools"]
+git-tree-sha1 = "52ee009033c490b847991bfb3ed43089831dfd02"
 uuid = "53ae85a6-f571-4167-b2af-e1d143709226"
-version = "1.8.0"
+version = "1.9.0"
 
 [[deps.Scratch]]
 deps = ["Dates"]
@@ -2289,9 +2289,9 @@ weakdeps = ["OffsetArrays", "StaticArrays"]
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
-git-tree-sha1 = "b8693004b385c842357406e3af647701fe783f98"
+git-tree-sha1 = "eee1b9ad8b29ef0d936e3ec9838c7ec089620308"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.9.15"
+version = "1.9.16"
 weakdeps = ["ChainRulesCore", "Statistics"]
 
     [deps.StaticArrays.extensions]
