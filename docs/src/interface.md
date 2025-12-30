@@ -92,7 +92,7 @@ out_matrix
 
 ## Derivatives
 
-Derivatives of the interpolated curves can also be computed at any point for all the methods. Derivatives upto second order is supported where first order derivative is computed analytically and second order using `ForwardDiff.jl`. Order is passed as the third argument. It is 1 by default.
+Derivatives of the interpolated curves can also be computed at any point for all the methods. Derivatives up to second order are supported where first order derivative is computed analytically and second order using `ForwardDiff.jl`. Order is passed as the third argument. It is 1 by default.
 
 We will continue with the above example, but the API is the same for all the methods. If the interpolation is defined with `extrapolate=true`, derivatives can also be extrapolated.
 
@@ -135,5 +135,5 @@ DataInterpolations.integral(A2, 200.0, 300.0)
 ```
 
 !!! note
-    
-    If the times provided in the integral go beyond the range of the time points provided during interpolation, it uses extrapolation methods to compute the values, and hence the integral can be misrepsentative and might not reflect the true nature of the data.
+
+    If the times provided in the integral go beyond the range of the time points provided during interpolation, it uses extrapolation methods to compute the values, and hence the integral can be misrepresentative and might not reflect the true nature of the data.
