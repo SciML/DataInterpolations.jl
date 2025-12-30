@@ -13,7 +13,7 @@ Pkg.add("DataInterpolations")
 
 ## Available Interpolations
 
-In all cases, `u` an `AbstractVector` of values and `t` is an `AbstractVector` of timepoints
+In all cases, `u` is an `AbstractVector` of values and `t` is an `AbstractVector` of timepoints
 corresponding to `(u,t)` pairs.
 
   - `ConstantInterpolation(u,t)` - A piecewise constant interpolation.
