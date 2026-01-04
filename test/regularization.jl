@@ -14,14 +14,14 @@ idx = unique(rand(rng, collect(eachindex(x)), 20))
 t = x[unique(idx)]
 npts = length(t)
 ut = sin.(t)
-stdev = 1e-1 * maximum(ut)
+stdev = 1.0e-1 * maximum(ut)
 u = ut + stdev * randn(rng, npts)
 # data must be ordered if t̂ is not provided
 idx = sortperm(t)
 tₒ = t[idx]
 uₒ = u[idx]
 
-tolerance = 1e-3
+tolerance = 1.0e-3
 
 @testset "Direct smoothing" begin
     # fixed with default λ = 1.0
@@ -30,7 +30,7 @@ tolerance = 1e-3
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(tₒ), ans, rtol = tolerance)
     # non-default d and λ
-    A = RegularizationSmooth(uₒ, tₒ, 4; λ = 1e-2, alg = :fixed)
+    A = RegularizationSmooth(uₒ, tₒ, 4; λ = 1.0e-2, alg = :fixed)
     ans = [0.19865190868740357 0.2885349151737291 0.6756699442978945 0.9165887141895426 0.9936113717653254 1.0042825002191034 0.9768118192829827 0.9184595331808411 0.8214983284892922 0.6538356458824783 0.28295521578898 0.018060767871253963 -0.5301723647977373 -0.8349855890541111 -1.1085048455468356]'
     @test isapprox(A.û, ans, rtol = tolerance)
     # GCV (default) to determine λ
@@ -56,7 +56,7 @@ tolerance = 1e-3
         0.1392761732695201,
         -0.3312498167413961,
         -0.6673268474631847,
-        -0.9370342562716745
+        -0.9370342562716745,
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(tₒ), ans, rtol = tolerance)
@@ -81,12 +81,12 @@ end
         0.05281575111822609,
         -0.5333542714497277,
         -0.8406745098604134,
-        -1.0983391396173634
+        -1.0983391396173634,
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(tₒ), ans, rtol = tolerance)
     # arbitrary weights for wls (and fixed λ, GCV not working well for some of these)
-    A = RegularizationSmooth(uₒ, tₒ, nothing, collect(1:npts); λ = 1e-1, alg = :fixed)
+    A = RegularizationSmooth(uₒ, tₒ, nothing, collect(1:npts); λ = 1.0e-1, alg = :fixed)
     ans = [
         0.24640196218427968,
         0.3212059975226125,
@@ -102,7 +102,7 @@ end
         0.09102085384961625,
         -0.5640882848240228,
         -0.810519277110118,
-        -1.1159124134900906
+        -1.1159124134900906,
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(tₒ), ans, rtol = tolerance)
@@ -110,7 +110,7 @@ end
     nhalf = Int(floor(npts / 2))
     wls = vcat(ones(nhalf), 10 * ones(npts - nhalf))
     wr = collect(1:(npts - 2))
-    A = RegularizationSmooth(uₒ, tₒ, nothing, wls, wr; λ = 1e-1, alg = :fixed)
+    A = RegularizationSmooth(uₒ, tₒ, nothing, wls, wr; λ = 1.0e-1, alg = :fixed)
     ans = [
         0.21878709713242372,
         0.3118480645325099,
@@ -126,7 +126,7 @@ end
         0.04756024028728636,
         -0.5301034620974782,
         -0.8408107101140526,
-        -1.1058428573417736
+        -1.1058428573417736,
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(tₒ), ans, rtol = tolerance)
@@ -173,7 +173,7 @@ end
         -0.676806367664006,
         -0.8587832527770329,
         -1.0443430843364814,
-        -1.2309001260104093
+        -1.2309001260104093,
     ]
     @test isapprox(A.û, ans, rtol = tolerance)
     @test isapprox(A.(t̂), ans, rtol = tolerance)
@@ -181,7 +181,8 @@ end
 
 @testset "Extrapolation" begin
     A = RegularizationSmooth(
-        uₒ, tₒ; alg = :fixed, extrapolation_right = ExtrapolationType.Extension)
+        uₒ, tₒ; alg = :fixed, extrapolation_right = ExtrapolationType.Extension
+    )
     @test A(10.0) == A.Aitp(10.0)
     A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
     @test_throws DataInterpolations.RightExtrapolationError A(10.0)

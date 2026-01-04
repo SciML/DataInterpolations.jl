@@ -18,7 +18,7 @@ function test_integral_inverses(method; args = [], kwargs = [])
         @test cdiff ≈ adiff
     end
 
-    @test @inferred(A(ts[37])) == A(ts[37])
+    return @test @inferred(A(ts[37])) == A(ts[37])
 end
 
 function test_integral_inverse_extrapolation()
@@ -27,8 +27,10 @@ function test_integral_inverse_extrapolation()
     u = [1.0, 2.0, 3.0, 4.0]
     A = LinearInterpolation(u, t, extrapolation = ExtrapolationType.Constant)
 
-    A_intinv = invert_integral(A, extrapolation_left = ExtrapolationType.Extension,
-        extrapolation_right = ExtrapolationType.Extension)
+    A_intinv = invert_integral(
+        A, extrapolation_left = ExtrapolationType.Extension,
+        extrapolation_right = ExtrapolationType.Extension
+    )
 
     # for a linear function, the integral is quadratic
     # but the constant extrapolation part is linear.
@@ -36,7 +38,7 @@ function test_integral_inverse_extrapolation()
     area_4_to_5 = 4.0
     area = area_0_to_4 + area_4_to_5
 
-    @test A_intinv(area) ≈ 5.0
+    return @test A_intinv(area) ≈ 5.0
 end
 
 function test_integral_inverse_const_extrapolation()
@@ -45,14 +47,16 @@ function test_integral_inverse_const_extrapolation()
     u = [1.0, 1.0, 1.0, 1.0]
     A = ConstantInterpolation(u, t, extrapolation = ExtrapolationType.Extension)
 
-    A_intinv = invert_integral(A, extrapolation_left = ExtrapolationType.Extension,
-        extrapolation_right = ExtrapolationType.Extension)
+    A_intinv = invert_integral(
+        A, extrapolation_left = ExtrapolationType.Extension,
+        extrapolation_right = ExtrapolationType.Extension
+    )
 
     area_0_to_4 = 1.0 * (4.0 - 1.0)
     area_4_to_5 = 1.0
     area = area_0_to_4 + area_4_to_5
 
-    @test A_intinv(area) ≈ 5.0
+    return @test A_intinv(area) ≈ 5.0
 end
 
 @testset "Linear Interpolation" begin

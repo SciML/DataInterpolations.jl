@@ -1,4 +1,0 @@
-style = "sciml"
-format_markdown = true
-format_docstrings = true
-ignore = ["test/sparseconnectivitytracer_tests.jl"]

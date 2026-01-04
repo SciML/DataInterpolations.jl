@@ -9,15 +9,17 @@ function derivative(A, t, order = 1)
         if order == 1
             return _derivative(A, t, iguess)
         end
-        return ForwardDiff.derivative(t -> begin
+        return ForwardDiff.derivative(
+            t -> begin
                 -_derivative(A, -t, iguess)
-            end, -t) # take derivative backwards in t to make it a left rather than right derivative
+            end, -t
+        ) # take derivative backwards in t to make it a left rather than right derivative
     end
 end
 
 function _extrapolate_derivative_left(A, t, order)
     (; extrapolation_left) = A
-    if extrapolation_left == ExtrapolationType.None
+    return if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
         zero(first(A.u) / one(A.t[1]))
@@ -25,62 +27,75 @@ function _extrapolate_derivative_left(A, t, order)
         (order == 1) ? _derivative(A, first(A.t), 1) : zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.Extension
         (order == 1) ? _derivative(A, t, length(A.t)) :
-        ForwardDiff.derivative(t -> begin
-                _derivative(A, t, length(A.t))
-            end, t)
+            ForwardDiff.derivative(
+                t -> begin
+                    _derivative(A, t, length(A.t))
+                end, t
+            )
     elseif extrapolation_left == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
         (order == 1) ? _derivative(A, t_, A.iguesser) :
-        ForwardDiff.derivative(t -> begin
-                _derivative(A, t, A.iguesser)
-            end, t_)
+            ForwardDiff.derivative(
+                t -> begin
+                    _derivative(A, t, A.iguesser)
+                end, t_
+            )
     else
         # extrapolation_left == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         sign = isodd(n) ? -1 : 1
         (order == 1) ? sign * _derivative(A, t_, A.iguesser) :
-        ForwardDiff.derivative(t -> begin
-                sign * _derivative(A, t, A.iguesser)
-            end, t_)
+            ForwardDiff.derivative(
+                t -> begin
+                    sign * _derivative(A, t, A.iguesser)
+                end, t_
+            )
     end
 end
 
 function _extrapolate_derivative_right(A, t, order)
     (; extrapolation_right) = A
-    if extrapolation_right == ExtrapolationType.None
+    return if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
         zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_right == ExtrapolationType.Linear
         (order == 1) ? _derivative(A, last(A.t), length(A.t)) :
-        zero(first(A.u) / one(A.t[1]))
+            zero(first(A.u) / one(A.t[1]))
     elseif extrapolation_right == ExtrapolationType.Extension
         (order == 1) ? _derivative(A, t, length(A.t)) :
-        ForwardDiff.derivative(t -> begin
-                _derivative(A, t, length(A.t))
-            end, t)
+            ForwardDiff.derivative(
+                t -> begin
+                    _derivative(A, t, length(A.t))
+                end, t
+            )
     elseif extrapolation_right == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
         (order == 1) ? _derivative(A, t_, A.iguesser) :
-        ForwardDiff.derivative(t -> begin
-                _derivative(A, t, A.iguesser)
-            end, t_)
+            ForwardDiff.derivative(
+                t -> begin
+                    _derivative(A, t, A.iguesser)
+                end, t_
+            )
     else
         # extrapolation_right == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         sign = iseven(n) ? -1 : 1
         (order == 1) ? sign * _derivative(A, t_, A.iguesser) :
-        ForwardDiff.derivative(t -> begin
-                sign * _derivative(A, t, A.iguesser)
-            end, t_)
+            ForwardDiff.derivative(
+                t -> begin
+                    sign * _derivative(A, t, A.iguesser)
+                end, t_
+            )
     end
 end
 
 function _extrapolate_derivative_right(A::SmoothedConstantInterpolation, t, order)
-    if A.extrapolation_right == ExtrapolationType.None
+    return if A.extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif A.extrapolation_right in (
-        ExtrapolationType.Constant, ExtrapolationType.Extension)
+            ExtrapolationType.Constant, ExtrapolationType.Extension,
+        )
         d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
         if A.t[end] + d < t
             zero(eltype(A.u))
@@ -97,14 +112,14 @@ end
 function _derivative(A::LinearInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, ub_shift = -1, side = :first)
     slope = get_parameters(A, idx)
-    slope
+    return slope
 end
 
 function _derivative(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
 
-    if (t - A.t[idx]) < d_lower
+    return if (t - A.t[idx]) < d_lower
         -2c_lower * ((t - A.t[idx]) / d_lower - 1) / d_lower
     elseif (A.t[idx + 1] - t) < d_upper
         2c_upper * (1 - (A.t[idx + 1] - t) / d_upper) / d_upper
@@ -150,7 +165,7 @@ function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
         end
         der += A.u[j] * tmp
     end
-    der
+    return der
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
@@ -183,21 +198,21 @@ function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
         end
         der += A.u[:, j] * tmp
     end
-    der
+    return der
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)
-    _derivative(A, t)
+    return _derivative(A, t)
 end
 function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx)
-    _derivative(A, t)
+    return _derivative(A, t)
 end
 
 function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, side = :first)
     j = min(idx, length(A.c))  # for smooth derivative at A.t[end]
     wj = t - A.t[idx]
-    @evalpoly wj A.b[idx] 2A.c[j] 3A.d[j]
+    return @evalpoly wj A.b[idx] 2A.c[j] 3A.d[j]
 end
 
 function _derivative(A::ConstantInterpolation, t::Number, iguess)
@@ -218,7 +233,7 @@ function _derivative(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     α, β = get_parameters(A, idx)
     Δt = t - A.t[idx]
     Δt_full = A.t[idx + 1] - A.t[idx]
-    2α * Δt / Δt_full^2 + β / Δt_full
+    return 2α * Δt / Δt_full^2 + β / Δt_full
 end
 
 # CubicSpline Interpolation
@@ -230,7 +245,7 @@ function _derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     c₁, c₂ = get_parameters(A, idx)
     dC = c₁
     dD = -c₂
-    dI + dC + dD
+    return dI + dC + dD
 end
 
 function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
@@ -251,11 +266,12 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
             ducum += sc[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
-    ducum * A.d * scale
+    return ducum * A.d * scale
 end
 
 function _derivative(
-        A::BSplineInterpolation{<:AbstractArray{<:Number}}, t::Number, iguess)
+        A::BSplineInterpolation{<:AbstractArray{<:Number}}, t::Number, iguess
+    )
     # change t into param [0 1]
     ax_u = axes(A.u)[1:(end - 1)]
     t < A.t[1] && return zeros(size(A.u)[1:(end - 1)]...)
@@ -272,11 +288,11 @@ function _derivative(
     else
         for i in 1:(n - 1)
             ducum = ducum +
-                    sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
-                    (A.k[i + A.d + 1] - A.k[i + 1])
+                sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
+                (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
-    ducum * A.d * scale
+    return ducum * A.d * scale
 end
 # BSpline Curve Approx
 function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
@@ -296,11 +312,12 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
             ducum += sc[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
-    ducum * A.d * scale
+    return ducum * A.d * scale
 end
 
 function _derivative(
-        A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess)
+        A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess
+    )
     # change t into param [0 1]
     ax_u = axes(A.u)[1:(end - 1)]
     t < A.t[1] && return zeros(size(A.u)[1:(end - 1)]...)
@@ -316,34 +333,36 @@ function _derivative(
     else
         for i in 1:(A.h - 1)
             ducum += sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
-                     (A.k[i + A.d + 1] - A.k[i + 1])
+                (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
-    ducum * A.d * scale
+    return ducum * A.d * scale
 end
 # Cubic Hermite Spline
 function _derivative(
-        A::CubicHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
+        A::CubicHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess
+    )
     idx = get_idx(A, t, iguess)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
     out = A.du[idx]
     c₁, c₂ = get_parameters(A, idx)
     out += Δt₀ * (Δt₀ * c₂ + 2(c₁ + Δt₁ * c₂))
-    out
+    return out
 end
 
 # Quintic Hermite Spline
 function _derivative(
-        A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess)
+        A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess
+    )
     idx = get_idx(A, t, iguess)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
     out = A.du[idx] + A.ddu[idx] * Δt₀
     c₁, c₂, c₃ = get_parameters(A, idx)
     out += Δt₀^2 *
-           (3c₁ + (3Δt₁ + Δt₀) * c₂ + (3Δt₁^2 + Δt₀ * 2Δt₁) * c₃)
-    out
+        (3c₁ + (3Δt₁ + Δt₀) * c₂ + (3Δt₁^2 + Δt₀ * 2Δt₁) * c₃)
+    return out
 end
 
 function _derivative(A::SmoothArcLengthInterpolation, t::Number, iguess)
@@ -378,5 +397,5 @@ function _derivative(A::SmoothArcLengthInterpolation, t::Number, iguess)
         end
     end
 
-    derivative
+    return derivative
 end

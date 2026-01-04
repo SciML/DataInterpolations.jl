@@ -1,10 +1,10 @@
 module DataInterpolationsChainRulesCoreExt
 
 using DataInterpolations: _interpolate, derivative, AbstractInterpolation,
-                          LinearInterpolation, QuadraticInterpolation,
-                          LagrangeInterpolation, AkimaInterpolation,
-                          BSplineInterpolation, BSplineApprox, get_idx, get_parameters,
-                          munge_data
+    LinearInterpolation, QuadraticInterpolation,
+    LagrangeInterpolation, AkimaInterpolation,
+    BSplineInterpolation, BSplineApprox, get_idx, get_parameters,
+    munge_data
 using ChainRulesCore
 
 function ChainRulesCore.rrule(::typeof(munge_data), u, t)
@@ -14,11 +14,12 @@ function ChainRulesCore.rrule(::typeof(munge_data), u, t)
     @assert (u == u_out && t == t_out)
 
     munge_data_pullback = Δ -> (NoTangent(), Δ[1], Δ[2])
-    (u_out, t_out), munge_data_pullback
+    return (u_out, t_out), munge_data_pullback
 end
 
 function ChainRulesCore.rrule(
-        ::Type{LinearInterpolation}, u, t, I, p, extrapolate, cache_parameters)
+        ::Type{LinearInterpolation}, u, t, I, p, extrapolate, cache_parameters
+    )
     A = LinearInterpolation(u, t, I, p, extrapolate, cache_parameters)
     function LinearInterpolation_pullback(ΔA)
         df = NoTangent()
@@ -28,14 +29,15 @@ function ChainRulesCore.rrule(
         dp = NoTangent()
         dextrapolate = NoTangent()
         dcache_parameters = NoTangent()
-        df, du, dt, dI, dp, dextrapolate, dcache_parameters
+        return df, du, dt, dI, dp, dextrapolate, dcache_parameters
     end
 
-    A, LinearInterpolation_pullback
+    return A, LinearInterpolation_pullback
 end
 
 function ChainRulesCore.rrule(
-        ::Type{QuadraticInterpolation}, u, t, I, p, mode, extrapolate, cache_parameters)
+        ::Type{QuadraticInterpolation}, u, t, I, p, mode, extrapolate, cache_parameters
+    )
     A = QuadraticInterpolation(u, t, I, p, mode, extrapolate, cache_parameters)
     function LinearInterpolation_pullback(ΔA)
         df = NoTangent()
@@ -46,10 +48,10 @@ function ChainRulesCore.rrule(
         dmode = NoTangent()
         dextrapolate = NoTangent()
         dcache_parameters = NoTangent()
-        df, du, dt, dI, dp, dmode, dextrapolate, dcache_parameters
+        return df, du, dt, dI, dp, dmode, dextrapolate, dcache_parameters
     end
 
-    A, LinearInterpolation_pullback
+    return A, LinearInterpolation_pullback
 end
 
 function u_tangent(A::LinearInterpolation, t, Δ)
@@ -66,12 +68,12 @@ function u_tangent(A::LinearInterpolation, t, Δ)
         @. out[idx] = Δ * (true - t_factor)
         @. out[idx + 1] = Δ * t_factor
     end
-    out
+    return out
 end
 
 function _quad_interp_indices(A::QuadraticInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = A.mode == :Backward ? -1 : 0, ub_shift = -2)
-    idx, idx + 1, idx + 2
+    return idx, idx + 1, idx + 2
 end
 
 function u_tangent(A::QuadraticInterpolation, t, Δ)
@@ -99,32 +101,36 @@ function u_tangent(A::QuadraticInterpolation, t, Δ)
         @. out[i₁] = -Δ * Δt_rel₀ * Δt_rel₂ / (Δt₀ * Δt₁)
         @. out[i₂] = Δ * Δt_rel₀ * Δt_rel₁ / (Δt₂ * Δt₁)
     end
-    out
+    return out
 end
 
 function u_tangent(A, t, Δ)
-    NoTangent()
+    return NoTangent()
 end
 
-function ChainRulesCore.rrule(::typeof(_interpolate),
+function ChainRulesCore.rrule(
+        ::typeof(_interpolate),
         A::Union{
             LinearInterpolation,
             QuadraticInterpolation,
             LagrangeInterpolation,
             AkimaInterpolation,
             BSplineInterpolation,
-            BSplineApprox
+            BSplineApprox,
         },
-        t::Number)
+        t::Number
+    )
     deriv = derivative(A, t)
     function interpolate_pullback(Δ)
-        (NoTangent(), Tangent{typeof(A)}(; u = u_tangent(A, t, Δ)), sum(deriv .* Δ))
+        return (NoTangent(), Tangent{typeof(A)}(; u = u_tangent(A, t, Δ)), sum(deriv .* Δ))
     end
     return _interpolate(A, t), interpolate_pullback
 end
 
-function ChainRulesCore.frule((_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolation,
-        t::Number)
+function ChainRulesCore.frule(
+        (_, _, Δt), ::typeof(_interpolate), A::AbstractInterpolation,
+        t::Number
+    )
     return _interpolate(A, t), derivative(A, t) * Δt
 end
 

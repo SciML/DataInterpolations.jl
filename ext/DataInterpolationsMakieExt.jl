@@ -9,10 +9,10 @@ Makie.plottype(::AbstractInterpolation) = Makie.ScatterLines
 
 # Define the attributes that you want to use
 function Makie.used_attributes(::Makie.PointBased, ::AbstractInterpolation)
-    (:plotdensity, :denseplot)
+    return (:plotdensity, :denseplot)
 end
 function Makie.used_attributes(::Type{<:Makie.ScatterLines}, ::AbstractInterpolation)
-    (:plotdensity, :denseplot)
+    return (:plotdensity, :denseplot)
 end
 
 # Define the conversion of the data to the plot
@@ -21,8 +21,8 @@ function Makie.convert_arguments(
         A::AbstractInterpolation;
         plotdensity = 10_000,
         denseplot = true
-)
-    DataInterpolations.to_plottable(A; plotdensity = plotdensity, denseplot = denseplot)
+    )
+    return DataInterpolations.to_plottable(A; plotdensity = plotdensity, denseplot = denseplot)
 end
 
 # Define the conversion of the data to the plot for the ScatterLines type
@@ -34,12 +34,12 @@ function Makie.convert_arguments(
         A::AbstractInterpolation;
         plotdensity = 10_000,
         denseplot = true
-)
+    )
     densex,
-    densey = convert_arguments(Makie.PointBased(), A; plotdensity = plotdensity, denseplot = denseplot)
+        densey = convert_arguments(Makie.PointBased(), A; plotdensity = plotdensity, denseplot = denseplot)
     return [
         Makie.SpecApi.Lines(densex, densey),
-        Makie.SpecApi.Scatter(A.t, A.u)
+        Makie.SpecApi.Scatter(A.t, A.u),
     ]
 end
 

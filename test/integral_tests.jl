@@ -13,91 +13,102 @@ function test_integral(method; args = [], kwargs = [], name::String)
     t2 = maximum(t)
     @testset "$name" begin
         # integral(A, t1, t2)
-        qint, err = quadgk(func, t1, t2; atol = 1e-12, rtol = 1e-12)
+        qint, err = quadgk(func, t1, t2; atol = 1.0e-12, rtol = 1.0e-12)
         aint = integral(func, t1, t2)
-        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
+        @test isapprox(qint, aint, atol = 1.0e-6, rtol = 1.0e-8)
 
         # integral(A, t)
-        qint, err = quadgk(func, t1, (t1 + t2) / 2; atol = 1e-12, rtol = 1e-12)
+        qint, err = quadgk(func, t1, (t1 + t2) / 2; atol = 1.0e-12, rtol = 1.0e-12)
         aint = integral(func, (t1 + t2) / 2)
-        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
+        @test isapprox(qint, aint, atol = 1.0e-6, rtol = 1.0e-8)
 
         # integral(A, t1, t), integral(A, t, t2), integral(A, t, t)
         ts = range(t1, t2; length = 100)
         for t in ts
-            qint, err = quadgk(func, t1, t; atol = 1e-12, rtol = 1e-12)
+            qint, err = quadgk(func, t1, t; atol = 1.0e-12, rtol = 1.0e-12)
             aint1 = integral(func, t1, t)
-            @test isapprox(qint, aint1, atol = 1e-5, rtol = 1e-8)
+            @test isapprox(qint, aint1, atol = 1.0e-5, rtol = 1.0e-8)
             aint2 = integral(func, t)
             @test aint1 == aint2
 
-            qint, err = quadgk(func, t, t2; atol = 1e-12, rtol = 1e-12)
+            qint, err = quadgk(func, t, t2; atol = 1.0e-12, rtol = 1.0e-12)
             aint = integral(func, t, t2)
-            @test isapprox(qint, aint, atol = 1e-5, rtol = 1e-8)
+            @test isapprox(qint, aint, atol = 1.0e-5, rtol = 1.0e-8)
 
             aint = integral(func, t, t)
             @test aint == 0.0
         end
 
         # integrals with extrapolation
-        qint, err = quadgk(func, t1 - 5.0, (t1 + t2) / 2; atol = 1e-12, rtol = 1e-12)
+        qint, err = quadgk(func, t1 - 5.0, (t1 + t2) / 2; atol = 1.0e-12, rtol = 1.0e-12)
         aint = integral(func, t1 - 5.0, (t1 + t2) / 2)
-        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
+        @test isapprox(qint, aint, atol = 1.0e-6, rtol = 1.0e-8)
 
-        qint, err = quadgk(func, (t1 + t2) / 2, t2 + 5.0; atol = 1e-12, rtol = 1e-12)
+        qint, err = quadgk(func, (t1 + t2) / 2, t2 + 5.0; atol = 1.0e-12, rtol = 1.0e-12)
         aint = integral(func, (t1 + t2) / 2, t2 + 5.0)
-        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
+        @test isapprox(qint, aint, atol = 1.0e-6, rtol = 1.0e-8)
 
         # Integrate intervals fully outside data
-        qint, err = quadgk(func, t1 - 5.0, t1 - 2.5; atol = 1e-12, rtol = 1e-12)
+        qint, err = quadgk(func, t1 - 5.0, t1 - 2.5; atol = 1.0e-12, rtol = 1.0e-12)
         aint = integral(func, t1 - 5.0, t1 - 2.5)
-        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
+        @test isapprox(qint, aint, atol = 1.0e-6, rtol = 1.0e-8)
 
-        qint, err = quadgk(func, t2 + 2.5, t2 + 5.0; atol = 1e-12, rtol = 1e-12)
+        qint, err = quadgk(func, t2 + 2.5, t2 + 5.0; atol = 1.0e-12, rtol = 1.0e-12)
         aint = integral(func, t2 + 2.5, t2 + 5.0)
-        @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
+        @test isapprox(qint, aint, atol = 1.0e-6, rtol = 1.0e-8)
     end
     func = method(args...; kwargs...)
     @test_throws DataInterpolations.LeftExtrapolationError integral(func, t[1] - 1.0)
     @test_throws DataInterpolations.RightExtrapolationError integral(func, t[end] + 1.0)
     @test_throws DataInterpolations.LeftExtrapolationError integral(func, t[1] - 1.0, t[2])
     @test_throws DataInterpolations.RightExtrapolationError integral(
-        func, t[1], t[end] + 1.0)
+        func, t[1], t[end] + 1.0
+    )
 
     # Test integration with cached parameters
-    func = method(args...; kwargs..., cache_parameters = true,
-        extrapolation = ExtrapolationType.Extension)
-    qint, err = quadgk(func, t1 - 1, t1; atol = 1e-12, rtol = 1e-12)
+    func = method(
+        args...; kwargs..., cache_parameters = true,
+        extrapolation = ExtrapolationType.Extension
+    )
+    qint, err = quadgk(func, t1 - 1, t1; atol = 1.0e-12, rtol = 1.0e-12)
     aint = integral(func, t1 - 1, t1)
-    @test isapprox(qint, aint, atol = 1e-6, rtol = 1e-8)
+    return @test isapprox(qint, aint, atol = 1.0e-6, rtol = 1.0e-8)
 end
 
 @testset "LinearInterpolation" begin
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
     test_integral(
-        LinearInterpolation; args = [u, t], name = "Linear Interpolation (Vector)")
+        LinearInterpolation; args = [u, t], name = "Linear Interpolation (Vector)"
+    )
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
-    test_integral(LinearInterpolation; args = [u, t],
-        name = "Linear Interpolation (Vector) with random points")
+    test_integral(
+        LinearInterpolation; args = [u, t],
+        name = "Linear Interpolation (Vector) with random points"
+    )
 end
 
 @testset "SmoothedConstantInterpolation" begin
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
     test_integral(
-        SmoothedConstantInterpolation; args = [u, t], name = "Smoothed constant interpolation")
+        SmoothedConstantInterpolation; args = [u, t], name = "Smoothed constant interpolation"
+    )
 
     A_constant = ConstantInterpolation(u, t)
     I_ref = DataInterpolations.integral(A_constant, first(t), last(t))
-    I_smoothed = [DataInterpolations.integral(
-                      SmoothedConstantInterpolation(u, t; d_max), first(t), last(t))
-                  for d_max in 0.0:0.1:1.0]
+    I_smoothed = [
+        DataInterpolations.integral(
+                SmoothedConstantInterpolation(u, t; d_max), first(t), last(t)
+            )
+            for d_max in 0.0:0.1:1.0
+    ]
     @test all(I_smoothed .≈ I_ref)
 
     A = SmoothedConstantInterpolation(
-        u, t; extrapolation = ExtrapolationType.Constant, d_max = 0)
+        u, t; extrapolation = ExtrapolationType.Constant, d_max = 0
+    )
     @test DataInterpolations.integral(A, 5.0, 6.0) == 16.0
 end
 
@@ -105,16 +116,21 @@ end
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
     test_integral(
-        QuadraticInterpolation; args = [u, t], name = "Quadratic Interpolation (Vector)")
+        QuadraticInterpolation; args = [u, t], name = "Quadratic Interpolation (Vector)"
+    )
     u = [3.0, 0.0, 3.0, 0.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    test_integral(QuadraticInterpolation;
+    test_integral(
+        QuadraticInterpolation;
         args = [u, t, :Backward],
-        name = "Quadratic Interpolation (Vector)")
+        name = "Quadratic Interpolation (Vector)"
+    )
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
-    test_integral(QuadraticInterpolation; args = [u, t],
-        name = "Quadratic Interpolation (Vector) with random points")
+    test_integral(
+        QuadraticInterpolation; args = [u, t],
+        name = "Quadratic Interpolation (Vector) with random points"
+    )
 end
 
 @testset "LagrangeInterpolation" begin
@@ -132,7 +148,8 @@ end
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     test_integral(
-        QuadraticSpline; args = [u, t], name = "Quadratic Spline (Vector) with random points")
+        QuadraticSpline; args = [u, t], name = "Quadratic Spline (Vector) with random points"
+    )
 end
 
 @testset "CubicSpline" begin
@@ -142,7 +159,8 @@ end
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     test_integral(
-        CubicSpline; args = [u, t], name = "Cubic Spline (Vector) with random points")
+        CubicSpline; args = [u, t], name = "Cubic Spline (Vector) with random points"
+    )
 end
 
 @testset "AkimaInterpolation" begin
@@ -152,22 +170,27 @@ end
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     test_integral(
-        AkimaInterpolation; args = [u, t], name = "Akima Interpolation (Vector) with random points")
+        AkimaInterpolation; args = [u, t], name = "Akima Interpolation (Vector) with random points"
+    )
 end
 
 @testset "CubicHermiteSpline" begin
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    test_integral(CubicHermiteSpline; args = [du, u, t],
-        name = "Cubic Hermite Spline (Vector)")
+    test_integral(
+        CubicHermiteSpline; args = [du, u, t],
+        name = "Cubic Hermite Spline (Vector)"
+    )
 
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     du = diff(u) ./ diff(t)
     push!(du, 0)
-    test_integral(CubicHermiteSpline; args = [du, u, t],
-        name = "Cubic Hermite Spline (Vector) with random points")
+    test_integral(
+        CubicHermiteSpline; args = [du, u, t],
+        name = "Cubic Hermite Spline (Vector) with random points"
+    )
 end
 
 @testset "QuinticHermiteSpline" begin
@@ -175,8 +198,10 @@ end
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    test_integral(QuinticHermiteSpline; args = [ddu, du, u, t],
-        name = "Quintic Hermite Spline (Vector)")
+    test_integral(
+        QuinticHermiteSpline; args = [ddu, du, u, t],
+        name = "Quintic Hermite Spline (Vector)"
+    )
 
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
@@ -184,8 +209,10 @@ end
     push!(du, 0)
     ddu = diff(du) ./ diff(t)
     push!(ddu, 0)
-    test_integral(QuinticHermiteSpline; args = [ddu, du, u, t],
-        name = "Quintic Hermite Spline (Vector) with random points")
+    test_integral(
+        QuinticHermiteSpline; args = [ddu, du, u, t],
+        name = "Quintic Hermite Spline (Vector) with random points"
+    )
 end
 
 @testset "RegularizationSmooth" begin
@@ -200,16 +227,18 @@ end
     t = x[unique(idx)]
     npts = length(t)
     ut = sin.(t)
-    stdev = 1e-1 * maximum(ut)
+    stdev = 1.0e-1 * maximum(ut)
     u = ut + stdev * randn(rng, npts)
     # data must be ordered if t̂ is not provided
     idx = sortperm(t)
     tₒ = t[idx]
     uₒ = u[idx]
-    test_integral(RegularizationSmooth;
+    test_integral(
+        RegularizationSmooth;
         args = [uₒ, tₒ],
         kwargs = [:alg => :fixed],
-        name = "RegularizationSmooth")
+        name = "RegularizationSmooth"
+    )
 end
 
 @testset "Curvefit" begin
@@ -250,7 +279,7 @@ end
     A = ConstantInterpolation(["A", "B", "C"], [0.0, 0.25, 0.75])
     for cache_parameter in (true, false)
         @test @inferred(DataInterpolations.cumulative_integral(A, cache_parameter)) ===
-              nothing
+            nothing
     end
 
     A = ConstantInterpolation([3.1, 2.5, 4.7], [0.0, 0.25, 0.75])
