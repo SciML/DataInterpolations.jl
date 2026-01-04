@@ -3,25 +3,29 @@ using ForwardDiff
 using Zygote
 
 function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name::String)
-    func = method(args..., u, t, args_after...; kwargs...,
-        extrapolation = ExtrapolationType.Extension)
+    func = method(
+        args..., u, t, args_after...; kwargs...,
+        extrapolation = ExtrapolationType.Extension
+    )
     trange = collect(range(minimum(t) - 5.0, maximum(t) + 5.0, step = 0.1))
     trange_exclude = filter(x -> !in(x, t), trange)
     @testset "$name, derivatives w.r.t. input" begin
         for _t in trange_exclude
             adiff = DataInterpolations.derivative(func, _t)
             zdiff = u isa AbstractVector{<:Real} ? only(Zygote.gradient(func, _t)) :
-                    only(Zygote.jacobian(func, _t))
+                only(Zygote.jacobian(func, _t))
             isnothing(zdiff) && (zdiff = 0.0)
             @test adiff ≈ zdiff
         end
     end
-    if method ∉
-       [LagrangeInterpolation, BSplineInterpolation, BSplineApprox, QuadraticSpline]
+    return if method ∉
+            [LagrangeInterpolation, BSplineInterpolation, BSplineApprox, QuadraticSpline]
         @testset "$name, derivatives w.r.t. u" begin
             function f(u)
-                A = method(args..., u, t, args_after...; kwargs...,
-                    extrapolation = ExtrapolationType.Extension)
+                A = method(
+                    args..., u, t, args_after...; kwargs...,
+                    extrapolation = ExtrapolationType.Extension
+                )
                 out = if u isa AbstractVector{<:Real}
                     zero(eltype(u))
                 elseif u isa AbstractMatrix
@@ -50,10 +54,12 @@ end
     u = vcat(collect(1.0:5.0), 2 * collect(6.0:10.0))
     t = collect(1.0:10.0)
     test_zygote(
-        LinearInterpolation, u, t; name = "Linear Interpolation")
+        LinearInterpolation, u, t; name = "Linear Interpolation"
+    )
     u2 = Matrix(hcat(u, u)')
     test_zygote(
-        LinearInterpolation, u2, t; name = "Linear Interpolation with matrix input")
+        LinearInterpolation, u2, t; name = "Linear Interpolation with matrix input"
+    )
 end
 
 @testset "Quadratic Interpolation" begin
@@ -62,7 +68,8 @@ end
     test_zygote(QuadraticInterpolation, u, t; name = "Quadratic Interpolation")
     u2 = Matrix(hcat(u, u)')
     test_zygote(
-        QuadraticInterpolation, u2, t; name = "Quadratic Interpolation with matrix input")
+        QuadraticInterpolation, u2, t; name = "Quadratic Interpolation with matrix input"
+    )
 end
 
 @testset "Constant Interpolation" begin
@@ -76,7 +83,8 @@ end
 
     u = [[1.0, 2.0, 3.0, 4.0], [2.0, 3.0, 4.0, 5.0]]
     test_zygote(
-        ConstantInterpolation, u, t, name = "Constant Interpolation (vector of vectors)")
+        ConstantInterpolation, u, t, name = "Constant Interpolation (vector of vectors)"
+    )
 end
 
 @testset "Cubic Hermite Spline" begin
@@ -92,7 +100,8 @@ end
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     test_zygote(
-        QuinticHermiteSpline, u, t, args = [ddu, du], name = "Quintic Hermite Spline")
+        QuinticHermiteSpline, u, t, args = [ddu, du], name = "Quintic Hermite Spline"
+    )
 end
 
 @testset "Lagrange Interpolation" begin
@@ -116,8 +125,12 @@ end
 @testset "BSplines" begin
     t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
-    test_zygote(BSplineInterpolation, u, t; args_after = [2, :Uniform, :Uniform],
-        name = "BSpline Interpolation")
-    test_zygote(BSplineApprox, u, t; args_after = [2, 4, :Uniform, :Uniform],
-        name = "BSpline approximation")
+    test_zygote(
+        BSplineInterpolation, u, t; args_after = [2, :Uniform, :Uniform],
+        name = "BSpline Interpolation"
+    )
+    test_zygote(
+        BSplineApprox, u, t; args_after = [2, 4, :Uniform, :Uniform],
+        name = "BSpline approximation"
+    )
 end

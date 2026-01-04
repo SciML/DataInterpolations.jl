@@ -3,7 +3,7 @@ struct LinearParameterCache{pType}
 end
 
 function LinearParameterCache(u, t, cache_parameters)
-    if cache_parameters
+    return if cache_parameters
         slope = linear_interpolation_parameters.(Ref(u), Ref(t), 1:(length(t) - 1))
         LinearParameterCache(slope)
     else
@@ -15,14 +15,15 @@ end
 
 # Prevent e.g. Inf - Inf = NaN
 function safe_diff(b, a::T) where {T}
-    isequal(b, a) ? zero(T) : b - a
+    return isequal(b, a) ? zero(T) : b - a
 end
 
 function linear_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {T, N}
     Δu = if N > 1
         ax = axes(u)
         safe_diff.(
-            u[ax[1:(end - 1)]..., (idx + 1)], u[ax[1:(end - 1)]..., idx])
+            u[ax[1:(end - 1)]..., (idx + 1)], u[ax[1:(end - 1)]..., idx]
+        )
     else
         safe_diff(u[idx + 1], u[idx])
     end
@@ -38,10 +39,12 @@ struct SmoothedConstantParameterCache{dType, cType}
 end
 
 function SmoothedConstantParameterCache(
-        u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right)
-    if cache_parameters
+        u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right
+    )
+    return if cache_parameters
         parameters = smoothed_constant_interpolation_parameters.(
-            Ref(u), Ref(t), d_max, eachindex(t), extrapolation_left, extrapolation_right)
+            Ref(u), Ref(t), d_max, eachindex(t), extrapolation_left, extrapolation_right
+        )
         d, c = collect.(eachrow(stack(collect.(parameters))))
         SmoothedConstantParameterCache(d, c)
     else
@@ -50,13 +53,17 @@ function SmoothedConstantParameterCache(
 end
 
 function smoothed_constant_interpolation_parameters(
-        u, t, d_max, idx, extrapolation_left, extrapolation_right)
-    if isone(idx) || (idx == length(t))
+        u, t, d_max, idx, extrapolation_left, extrapolation_right
+    )
+    return if isone(idx) || (idx == length(t))
         # If extrapolation is periodic, make the transition differentiable
         if extrapolation_left == extrapolation_right == ExtrapolationType.Periodic
             min(t[end] - t[end - 1], t[2] - t[1], 2d_max) / 2, (u[1] - u[end - 1]) / 2
-        elseif (idx == length(t)) && (extrapolation_right in (
-            ExtrapolationType.Constant, ExtrapolationType.Extension))
+        elseif (idx == length(t)) && (
+                extrapolation_right in (
+                    ExtrapolationType.Constant, ExtrapolationType.Extension,
+                )
+            )
             min(t[end] - t[end - 1], 2d_max) / 2, (u[end] - u[end - 1]) / 2
         else
             d = isone(idx) ? min(t[2] - t[1], 2d_max) / 2 :
@@ -74,9 +81,10 @@ struct QuadraticParameterCache{pType}
 end
 
 function QuadraticParameterCache(u, t, cache_parameters, mode)
-    if cache_parameters
+    return if cache_parameters
         parameters = quadratic_interpolation_parameters.(
-            Ref(u), Ref(t), 1:(length(t) - 1), mode)
+            Ref(u), Ref(t), 1:(length(t) - 1), mode
+        )
         α, β = collect.(eachrow(stack(collect.(parameters))))
         QuadraticParameterCache(α, β)
     else
@@ -115,7 +123,7 @@ function quadratic_interpolation_parameters(u, t, idx, mode)
     α = (s₂ - s₁) / Δt
     β = s₁ - α * Δt₁
 
-    α, β
+    return α, β
 end
 
 struct QuadraticSplineParameterCache{pType}
@@ -124,9 +132,10 @@ struct QuadraticSplineParameterCache{pType}
 end
 
 function QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
-    if cache_parameters
+    return if cache_parameters
         parameters = quadratic_spline_parameters.(
-            Ref(u), Ref(t), Ref(k), Ref(c), Ref(sc), 1:(length(t) - 1))
+            Ref(u), Ref(t), Ref(k), Ref(c), Ref(sc), 1:(length(t) - 1)
+        )
         α, β = collect.(eachrow(stack(collect.(parameters))))
         QuadraticSplineParameterCache(α, β)
     else
@@ -154,9 +163,10 @@ struct CubicSplineParameterCache{pType}
 end
 
 function CubicSplineParameterCache(u, h, z, cache_parameters)
-    if cache_parameters
+    return if cache_parameters
         parameters = cubic_spline_parameters.(
-            Ref(u), Ref(h), Ref(z), 1:(size(u)[end] - 1))
+            Ref(u), Ref(h), Ref(z), 1:(size(u)[end] - 1)
+        )
         c₁, c₂ = collect.(eachrow(stack(collect.(parameters))))
         CubicSplineParameterCache(c₁, c₂)
     else
@@ -186,9 +196,10 @@ struct CubicHermiteParameterCache{pType}
 end
 
 function CubicHermiteParameterCache(du, u, t, cache_parameters)
-    if cache_parameters
+    return if cache_parameters
         parameters = cubic_hermite_spline_parameters.(
-            Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
+            Ref(du), Ref(u), Ref(t), 1:(length(t) - 1)
+        )
         c₁, c₂ = collect.(eachrow(stack(collect.(parameters))))
         CubicHermiteParameterCache(c₁, c₂)
     else
@@ -217,9 +228,10 @@ struct QuinticHermiteParameterCache{pType}
 end
 
 function QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
-    if cache_parameters
+    return if cache_parameters
         parameters = quintic_hermite_spline_parameters.(
-            Ref(ddu), Ref(du), Ref(u), Ref(t), 1:(length(t) - 1))
+            Ref(ddu), Ref(du), Ref(u), Ref(t), 1:(length(t) - 1)
+        )
         c₁, c₂, c₃ = collect.(eachrow(stack(collect.(parameters))))
         QuinticHermiteParameterCache(c₁, c₂, c₃)
     else

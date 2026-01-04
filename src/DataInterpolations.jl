@@ -9,7 +9,7 @@ using PrettyTables
 using ForwardDiff
 using EnumX
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
-                           Guesser
+    Guesser
 
 @enumx ExtrapolationType None Constant Linear Extension Periodic Reflective
 
@@ -53,49 +53,49 @@ end
 const EXTRAPOLATION_ERROR = "Cannot extrapolate as `extrapolate` keyword passed was `false`"
 struct ExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::ExtrapolationError)
-    print(io, EXTRAPOLATION_ERROR)
+    return print(io, EXTRAPOLATION_ERROR)
 end
 
 const LEFT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t < first(A.t) as the `extrapolation_left` kwarg passed was `ExtrapolationType.None`"
 struct LeftExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::LeftExtrapolationError)
-    print(io, LEFT_EXTRAPOLATION_ERROR)
+    return print(io, LEFT_EXTRAPOLATION_ERROR)
 end
 
 const RIGHT_EXTRAPOLATION_ERROR = "Cannot extrapolate for t > last(A.t) as the `extrapolation_right` kwarg passed was `ExtrapolationType.None`"
 struct RightExtrapolationError <: Exception end
 function Base.showerror(io::IO, ::RightExtrapolationError)
-    print(io, RIGHT_EXTRAPOLATION_ERROR)
+    return print(io, RIGHT_EXTRAPOLATION_ERROR)
 end
 
 const INTEGRAL_NOT_FOUND_ERROR = "Cannot integrate it analytically. Please use Numerical Integration methods."
 struct IntegralNotFoundError <: Exception end
 function Base.showerror(io::IO, ::IntegralNotFoundError)
-    print(io, INTEGRAL_NOT_FOUND_ERROR)
+    return print(io, INTEGRAL_NOT_FOUND_ERROR)
 end
 
 const DERIVATIVE_NOT_FOUND_ERROR = "Derivatives greater than second order is not supported."
 struct DerivativeNotFoundError <: Exception end
 function Base.showerror(io::IO, ::DerivativeNotFoundError)
-    print(io, DERIVATIVE_NOT_FOUND_ERROR)
+    return print(io, DERIVATIVE_NOT_FOUND_ERROR)
 end
 
 const INTEGRAL_INVERSE_NOT_FOUND_ERROR = "Cannot invert the integral analytically. Please use Numerical methods."
 struct IntegralInverseNotFoundError <: Exception end
 function Base.showerror(io::IO, ::IntegralInverseNotFoundError)
-    print(io, INTEGRAL_INVERSE_NOT_FOUND_ERROR)
+    return print(io, INTEGRAL_INVERSE_NOT_FOUND_ERROR)
 end
 
 const INTEGRAL_NOT_INVERTIBLE_ERROR = "The Interpolation is not positive everywhere so its integral is not invertible."
 struct IntegralNotInvertibleError <: Exception end
 function Base.showerror(io::IO, ::IntegralNotInvertibleError)
-    print(io, INTEGRAL_NOT_INVERTIBLE_ERROR)
+    return print(io, INTEGRAL_NOT_INVERTIBLE_ERROR)
 end
 
 const EXTRAPOLATION_NOT_IMPLEMENTED_ERROR = "The provided extrapolation option is not implemented."
 struct ExtrapolationNotImplementedError <: Exception end
 function Base.showerror(io::IO, ::ExtrapolationNotImplementedError)
-    print(io, EXTRAPOLATION_NOT_IMPLEMENTED_ERROR)
+    return print(io, EXTRAPOLATION_NOT_IMPLEMENTED_ERROR)
 end
 
 """
@@ -119,17 +119,17 @@ _output_size(u::AbstractVector) = size(first(u))
 _output_size(u::AbstractArray) = Base.front(size(u))
 
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
-       AkimaInterpolation, ConstantInterpolation, SmoothedConstantInterpolation,
-       QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox,
-       CubicHermiteSpline, PCHIPInterpolation, QuinticHermiteSpline,
-       SmoothArcLengthInterpolation, LinearInterpolationIntInv,
-       ConstantInterpolationIntInv, ExtrapolationType
+    AkimaInterpolation, ConstantInterpolation, SmoothedConstantInterpolation,
+    QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox,
+    CubicHermiteSpline, PCHIPInterpolation, QuinticHermiteSpline,
+    SmoothArcLengthInterpolation, LinearInterpolationIntInv,
+    ConstantInterpolationIntInv, ExtrapolationType
 export output_dim, output_size
 
 # added for RegularizationSmooth, JJS 11/27/21
 ### Regularization data smoothing and interpolation
 struct RegularizationSmooth{uType, tType, T, T2, ITP <: AbstractInterpolation{T}} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     u::uType
     û::uType
     t::tType
@@ -142,19 +142,7 @@ struct RegularizationSmooth{uType, tType, T, T2, ITP <: AbstractInterpolation{T}
     Aitp::ITP
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
-    function RegularizationSmooth(u,
-            û,
-            t,
-            t̂,
-            wls,
-            wr,
-            d,
-            λ,
-            alg,
-            Aitp,
-            extrapolation_left,
-            extrapolation_right)
-        new{typeof(u), typeof(t), eltype(u), typeof(λ), typeof(Aitp)}(
+    function RegularizationSmooth(
             u,
             û,
             t,
@@ -166,7 +154,22 @@ struct RegularizationSmooth{uType, tType, T, T2, ITP <: AbstractInterpolation{T}
             alg,
             Aitp,
             extrapolation_left,
-            extrapolation_right)
+            extrapolation_right
+        )
+        return new{typeof(u), typeof(t), eltype(u), typeof(λ), typeof(Aitp)}(
+            u,
+            û,
+            t,
+            t̂,
+            wls,
+            wr,
+            d,
+            λ,
+            alg,
+            Aitp,
+            extrapolation_left,
+            extrapolation_right
+        )
     end
 end
 
@@ -174,16 +177,16 @@ export RegularizationSmooth
 
 # CurveFit
 struct CurvefitCache{
-    uType,
-    tType,
-    mType,
-    p0Type,
-    ubType,
-    lbType,
-    algType,
-    pminType,
-    T
-} <: AbstractInterpolation{T}
+        uType,
+        tType,
+        mType,
+        p0Type,
+        ubType,
+        lbType,
+        algType,
+        pminType,
+        T,
+    } <: AbstractInterpolation{T}
     u::uType
     t::tType
     m::mType        # model type
@@ -194,9 +197,12 @@ struct CurvefitCache{
     pmin::pminType  # optimized params
     extrapolate::Bool
     function CurvefitCache(u, t, m, p0, ub, lb, alg, pmin, extrapolate)
-        new{typeof(u), typeof(t), typeof(m),
+        return new{
+            typeof(u), typeof(t), typeof(m),
             typeof(p0), typeof(ub), typeof(lb),
-            typeof(alg), typeof(pmin), eltype(u)}(u,
+            typeof(alg), typeof(pmin), eltype(u),
+        }(
+            u,
             t,
             m,
             p0,
@@ -204,7 +210,8 @@ struct CurvefitCache{
             lb,
             alg,
             pmin,
-            extrapolate)
+            extrapolate
+        )
     end
 end
 

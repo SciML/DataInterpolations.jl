@@ -18,7 +18,7 @@ invert_integral(::AbstractInterpolation) = throw(IntegralInverseNotFoundError())
 _integral(::AbstractIntegralInverseInterpolation, idx, t) = throw(IntegralNotFoundError())
 
 function _derivative(A::AbstractIntegralInverseInterpolation, t::Number, iguess)
-    inv(A.itp(_interpolate(A, t, iguess)))
+    return inv(A.itp(_interpolate(A, t, iguess)))
 end
 
 """
@@ -34,7 +34,7 @@ Can be easily constructed with `invert_integral(A::LinearInterpolation{<:Abstrac
   - `A` : The `LinearInterpolation` object
 """
 struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
-       AbstractIntegralInverseInterpolation{T}
+    AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
     extrapolation_left::ExtrapolationType.T
@@ -42,8 +42,9 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
     iguesser::Guesser{tType}
     itp::itpType
     function LinearInterpolationIntInv(u, t, A, extrapolation_left, extrapolation_right)
-        new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, extrapolation_left, extrapolation_right, Guesser(t), A)
+        return new{typeof(u), typeof(t), typeof(A), eltype(u)}(
+            u, t, extrapolation_left, extrapolation_right, Guesser(t), A
+        )
     end
 end
 
@@ -54,27 +55,30 @@ end
 function get_I(A::AbstractInterpolation)
     I = isempty(A.I) ? cumulative_integral(A, true) : copy(A.I)
     pushfirst!(I, 0)
-    I
+    return I
 end
 
 function invert_integral(
         A::LinearInterpolation{<:AbstractVector{<:Number}};
         extrapolation_left::ExtrapolationType.T = A.extrapolation_left,
-        extrapolation_right::ExtrapolationType.T = A.extrapolation_right)
+        extrapolation_right::ExtrapolationType.T = A.extrapolation_right
+    )
     !invertible_integral(A) && throw(IntegralNotInvertibleError())
 
     return LinearInterpolationIntInv(
-        A.t, get_I(A), A, extrapolation_left, extrapolation_right)
+        A.t, get_I(A), A, extrapolation_left, extrapolation_right
+    )
 end
 
 function _interpolate(
-        A::LinearInterpolationIntInv{<:AbstractVector{<:Number}}, t::Number, iguess)
+        A::LinearInterpolationIntInv{<:AbstractVector{<:Number}}, t::Number, iguess
+    )
     idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]
     x = A.itp.u[idx]
     slope = get_parameters(A.itp, idx)
     u = A.u[idx] + 2Δt / (x + sqrt(x^2 + slope * 2Δt))
-    u
+    return u
 end
 
 """
@@ -90,7 +94,7 @@ Can be easily constructed with `invert_integral(A::ConstantInterpolation{<:Abstr
   - `A` : The `ConstantInterpolation` object
 """
 struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
-       AbstractIntegralInverseInterpolation{T}
+    AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
     extrapolation_left::ExtrapolationType.T
@@ -98,8 +102,9 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
     iguesser::Guesser{tType}
     itp::itpType
     function ConstantInterpolationIntInv(
-            u, t, A, extrapolation_left, extrapolation_right)
-        new{typeof(u), typeof(t), typeof(A), eltype(u)}(
+            u, t, A, extrapolation_left, extrapolation_right
+        )
+        return new{typeof(u), typeof(t), typeof(A), eltype(u)}(
             u, t, extrapolation_left, extrapolation_right, Guesser(t), A
         )
     end
@@ -109,16 +114,20 @@ function invertible_integral(A::ConstantInterpolation{<:AbstractVector{<:Number}
     return all(A.u .> 0)
 end
 
-function invert_integral(A::ConstantInterpolation{<:AbstractVector{<:Number}};
+function invert_integral(
+        A::ConstantInterpolation{<:AbstractVector{<:Number}};
         extrapolation_left::ExtrapolationType.T = A.extrapolation_left,
-        extrapolation_right::ExtrapolationType.T = A.extrapolation_right)
+        extrapolation_right::ExtrapolationType.T = A.extrapolation_right
+    )
     !invertible_integral(A) && throw(IntegralNotInvertibleError())
     return ConstantInterpolationIntInv(
-        A.t, get_I(A), A, extrapolation_left, extrapolation_right)
+        A.t, get_I(A), A, extrapolation_left, extrapolation_right
+    )
 end
 
 function _interpolate(
-        A::ConstantInterpolationIntInv{<:AbstractVector{<:Number}}, t::Number, iguess)
+        A::ConstantInterpolationIntInv{<:AbstractVector{<:Number}}, t::Number, iguess
+    )
     idx = get_idx(A, t, iguess; ub_shift = 0)
     if A.itp.dir === :left
         # :left means that value to the left is used for interpolation
@@ -127,5 +136,5 @@ function _interpolate(
         # :right means that value to the right is used for interpolation
         idx_ = get_idx(A, t, idx; side = :first, lb = 1, ub_shift = 0)
     end
-    A.u[idx] + (t - A.t[idx]) / A.itp.u[idx_]
+    return A.u[idx] + (t - A.t[idx]) / A.itp.u[idx_]
 end

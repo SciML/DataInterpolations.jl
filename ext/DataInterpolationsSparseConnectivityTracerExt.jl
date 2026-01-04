@@ -5,20 +5,20 @@ using SparseConnectivityTracer: GradientTracer, gradient_tracer_1_to_1
 using SparseConnectivityTracer: HessianTracer, hessian_tracer_1_to_1
 using FillArrays: Fill # from FillArrays.jl
 using DataInterpolations:
-                          AbstractInterpolation,
-                          LinearInterpolation,
-                          QuadraticInterpolation,
-                          LagrangeInterpolation,
-                          AkimaInterpolation,
-                          ConstantInterpolation,
-                          QuadraticSpline,
-                          CubicSpline,
-                          BSplineInterpolation,
-                          BSplineApprox,
-                          CubicHermiteSpline,
-# PCHIPInterpolation,
-                          QuinticHermiteSpline,
-                          output_size#===========##===========#
+    AbstractInterpolation,
+    LinearInterpolation,
+    QuadraticInterpolation,
+    LagrangeInterpolation,
+    AkimaInterpolation,
+    ConstantInterpolation,
+    QuadraticSpline,
+    CubicSpline,
+    BSplineInterpolation,
+    BSplineApprox,
+    CubicHermiteSpline,
+    # PCHIPInterpolation,
+    QuinticHermiteSpline,
+    output_size #===========# #===========#
 
 # Utilities #
 
@@ -32,7 +32,7 @@ function _sct_interpolate(
         t::GradientTracer,
         is_der_1_zero,
         is_der_2_zero
-)
+    )
     return gradient_tracer_1_to_1(t, is_der_1_zero)
 end
 function _sct_interpolate(
@@ -41,7 +41,7 @@ function _sct_interpolate(
         t::HessianTracer,
         is_der_1_zero,
         is_der_2_zero
-)
+    )
     return hessian_tracer_1_to_1(t, is_der_1_zero, is_der_2_zero)
 end
 function _sct_interpolate(
@@ -50,7 +50,7 @@ function _sct_interpolate(
         t::GradientTracer,
         is_der_1_zero,
         is_der_2_zero
-)
+    )
     t = gradient_tracer_1_to_1(t, is_der_1_zero)
     N = only(output_size(interp))
     return Fill(t, N)
@@ -61,11 +61,11 @@ function _sct_interpolate(
         t::HessianTracer,
         is_der_1_zero,
         is_der_2_zero
-)
+    )
     t = hessian_tracer_1_to_1(t, is_der_1_zero, is_der_2_zero)
     N = only(output_size(interp))
     return Fill(t, N)
-end#===========##===========#
+end #===========# #===========#
 
 # Overloads #
 
@@ -73,33 +73,33 @@ end#===========##===========#
 # all interpolations have a non-zero second derivative at some point in the input domain.
 
 for (I, is_der1_zero, is_der2_zero) in (
-    (:ConstantInterpolation, true, true),
-    (:LinearInterpolation, false, true),
-    (:QuadraticInterpolation, false, false),
-    (:LagrangeInterpolation, false, false),
-    (:AkimaInterpolation, false, false),
-    (:QuadraticSpline, false, false),
-    (:CubicSpline, false, false),
-    (:BSplineInterpolation, false, false),
-    (:BSplineApprox, false, false),
-    (:CubicHermiteSpline, false, false),
-    (:QuinticHermiteSpline, false, false)
-)
+        (:ConstantInterpolation, true, true),
+        (:LinearInterpolation, false, true),
+        (:QuadraticInterpolation, false, false),
+        (:LagrangeInterpolation, false, false),
+        (:AkimaInterpolation, false, false),
+        (:QuadraticSpline, false, false),
+        (:CubicSpline, false, false),
+        (:BSplineInterpolation, false, false),
+        (:BSplineApprox, false, false),
+        (:CubicHermiteSpline, false, false),
+        (:QuinticHermiteSpline, false, false),
+    )
     @eval function (interp::$(I){uType})(
             t::AbstractTracer
-    ) where {uType <: AbstractArray{<:Number}}
+        ) where {uType <: AbstractArray{<:Number}}
         return _sct_interpolate(interp, uType, t, $is_der1_zero, $is_der2_zero)
     end
 end
 
 # Some Interpolations require custom overloads on `Dual` due to mutation of caches.
 for I in (
-    :LagrangeInterpolation,
-    :BSplineInterpolation,
-    :BSplineApprox,
-    :CubicHermiteSpline,
-    :QuinticHermiteSpline
-)
+        :LagrangeInterpolation,
+        :BSplineInterpolation,
+        :BSplineApprox,
+        :CubicHermiteSpline,
+        :QuinticHermiteSpline,
+    )
     @eval function (interp::$(I){uType})(d::Dual) where {uType <: AbstractVector}
         p = interp(primal(d))
         t = interp(tracer(d))

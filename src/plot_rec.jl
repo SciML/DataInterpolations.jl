@@ -12,11 +12,13 @@ function to_plottable(A::AbstractInterpolation; plotdensity = 10_000, denseplot 
         plott = t
     end
     output = A.(plott)
-    plott, output
+    return plott, output
 end
 
-@recipe function f(A::AbstractInterpolation; plotdensity = 10_000, denseplot = true,
-        label_interp = string(nameof(typeof(A))), label_data = "Data points")
+@recipe function f(
+        A::AbstractInterpolation; plotdensity = 10_000, denseplot = true,
+        label_interp = string(nameof(typeof(A))), label_data = "Data points"
+    )
     seriescolor = get(plotattributes, :seriescolor, :blue)
     @series begin
         seriestype := :path

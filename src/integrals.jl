@@ -1,5 +1,5 @@
 function integral(A::AbstractInterpolation, t::Number)
-    integral(A, first(A.t), t)
+    return integral(A, first(A.t), t)
 end
 
 function integral(A::AbstractInterpolation, t1::Number, t2::Number)
@@ -69,7 +69,7 @@ end
 
 function _extrapolate_integral_left(A, t)
     (; extrapolation_left) = A
-    if extrapolation_left == ExtrapolationType.None
+    return if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
         first(A.u) * (first(A.t) - t)
@@ -103,7 +103,7 @@ end
 
 function _extrapolate_integral_right(A, t)
     (; extrapolation_right) = A
-    if extrapolation_right == ExtrapolationType.None
+    return if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
         last(A.u) * (t - last(A.t))
@@ -137,10 +137,11 @@ end
 
 function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
     (; extrapolation_right) = A
-    if extrapolation_right == ExtrapolationType.None
+    return if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif A.extrapolation_right in (
-        ExtrapolationType.Constant, ExtrapolationType.Extension)
+            ExtrapolationType.Constant, ExtrapolationType.Extension,
+        )
         d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
         Δt_constant = max(0, t - A.t[end] - d)
         out = Δt_constant * A.u[end]
@@ -149,9 +150,11 @@ function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
             c = (A.u[end] - A.u[end - 1]) / 2
             Δt_transition = min(t - A.t[end], d)
             out += Δt_transition * A.u[end - 1] -
-                   c *
-                   (((Δt_transition / d)^3) / (3 / d) - ((Δt_transition^2) / d) -
-                    Δt_transition)
+                c *
+                (
+                ((Δt_transition / d)^3) / (3 / d) - ((Δt_transition^2) / d) -
+                    Δt_transition
+            )
         end
         out
     elseif extrapolation_right == ExtrapolationType.Linear
@@ -181,15 +184,18 @@ function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
     end
 end
 
-function _integral(A::LinearInterpolation{<:AbstractVector{<:Number}},
-        idx::Number, t1::Number, t2::Number)
+function _integral(
+        A::LinearInterpolation{<:AbstractVector{<:Number}},
+        idx::Number, t1::Number, t2::Number
+    )
     slope = get_parameters(A, idx)
     u_mean = A.u[idx] + slope * ((t1 + t2) / 2 - A.t[idx])
-    u_mean * (t2 - t1)
+    return u_mean * (t2 - t1)
 end
 
 function _integral(
-        A::ConstantInterpolation{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+        A::ConstantInterpolation{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
+    )
     Δt = t2 - t1
     if A.dir === :left
         # :left means that value to the left is used for interpolation
@@ -200,8 +206,10 @@ function _integral(
     end
 end
 
-function _integral(A::SmoothedConstantInterpolation{<:AbstractVector},
-        idx::Number, t1::Number, t2::Number)
+function _integral(
+        A::SmoothedConstantInterpolation{<:AbstractVector},
+        idx::Number, t1::Number, t2::Number
+    )
     d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
 
     bound_lower = A.t[idx] + d_lower
@@ -219,53 +227,61 @@ function _integral(A::SmoothedConstantInterpolation{<:AbstractVector},
     if t1 < bound_lower
         t2_ = min(t2, bound_lower)
         out -= c_lower * d_lower *
-               (((t2_ - A.t[idx]) / d_lower - 1)^3 - ((t1 - A.t[idx]) / d_lower - 1)^3) / 3
+            (((t2_ - A.t[idx]) / d_lower - 1)^3 - ((t1 - A.t[idx]) / d_lower - 1)^3) / 3
     end
 
     if t2 > bound_upper
         t1_ = max(t1, bound_upper)
         out += c_upper * d_upper *
-               ((1 - (A.t[idx + 1] - t2) / d_upper)^3 -
-                (1 - (A.t[idx + 1] - t1_) / d_upper)^3) / 3
+            (
+            (1 - (A.t[idx + 1] - t2) / d_upper)^3 -
+                (1 - (A.t[idx + 1] - t1_) / d_upper)^3
+        ) / 3
     end
 
-    out
+    return out
 end
 
-function _integral(A::QuadraticInterpolation{<:AbstractVector{<:Number}},
-        idx::Number, t1::Number, t2::Number)
+function _integral(
+        A::QuadraticInterpolation{<:AbstractVector{<:Number}},
+        idx::Number, t1::Number, t2::Number
+    )
     α, β = get_parameters(A, idx)
     uᵢ = A.u[idx]
     tᵢ = A.t[idx]
     t1_rel = t1 - tᵢ
     t2_rel = t2 - tᵢ
     Δt = t2 - t1
-    Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
+    return Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
 end
 
 function _integral(
-        A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+        A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
+    )
     α, β = get_parameters(A, idx)
     uᵢ = A.u[idx]
     tᵢ = A.t[idx]
     t1_rel = t1 - tᵢ
     t2_rel = t2 - tᵢ
     Δt = t2 - t1
-    Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
+    return Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
 end
 
 function _integral(
-        A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+        A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
+    )
     tᵢ = A.t[idx]
     tᵢ₊₁ = A.t[idx + 1]
     c₁, c₂ = get_parameters(A, idx)
-    integrate_cubic_polynomial(t1, t2, tᵢ, 0, c₁, 0, A.z[idx + 1] / (6A.h[idx + 1])) +
-    integrate_cubic_polynomial(t1, t2, tᵢ₊₁, 0, -c₂, 0, -A.z[idx] / (6A.h[idx + 1]))
+    return integrate_cubic_polynomial(t1, t2, tᵢ, 0, c₁, 0, A.z[idx + 1] / (6A.h[idx + 1])) +
+        integrate_cubic_polynomial(t1, t2, tᵢ₊₁, 0, -c₂, 0, -A.z[idx] / (6A.h[idx + 1]))
 end
 
-function _integral(A::AkimaInterpolation{<:AbstractVector{<:Number}},
-        idx::Number, t1::Number, t2::Number)
-    integrate_cubic_polynomial(t1, t2, A.t[idx], A.u[idx], A.b[idx], A.c[idx], A.d[idx])
+function _integral(
+        A::AkimaInterpolation{<:AbstractVector{<:Number}},
+        idx::Number, t1::Number, t2::Number
+    )
+    return integrate_cubic_polynomial(t1, t2, A.t[idx], A.u[idx], A.b[idx], A.c[idx], A.d[idx])
 end
 
 function _integral(A::LagrangeInterpolation, idx::Number, t1::Number, t2::Number)
@@ -280,21 +296,25 @@ end
 
 # Cubic Hermite Spline
 function _integral(
-        A::CubicHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+        A::CubicHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
+    )
     c₁, c₂ = get_parameters(A, idx)
     tᵢ = A.t[idx]
     tᵢ₊₁ = A.t[idx + 1]
     c = c₁ - c₂ * (tᵢ₊₁ - tᵢ)
-    integrate_cubic_polynomial(t1, t2, tᵢ, A.u[idx], A.du[idx], c, c₂)
+    return integrate_cubic_polynomial(t1, t2, tᵢ, A.u[idx], A.du[idx], c, c₂)
 end
 
 # Quintic Hermite Spline
 function _integral(
-        A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+        A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
+    )
     tᵢ = A.t[idx]
     tᵢ₊₁ = A.t[idx + 1]
     Δt = tᵢ₊₁ - tᵢ
     c₁, c₂, c₃ = get_parameters(A, idx)
-    integrate_quintic_polynomial(t1, t2, tᵢ, A.u[idx], A.du[idx], A.ddu[idx] / 2,
-        c₁ + Δt * (-c₂ + c₃ * Δt), c₂ - 2c₃ * Δt, c₃)
+    return integrate_quintic_polynomial(
+        t1, t2, tᵢ, A.u[idx], A.du[idx], A.ddu[idx] / 2,
+        c₁ + Δt * (-c₂ + c₃ * Δt), c₂ - 2c₃ * Δt, c₃
+    )
 end

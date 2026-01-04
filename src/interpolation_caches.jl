@@ -37,31 +37,38 @@ struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolati
     iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
-    function LinearInterpolation(u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters, assume_linear_t)
-        linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
+    function LinearInterpolation(
             u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup)
+            cache_parameters, assume_linear_t
+        )
+        linear_lookup = seems_linear(assume_linear_t, t)
+        return new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
+            u, t, I, p, extrapolation_left, extrapolation_right,
+            Guesser(t), cache_parameters, linear_lookup
+        )
     end
 end
 
 function LinearInterpolation(
         u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1e-2)
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     p = LinearParameterCache(u, t, cache_parameters)
     A = LinearInterpolation(
         u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t)
+        extrapolation_right, cache_parameters, assume_linear_t
+    )
     I = cumulative_integral(A, cache_parameters)
-    LinearInterpolation(
+    return LinearInterpolation(
         u, t, I, p, extrapolation_left, extrapolation_right,
-        cache_parameters, assume_linear_t)
+        cache_parameters, assume_linear_t
+    )
 end
 
 """
@@ -94,7 +101,7 @@ Extrapolation extends the last quadratic polynomial on each side.
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct QuadraticInterpolation{uType, tType, IType, pType, T} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -107,36 +114,43 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T} <:
     linear_lookup::Bool
     function QuadraticInterpolation(
             u, t, I, p, mode, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t)
+            extrapolation_right, cache_parameters, assume_linear_t
+        )
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.α), eltype(u)}(
+        return new{typeof(u), typeof(t), typeof(I), typeof(p.α), eltype(u)}(
             u, t, I, p, mode, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup)
+            Guesser(t), cache_parameters, linear_lookup
+        )
     end
 end
 
 function QuadraticInterpolation(
         u, t, mode; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1e-2)
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     linear_lookup = seems_linear(assume_linear_t, t)
     p = QuadraticParameterCache(u, t, cache_parameters, mode)
     A = QuadraticInterpolation(
         u, t, nothing, p, mode, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+        extrapolation_right, cache_parameters, linear_lookup
+    )
     I = cumulative_integral(A, cache_parameters)
-    QuadraticInterpolation(u, t, I, p, mode, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+    return QuadraticInterpolation(
+        u, t, I, p, mode, extrapolation_left,
+        extrapolation_right, cache_parameters, linear_lookup
+    )
 end
 
 function QuadraticInterpolation(u, t; kwargs...)
-    QuadraticInterpolation(u, t, :Forward; kwargs...)
+    return QuadraticInterpolation(u, t, :Forward; kwargs...)
 end
 
 """
@@ -162,7 +176,7 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
 """
 struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     u::uType
     t::tType
     n::Int
@@ -175,7 +189,8 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
-        new{typeof(u), typeof(t), eltype(u), typeof(bcache)}(u,
+        return new{typeof(u), typeof(t), eltype(u), typeof(bcache)}(
+            u,
             t,
             n,
             bcache,
@@ -191,15 +206,17 @@ function LagrangeInterpolation(
         u, t, n = length(t) - 1;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None)
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
     end
-    LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right)
+    return LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right)
 end
 
 """
@@ -230,7 +247,7 @@ Extrapolation extends the last cubic polynomial on each side.
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -244,10 +261,14 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
     linear_lookup::Bool
     function AkimaInterpolation(
             u, t, I, b, c, d, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t)
+            extrapolation_right, cache_parameters, assume_linear_t
+        )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
-            typeof(d), eltype(u)}(u,
+        return new{
+            typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
+            typeof(d), eltype(u),
+        }(
+            u,
             t,
             I,
             b,
@@ -265,10 +286,12 @@ end
 function AkimaInterpolation(
         u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1e-2)
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     linear_lookup = seems_linear(assume_linear_t, t)
     n = length(t)
@@ -285,18 +308,23 @@ function AkimaInterpolation(
     f1 = dm[3:(n + 2)]
     f2 = dm[1:n]
     f12 = f1 + f2
-    ind = findall(f12 .> 1e-9 * maximum(f12))
-    b[ind] = (f1[ind] .* m[ind .+ 1] .+
-              f2[ind] .* m[ind .+ 2]) ./ f12[ind]
+    ind = findall(f12 .> 1.0e-9 * maximum(f12))
+    b[ind] = (
+        f1[ind] .* m[ind .+ 1] .+
+            f2[ind] .* m[ind .+ 2]
+    ) ./ f12[ind]
     c = (3 .* m[3:(end - 2)] .- 2 .* b[1:(end - 1)] .- b[2:end]) ./ dt
     d = (b[1:(end - 1)] .+ b[2:end] .- 2 .* m[3:(end - 2)]) ./ dt .^ 2
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+        extrapolation_right, cache_parameters, linear_lookup
+    )
     I = cumulative_integral(A, cache_parameters)
-    AkimaInterpolation(u, t, I, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+    return AkimaInterpolation(
+        u, t, I, b, c, d, extrapolation_left,
+        extrapolation_right, cache_parameters, linear_lookup
+    )
 end
 
 """
@@ -341,11 +369,13 @@ struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     linear_lookup::Bool
     function ConstantInterpolation(
             u, t, I, dir, extrapolation_left, extrapolation_right,
-            cache_parameters, assume_linear_t)
+            cache_parameters, assume_linear_t
+        )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), eltype(u)}(
+        return new{typeof(u), typeof(t), typeof(I), eltype(u)}(
             u, t, I, nothing, dir, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup)
+            Guesser(t), cache_parameters, linear_lookup
+        )
     end
 end
 
@@ -353,17 +383,22 @@ function ConstantInterpolation(
         u, t; dir = :left, extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false, assume_linear_t = 1e-2)
+        cache_parameters = false, assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     A = ConstantInterpolation(
         u, t, nothing, dir, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t)
+        extrapolation_right, cache_parameters, assume_linear_t
+    )
     I = cumulative_integral(A, cache_parameters)
-    ConstantInterpolation(u, t, I, dir, extrapolation_left, extrapolation_right,
-        cache_parameters, assume_linear_t)
+    return ConstantInterpolation(
+        u, t, I, dir, extrapolation_left, extrapolation_right,
+        cache_parameters, assume_linear_t
+    )
 end
 
 """
@@ -398,7 +433,7 @@ except when using extrapolation types `Constant` or `Extension`.
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType, T} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -411,12 +446,16 @@ struct SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType
     linear_lookup::Bool
     function SmoothedConstantInterpolation(
             u, t, I, p, d_max, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t)
+            extrapolation_right, cache_parameters, assume_linear_t
+        )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.d),
-            typeof(p.c), typeof(d_max), eltype(u)}(
+        return new{
+            typeof(u), typeof(t), typeof(I), typeof(p.d),
+            typeof(p.c), typeof(d_max), eltype(u),
+        }(
             u, t, I, p, d_max, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup)
+            Guesser(t), cache_parameters, linear_lookup
+        )
     end
 end
 
@@ -424,20 +463,25 @@ function SmoothedConstantInterpolation(
         u, t; d_max = Inf, extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false, assume_linear_t = 1e-2)
+        cache_parameters = false, assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     p = SmoothedConstantParameterCache(
-        u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right)
+        u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right
+    )
     A = SmoothedConstantInterpolation(
         u, t, nothing, p, d_max, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t)
+        extrapolation_right, cache_parameters, assume_linear_t
+    )
     I = cumulative_integral(A, cache_parameters)
-    SmoothedConstantInterpolation(
+    return SmoothedConstantInterpolation(
         u, t, I, p, d_max, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t)
+        extrapolation_right, cache_parameters, assume_linear_t
+    )
 end
 
 """
@@ -468,7 +512,7 @@ Extrapolation extends the last quadratic polynomial on each side.
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -483,10 +527,14 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T} <:
     linear_lookup::Bool
     function QuadraticSpline(
             u, t, I, p, k, c, sc, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t)
+            extrapolation_right, cache_parameters, assume_linear_t
+        )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
-            typeof(c), typeof(sc), eltype(u)}(u,
+        return new{
+            typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
+            typeof(c), typeof(sc), eltype(u),
+        }(
+            u,
             t,
             I,
             p,
@@ -506,10 +554,12 @@ function QuadraticSpline(
         u::AbstractVector{<:Number}, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false, assume_linear_t = 1e-2)
+        cache_parameters = false, assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
 
     n = length(t)
@@ -521,20 +571,25 @@ function QuadraticSpline(
     p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t)
+        extrapolation_right, cache_parameters, assume_linear_t
+    )
     I = cumulative_integral(A, cache_parameters)
-    QuadraticSpline(u, t, I, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t)
+    return QuadraticSpline(
+        u, t, I, p, k, c, sc, extrapolation_left,
+        extrapolation_right, cache_parameters, assume_linear_t
+    )
 end
 
 function QuadraticSpline(
         u::AbstractVector, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1e-2)
+        assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
 
     n = length(t)
@@ -556,10 +611,13 @@ function QuadraticSpline(
     p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t)
+        extrapolation_right, cache_parameters, assume_linear_t
+    )
     I = cumulative_integral(A, cache_parameters)
-    QuadraticSpline(u, t, I, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t)
+    return QuadraticSpline(
+        u, t, I, p, k, c, sc, extrapolation_left,
+        extrapolation_right, cache_parameters, assume_linear_t
+    )
 end
 
 """
@@ -590,7 +648,7 @@ Second derivative on both ends are zero, which are also called "natural" boundar
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -602,11 +660,15 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <:
     iguesser::Guesser{tType}
     cache_parameters::Bool
     linear_lookup::Bool
-    function CubicSpline(u, t, I, p, h, z, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t)
+    function CubicSpline(
+            u, t, I, p, h, z, extrapolation_left,
+            extrapolation_right, cache_parameters, assume_linear_t
+        )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(p.c₁),
-            typeof(h), typeof(z), eltype(u)}(
+        return new{
+            typeof(u), typeof(t), typeof(I), typeof(p.c₁),
+            typeof(h), typeof(z), eltype(u),
+        }(
             u,
             t,
             I,
@@ -622,14 +684,17 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <:
     end
 end
 
-function CubicSpline(u::AbstractVector{<:Number},
+function CubicSpline(
+        u::AbstractVector{<:Number},
         t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1e-2)
+        assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -639,32 +704,41 @@ function CubicSpline(u::AbstractVector{<:Number},
     tA = Tridiagonal(dl, d_tmp, du)
 
     # zero for element type of d, which we don't know yet
-    typed_zero = zero(6(u[begin + 2] - u[begin + 1]) / h[begin + 2] -
-                      6(u[begin + 1] - u[begin]) / h[begin + 1])
+    typed_zero = zero(
+        6(u[begin + 2] - u[begin + 1]) / h[begin + 2] -
+            6(u[begin + 1] - u[begin]) / h[begin + 1]
+    )
 
     d = map(
         i -> i == 1 || i == n + 1 ? typed_zero :
-             6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
-        1:(n + 1))
+            6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
+        1:(n + 1)
+    )
     z = tA \ d
     linear_lookup = seems_linear(assume_linear_t, t)
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+        extrapolation_right, cache_parameters, linear_lookup
+    )
     I = cumulative_integral(A, cache_parameters)
-    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+    return CubicSpline(
+        u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
+        extrapolation_right, cache_parameters, linear_lookup
+    )
 end
 
-function CubicSpline(u::AbstractArray{T, N},
+function CubicSpline(
+        u::AbstractArray{T, N},
         t;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1e-2) where {T, N}
+        assume_linear_t = 1.0e-2
+    ) where {T, N}
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -675,8 +749,10 @@ function CubicSpline(u::AbstractArray{T, N},
 
     # zero for element type of d, which we don't know yet
     ax = axes(u)[1:(end - 1)]
-    typed_zero = zero(6(u[ax..., begin + 2] - u[ax..., begin + 1]) / h[begin + 2] -
-                      6(u[ax..., begin + 1] - u[ax..., begin]) / h[begin + 1])
+    typed_zero = zero(
+        6(u[ax..., begin + 2] - u[ax..., begin + 1]) / h[begin + 2] -
+            6(u[ax..., begin + 1] - u[ax..., begin]) / h[begin + 1]
+    )
 
     h_ = reshape(h, ones(Int64, N - 1)..., :)
     ax_h = axes(h_)[1:(end - 1)]
@@ -690,20 +766,25 @@ function CubicSpline(u::AbstractArray{T, N},
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+        extrapolation_right, cache_parameters, linear_lookup
+    )
     I = cumulative_integral(A, cache_parameters)
-    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+    return CubicSpline(
+        u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
+        extrapolation_right, cache_parameters, linear_lookup
+    )
 end
 
 function CubicSpline(
         u::AbstractVector, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1e-2)
+        assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -713,8 +794,9 @@ function CubicSpline(
     tA = Tridiagonal(dl, d_tmp, du)
     d_ = map(
         i -> i == 1 || i == n + 1 ? zeros(eltype(t), size(u[1])) :
-             6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
-        1:(n + 1))
+            6(u[i + 1] - u[i]) / h[i + 1] - 6(u[i] - u[i - 1]) / h[i],
+        1:(n + 1)
+    )
     d = transpose(reshape(reduce(hcat, d_), :, n + 1))
     z_ = reshape(transpose(tA \ d), size(u[1])..., :)
     z = [convert(eltype(u), z_s) for z_s in eachslice(z_, dims = ndims(z_))]
@@ -722,10 +804,13 @@ function CubicSpline(
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t)
+        extrapolation_right, cache_parameters, assume_linear_t
+    )
     I = cumulative_integral(A, cache_parameters)
-    CubicSpline(u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t)
+    return CubicSpline(
+        u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
+        extrapolation_right, cache_parameters, assume_linear_t
+    )
 end
 
 """
@@ -758,7 +843,7 @@ Extrapolation is a constant polynomial of the end points on each side.
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     u::uType
     t::tType
     d::Int    # degree
@@ -772,7 +857,8 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     linear_lookup::Bool
-    function BSplineInterpolation(u,
+    function BSplineInterpolation(
+            u,
             t,
             d,
             p,
@@ -783,9 +869,10 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T} <:
             knotVecType,
             extrapolation_left,
             extrapolation_right,
-            assume_linear_t)
+            assume_linear_t
+        )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u)}(
+        return new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u)}(
             u,
             t,
             d,
@@ -807,13 +894,15 @@ function BSplineInterpolation(
         u::AbstractVector, t, d, pVecType, knotVecType;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, assume_linear_t = 1e-2)
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     n = length(t)
-    n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d+1) points.")
+    n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
     s = zero(eltype(u))
     p = zero(t)
     k = zeros(eltype(t), n + d + 1)
@@ -874,9 +963,10 @@ function BSplineInterpolation(
     spline_coefficients!(sc, d, k, p)
     c = vec(sc \ u[:, :])
     sc = zeros(eltype(t), n)
-    BSplineInterpolation(
+    return BSplineInterpolation(
         u, t, d, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right, assume_linear_t)
+        extrapolation_left, extrapolation_right, assume_linear_t
+    )
 end
 
 function BSplineInterpolation(
@@ -884,13 +974,15 @@ function BSplineInterpolation(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        assume_linear_t = 1e-2)
+        assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     n = length(t)
-    n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d+1) points.")
+    n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
     s = zero(eltype(u))
     p = zero(t)
     k = zeros(eltype(t), n + d + 1)
@@ -954,9 +1046,10 @@ function BSplineInterpolation(
     c = (sc \ reshape(u, prod(size(u)[1:(end - 1)]), :)')'
     c = reshape(c, size(u)...)
     sc = zeros(eltype(t), n)
-    BSplineInterpolation(
+    return BSplineInterpolation(
         u, t, d, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right, assume_linear_t)
+        extrapolation_left, extrapolation_right, assume_linear_t
+    )
 end
 
 """
@@ -991,7 +1084,7 @@ Extrapolation is a constant polynomial of the end points on each side.
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct BSplineApprox{uType, tType, pType, kType, cType, scType, T} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     u::uType
     t::tType
     d::Int    # degree
@@ -1006,7 +1099,8 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     linear_lookup::Bool
-    function BSplineApprox(u,
+    function BSplineApprox(
+            u,
             t,
             d,
             h,
@@ -1019,9 +1113,9 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T} <:
             extrapolation_left,
             extrapolation_right,
             assume_linear_t
-    )
+        )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u)}(
+        return new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u)}(
             u,
             t,
             d,
@@ -1044,13 +1138,15 @@ function BSplineApprox(
         u::AbstractVector, t, d, h, pVecType, knotVecType;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, assume_linear_t = 1e-2)
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, assume_linear_t = 1.0e-2
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     n = length(t)
-    h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d+1) control points.")
+    h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
     s = zero(eltype(u))
     p = zero(t)
     k = zeros(eltype(t), h + d + 1)
@@ -1132,9 +1228,10 @@ function BSplineApprox(
     P = M \ Q
     c[2:(end - 1)] .= vec(P)
     sc = zeros(eltype(t), h)
-    BSplineApprox(
+    return BSplineApprox(
         u, t, d, h, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right, assume_linear_t)
+        extrapolation_left, extrapolation_right, assume_linear_t
+    )
 end
 
 function BSplineApprox(
@@ -1142,13 +1239,15 @@ function BSplineApprox(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        assume_linear_t = 1e-2) where {T, N}
+        assume_linear_t = 1.0e-2
+    ) where {T, N}
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     n = length(t)
-    h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d+1) control points.")
+    h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
     s = zero(eltype(u))
     p = zero(t)
     k = zeros(eltype(t), h + d + 1)
@@ -1217,9 +1316,11 @@ function BSplineApprox(
         spline_coefficients!(view(sc, i, :), d, k, p[i])
     end
     for k in 2:(n - 1)
-        q[ax_u...,
-        k] = u[ax_u..., k] - sc[k, 1] * u[ax_u..., 1] -
-                        sc[k, h] * u[ax_u..., end]
+        q[
+            ax_u...,
+            k,
+        ] = u[ax_u..., k] - sc[k, 1] * u[ax_u..., 1] -
+            sc[k, h] * u[ax_u..., end]
     end
     Q = Array{T, N}(undef, size(u)[1:(end - 1)]..., h - 2)
     for i in 2:(h - 1)
@@ -1236,9 +1337,10 @@ function BSplineApprox(
     P = reshape(P, size(u)[1:(end - 1)]..., :)
     c[ax_u..., 2:(end - 1)] = P
     sc = zeros(eltype(t), h)
-    BSplineApprox(
+    return BSplineApprox(
         u, t, d, h, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right, assume_linear_t)
+        extrapolation_left, extrapolation_right, assume_linear_t
+    )
 end
 """
     CubicHermiteSpline(du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
@@ -1268,7 +1370,7 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     du::duType
     u::uType
     t::tType
@@ -1281,31 +1383,38 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <:
     linear_lookup::Bool
     function CubicHermiteSpline(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters, assume_linear_t)
+            cache_parameters, assume_linear_t
+        )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u)}(
+        return new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u)}(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup)
+            Guesser(t), cache_parameters, linear_lookup
+        )
     end
 end
 
 function CubicHermiteSpline(
         du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1e-2)
-    @assert length(u)==length(du) "Length of `u` is not equal to length of `du`."
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1.0e-2
+    )
+    @assert length(u) == length(du) "Length of `u` is not equal to length of `du`."
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     linear_lookup = seems_linear(assume_linear_t, t)
     p = CubicHermiteParameterCache(du, u, t, cache_parameters)
     A = CubicHermiteSpline(
         du, u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+        extrapolation_right, cache_parameters, linear_lookup
+    )
     I = cumulative_integral(A, cache_parameters)
-    CubicHermiteSpline(du, u, t, I, p, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+    return CubicHermiteSpline(
+        du, u, t, I, p, extrapolation_left,
+        extrapolation_right, cache_parameters, linear_lookup
+    )
 end
 
 """
@@ -1339,7 +1448,7 @@ section 3.4 for more details.
 function PCHIPInterpolation(u, t; kwargs...)
     u, t = munge_data(u, t)
     du = du_PCHIP(u, t)
-    CubicHermiteSpline(du, u, t; kwargs...)
+    return CubicHermiteSpline(du, u, t; kwargs...)
 end
 
 """
@@ -1371,7 +1480,7 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
 struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
-       AbstractInterpolation{T}
+    AbstractInterpolation{T}
     ddu::dduType
     du::duType
     u::uType
@@ -1385,12 +1494,16 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
     linear_lookup::Bool
     function QuinticHermiteSpline(
             ddu, du, u, t, I, p, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t)
+            extrapolation_right, cache_parameters, assume_linear_t
+        )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), typeof(du),
-            typeof(ddu), typeof(p.c₁), eltype(u)}(
+        return new{
+            typeof(u), typeof(t), typeof(I), typeof(du),
+            typeof(ddu), typeof(p.c₁), eltype(u),
+        }(
             ddu, du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup)
+            Guesser(t), cache_parameters, linear_lookup
+        )
     end
 end
 
@@ -1398,26 +1511,31 @@ function QuinticHermiteSpline(
         ddu, du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false, assume_linear_t = 1e-2)
-    @assert length(u)==length(du)==length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
+        cache_parameters = false, assume_linear_t = 1.0e-2
+    )
+    @assert length(u) == length(du) == length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     linear_lookup = seems_linear(assume_linear_t, t)
     p = QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
     A = QuinticHermiteSpline(
         ddu, du, u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+        extrapolation_right, cache_parameters, linear_lookup
+    )
     I = cumulative_integral(A, cache_parameters)
-    QuinticHermiteSpline(
+    return QuinticHermiteSpline(
         ddu, du, u, t, I, p, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup)
+        extrapolation_right, cache_parameters, linear_lookup
+    )
 end
 
 struct SmoothArcLengthInterpolation{
-    uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing}, T} <:
-       AbstractInterpolation{T}
+        uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing}, T,
+    } <:
+    AbstractInterpolation{T}
     u::uType
     t::tType
     d::Matrix{D}
@@ -1444,10 +1562,13 @@ struct SmoothArcLengthInterpolation{
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, extrapolation_left, extrapolation_right,
-            assume_linear_t, out, derivative, in_place)
+            assume_linear_t, out, derivative, in_place
+        )
         linear_lookup = seems_linear(assume_linear_t, t)
-        new{typeof(u), typeof(t), typeof(I), eltype(radius),
-            eltype(d), typeof(shape_itp), eltype(u)}(
+        return new{
+            typeof(u), typeof(t), typeof(I), eltype(radius),
+            eltype(d), typeof(shape_itp), eltype(u),
+        }(
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, nothing, extrapolation_left, extrapolation_right,
@@ -1499,7 +1620,7 @@ function SmoothArcLengthInterpolation(
         t::Union{AbstractVector, Nothing} = nothing,
         interpolation_type::Type{<:AbstractInterpolation} = QuadraticSpline,
         kwargs...
-) where {U}
+    ) where {U}
     if isnothing(t)
         # Compute default t based on point distances
         N, n = size(u)
@@ -1512,7 +1633,7 @@ function SmoothArcLengthInterpolation(
         end
     end
     shape_itp = interpolation_type(collect.(eachcol(u)), t)
-    SmoothArcLengthInterpolation(shape_itp; kwargs...)
+    return SmoothArcLengthInterpolation(shape_itp; kwargs...)
 end
 
 """
@@ -1548,7 +1669,7 @@ function SmoothArcLengthInterpolation(
         shape_itp::AbstractInterpolation;
         m::Integer = 2,
         kwargs...
-)
+    )
     (; u, t) = shape_itp
     T = promote_type(eltype(eltype(u)), eltype(t))
 
@@ -1624,15 +1745,17 @@ segments and circle segments.
 function SmoothArcLengthInterpolation(
         u::AbstractMatrix,
         d::AbstractMatrix;
-        kwargs...)
-    SmoothArcLengthInterpolation(u, d, Val{true}(); kwargs...)
+        kwargs...
+    )
+    return SmoothArcLengthInterpolation(u, d, Val{true}(); kwargs...)
 end
 
 function SmoothArcLengthInterpolation(
         u::AbstractMatrix,
         d::AbstractMatrix,
         make_intersections::Val{true};
-        kwargs...)
+        kwargs...
+    )
     N, n = size(u)
 
     # Number of points in the augmented tangent curve
@@ -1669,7 +1792,7 @@ function SmoothArcLengthInterpolation(
 
         @. uⱼ_close_left = uⱼ + dⱼ_coef * dⱼ
         @. uⱼ_close_right = uⱼ₊₁ +
-                            dⱼ₊₁_coef * dⱼ₊₁
+            dⱼ₊₁_coef * dⱼ₊₁
         @. uⱼ_int = (uⱼ_close_left + uⱼ_close_right) / 2
 
         # compute δ_star
@@ -1706,8 +1829,9 @@ function SmoothArcLengthInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters::Bool = false,
-        assume_linear_t = 1e-2,
-        in_place::Bool = true)
+        assume_linear_t = 1.0e-2,
+        in_place::Bool = true
+    )
     N = size(u, 1)
     n_circle_arcs = size(u, 2) - 1
 
@@ -1753,8 +1877,9 @@ function SmoothArcLengthInterpolation(
     end
 
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     linear_lookup = seems_linear(assume_linear_t, t)
 
     out = Vector{P}(undef, N)
@@ -1763,5 +1888,6 @@ function SmoothArcLengthInterpolation(
     return SmoothArcLengthInterpolation(
         u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
         center, radius, dir_1, dir_2, short_side_left,
-        nothing, extrapolation_left, extrapolation_right, linear_lookup, out, derivative, in_place)
+        nothing, extrapolation_left, extrapolation_right, linear_lookup, out, derivative, in_place
+    )
 end

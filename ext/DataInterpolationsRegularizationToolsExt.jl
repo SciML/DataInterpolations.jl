@@ -2,8 +2,8 @@ module DataInterpolationsRegularizationToolsExt
 
 using DataInterpolations
 import DataInterpolations: munge_data, munge_extrapolation,
-                           _interpolate, RegularizationSmooth, get_show, derivative,
-                           integral
+    _interpolate, RegularizationSmooth, get_show, derivative,
+    integral
 using LinearAlgebra
 
 import RegularizationTools as RT
@@ -66,26 +66,31 @@ Smoothing using all arguments
 A = RegularizationSmooth(u, t, t̂, wls, wr, d; λ = 1.0, alg = :gcv_svd)
 ```
 """
-function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
+function RegularizationSmooth(
+        u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
         wls::AbstractVector, wr::AbstractVector, d::Int = 2;
         λ::Real = 1.0, alg::Symbol = :gcv_svd,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters::Bool = false)
+        cache_parameters::Bool = false
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t; check_sorted = t̂, sorted_arg_name = ("third", "t̂"))
     M = _mapping_matrix(t̂, t)
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = LA.diagm(sqrt.(wr))
     û, λ,
-    Aitp = _reg_smooth_solve(
+        Aitp = _reg_smooth_solve(
         u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolation_left,
-        extrapolation_right, cache_parameters)
-    RegularizationSmooth(
-        u, û, t, t̂, wls, wr, d, λ, alg, Aitp, extrapolation_left, extrapolation_right)
+        extrapolation_right, cache_parameters
+    )
+    return RegularizationSmooth(
+        u, û, t, t̂, wls, wr, d, λ, alg, Aitp, extrapolation_left, extrapolation_right
+    )
 end
 """
 Direct smoothing, no `t̂` or weights
@@ -94,16 +99,19 @@ Direct smoothing, no `t̂` or weights
 A = RegularizationSmooth(u, t, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
-function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int = 2;
+function RegularizationSmooth(
+        u::AbstractVector, t::AbstractVector, d::Int = 2;
         λ::Real = 1.0,
         alg::Symbol = :gcv_svd,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters::Bool = false)
+        cache_parameters::Bool = false
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     t̂ = t
     N = length(t)
@@ -111,10 +119,12 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int = 2;
     Wls½ = Array{Float64}(LA.I, N, N)
     Wr½ = Array{Float64}(LA.I, N - d, N - d)
     û, λ,
-    Aitp = _reg_smooth_solve(
+        Aitp = _reg_smooth_solve(
         u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolation_left,
-        extrapolation_right, cache_parameters)
-    RegularizationSmooth(u,
+        extrapolation_right, cache_parameters
+    )
+    return RegularizationSmooth(
+        u,
         û,
         t,
         t̂,
@@ -125,7 +135,8 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, d::Int = 2;
         alg,
         Aitp,
         extrapolation_left,
-        extrapolation_right)
+        extrapolation_right
+    )
 end
 """
 `t̂` provided, no weights
@@ -134,25 +145,30 @@ end
 A = RegularizationSmooth(u, t, t̂, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
-function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
+function RegularizationSmooth(
+        u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
         d::Int = 2; λ::Real = 1.0, alg::Symbol = :gcv_svd,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters::Bool = false)
+        cache_parameters::Bool = false
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t; check_sorted = t̂, sorted_arg_name = ("third", "t̂"))
     N, N̂ = length(t), length(t̂)
     M = _mapping_matrix(t̂, t)
     Wls½ = Array{Float64}(LA.I, N, N)
     Wr½ = Array{Float64}(LA.I, N̂ - d, N̂ - d)
     û, λ,
-    Aitp = _reg_smooth_solve(
+        Aitp = _reg_smooth_solve(
         u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolation_left,
-        extrapolation_right, cache_parameters)
-    RegularizationSmooth(u,
+        extrapolation_right, cache_parameters
+    )
+    return RegularizationSmooth(
+        u,
         û,
         t,
         t̂,
@@ -163,7 +179,8 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
         alg,
         Aitp,
         extrapolation_left,
-        extrapolation_right)
+        extrapolation_right
+    )
 end
 """
 `t̂` and `wls` provided
@@ -172,26 +189,31 @@ end
 A = RegularizationSmooth(u, t, t̂, wls, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
-function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
+function RegularizationSmooth(
+        u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
         wls::AbstractVector, d::Int = 2; λ::Real = 1.0,
         alg::Symbol = :gcv_svd,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters::Bool = false)
+        cache_parameters::Bool = false
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t; check_sorted = t̂, sorted_arg_name = ("third", "t̂"))
     N, N̂ = length(t), length(t̂)
     M = _mapping_matrix(t̂, t)
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = Array{Float64}(LA.I, N̂ - d, N̂ - d)
     û, λ,
-    Aitp = _reg_smooth_solve(
+        Aitp = _reg_smooth_solve(
         u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolation_left,
-        extrapolation_right, cache_parameters)
-    RegularizationSmooth(u,
+        extrapolation_right, cache_parameters
+    )
+    return RegularizationSmooth(
+        u,
         û,
         t,
         t̂,
@@ -202,7 +224,8 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Abstrac
         alg,
         Aitp,
         extrapolation_left,
-        extrapolation_right)
+        extrapolation_right
+    )
 end
 """
 `wls` provided, no `t̂`
@@ -212,16 +235,19 @@ A = RegularizationSmooth(
     u, t, nothing, wls, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
-function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
+function RegularizationSmooth(
+        u::AbstractVector, t::AbstractVector, t̂::Nothing,
         wls::AbstractVector, d::Int = 2; λ::Real = 1.0,
         alg::Symbol = :gcv_svd,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters::Bool = false)
+        cache_parameters::Bool = false
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     t̂ = t
     N = length(t)
@@ -229,10 +255,12 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = Array{Float64}(LA.I, N - d, N - d)
     û, λ,
-    Aitp = _reg_smooth_solve(
+        Aitp = _reg_smooth_solve(
         u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolation_left,
-        extrapolation_right, cache_parameters)
-    RegularizationSmooth(u,
+        extrapolation_right, cache_parameters
+    )
+    return RegularizationSmooth(
+        u,
         û,
         t,
         t̂,
@@ -243,7 +271,8 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
         alg,
         Aitp,
         extrapolation_left,
-        extrapolation_right)
+        extrapolation_right
+    )
 end
 """
 `wls` and `wr` provided, no `t̂`
@@ -253,16 +282,19 @@ A = RegularizationSmooth(
     u, t, nothing, wls, wr, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
-function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
+function RegularizationSmooth(
+        u::AbstractVector, t::AbstractVector, t̂::Nothing,
         wls::AbstractVector, wr::AbstractVector, d::Int = 2;
         λ::Real = 1.0, alg::Symbol = :gcv_svd,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters::Bool = false)
+        cache_parameters::Bool = false
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     t̂ = t
     N = length(t)
@@ -270,10 +302,12 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = LA.diagm(sqrt.(wr))
     û, λ,
-    Aitp = _reg_smooth_solve(
+        Aitp = _reg_smooth_solve(
         u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolation_left,
-        extrapolation_right, cache_parameters)
-    RegularizationSmooth(u,
+        extrapolation_right, cache_parameters
+    )
+    return RegularizationSmooth(
+        u,
         û,
         t,
         t̂,
@@ -284,7 +318,8 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
         alg,
         Aitp,
         extrapolation_left,
-        extrapolation_right)
+        extrapolation_right
+    )
 end
 """
 Keyword provided for `wls`, no `t̂`
@@ -294,15 +329,18 @@ A = RegularizationSmooth(
     u, t, nothing, :midpoint, d; λ = 1.0, alg = :gcv_svd, extrapolate = false)
 ```
 """
-function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing,
+function RegularizationSmooth(
+        u::AbstractVector, t::AbstractVector, t̂::Nothing,
         wls::Symbol, d::Int = 2; λ::Real = 1.0, alg::Symbol = :gcv_svd,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters::Bool = false)
+        cache_parameters::Bool = false
+    )
     extrapolation_left,
-    extrapolation_right = munge_extrapolation(
-        extrapolation, extrapolation_left, extrapolation_right)
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
     u, t = munge_data(u, t)
     t̂ = t
     N = length(t)
@@ -311,10 +349,12 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
     Wls½ = LA.diagm(sqrt.(wls))
     Wr½ = LA.diagm(sqrt.(wr))
     û, λ,
-    Aitp = _reg_smooth_solve(
+        Aitp = _reg_smooth_solve(
         u, t̂, d, M, Wls½, Wr½, λ, alg, extrapolation_left,
-        extrapolation_right, cache_parameters)
-    RegularizationSmooth(u,
+        extrapolation_right, cache_parameters
+    )
+    return RegularizationSmooth(
+        u,
         û,
         t,
         t̂,
@@ -325,7 +365,8 @@ function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::Nothing
         alg,
         Aitp,
         extrapolation_left,
-        extrapolation_right)
+        extrapolation_right
+    )
 end
 # """ t̂ provided and keyword for wls  _TBD_ """
 # function RegularizationSmooth(u::AbstractVector, t::AbstractVector, t̂::AbstractVector,
@@ -339,7 +380,8 @@ function _reg_smooth_solve(
         Wls½::AbstractMatrix, Wr½::AbstractMatrix, λ::Real, alg::Symbol,
         extrapolation_left::ExtrapolationType.T,
         extrapolation_right::ExtrapolationType.T,
-        cache_parameters::Bool)
+        cache_parameters::Bool
+    )
     λ = float(λ) # `float` expected by RT
     D = _derivative_matrix(t̂, d)
     Ψ = RT.setupRegularizationProblem(Wls½ * M, Wr½ * D)
@@ -424,33 +466,39 @@ function _weighting_by_kw(t::AbstractVector, d::Int, wls::Symbol)
     end
 end
 
-function _interpolate(A::RegularizationSmooth{
+function _interpolate(
+        A::RegularizationSmooth{
             <:AbstractVector{<:Number},
         },
-        t::Number)
-    _interpolate(A.Aitp, t)
+        t::Number
+    )
+    return _interpolate(A.Aitp, t)
 end
 
-function derivative(A::RegularizationSmooth{
+function derivative(
+        A::RegularizationSmooth{
             <:AbstractVector{<:Number},
         },
-        t::Number, order = 1)
-    derivative(A.Aitp, t, order)
+        t::Number, order = 1
+    )
+    return derivative(A.Aitp, t, order)
 end
 
 function get_show(A::RegularizationSmooth)
     return "RegularizationSmooth" *
-           " with $(length(A.t)) points, with regularization coefficient $(A.λ)\n"
+        " with $(length(A.t)) points, with regularization coefficient $(A.λ)\n"
 end
 
 function integral(A::RegularizationSmooth{<:AbstractVector{<:Number}}, t::Number)
-    integral(A.Aitp, t)
+    return integral(A.Aitp, t)
 end
 
-function integral(A::RegularizationSmooth{<:AbstractVector{<:Number}},
+function integral(
+        A::RegularizationSmooth{<:AbstractVector{<:Number}},
         t1::Number,
-        t2::Number)
-    integral(A.Aitp, t1, t2)
+        t2::Number
+    )
+    return integral(A.Aitp, t1, t2)
 end
 
 end # module

@@ -4,7 +4,7 @@ function Base.show(io::IO, mime::MIME"text/plain", interp::AbstractInterpolation
     print(io, get_show(interp))
     header = ["t", get_names(interp.u)...]
     data = hcat(interp.t, get_data(interp.u))
-    @static if pkgversion(PrettyTables) >= v"3"
+    return @static if pkgversion(PrettyTables) >= v"3"
         pretty_table(io, data; column_labels = header, vertical_crop_mode = :middle)
     else
         pretty_table(io, data; header = header, vcrop_mode = :middle)
@@ -43,25 +43,25 @@ end
 
 function get_show(interp::QuadraticInterpolation)
     return string(nameof(typeof(interp))) *
-           " with $(length(interp.t)) points, $(interp.mode) mode\n"
+        " with $(length(interp.t)) points, $(interp.mode) mode\n"
 end
 
 function get_show(interp::LagrangeInterpolation)
     return string(nameof(typeof(interp))) *
-           " with $(length(interp.t)) points, with order $(interp.n)\n"
+        " with $(length(interp.t)) points, with order $(interp.n)\n"
 end
 
 function get_show(interp::ConstantInterpolation)
     return string(nameof(typeof(interp))) *
-           " with $(length(interp.t)) points, in $(interp.dir) direction\n"
+        " with $(length(interp.t)) points, in $(interp.dir) direction\n"
 end
 
 function get_show(interp::BSplineInterpolation)
     return string(nameof(typeof(interp))) *
-           " with $(length(interp.t)) points, with degree $(interp.d)\n"
+        " with $(length(interp.t)) points, with degree $(interp.d)\n"
 end
 
 function get_show(interp::BSplineApprox)
     return string(nameof(typeof(interp))) *
-           " with $(length(interp.t)) points, with degree $(interp.d), number of control points $(interp.h)\n"
+        " with $(length(interp.t)) points, with degree $(interp.d), number of control points $(interp.h)\n"
 end

@@ -9,16 +9,22 @@ function test_extrapolation(method, u, t)
         @test A.extrapolation_right == ExtrapolationType.None
         @test A.extrapolation_left == ExtrapolationType.None
         for (error_type, t_eval) in zip(
-            (DataInterpolations.LeftExtrapolationError,
-                DataInterpolations.RightExtrapolationError),
-            (first(t) - 1, last(t) + 1))
+                (
+                    DataInterpolations.LeftExtrapolationError,
+                    DataInterpolations.RightExtrapolationError,
+                ),
+                (first(t) - 1, last(t) + 1)
+            )
             @test_throws error_type A(t_eval)
             @test_throws error_type DataInterpolations.derivative(
-                A, t_eval)
+                A, t_eval
+            )
             @test_throws error_type DataInterpolations.derivative(
-                A, t_eval, 2)
+                A, t_eval, 2
+            )
             @test_throws error_type DataInterpolations.integral(
-                A, t_eval)
+                A, t_eval
+            )
         end
     end
 
@@ -29,19 +35,20 @@ function test_extrapolation(method, u, t)
 
             t_eval = first(t) - 1.5
             @test DataInterpolations.derivative(A, t_eval) ≈
-                  ForwardDiff.derivative(A, t_eval)
+                ForwardDiff.derivative(A, t_eval)
 
             t_eval = last(t) + 1.5
             @test DataInterpolations.derivative(A, t_eval) ≈
-                  ForwardDiff.derivative(A, t_eval)
+                ForwardDiff.derivative(A, t_eval)
 
             T = last(A.t) - first(A.t)
             t1 = first(t) - 2.5T
             t2 = last(t) + 3.5T
             @test DataInterpolations.integral(A, t1, t2) ≈
-                  quadgk(A, t1, t2; atol = 1e-12, rtol = 1e-12)[1]
+                quadgk(A, t1, t2; atol = 1.0e-12, rtol = 1.0e-12)[1]
         end
     end
+    return
 end
 
 @testset "Constant Interpolation with Unitful" begin
