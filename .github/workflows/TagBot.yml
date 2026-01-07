@@ -25,7 +25,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.actor == 'JuliaTagBot'
     runs-on: ubuntu-latest
     steps:
-      - uses: JuliaRegistries/TagBot@f69a5b7e2a244c5872cbe319665ac9a4f310ab88
+      - uses: JuliaRegistries/TagBot@9f99c136d5032f30ce95a217be0c4d69d44ce2f8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           # Edit the following line to reflect the actual name of the GitHub Secret containing your private key
