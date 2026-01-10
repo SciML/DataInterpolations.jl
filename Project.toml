@@ -1,6 +1,6 @@
 name = "DataInterpolations"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
-version = "8.8.0"
+version = "8.8.1"
 
 [deps]
 EnumX = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
@@ -41,7 +41,7 @@ FiniteDifferences = "0.12.31"
 ForwardDiff = "0.10.37, 1"
 LinearAlgebra = "1.10"
 Makie = "0.22, 0.23, 0.24"
-Optim = "1.6"
+Optim = "1.6, 2"
 PrettyTables = "2.4, 3"
 QuadGK = "2.9.1"
 RecipesBase = "1.3"
