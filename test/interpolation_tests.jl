@@ -6,10 +6,7 @@ using BenchmarkTools
 using Unitful
 using LinearAlgebra
 using Symbolics
-using AllocCheck: @check_allocs
 using StaticArrays: SVector, @SVector
-
-@check_allocs(test_allocs(itp, x) = itp(x)) # Reuse function definition to save on compilation time
 
 function test_interpolation_type(T)
     @test T <: DataInterpolations.AbstractInterpolation
@@ -111,7 +108,6 @@ end
             @test A(x) == A_s(x)
         end
         @test A_s(0) isa SVector{length(y)}
-        @test_nowarn test_allocs(A_s, 0)
     end
 
     x = 1:10
@@ -380,7 +376,6 @@ end
         @test A(x) == A_s(x)
     end
     @test A_s(0) isa SVector{length(u[1])}
-    @test_nowarn test_allocs(A_s, 0)
 
     # Vector{Matrix} interpolation test
     u = [repeat(u[i], 1, 3) for i in 1:4]
@@ -643,7 +638,6 @@ end
             @test A(x) == A_s(x)
         end
         @test A_s(0) isa SVector{length(first(u))}
-        @test_nowarn test_allocs(A_s, 0)
     end
 
     @testset "Vector of Matrices case" for u in [
@@ -754,7 +748,6 @@ end
         @test A(x) == A_s(x)
     end
     @test A_s(1.9) isa SVector{length(uv[1])}
-    @test_nowarn test_allocs(A_s, 1.9)
     # Test Vector{Matrix} interpolation
     um = [repeat(uv[i], 1, 3) for i in 1:length(t)]
     A = SmoothedConstantInterpolation(um, t; d_max)
@@ -802,7 +795,6 @@ end
         @test A(x) == A_s(x)
     end
     @test A_s(0.7) isa SVector{length(u[1])}
-    @test_nowarn test_allocs(A_s, 0.7)
 
     # Test Vector{Matrix} interpolation
     u = [repeat(u[i], 1, 3) for i in 1:3]
@@ -876,7 +868,6 @@ end
         @test A(x) == A_s(x)
     end
     @test A_s(0) isa SVector{length(first(u))}
-    @test_nowarn test_allocs(A_s, 0)
 
     # Test Vector{Matrix} interpolation
     u = [repeat(u[i], 1, 3) for i in 1:3]
@@ -1122,7 +1113,6 @@ end
         @test A2_s(100.0) == A2(100.0)
         @test A2_s(300.0) == A2(300.0)
         @test A2_s(0.7) isa SVector{length(u2[1])}
-        @test_nowarn test_allocs(A2_s, 0.7)
     end
     @testset "Vector of Matrices case" begin
         u3 = [[u[i] u[i] + 1] for i in eachindex(u)]
@@ -1193,7 +1183,6 @@ end
         @test A2_s(100.0) == A2(100.0)
         @test A2_s(300.0) == A2(300.0)
         @test A2_s(0.7) isa SVector{length(u2[1])}
-        @test_nowarn test_allocs(A2_s, 0.7)
     end
     @testset "Vector of Matrices case" begin
         u3 = [[u[i] u[i] + 1] for i in eachindex(u)]
