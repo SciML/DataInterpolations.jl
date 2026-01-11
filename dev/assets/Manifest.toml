@@ -141,9 +141,9 @@ version = "0.2.2"
 
 [[deps.BipartiteGraphs]]
 deps = ["DataStructures", "DocStringExtensions", "Graphs", "PrecompileTools"]
-git-tree-sha1 = "2a5a9365f2e0a62c5c797e9a9b787615c27acc37"
+git-tree-sha1 = "ee0e3837bfd10d5f00b1b63539496a4130aa416d"
 uuid = "caf10ac8-0290-4205-88aa-f15908547e8d"
-version = "0.1.5"
+version = "0.1.6"
 weakdeps = ["SparseArrays"]
 
     [deps.BipartiteGraphs.extensions]
