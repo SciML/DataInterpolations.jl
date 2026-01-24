@@ -37,5 +37,6 @@ const GROUP = get(ENV, "GROUP", "All")
 
     if GROUP == "QA"
         @safetestset "Quality Assurance" include("qa.jl")
+        @safetestset "Allocation Tests" include("alloc_tests.jl")
     end
 end

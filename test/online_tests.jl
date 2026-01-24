@@ -10,7 +10,8 @@ ts_append = 1.0:0.5:6.0
 ts_push = 1.0:0.5:4.0
 
 @testset "$method" for method in [
-    LinearInterpolation, QuadraticInterpolation, ConstantInterpolation]
+        LinearInterpolation, QuadraticInterpolation, ConstantInterpolation,
+    ]
     func1 = method(copy(u1), copy(t1); cache_parameters = true)
     append!(func1, u2, t2)
     func2 = method(vcat(u1, u2), vcat(t1, t2); cache_parameters = true)

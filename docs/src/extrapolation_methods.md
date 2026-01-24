@@ -48,13 +48,13 @@ This extrapolation type extends the interpolation with a continuation of the exp
 ```@example tutorial
 A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
 plot(A)
-plot!(t_eval_left, A.(t_eval_left); label = "extrapolation down")
-plot!(t_eval_right, A.(t_eval_right); label = "extrapolation up")
+plot!(t_eval_left, A.(t_eval_left); label = "extrapolation left")
+plot!(t_eval_right, A.(t_eval_right); label = "extrapolation right")
 ```
 
 ## `ExtrapolationType.Periodic`
 
-this extrapolation type extends the interpolation such that `A(t + T) == A(t)` for all `t`, where the period is given by `T = last(A.t) - first(A.t)`.
+This extrapolation type extends the interpolation such that `A(t + T) == A(t)` for all `t`, where the period is given by `T = last(A.t) - first(A.t)`.
 
 ```@example tutorial
 T = last(A.t) - first(A.t)
@@ -62,19 +62,19 @@ t_eval_left = range(first(t) - 2T, first(t), length = 100)
 t_eval_right = range(last(t), last(t) + 2T, length = 100)
 A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Periodic)
 plot(A)
-plot!(t_eval_left, A.(t_eval_left); label = "extrapolation down")
-plot!(t_eval_right, A.(t_eval_right); label = "extrapolation up")
+plot!(t_eval_left, A.(t_eval_left); label = "extrapolation left")
+plot!(t_eval_right, A.(t_eval_right); label = "extrapolation right")
 ```
 
 ## `ExtrapolationType.Reflective`
 
-this extrapolation type extends the interpolation such that `A(t_ + t) == A(t_ - t)` for all `t_, t` such that `(t_ - first(A.t)) % T == 0` and `0 < t < T`, where `T = last(A.t) - first(A.t)`.
+This extrapolation type extends the interpolation such that `A(t_ + t) == A(t_ - t)` for all `t_, t` such that `(t_ - first(A.t)) % T == 0` and `0 < t < T`, where `T = last(A.t) - first(A.t)`.
 
 ```@example tutorial
 A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Reflective)
 plot(A)
-plot!(t_eval_left, A.(t_eval_left); label = "extrapolation down")
-plot!(t_eval_right, A.(t_eval_right); label = "extrapolation up")
+plot!(t_eval_left, A.(t_eval_left); label = "extrapolation left")
+plot!(t_eval_right, A.(t_eval_right); label = "extrapolation right")
 ```
 
 ## Mixed extrapolation

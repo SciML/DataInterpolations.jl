@@ -44,7 +44,7 @@ function spline_coefficients!(N, d, k, u::Number)
             N[i - deg] = (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) * N[i - deg + 1]
             for j in (i - deg + 1):(i - 1)
                 N[j] = (u - k[j]) / (k[j + deg] - k[j]) * N[j] +
-                       (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) * N[j + 1]
+                    (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) * N[j + 1]
             end
             N[i] = (u - k[i]) / (k[i + deg] - k[i]) * N[i]
         end
@@ -91,8 +91,10 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 end
 
 # helper function for data manipulation
-function munge_data(u::AbstractVector, t::AbstractVector;
-        check_sorted = t, sorted_arg_name = ("second", "t"))
+function munge_data(
+        u::AbstractVector, t::AbstractVector;
+        check_sorted = t, sorted_arg_name = ("second", "t")
+    )
     length(t) == length(u) ||
         throw(ArgumentError("`u`, `t` length mismatch: length(t) ≠ length(u)"))
 
@@ -130,7 +132,8 @@ function munge_data(U::AbstractMatrix, t::AbstractVector)
     end
 
     non_missing_mask = map(
-        (uis, ti) -> !any(ismissing, uis) && !ismissing(ti), eachcol(U), t)
+        (uis, ti) -> !any(ismissing, uis) && !ismissing(ti), eachcol(U), t
+    )
     U = convert(AbstractMatrix{TU}, U[:, non_missing_mask])
     t = convert(AbstractVector{Tt}, t[non_missing_mask])
 
@@ -148,7 +151,8 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     end
 
     non_missing_mask = map(
-        (uis, ti) -> !any(ismissing, uis) && !ismissing(ti), eachslice(U; dims = N), t)
+        (uis, ti) -> !any(ismissing, uis) && !ismissing(ti), eachslice(U; dims = N), t
+    )
     U = convert(AbstractArray{TU, N}, copy(selectdim(U, N, non_missing_mask)))
     t = convert(AbstractVector{Tt}, t[non_missing_mask])
 
@@ -167,7 +171,7 @@ its first and last elements, normalized by the range of `t`. If this standard de
 below the given `threshold`, the vector looks linear (return true). Internal function -
 interface may change.
 """
-function looks_linear(t; threshold = 1e-2)
+function looks_linear(t; threshold = 1.0e-2)
     length(t) <= 2 && return true
     t_0, t_f = first(t), last(t)
     t_span = t_f - t_0
@@ -175,11 +179,13 @@ function looks_linear(t; threshold = 1e-2)
     norm_var = sum(
         (t_i - t_0 - i * tspan_over_N)^2 for (i, t_i) in enumerate(t)
     ) / (length(t) * t_span^2)
-    norm_var < threshold^2
+    return norm_var < threshold^2
 end
 
-function get_idx(A::AbstractInterpolation, t, iguess::Union{<:Integer, Guesser}; lb = 1,
-        ub_shift = -1, idx_shift = 0, side = :last)
+function get_idx(
+        A::AbstractInterpolation, t, iguess::Union{<:Integer, Guesser}; lb = 1,
+        ub_shift = -1, idx_shift = 0, side = :last
+    )
     tvec = A.t
     ub = length(tvec) + ub_shift
     return if side == :last
@@ -195,13 +201,15 @@ cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
 function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameters::Bool)
     Base.require_one_based_indexing(A.u)
     idxs = cache_parameters ? (1:(length(A.t) - 1)) : (1:0)
-    return cumsum(_integral(A, idx, t1, t2)
-    for (idx, t1, t2) in
-        zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end])))
+    return cumsum(
+        _integral(A, idx, t1, t2)
+            for (idx, t1, t2) in
+            zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end]))
+    )
 end
 
 function get_parameters(A::LinearInterpolation, idx)
-    if A.cache_parameters
+    return if A.cache_parameters
         A.p.slope[idx]
     else
         linear_interpolation_parameters(A.u, A.t, idx)
@@ -209,7 +217,7 @@ function get_parameters(A::LinearInterpolation, idx)
 end
 
 function get_parameters(A::SmoothedConstantInterpolation, idx)
-    if A.cache_parameters
+    return if A.cache_parameters
         d_lower = A.p.d[idx]
         d_upper = A.p.d[idx + 1]
         c_lower = A.p.c[idx]
@@ -217,17 +225,19 @@ function get_parameters(A::SmoothedConstantInterpolation, idx)
         d_lower, d_upper, c_lower, c_upper
     else
         d_lower,
-        c_lower = smoothed_constant_interpolation_parameters(
-            A.u, A.t, A.d_max, idx, A.extrapolation_left, A.extrapolation_right)
+            c_lower = smoothed_constant_interpolation_parameters(
+            A.u, A.t, A.d_max, idx, A.extrapolation_left, A.extrapolation_right
+        )
         d_upper,
-        c_upper = smoothed_constant_interpolation_parameters(
-            A.u, A.t, A.d_max, idx + 1, A.extrapolation_left, A.extrapolation_right)
+            c_upper = smoothed_constant_interpolation_parameters(
+            A.u, A.t, A.d_max, idx + 1, A.extrapolation_left, A.extrapolation_right
+        )
         d_lower, d_upper, c_lower, c_upper
     end
 end
 
 function get_parameters(A::QuadraticInterpolation, idx)
-    if A.cache_parameters
+    return if A.cache_parameters
         A.p.α[idx], A.p.β[idx]
     else
         quadratic_interpolation_parameters(A.u, A.t, idx, A.mode)
@@ -235,7 +245,7 @@ function get_parameters(A::QuadraticInterpolation, idx)
 end
 
 function get_parameters(A::QuadraticSpline, idx)
-    if A.cache_parameters
+    return if A.cache_parameters
         A.p.α[idx], A.p.β[idx]
     else
         quadratic_spline_parameters(A.u, A.t, A.k, A.c, A.sc, idx)
@@ -243,7 +253,7 @@ function get_parameters(A::QuadraticSpline, idx)
 end
 
 function get_parameters(A::CubicSpline, idx)
-    if A.cache_parameters
+    return if A.cache_parameters
         A.p.c₁[idx], A.p.c₂[idx]
     else
         cubic_spline_parameters(A.u, A.h, A.z, idx)
@@ -251,7 +261,7 @@ function get_parameters(A::CubicSpline, idx)
 end
 
 function get_parameters(A::CubicHermiteSpline, idx)
-    if A.cache_parameters
+    return if A.cache_parameters
         A.p.c₁[idx], A.p.c₂[idx]
     else
         cubic_hermite_spline_parameters(A.du, A.u, A.t, idx)
@@ -259,7 +269,7 @@ function get_parameters(A::CubicHermiteSpline, idx)
 end
 
 function get_parameters(A::QuinticHermiteSpline, idx)
-    if A.cache_parameters
+    return if A.cache_parameters
         A.p.c₁[idx], A.p.c₂[idx], A.p.c₃[idx]
     else
         quintic_hermite_spline_parameters(A.ddu, A.du, A.u, A.t, idx)
@@ -275,7 +285,7 @@ function du_PCHIP(u, t)
     # Cleve Moler, Numerical Computing with MATLAB, Chap 3.6 (file pchiptx.m, function pchipend())
     function _edge_case(h₁, h₂, δ₁, δ₂)
         d = ((2 * h₁ + h₂) * δ₁ - h₁ * δ₂) / (h₁ + h₂)
-        if sign(d) != sign(δ₁)
+        return if sign(d) != sign(δ₁)
             zero(eltype(δ))
         elseif sign(δ₁) != sign(δ₂) && abs(d) > 3 * abs(δ₁)
             3 * δ₁
@@ -293,7 +303,7 @@ function du_PCHIP(u, t)
             s[k - 1], s[k]
         end
 
-        if sₖ₋₁ == 0 && sₖ == 0
+        return if sₖ₋₁ == 0 && sₖ == 0
             zero(eltype(δ))
         elseif sₖ₋₁ == sₖ
             if k == 1
@@ -325,7 +335,7 @@ function integrate_cubic_polynomial(t1, t2, offset, a, b, c, d)
     t_sum = t1_rel + t2_rel
     t_sq_sum = t1_rel^2 + t2_rel^2
     Δt = t2 - t1
-    Δt * (a + t_sum * (b / 2 + d * t_sq_sum / 4) + c * (t_sq_sum + t1_rel * t2_rel) / 3)
+    return Δt * (a + t_sum * (b / 2 + d * t_sq_sum / 4) + c * (t_sq_sum + t1_rel * t2_rel) / 3)
 end
 
 function integrate_quintic_polynomial(t1, t2, offset, a, b, c, d, e, f)
@@ -336,13 +346,15 @@ function integrate_quintic_polynomial(t1, t2, offset, a, b, c, d, e, f)
     t_cb_sum = t1_rel^3 + t2_rel^3
     Δt = t2 - t1
     cube_diff_factor = t_sq_sum + t1_rel * t2_rel
-    Δt * (a + t_sum * (b / 2 + d * t_sq_sum / 4) +
-     cube_diff_factor * (c / 3 + f * t_cb_sum / 6)) +
-    e * (t2_rel^5 - t1_rel^5) / 5
+    return Δt * (
+        a + t_sum * (b / 2 + d * t_sq_sum / 4) +
+            cube_diff_factor * (c / 3 + f * t_cb_sum / 6)
+    ) +
+        e * (t2_rel^5 - t1_rel^5) / 5
 end
 
 function munge_extrapolation(extrapolation, extrapolation_left, extrapolation_right)
-    if extrapolation == ExtrapolationType.None
+    return if extrapolation == ExtrapolationType.None
         extrapolation_left, extrapolation_right
     else
         extrapolation, extrapolation
@@ -354,7 +366,7 @@ function transformation_periodic(A, t)
     n, t_ = fldmod(t - first(A.t), Δt)
     t_ += first(A.t)
     (n > 0) && (n -= 1)
-    t_, n
+    return t_, n
 end
 
 function transformation_reflective(A, t)
@@ -362,7 +374,7 @@ function transformation_reflective(A, t)
     n, t_ = fldmod(t - first(A.t), Δt)
     t_ = isodd(n) ? last(A.t) - t_ : first(A.t) + t_
     (n > 0) && (n -= 1)
-    t_, n
+    return t_, n
 end
 
 typed_nan(::AbstractArray{T}) where {T <: AbstractFloat} = T(NaN)
@@ -370,7 +382,7 @@ typed_nan(::AbstractArray{T}) where {T <: Integer} = zero(T)
 
 # Should be replaceable by LinearAlgebra function soon: https://github.com/JuliaLang/LinearAlgebra.jl/pull/1234
 function euclidean(x::AbstractArray, y::AbstractArray)
-    sqrt(mapreduce((xi, yi) -> abs2(yi - xi), +, x, y))
+    return sqrt(mapreduce((xi, yi) -> abs2(yi - xi), +, x, y))
 end
 
 function smooth_arc_length_params_1!(Δu, u, d, j)
@@ -416,7 +428,7 @@ function get_transition_ts(A::SmoothedConstantInterpolation)
     out[end - 1] = A.t[end] - d_lower
     out[end] = A.t[end]
 
-    out
+    return out
 end
 
 get_transition_ts(A::AbstractInterpolation) = A.t

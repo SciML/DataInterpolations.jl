@@ -11,7 +11,7 @@ function add_integral_values!(A)
         prev_sum = new_sum
     end
 
-    append!(A.I, integral_values)
+    return append!(A.I, integral_values)
 end
 
 function push!(A::LinearInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {U, T}
@@ -22,7 +22,7 @@ function push!(A::LinearInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {
         push!(A.p.slope, slope)
         add_integral_values!(A)
     end
-    A
+    return A
 end
 
 function push!(A::QuadraticInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {U, T}
@@ -31,7 +31,7 @@ function push!(A::QuadraticInterpolation{U, T}, u::eltype(U), t::eltype(T)) wher
     t_new = [last(A.t), t]
     pop!(A.u)
     pop!(A.t)
-    append!(A, u_new, t_new)
+    return append!(A, u_new, t_new)
 end
 
 function push!(A::ConstantInterpolation{U, T}, u::eltype(U), t::eltype(T)) where {U, T}
@@ -40,40 +40,47 @@ function push!(A::ConstantInterpolation{U, T}, u::eltype(U), t::eltype(T)) where
     if A.cache_parameters
         add_integral_values!(A)
     end
-    A
+    return A
 end
 
 function append!(
-        A::LinearInterpolation{U, T}, u::U, t::T) where {
-        U, T}
+        A::LinearInterpolation{U, T}, u::U, t::T
+    ) where {
+        U, T,
+    }
     length_old = length(A.t)
     u, t = munge_data(u, t)
     append!(A.u, u)
     append!(A.t, t)
     if A.cache_parameters
         slope = linear_interpolation_parameters.(
-            Ref(A.u), Ref(A.t), length_old:(length(A.t) - 1))
+            Ref(A.u), Ref(A.t), length_old:(length(A.t) - 1)
+        )
         append!(A.p.slope, slope)
         add_integral_values!(A)
     end
-    A
+    return A
 end
 
 function append!(
-        A::ConstantInterpolation{U, T}, u::U, t::T) where {
-        U, T}
+        A::ConstantInterpolation{U, T}, u::U, t::T
+    ) where {
+        U, T,
+    }
     u, t = munge_data(u, t)
     append!(A.u, u)
     append!(A.t, t)
     if A.cache_parameters
         add_integral_values!(A)
     end
-    A
+    return A
 end
 
 function append!(
-        A::QuadraticInterpolation{U, T}, u::U, t::T) where {
-        U, T}
+        A::QuadraticInterpolation{U, T}, u::U, t::T
+    ) where {
+        U, T,
+    }
     u, t = munge_data(u, t)
     append!(A.u, u)
     append!(A.t, t)
@@ -81,11 +88,12 @@ function append!(
         pop!(A.p.α)
         pop!(A.p.β)
         parameters = quadratic_interpolation_parameters.(
-            Ref(A.u), Ref(A.t), (length(A.p.α) + 1):(length(A.t) - 1), A.mode)
+            Ref(A.u), Ref(A.t), (length(A.p.α) + 1):(length(A.t) - 1), A.mode
+        )
         α, β = collect.(eachrow(hcat(collect.(parameters)...)))
         append!(A.p.α, α)
         append!(A.p.β, β)
         add_integral_values!(A)
     end
-    A
+    return A
 end

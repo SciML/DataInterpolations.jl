@@ -5,13 +5,16 @@ cp("./docs/Project.toml", "./docs/src/assets/Project.toml", force = true)
 
 ENV["GKSwstype"] = "100"
 
-makedocs(modules = [DataInterpolations],
+makedocs(
+    modules = [DataInterpolations],
     sitename = "DataInterpolations.jl",
     clean = true,
     doctest = false,
     linkcheck = true,
-    format = Documenter.HTML(assets = ["assets/favicon.ico"],
-        canonical = "https://docs.sciml.ai/DataInterpolations/stable/"),
+    format = Documenter.HTML(
+        assets = ["assets/favicon.ico"],
+        canonical = "https://docs.sciml.ai/DataInterpolations/stable/"
+    ),
     linkcheck_ignore = [
         "https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf",
     ],

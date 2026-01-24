@@ -10,18 +10,22 @@ Base.nameof(interp::AbstractInterpolation) = :Interpolation
 
 @static if pkgversion(Symbolics) >= v"7"
     @register_symbolic derivative(interp::AbstractInterpolation, t, order::Integer) false
-    function SymbolicUtils.promote_symtype(::typeof(derivative), Ti::SymbolicUtils.TypeT,
+    function SymbolicUtils.promote_symtype(
+            ::typeof(derivative), Ti::SymbolicUtils.TypeT,
             Tt::SymbolicUtils.TypeT,
-            To::SymbolicUtils.TypeT)
+            To::SymbolicUtils.TypeT
+        )
         @assert Ti <: AbstractInterpolation
         @assert Tt <: Real
         @assert To <: Integer
         Real
     end
-    function SymbolicUtils.promote_shape(::typeof(derivative),
+    function SymbolicUtils.promote_shape(
+            ::typeof(derivative),
             @nospecialize(shi::SymbolicUtils.ShapeT),
             @nospecialize(sht::SymbolicUtils.ShapeT),
-            @nospecialize(sho::SymbolicUtils.ShapeT))
+            @nospecialize(sho::SymbolicUtils.ShapeT)
+        )
         @assert !SymbolicUtils.is_array_shape(shi)
         @assert !SymbolicUtils.is_array_shape(sht)
         @assert !SymbolicUtils.is_array_shape(sho)

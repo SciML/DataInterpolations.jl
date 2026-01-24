@@ -12,6 +12,7 @@ on:
       - 'docs/**'
 jobs:
   test:
+    if: false  # Temporarily disabled - see https://github.com/SciML/DataInterpolations.jl/issues/498
     runs-on: ubuntu-latest
     strategy:
       matrix:

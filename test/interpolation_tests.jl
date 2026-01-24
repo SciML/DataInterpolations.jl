@@ -6,10 +6,7 @@ using BenchmarkTools
 using Unitful
 using LinearAlgebra
 using Symbolics
-using AllocCheck: @check_allocs
 using StaticArrays: SVector, @SVector
-
-@check_allocs(test_allocs(itp, x) = itp(x)) # Reuse function definition to save on compilation time
 
 function test_interpolation_type(T)
     @test T <: DataInterpolations.AbstractInterpolation
@@ -20,16 +17,19 @@ function test_interpolation_type(T)
     @test hasfield(T, :iguesser)
     @test !isempty(methods(DataInterpolations._interpolate, (T, Any, Number)))
     @test !isempty(methods(DataInterpolations._integral, (T, Number, Number, Number)))
-    @test !isempty(methods(DataInterpolations._derivative, (T, Any, Number)))
+    return @test !isempty(methods(DataInterpolations._derivative, (T, Any, Number)))
 end
 
 function test_cached_index(A)
     for t in range(first(A.t), last(A.t); length = 2 * length(A.t) - 1)
         A(t)
         idx = searchsortedfirstcorrelated(A.t, t, A.iguesser)
-        @test abs(A.iguesser.idx_prev[] -
-                  searchsortedfirstcorrelated(A.t, t, A.iguesser)) <= 2
+        @test abs(
+            A.iguesser.idx_prev[] -
+                searchsortedfirstcorrelated(A.t, t, A.iguesser)
+        ) <= 2
     end
+    return
 end
 
 @testset "Linear Interpolation" begin
@@ -38,8 +38,11 @@ end
     for t in (1.0:10.0, 1.0collect(1:10))
         u = 2.0collect(1:10)
         #t = 1.0collect(1:10)
-        A = @inferred(LinearInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension))
+        A = @inferred(
+            LinearInterpolation(
+                u, t; extrapolation = ExtrapolationType.Extension
+            )
+        )
 
         for (_t, _u) in zip(t, u)
             @test A(_t) == _u
@@ -51,13 +54,17 @@ end
         @test @inferred(output_size(A)) == ()
 
         u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
-        @test @inferred(LinearInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation broken=VERSION <
-                                                                                               v"1.11" &&
-                                                                                               t isa
-                                                                                               AbstractRange
+        @test @inferred(
+            LinearInterpolation(
+                u, t; extrapolation = ExtrapolationType.Extension
+            )
+        ) isa LinearInterpolation broken = VERSION <
+            v"1.11" &&
+            t isa
+            AbstractRange
         A = LinearInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension)
+            u, t; extrapolation = ExtrapolationType.Extension
+        )
 
         for (_t, _u) in zip(t, eachcol(u))
             @test A(_t) == _u
@@ -72,13 +79,17 @@ end
         y = 2:4
         u_ = x' .* y
         u = [u_[:, i] for i in 1:size(u_, 2)]
-        @test @inferred(LinearInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation broken=VERSION <
-                                                                                               v"1.11" &&
-                                                                                               t isa
-                                                                                               AbstractRange
+        @test @inferred(
+            LinearInterpolation(
+                u, t; extrapolation = ExtrapolationType.Extension
+            )
+        ) isa LinearInterpolation broken = VERSION <
+            v"1.11" &&
+            t isa
+            AbstractRange
         A = LinearInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension)
+            u, t; extrapolation = ExtrapolationType.Extension
+        )
         @test A(0) == [0.0, 0.0, 0.0]
         @test A(5.5) == [11.0, 16.5, 22.0]
         @test A(11) == [22.0, 33.0, 44.0]
@@ -87,14 +98,16 @@ end
 
         # Test allocation-free interpolation with StaticArrays
         u_s = [convert(SVector{length(y), eltype(u_)}, i) for i in u]
-        @test @inferred(LinearInterpolation(
-            u_s, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation
+        @test @inferred(
+            LinearInterpolation(
+                u_s, t; extrapolation = ExtrapolationType.Extension
+            )
+        ) isa LinearInterpolation
         A_s = LinearInterpolation(u_s, t; extrapolation = ExtrapolationType.Extension)
         for x in (0, 5.5, 11)
             @test A(x) == A_s(x)
         end
         @test A_s(0) isa SVector{length(y)}
-        @test_nowarn test_allocs(A_s, 0)
     end
 
     x = 1:10
@@ -102,8 +115,11 @@ end
     u_ = x' .* y
     u = [u_[:, i:(i + 1)] for i in 1:2:10]
     t = 1.0collect(2:2:10)
-    @test_broken @inferred(LinearInterpolation(
-        u, t; extrapolation = ExtrapolationType.Extension)) isa LinearInterpolation
+    @test_broken @inferred(
+        LinearInterpolation(
+            u, t; extrapolation = ExtrapolationType.Extension
+        )
+    ) isa LinearInterpolation
     A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
     @test A(0) == [-2.0 0.0; -3.0 0.0; -4.0 0.0]
@@ -276,8 +292,11 @@ end
     # backward-looking interpolation
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
-    A = @inferred(QuadraticInterpolation(
-        u, t, :Backward; extrapolation = ExtrapolationType.Extension))
+    A = @inferred(
+        QuadraticInterpolation(
+            u, t, :Backward; extrapolation = ExtrapolationType.Extension
+        )
+    )
 
     for (_t, _u) in zip(t, u)
         @test A(_t) == _u
@@ -315,9 +334,12 @@ end
 
     # Matrix interpolation test
     u = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
-    @test @inferred(QuadraticInterpolation(
-        u, t; extrapolation = ExtrapolationType.Extension)) isa QuadraticInterpolation broken=VERSION <
-                                                                                              v"1.11"
+    @test @inferred(
+        QuadraticInterpolation(
+            u, t; extrapolation = ExtrapolationType.Extension
+        )
+    ) isa QuadraticInterpolation broken = VERSION <
+        v"1.11"
     A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
     for (_t, _u) in zip(t, eachcol(u))
@@ -344,19 +366,24 @@ end
     @test @inferred(output_size(A)) == (5,)
     # Test allocation-free interpolation with Vector{StaticArrays.SVector}
     u_s = [convert(SVector{length(u[1])}, i) for i in u]
-    @test @inferred(QuadraticInterpolation(
-        u_s, t; extrapolation = ExtrapolationType.Extension)) isa QuadraticInterpolation
+    @test @inferred(
+        QuadraticInterpolation(
+            u_s, t; extrapolation = ExtrapolationType.Extension
+        )
+    ) isa QuadraticInterpolation
     A_s = QuadraticInterpolation(u_s, t; extrapolation = ExtrapolationType.Extension)
     for x in (0, 1.5, 2.5, 3.5, 5.0)
         @test A(x) == A_s(x)
     end
     @test A_s(0) isa SVector{length(u[1])}
-    @test_nowarn test_allocs(A_s, 0)
 
     # Vector{Matrix} interpolation test
     u = [repeat(u[i], 1, 3) for i in 1:4]
-    @test_broken @inferred(QuadraticInterpolation(
-        u, t; extrapolation = ExtrapolationType.Extension)) isa QuadraticInterpolation
+    @test_broken @inferred(
+        QuadraticInterpolation(
+            u, t; extrapolation = ExtrapolationType.Extension
+        )
+    ) isa QuadraticInterpolation
     A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(0) == zeros(5, 3)
     @test A(1.5) == 2.25 * ones(5, 3)
@@ -486,8 +513,11 @@ end
     t = [1.0, 2.0, 3.0, 4.0]
 
     @testset "Vector case" for u in [[1.0, 2.0, 0.0, 1.0], ["B", "C", "A", "B"]]
-        A = @inferred(ConstantInterpolation(
-            u, t, dir = :right; extrapolation = ExtrapolationType.Extension))
+        A = @inferred(
+            ConstantInterpolation(
+                u, t, dir = :right; extrapolation = ExtrapolationType.Extension
+            )
+        )
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[2]
@@ -500,8 +530,11 @@ end
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 0
 
-        A = @inferred(ConstantInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension)) # dir=:left is default
+        A = @inferred(
+            ConstantInterpolation(
+                u, t; extrapolation = ExtrapolationType.Extension
+            )
+        ) # dir=:left is default
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[1]
@@ -516,11 +549,14 @@ end
     end
 
     @testset "Matrix case" for u in [
-        [1.0 2.0 0.0 1.0; 1.0 2.0 0.0 1.0],
-        ["B" "C" "A" "B"; "B" "C" "A" "B"]
-    ]
-        A = @inferred(ConstantInterpolation(
-            u, t, dir = :right; extrapolation = ExtrapolationType.Extension))
+            [1.0 2.0 0.0 1.0; 1.0 2.0 0.0 1.0],
+            ["B" "C" "A" "B"; "B" "C" "A" "B"],
+        ]
+        A = @inferred(
+            ConstantInterpolation(
+                u, t, dir = :right; extrapolation = ExtrapolationType.Extension
+            )
+        )
         @test A(0.5) == u[:, 1]
         @test A(1.0) == u[:, 1]
         @test A(1.5) == u[:, 2]
@@ -533,8 +569,11 @@ end
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 1
 
-        A = @inferred(ConstantInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension)) # dir=:left is default
+        A = @inferred(
+            ConstantInterpolation(
+                u, t; extrapolation = ExtrapolationType.Extension
+            )
+        ) # dir=:left is default
         @test A(0.5) == u[:, 1]
         @test A(1.0) == u[:, 1]
         @test A(1.5) == u[:, 1]
@@ -549,10 +588,14 @@ end
     end
 
     @testset "Vector of Vectors case" for u in [
-        [[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]],
-        [["B", "C"], ["A", "B"], ["B", "C"], ["A", "B"]]]
-        A = @inferred(ConstantInterpolation(
-            u, t, dir = :right; extrapolation = ExtrapolationType.Extension))
+            [[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]],
+            [["B", "C"], ["A", "B"], ["B", "C"], ["A", "B"]],
+        ]
+        A = @inferred(
+            ConstantInterpolation(
+                u, t, dir = :right; extrapolation = ExtrapolationType.Extension
+            )
+        )
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[2]
@@ -566,8 +609,11 @@ end
         @test @inferred(output_dim(A)) == 1
         @test @inferred(output_size(A)) == (2,)
 
-        A = @inferred(ConstantInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension)) # dir=:left is default
+        A = @inferred(
+            ConstantInterpolation(
+                u, t; extrapolation = ExtrapolationType.Extension
+            )
+        ) # dir=:left is default
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[1]
@@ -583,20 +629,26 @@ end
 
         # Test allocation-free interpolation with StaticArrays
         u_s = [convert(SVector{length(first(u))}, i) for i in u]
-        A_s = @inferred(ConstantInterpolation(
-            u_s, t; extrapolation = ExtrapolationType.Extension))
+        A_s = @inferred(
+            ConstantInterpolation(
+                u_s, t; extrapolation = ExtrapolationType.Extension
+            )
+        )
         for x in 0.5:0.5:4.5
             @test A(x) == A_s(x)
         end
         @test A_s(0) isa SVector{length(first(u))}
-        @test_nowarn test_allocs(A_s, 0)
     end
 
     @testset "Vector of Matrices case" for u in [
-        [[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]],
-        [["B" "C"; "B" "C"], ["A" "B"; "A" "B"], ["B" "C"; "B" "C"], ["A" "B"; "A" "B"]]]
-        A = @inferred(ConstantInterpolation(
-            u, t, dir = :right; extrapolation = ExtrapolationType.Extension))
+            [[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]],
+            [["B" "C"; "B" "C"], ["A" "B"; "A" "B"], ["B" "C"; "B" "C"], ["A" "B"; "A" "B"]],
+        ]
+        A = @inferred(
+            ConstantInterpolation(
+                u, t, dir = :right; extrapolation = ExtrapolationType.Extension
+            )
+        )
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[2]
@@ -610,8 +662,11 @@ end
         @test @inferred(output_dim(A)) == 2
         @test @inferred(output_size(A)) == (2, 2)
 
-        A = @inferred(ConstantInterpolation(
-            u, t; extrapolation = ExtrapolationType.Extension)) # dir=:left is default
+        A = @inferred(
+            ConstantInterpolation(
+                u, t; extrapolation = ExtrapolationType.Extension
+            )
+        ) # dir=:left is default
         @test A(0.5) == u[1]
         @test A(1.0) == u[1]
         @test A(1.5) == u[1]
@@ -643,8 +698,11 @@ end
     @test A(-Inf) == first(u)
 
     # Test extrapolation of integer output
-    itp = @inferred(ConstantInterpolation(
-        [2], [0.0]; extrapolation = ExtrapolationType.Constant))
+    itp = @inferred(
+        ConstantInterpolation(
+            [2], [0.0]; extrapolation = ExtrapolationType.Constant
+        )
+    )
     @test itp(1.0) === 2
     @test itp(-1.0) === 2
 
@@ -665,7 +723,8 @@ end
     test_cached_index(A)
 
     @test DataInterpolations.get_transition_ts(A) == [
-        1.2, 1.7, 2.0, 2.5, 3.0, 5.2, 5.7, 6.2, 8.2, 8.7]
+        1.2, 1.7, 2.0, 2.5, 3.0, 5.2, 5.7, 6.2, 8.2, 8.7,
+    ]
     @test A(1.9) == u[1]
     @test A(3.1) == u[2]
     @test A(2.5) ≈ (u[1] + u[2]) / 2
@@ -679,14 +738,16 @@ end
     @test A(2.5) ≈ (uv[1] + uv[2]) / 2
     # Test allocation-free interpolation with Vector{StaticArrays.SVector}
     u_s = [convert(SVector{length(uv[1])}, i) for i in uv]
-    @test_broken @inferred(SmoothedConstantInterpolation(
-        u_s, t; d_max)) isa SmoothedConstantInterpolation
+    @test_broken @inferred(
+        SmoothedConstantInterpolation(
+            u_s, t; d_max
+        )
+    ) isa SmoothedConstantInterpolation
     A_s = SmoothedConstantInterpolation(u_s, t; d_max)
     for x in (1.9, 3.1, 2.5)
         @test A(x) == A_s(x)
     end
     @test A_s(1.9) isa SVector{length(uv[1])}
-    @test_nowarn test_allocs(A_s, 1.9)
     # Test Vector{Matrix} interpolation
     um = [repeat(uv[i], 1, 3) for i in 1:length(t)]
     A = SmoothedConstantInterpolation(um, t; d_max)
@@ -734,7 +795,6 @@ end
         @test A(x) == A_s(x)
     end
     @test A_s(0.7) isa SVector{length(u[1])}
-    @test_nowarn test_allocs(A_s, 0.7)
 
     # Test Vector{Matrix} interpolation
     u = [repeat(u[i], 1, 3) for i in 1:3]
@@ -786,7 +846,7 @@ end
     u = [u_[:, i] for i in 1:size(u_, 2)]
     # Test Vector{Vector} interpolation
     @test @inferred(CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)) isa
-          CubicSpline
+        CubicSpline
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4)
@@ -798,19 +858,24 @@ end
     @test @inferred(output_size(A)) == (4,)
     # Test allocation-free interpolation with StaticArrays
     u_s = [convert(SVector{length(first(u))}, i) for i in u]
-    @test_broken @inferred(CubicSpline(
-        u_s, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline
+    @test_broken @inferred(
+        CubicSpline(
+            u_s, t; extrapolation = ExtrapolationType.Extension
+        )
+    ) isa CubicSpline
     A_s = CubicSpline(u_s, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) == A_s(x)
     end
     @test A_s(0) isa SVector{length(first(u))}
-    @test_nowarn test_allocs(A_s, 0)
 
     # Test Vector{Matrix} interpolation
     u = [repeat(u[i], 1, 3) for i in 1:3]
-    @test @inferred(CubicSpline(
-        u, t; extrapolation = ExtrapolationType.Extension)) isa CubicSpline
+    @test @inferred(
+        CubicSpline(
+            u, t; extrapolation = ExtrapolationType.Extension
+        )
+    ) isa CubicSpline
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     for x in (-1.5, -0.5, -0.7)
         @test A(x) ≈ P₁(x) * ones(4, 3)
@@ -838,12 +903,14 @@ end
         c = CubicSpline(u, t)
         t_test = 0.1:0.05:1.0
         u_test = reduce(hcat, c.(t_test))
-        @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
-        @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
     end
     @testset "AbstractArray{T, 3}" begin
-        f3d(t) = [sin(t) cos(t);
-                  0.0 cos(2t)]
+        f3d(t) = [
+            sin(t) cos(t);
+            0.0 cos(2t)
+        ]
         t = 0.1:0.1:1.0
         u3d = f3d.(t)
         @test @inferred(CubicSpline(u3d, t)) isa CubicSpline
@@ -851,7 +918,7 @@ end
         t_test = 0.1:0.05:1.0
         u_test = reduce(hcat, c.(t_test))
         f_test = reduce(hcat, f3d.(t_test))
-        @test isapprox(u_test, f_test, atol = 1e-2)
+        @test isapprox(u_test, f_test, atol = 1.0e-2)
     end
 end
 
@@ -872,8 +939,11 @@ end
         @test @inferred(output_size(A)) == ()
 
         # Test extrapolation
-        A = @inferred(BSplineInterpolation(
-            u, t, 2, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension))
+        A = @inferred(
+            BSplineInterpolation(
+                u, t, 2, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension
+            )
+        )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = @inferred(BSplineInterpolation(u, t, 2, :Uniform, :Uniform))
@@ -887,14 +957,19 @@ end
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
 
         @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
-            u[1:3], t[1:3], 3, :Uniform, :Uniform)
+            u[1:3], t[1:3], 3, :Uniform, :Uniform
+        )
         @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 5 points.") BSplineInterpolation(
-            u[1:4], t[1:4], 4, :ArcLen, :Average)
+            u[1:4], t[1:4], 4, :ArcLen, :Average
+        )
         @test_nowarn BSplineInterpolation(u[1:3], t[1:3], 2, :Uniform, :Uniform)
 
         # Test extrapolation
-        A = @inferred(BSplineInterpolation(
-            u, t, 2, :ArcLen, :Average; extrapolation = ExtrapolationType.Extension))
+        A = @inferred(
+            BSplineInterpolation(
+                u, t, 2, :ArcLen, :Average; extrapolation = ExtrapolationType.Extension
+            )
+        )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = @inferred(BSplineInterpolation(u, t, 2, :ArcLen, :Average))
@@ -907,35 +982,37 @@ end
             A = @inferred(BSplineInterpolation(u2d, t, 2, :Uniform, :Uniform))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
-            @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
-            @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
             @test @inferred(output_dim(A)) == 1
             @test @inferred(output_size(A)) == (2,)
 
             A = @inferred(BSplineInterpolation(u2d, t, 2, :ArcLen, :Average))
             u_test = reduce(hcat, A.(t_test))
-            @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
-            @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
             @test @inferred(output_dim(A)) == 1
             @test @inferred(output_size(A)) == (2,)
         end
         @testset "AbstractArray{T, 3}" begin
-            f3d(t) = [sin(t) cos(t);
-                      0.0 cos(2t)]
+            f3d(t) = [
+                sin(t) cos(t);
+                0.0 cos(2t)
+            ]
             t = 0.1:0.1:1.0
             u3d = cat(f3d.(t)..., dims = 3)
             A = @inferred(BSplineInterpolation(u3d, t, 2, :Uniform, :Uniform))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             f_test = reduce(hcat, f3d.(t_test))
-            @test isapprox(u_test, f_test, atol = 1e-2)
+            @test isapprox(u_test, f_test, atol = 1.0e-2)
             @test @inferred(output_dim(A)) == 2
             @test @inferred(output_size(A)) == (2, 2)
 
             A = @inferred(BSplineInterpolation(u3d, t, 2, :ArcLen, :Average))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
-            @test isapprox(u_test, f_test, atol = 1e-2)
+            @test isapprox(u_test, f_test, atol = 1.0e-2)
             @test @inferred(output_dim(A)) == 2
             @test @inferred(output_size(A)) == (2, 2)
         end
@@ -953,14 +1030,17 @@ end
         test_cached_index(A)
 
         @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 3 control points.") BSplineApprox(
-            u, t, 2, 2, :Uniform, :Uniform)
+            u, t, 2, 2, :Uniform, :Uniform
+        )
         @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 4 control points.") BSplineApprox(
-            u, t, 3, 3, :ArcLen, :Average)
+            u, t, 3, 3, :ArcLen, :Average
+        )
         @test_nowarn BSplineApprox(u, t, 2, 3, :Uniform, :Uniform)
 
         # Test extrapolation
         A = BSplineApprox(
-            u, t, 2, 4, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension)
+            u, t, 2, 4, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension
+        )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
         A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
@@ -973,29 +1053,31 @@ end
             A = BSplineApprox(u2d, t, 2, 5, :Uniform, :Uniform)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
-            @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-3)
-            @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-3)
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
 
             A = BSplineApprox(u2d, t, 2, 5, :ArcLen, :Average)
             u_test = reduce(hcat, A.(t_test))
-            @test isapprox(u_test[1, :], sin.(t_test), atol = 1e-2)
-            @test isapprox(u_test[2, :], cos.(t_test), atol = 1e-2)
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-2)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-2)
         end
         @testset "AbstractArray{T, 3}" begin
-            f3d(t) = [sin(t) cos(t);
-                      0.0 cos(2t)]
+            f3d(t) = [
+                sin(t) cos(t);
+                0.0 cos(2t)
+            ]
             t = 0.1:0.1:1.0
             u3d = cat(f3d.(t)..., dims = 3)
             A = BSplineApprox(u3d, t, 2, 6, :Uniform, :Uniform)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             f_test = reduce(hcat, f3d.(t_test))
-            @test isapprox(u_test, f_test, atol = 1e-2)
+            @test isapprox(u_test, f_test, atol = 1.0e-2)
 
             A = BSplineApprox(u3d, t, 2, 7, :ArcLen, :Average)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
-            @test isapprox(u_test, f_test, atol = 1e-2)
+            @test isapprox(u_test, f_test, atol = 1.0e-2)
         end
     end
 end
@@ -1008,8 +1090,8 @@ end
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     A = @inferred(CubicHermiteSpline(du, u, t; extrapolation = ExtrapolationType.Extension))
     @test A.(t) ≈ u
-    @test A(100.0)≈10.106770 rtol=1e-5
-    @test A(300.0)≈9.901542 rtol=1e-5
+    @test A(100.0) ≈ 10.10677 rtol = 1.0e-5
+    @test A(300.0) ≈ 9.901542 rtol = 1.0e-5
     @test @inferred(output_dim(A)) == 0
     @test @inferred(output_size(A)) == ()
     test_cached_index(A)
@@ -1022,8 +1104,8 @@ end
         du2 = [[du[i], du[i]] for i in eachindex(du)]
         A2 = CubicHermiteSpline(du2, u2, t; extrapolation = ExtrapolationType.Extension)
         @test u2 ≈ A2.(t)
-        @test A2(100.0) ≈ repeat([10.106770], 2) + [0, 1] rtol=1e-5
-        @test A2(300.0) ≈ repeat([9.901542], 2) + [0, 1] rtol=1e-5
+        @test A2(100.0) ≈ repeat([10.10677], 2) + [0, 1] rtol = 1.0e-5
+        @test A2(300.0) ≈ repeat([9.901542], 2) + [0, 1] rtol = 1.0e-5
         # Test allocation-free interpolation with Vector{StaticArrays.SVector}
         u2_s = [convert(SVector{length(u2[1])}, i) for i in u2]
         du2_s = [convert(SVector{length(du2[1])}, i) for i in du2]
@@ -1031,7 +1113,6 @@ end
         @test A2_s(100.0) == A2(100.0)
         @test A2_s(300.0) == A2(300.0)
         @test A2_s(0.7) isa SVector{length(u2[1])}
-        @test_nowarn test_allocs(A2_s, 0.7)
     end
     @testset "Vector of Matrices case" begin
         u3 = [[u[i] u[i] + 1] for i in eachindex(u)]
@@ -1063,11 +1144,14 @@ end
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
-    A = @inferred(QuinticHermiteSpline(
-        ddu, du, u, t; extrapolation = ExtrapolationType.Extension))
+    A = @inferred(
+        QuinticHermiteSpline(
+            ddu, du, u, t; extrapolation = ExtrapolationType.Extension
+        )
+    )
     @test A.(t) ≈ u
-    @test A(100.0)≈10.107996 rtol=1e-5
-    @test A(300.0)≈11.364162 rtol=1e-5
+    @test A(100.0) ≈ 10.107996 rtol = 1.0e-5
+    @test A(300.0) ≈ 11.364162 rtol = 1.0e-5
     test_cached_index(A)
     @test @inferred(output_dim(A)) == 0
     @test @inferred(output_size(A)) == ()
@@ -1082,20 +1166,23 @@ end
         du2 = [[du[i], du[i]] for i in eachindex(du)]
         ddu2 = [[ddu[i], ddu[i]] for i in eachindex(ddu)]
         A2 = QuinticHermiteSpline(
-            ddu2, du2, u2, t; extrapolation = ExtrapolationType.Extension)
+            ddu2, du2, u2, t; extrapolation = ExtrapolationType.Extension
+        )
         @test u2 ≈ A2.(t)
-        @test A2(100.0) ≈ repeat([10.107996], 2) + [0, 1] rtol=1e-5
-        @test A2(300.0) ≈ repeat([11.364162], 2) + [0, 1] rtol=1e-5
+        @test A2(100.0) ≈ repeat([10.107996], 2) + [0, 1] rtol = 1.0e-5
+        @test A2(300.0) ≈ repeat([11.364162], 2) + [0, 1] rtol = 1.0e-5
         # Test allocation-free interpolation with Vector{StaticArrays.SVector}
         u2_s = [convert(SVector{length(u2[1])}, i) for i in u2]
         du2_s = [convert(SVector{length(du2[1])}, i) for i in du2]
         ddu2_s = [convert(SVector{length(du2[1])}, i) for i in ddu2]
-        A2_s = @inferred(QuinticHermiteSpline(
-            ddu2_s, du2_s, u2_s, t; extrapolation = ExtrapolationType.Extension))
+        A2_s = @inferred(
+            QuinticHermiteSpline(
+                ddu2_s, du2_s, u2_s, t; extrapolation = ExtrapolationType.Extension
+            )
+        )
         @test A2_s(100.0) == A2(100.0)
         @test A2_s(300.0) == A2(300.0)
         @test A2_s(0.7) isa SVector{length(u2[1])}
-        @test_nowarn test_allocs(A2_s, 0.7)
     end
     @testset "Vector of Matrices case" begin
         u3 = [[u[i] u[i] + 1] for i in eachindex(u)]
@@ -1124,9 +1211,10 @@ end
     u = [0.3 -1.5 3.1; -0.2 0.2 -1.5; 0.0 0.0 0.0]
     A = SmoothArcLengthInterpolation(u'; m = 25)
     L = sum(norm.(diff(A.shape_itp(range(0, A.shape_itp.t[end]; length = 1_000_000)))))
-    @test A.t[end]≈L rtol=1e-4
+    @test A.t[end] ≈ L rtol = 1.0e-4
     @test all(
-        t_ -> A(prevfloat(t_)) ≈ A(nextfloat(t_)), A.t[2:(end - 1)])
+        t_ -> A(prevfloat(t_)) ≈ A(nextfloat(t_)), A.t[2:(end - 1)]
+    )
 end
 
 @testset "Curvefit" begin
@@ -1145,7 +1233,7 @@ end
         0.9836755196317837,
         0.8833959853995836,
         0.3810348276782708,
-        0.048062978598861855
+        0.048062978598861855,
     ]
     us = A.(ts)
     @test vs ≈ us
@@ -1270,7 +1358,7 @@ end
 @testset "Symbolic interpolation" begin
     rng = StableRNG(50225)
 
-    t = 0.01:0.01:1.00
+    t = 0.01:0.01:1.0
     @variables x[1:100]
 
     ci = ConstantInterpolation(x, t)
@@ -1282,7 +1370,7 @@ end
     xvals = rand(rng, 100)
     @test Symbolics.substitute(ci(0.425), Dict(x => xvals)) == xvals[42]
     @test Symbolics.substitute(li(0.425), Dict(x => xvals)) ==
-          xvals[42] + 0.5 * (xvals[43] - xvals[42])
+        xvals[42] + 0.5 * (xvals[43] - xvals[42])
 
     @variables dx[1:100]
     @test_nowarn chs = CubicHermiteSpline(dx, x, t)
@@ -1290,7 +1378,7 @@ end
     @test_nowarn li = LagrangeInterpolation(x, t)
     @test_nowarn cs = CubicSpline(x, t)
 
-    @test_throws Exception ai=AkimaInterpolation(x, t)
-    @test_throws Exception bsi=BSplineInterpolation(x, t, 3, :ArcLen, :Average)
-    @test_throws Exception pc=PCHIPInterpolation(x, t)
+    @test_throws Exception ai = AkimaInterpolation(x, t)
+    @test_throws Exception bsi = BSplineInterpolation(x, t, 3, :ArcLen, :Average)
+    @test_throws Exception pc = PCHIPInterpolation(x, t)
 end

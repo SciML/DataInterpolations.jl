@@ -3,8 +3,8 @@ using DataInterpolations
 function test_cached_integration(method, args...)
     A_c = method(args...; cache_parameters = true)
     A_nc = method(args...; cache_parameters = false)
-    @test DataInterpolations.integral(A_c, last(A_c.t)) ≈
-          DataInterpolations.integral(A_nc, last(A_nc.t))
+    return @test DataInterpolations.integral(A_c, last(A_c.t)) ≈
+        DataInterpolations.integral(A_nc, last(A_nc.t))
 end
 
 @testset "Linear Interpolation" begin
