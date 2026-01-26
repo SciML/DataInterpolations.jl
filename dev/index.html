@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>DataInterpolations.jl · DataInterpolations.jl</title><meta name="title" content="DataInterpolations.jl · DataInterpolations.jl"/><meta property="og:title" content="DataInterpolations.jl · DataInterpolations.jl"/><meta property="twitter:title" content="DataInterpolations.jl · DataInterpolations.jl"/><meta name="description" content="Documentation for DataInterpolations.jl."/><meta property="og:description" content="Documentation for DataInterpolations.jl."/><meta property="twitter:description" content="Documentation for DataInterpolations.jl."/><meta property="og:url" content="https://docs.sciml.ai/DataInterpolations/stable/"/><meta property="twitter:url" content="https://docs.sciml.ai/DataInterpolations/stable/"/><link rel="canonical" href="https://docs.sciml.ai/DataInterpolations/stable/"/><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script><link href="assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href><img src="assets/logo.png" alt="DataInterpolations.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href>DataInterpolations.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>DataInterpolations.jl</a><ul class="internal"><li><a class="tocitem" href="#Installation"><span>Installation</span></a></li><li><a class="tocitem" href="#Available-Interpolations"><span>Available Interpolations</span></a></li><li><a class="tocitem" href="#Extension-Methods"><span>Extension Methods</span></a></li><li><a class="tocitem" href="#Plotting"><span>Plotting</span></a></li><li><a class="tocitem" href="#Citing"><span>Citing</span></a></li><li><a class="tocitem" href="#Contributing"><span>Contributing</span></a></li><li><a class="tocitem" href="#Reproducibility"><span>Reproducibility</span></a></li></ul></li><li><a class="tocitem" href="methods/">Interpolation methods</a></li><li><a class="tocitem" href="extrapolation_methods/">Extrapolation methods</a></li><li><a class="tocitem" href="interface/">Interface</a></li><li><a class="tocitem" href="symbolics/">Using with Symbolics/ModelingToolkit</a></li><li><a class="tocitem" href="manual/">Manual</a></li><li><a class="tocitem" href="arclength_interpolation/">Smooth arc length interpolation</a></li><li><a class="tocitem" href="inverting_integrals/">Inverting Integrals</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>DataInterpolations.jl</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>DataInterpolations.jl</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SciML/DataInterpolations.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/SciML/DataInterpolations.jl/blob/master/docs/src/index.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="DataInterpolations.jl"><a class="docs-heading-anchor" href="#DataInterpolations.jl">DataInterpolations.jl</a><a id="DataInterpolations.jl-1"></a><a class="docs-heading-anchor-permalink" href="#DataInterpolations.jl" title="Permalink"></a></h1><p>DataInterpolations.jl is a library for performing interpolations of one-dimensional data. Interpolations are a very important component of many modeling workflows. Often, sampled or measured inputs need to be transformed into continuous functions or smooth curves for simulation purposes. In many scientific machine learning workflows, interpolating data is essential to learn continuous models. DataInterpolations.jl can be used for facilitating these types of workflows. By &quot;data interpolations&quot; we mean techniques for interpolating possibly noisy data, and thus some methods are mixtures of regressions with interpolations (i.e. do not hit the data points exactly, smoothing out the lines).</p><h2 id="Installation"><a class="docs-heading-anchor" href="#Installation">Installation</a><a id="Installation-1"></a><a class="docs-heading-anchor-permalink" href="#Installation" title="Permalink"></a></h2><p>To install DataInterpolations.jl, use the Julia package manager:</p><pre><code class="language-julia hljs">using Pkg
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>DataInterpolations.jl · DataInterpolations.jl</title><meta name="title" content="DataInterpolations.jl · DataInterpolations.jl"/><meta property="og:title" content="DataInterpolations.jl · DataInterpolations.jl"/><meta property="twitter:title" content="DataInterpolations.jl · DataInterpolations.jl"/><meta name="description" content="Documentation for DataInterpolations.jl."/><meta property="og:description" content="Documentation for DataInterpolations.jl."/><meta property="twitter:description" content="Documentation for DataInterpolations.jl."/><meta property="og:url" content="https://docs.sciml.ai/DataInterpolations/stable/"/><meta property="twitter:url" content="https://docs.sciml.ai/DataInterpolations/stable/"/><link rel="canonical" href="https://docs.sciml.ai/DataInterpolations/stable/"/><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script><link href="assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href><img src="assets/logo.png" alt="DataInterpolations.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href>DataInterpolations.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>DataInterpolations.jl</a><ul class="internal"><li><a class="tocitem" href="#Installation"><span>Installation</span></a></li><li><a class="tocitem" href="#Available-Interpolations"><span>Available Interpolations</span></a></li><li><a class="tocitem" href="#Extension-Methods"><span>Extension Methods</span></a></li><li><a class="tocitem" href="#Plotting"><span>Plotting</span></a></li><li><a class="tocitem" href="#Citing"><span>Citing</span></a></li><li><a class="tocitem" href="#Contributing"><span>Contributing</span></a></li><li><a class="tocitem" href="#Reproducibility"><span>Reproducibility</span></a></li></ul></li><li><a class="tocitem" href="methods/">Interpolation methods</a></li><li><a class="tocitem" href="extrapolation_methods/">Extrapolation methods</a></li><li><a class="tocitem" href="interface/">Interface</a></li><li><a class="tocitem" href="symbolics/">Using with Symbolics/ModelingToolkit</a></li><li><a class="tocitem" href="manual/">Manual</a></li><li><a class="tocitem" href="arclength_interpolation/">Smooth arc length interpolation</a></li><li><a class="tocitem" href="inverting_integrals/">Inverting Integrals</a></li><li><a class="tocitem" href="clarification/">Clarifications</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>DataInterpolations.jl</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>DataInterpolations.jl</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SciML/DataInterpolations.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/SciML/DataInterpolations.jl/blob/master/docs/src/index.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="DataInterpolations.jl"><a class="docs-heading-anchor" href="#DataInterpolations.jl">DataInterpolations.jl</a><a id="DataInterpolations.jl-1"></a><a class="docs-heading-anchor-permalink" href="#DataInterpolations.jl" title="Permalink"></a></h1><p>DataInterpolations.jl is a library for performing interpolations of one-dimensional data. Interpolations are a very important component of many modeling workflows. Often, sampled or measured inputs need to be transformed into continuous functions or smooth curves for simulation purposes. In many scientific machine learning workflows, interpolating data is essential to learn continuous models. DataInterpolations.jl can be used for facilitating these types of workflows. By &quot;data interpolations&quot; we mean techniques for interpolating possibly noisy data, and thus some methods are mixtures of regressions with interpolations (i.e. do not hit the data points exactly, smoothing out the lines).</p><h2 id="Installation"><a class="docs-heading-anchor" href="#Installation">Installation</a><a id="Installation-1"></a><a class="docs-heading-anchor-permalink" href="#Installation" title="Permalink"></a></h2><p>To install DataInterpolations.jl, use the Julia package manager:</p><pre><code class="language-julia hljs">using Pkg
 Pkg.add(&quot;DataInterpolations&quot;)</code></pre><h2 id="Available-Interpolations"><a class="docs-heading-anchor" href="#Available-Interpolations">Available Interpolations</a><a id="Available-Interpolations-1"></a><a class="docs-heading-anchor-permalink" href="#Available-Interpolations" title="Permalink"></a></h2><p>In all cases, <code>u</code> is an <code>AbstractVector</code> of values and <code>t</code> is an <code>AbstractVector</code> of timepoints corresponding to <code>(u,t)</code> pairs.</p><ul><li><p><code>ConstantInterpolation(u,t)</code> - A piecewise constant interpolation.</p></li><li><p><code>SmoothedConstantInterpolation(u,t)</code> - An integral preserving continuously differentiable approximation of constant interpolation.</p></li><li><p><code>LinearInterpolation(u,t)</code> - A linear interpolation.</p></li><li><p><code>QuadraticInterpolation(u,t)</code> - A quadratic interpolation.</p></li><li><p><code>LagrangeInterpolation(u,t,n)</code> - A Lagrange interpolation of order <code>n</code>.</p></li><li><p><code>QuadraticSpline(u,t)</code> - A quadratic spline interpolation.</p></li><li><p><code>CubicSpline(u,t)</code> - A cubic spline interpolation.</p></li><li><p><code>AkimaInterpolation(u, t)</code> - Akima spline interpolation provides a smoothing effect and is computationally efficient.</p></li><li><p><code>BSplineInterpolation(u,t,d,pVec,knotVec)</code> - An interpolation B-spline. This is a B-spline that hits each of the data points. The argument choices are:</p><ul><li><code>d</code> - degree of B-spline</li><li><code>pVec</code> - Symbol to Parameters Vector, <code>pVec = :Uniform</code> for uniformly spaced parameters, and <code>pVec = :ArcLen</code> for parameters generated by the chord length method.</li><li><code>knotVec</code> - Symbol to Knot Vector, <code>knotVec = :Uniform</code> for uniform knot vector, <code>knotVec = :Average</code> for average spaced knot vector.</li></ul></li><li><p><code>BSplineApprox(u,t,d,h,pVec,knotVec)</code> - A regression B-spline which smooths the fitting curve. The argument choices are the same as the <code>BSplineInterpolation</code>, with the additional parameter <code>h&lt;length(t)</code> which is the number of control points to use, with smaller <code>h</code> indicating more smoothing.</p></li><li><p><code>CubicHermiteSpline(du, u, t)</code> - A third order Hermite interpolation, which matches the values and first (<code>du</code>) order derivatives in the data points exactly.</p></li><li><p><code>PCHIPInterpolation(u, t)</code> - a type of <code>CubicHermiteSpline</code> where the derivative values <code>du</code> are derived from the input data in such a way that the interpolation never overshoots the data.</p></li><li><p><code>QuinticHermiteSpline(ddu, du, u, t)</code> - a fifth order Hermite interpolation, which matches the values and first (<code>du</code>) and second (<code>ddu</code>) order derivatives in the data points exactly.</p></li></ul><h2 id="Extension-Methods"><a class="docs-heading-anchor" href="#Extension-Methods">Extension Methods</a><a id="Extension-Methods-1"></a><a class="docs-heading-anchor-permalink" href="#Extension-Methods" title="Permalink"></a></h2><p>The following methods require extra dependencies and will be loaded as package extensions.</p><ul><li><code>Curvefit(u,t,m,p,alg)</code> - An interpolation which is done by fitting a user-given functional form <code>m(t,p)</code> where <code>p</code> is the vector of parameters. The user&#39;s input <code>p</code> is an initial value for a least-squares fitting, <code>alg</code> is the algorithm choice to use to optimize the cost function (sum of squared deviations) via <code>Optim.jl</code> and optimal <code>p</code>s are used in the interpolation. Requires <code>using Optim</code>.</li><li><code>RegularizationSmooth(u,t,d;λ,alg)</code> - A regularization algorithm (ridge regression) which is done by minimizing an objective function (l2 loss + derivatives of order <code>d</code>) integrated in the time span. It is a global method which creates a smooth curve. Requires <code>using RegularizationTools</code>.</li></ul><h2 id="Plotting"><a class="docs-heading-anchor" href="#Plotting">Plotting</a><a id="Plotting-1"></a><a class="docs-heading-anchor-permalink" href="#Plotting" title="Permalink"></a></h2><p>DataInterpolations.jl is tied into the Plots.jl ecosystem, by way of RecipesBase. Any interpolation can be plotted using the <code>plot</code> command (or any other), since they have type recipes associated with them.</p><h2 id="Citing"><a class="docs-heading-anchor" href="#Citing">Citing</a><a id="Citing-1"></a><a class="docs-heading-anchor-permalink" href="#Citing" title="Permalink"></a></h2><p>If you use this software in your work, please cite:</p><pre><code class="language-bib hljs">@article{Bhagavan2024,
   doi = {10.21105/joss.06917},
   url = {https://doi.org/10.21105/joss.06917},
@@ -11,30 +11,28 @@ Pkg.add(&quot;DataInterpolations&quot;)</code></pre><h2 id="Available-Interpolat
   author = {Sathvik Bhagavan and Bart de Koning and Shubham Maddhashiya and Christopher Rackauckas},
   title = {DataInterpolations.jl: Fast Interpolations of 1D data},
   journal = {Journal of Open Source Software}
-}</code></pre><h2 id="Contributing"><a class="docs-heading-anchor" href="#Contributing">Contributing</a><a id="Contributing-1"></a><a class="docs-heading-anchor-permalink" href="#Contributing" title="Permalink"></a></h2><ul><li><p>Please refer to the <a href="https://github.com/SciML/ColPrac/blob/master/README.md">SciML ColPrac: Contributor&#39;s Guide on Collaborative Practices for Community Packages</a> for guidance on PRs, issues, and other matters relating to contributing to SciML.</p></li><li><p>See the <a href="https://github.com/SciML/SciMLStyle">SciML Style Guide</a> for common coding practices and other style decisions.</p></li><li><p>There are a few community forums:</p><ul><li>The #diffeq-bridged and #sciml-bridged channels in the <a href="https://julialang.org/slack/">Julia Slack</a></li><li>The #diffeq-bridged and #sciml-bridged channels in the <a href="https://julialang.zulipchat.com/#narrow/stream/279055-sciml-bridged">Julia Zulip</a></li><li>On the <a href="https://discourse.julialang.org">Julia Discourse forums</a></li><li>See also <a href="https://sciml.ai/community/">SciML Community page</a></li></ul></li></ul><h2 id="Reproducibility"><a class="docs-heading-anchor" href="#Reproducibility">Reproducibility</a><a id="Reproducibility-1"></a><a class="docs-heading-anchor-permalink" href="#Reproducibility" title="Permalink"></a></h2><details><summary>The documentation of this SciML package was built using these direct dependencies,</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Status `~/github-runners/deepsea4-24/_work/DataInterpolations.jl/DataInterpolations.jl/docs/Project.toml`
-  [82cc6244] DataInterpolations v8.9.0 `~/github-runners/deepsea4-24/_work/DataInterpolations.jl/DataInterpolations.jl`
+}</code></pre><h2 id="Contributing"><a class="docs-heading-anchor" href="#Contributing">Contributing</a><a id="Contributing-1"></a><a class="docs-heading-anchor-permalink" href="#Contributing" title="Permalink"></a></h2><ul><li><p>Please refer to the <a href="https://github.com/SciML/ColPrac/blob/master/README.md">SciML ColPrac: Contributor&#39;s Guide on Collaborative Practices for Community Packages</a> for guidance on PRs, issues, and other matters relating to contributing to SciML.</p></li><li><p>See the <a href="https://github.com/SciML/SciMLStyle">SciML Style Guide</a> for common coding practices and other style decisions.</p></li><li><p>There are a few community forums:</p><ul><li>The #diffeq-bridged and #sciml-bridged channels in the <a href="https://julialang.org/slack/">Julia Slack</a></li><li>The #diffeq-bridged and #sciml-bridged channels in the <a href="https://julialang.zulipchat.com/#narrow/stream/279055-sciml-bridged">Julia Zulip</a></li><li>On the <a href="https://discourse.julialang.org">Julia Discourse forums</a></li><li>See also <a href="https://sciml.ai/community/">SciML Community page</a></li></ul></li></ul><h2 id="Reproducibility"><a class="docs-heading-anchor" href="#Reproducibility">Reproducibility</a><a id="Reproducibility-1"></a><a class="docs-heading-anchor-permalink" href="#Reproducibility" title="Permalink"></a></h2><details><summary>The documentation of this SciML package was built using these direct dependencies,</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Status `~/work/DataInterpolations.jl/DataInterpolations.jl/docs/Project.toml`
+  [82cc6244] DataInterpolations v8.9.0 `~/work/DataInterpolations.jl/DataInterpolations.jl`
   [e30172f5] Documenter v1.16.1
-  [961ee093] ModelingToolkit v11.7.1
+  [961ee093] ModelingToolkit v11.7.2
   [16a59e39] ModelingToolkitStandardLibrary v2.26.0
 ⌅ [429524aa] Optim v1.13.3
   [1dea7af3] OrdinaryDiffEq v6.106.0
   [91a5bcdd] Plots v1.41.4
   [29dad682] RegularizationTools v0.6.0
   [860ef19b] StableRNGs v1.0.4
-  [0c5d862f] Symbolics v7.5.1
+  [0c5d862f] Symbolics v7.8.0
 Info Packages marked with ⌅ have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated`</code></pre></details><details><summary>and using this machine and Julia version.</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.12.4
 Commit 01a2eadb047 (2026-01-06 16:56 UTC)
 Build Info:
   Official https://julialang.org release
 Platform Info:
   OS: Linux (x86_64-linux-gnu)
-  CPU: 128 × AMD EPYC 7513 32-Core Processor
+  CPU: 4 × AMD EPYC 7763 64-Core Processor
   WORD_SIZE: 64
   LLVM: libLLVM-18.1.7 (ORCJIT, znver3)
   GC: Built with stock GC
-Threads: 1 default, 1 interactive, 1 GC (on 128 virtual cores)
-Environment:
-  JULIA_DEPOT_PATH = /home/chrisrackauckas/github-runners/deepsea4-24/.julia</code></pre></details><details><summary>A more complete overview of all dependencies and their versions is also provided.</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Status `~/github-runners/deepsea4-24/_work/DataInterpolations.jl/DataInterpolations.jl/docs/Manifest.toml`
+Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></details><details><summary>A more complete overview of all dependencies and their versions is also provided.</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Status `~/work/DataInterpolations.jl/DataInterpolations.jl/docs/Manifest.toml`
   [47edcb42] ADTypes v1.21.0
   [a4c015fc] ANSIColoredPrinters v0.0.1
   [6e696c72] AbstractPlutoDingetjes v1.3.2
@@ -74,7 +72,7 @@ Environment:
   [adafc99b] CpuId v0.3.1
   [a8cc5b0e] Crayons v4.1.1
   [9a962f9c] DataAPI v1.16.0
-  [82cc6244] DataInterpolations v8.9.0 `~/github-runners/deepsea4-24/_work/DataInterpolations.jl/DataInterpolations.jl`
+  [82cc6244] DataInterpolations v8.9.0 `~/work/DataInterpolations.jl/DataInterpolations.jl`
   [864edb3b] DataStructures v0.19.3
   [e2d170a0] DataValueInterfaces v1.0.0
   [8bb1440f] DelimitedFiles v1.9.1
@@ -87,7 +85,7 @@ Environment:
   [e30172f5] Documenter v1.16.1
   [5b8099bc] DomainSets v0.7.16
   [7c1d4256] DynamicPolynomials v0.6.4
-  [4e289a0a] EnumX v1.0.5
+  [4e289a0a] EnumX v1.0.6
   [f151be2c] EnzymeCore v0.8.18
   [460bff9d] ExceptionUnwrapping v0.1.11
   [d4d017d3] ExponentialUtilities v1.30.0
@@ -99,7 +97,7 @@ Environment:
   [442a2c76] FastGaussQuadrature v1.1.0
   [a4df4552] FastPower v1.3.0
   [1a297f60] FillArrays v1.16.0
-  [64ca27bc] FindFirstFunctions v1.7.0
+  [64ca27bc] FindFirstFunctions v1.8.0
   [6a86dc24] FiniteDiff v2.29.0
   [53c48c17] FixedPointNumbers v0.8.5
   [1fa38f19] Format v1.3.7
@@ -107,10 +105,10 @@ Environment:
   [069b7b12] FunctionWrappers v1.1.3
   [77dc65aa] FunctionWrappersWrappers v0.1.3
   [46192b85] GPUArraysCore v0.2.0
-  [28b8d3ca] GR v0.73.19
+  [28b8d3ca] GR v0.73.21
   [c145ed77] GenericSchur v0.5.6
   [d7ba0133] Git v1.5.0
-  [86223c79] Graphs v1.13.3
+  [86223c79] Graphs v1.13.4
   [42e2da0e] Grisu v1.0.2
   [cd3eb016] HTTP v1.10.19
   [b5f81e59] IOCapture v1.0.0
@@ -127,7 +125,7 @@ Environment:
   [682c06a0] JSON v1.4.0
   [ae98c720] Jieko v0.2.1
   [ccbc3e58] JumpProcesses v9.21.0
-  [ba0b0d4f] Krylov v0.10.3
+  [ba0b0d4f] Krylov v0.10.5
   [b964fa9f] LaTeXStrings v1.4.0
   [23fbe1c1] Latexify v0.16.10
   [10f19ff3] LayoutPointers v0.1.17
@@ -148,10 +146,10 @@ Environment:
   [442fdcdd] Measures v0.3.3
   [c03570c3] Memoize v0.4.4
   [e1d29d7a] Missings v1.2.0
-  [961ee093] ModelingToolkit v11.7.1
-  [7771a370] ModelingToolkitBase v1.6.2
+  [961ee093] ModelingToolkit v11.7.2
+  [7771a370] ModelingToolkitBase v1.6.3
   [16a59e39] ModelingToolkitStandardLibrary v2.26.0
-  [6bb917b9] ModelingToolkitTearing v1.2.2
+  [6bb917b9] ModelingToolkitTearing v1.2.4
   [2e0e35c7] Moshi v0.3.7
   [46d2c3a1] MuladdMacro v0.2.4
   [102ac46a] MultivariatePolynomials v0.5.13
@@ -159,8 +157,8 @@ Environment:
 ⌅ [d41bc354] NLSolversBase v7.10.0
   [77ba4419] NaNMath v1.1.3
 ⌃ [8913a72c] NonlinearSolve v4.12.0
-  [be0214bd] NonlinearSolveBase v2.9.2
-  [5959db7a] NonlinearSolveFirstOrder v1.11.0
+  [be0214bd] NonlinearSolveBase v2.11.1
+  [5959db7a] NonlinearSolveFirstOrder v1.11.1
   [9a2c21bd] NonlinearSolveQuasiNewton v1.12.0
   [26075421] NonlinearSolveSpectralMethods v1.6.0
   [6fe1bfb0] OffsetArrays v1.17.0
@@ -170,7 +168,7 @@ Environment:
   [1dea7af3] OrdinaryDiffEq v6.106.0
   [89bda076] OrdinaryDiffEqAdamsBashforthMoulton v1.9.0
   [6ad6398a] OrdinaryDiffEqBDF v1.14.0
-  [bbf590c4] OrdinaryDiffEqCore v3.1.0
+  [bbf590c4] OrdinaryDiffEqCore v3.2.0
   [50262376] OrdinaryDiffEqDefault v1.12.0
   [4302a76b] OrdinaryDiffEqDifferentiation v1.22.0
   [9286f039] OrdinaryDiffEqExplicitRK v1.8.0
@@ -213,10 +211,10 @@ Environment:
   [27ebfcd6] Primes v0.5.7
   [43287f4e] PtrArrays v1.3.0
   [988b38a3] ReadOnlyArrays v0.2.0
-  [795d4caa] ReadOnlyDicts v1.0.0
+  [795d4caa] ReadOnlyDicts v1.0.1
   [3cdcf5f2] RecipesBase v1.3.4
   [01d81517] RecipesPipeline v0.6.12
-  [731186ca] RecursiveArrayTools v3.44.0
+  [731186ca] RecursiveArrayTools v3.45.1
   [189a3867] Reexport v1.2.2
   [2792f1a3] RegistryInstances v0.1.0
   [29dad682] RegularizationTools v0.6.0
@@ -225,7 +223,7 @@ Environment:
   [7e49a35a] RuntimeGeneratedFunctions v0.5.16
   [9dfe8606] SCCNonlinearSolve v1.9.0
   [94e857df] SIMDTypes v0.1.0
-  [0bca4576] SciMLBase v2.134.0
+  [0bca4576] SciMLBase v2.135.0
   [19f34311] SciMLJacobianOperators v0.1.12
   [a6db7da4] SciMLLogging v1.8.0
   [c0aeaf25] SciMLOperators v1.14.1
@@ -253,9 +251,9 @@ Environment:
   [892a3eda] StringManipulation v0.4.2
   [ec057cc2] StructUtils v2.6.2
   [2efcf032] SymbolicIndexingInterface v0.3.46
-⌅ [19f23fe9] SymbolicLimits v0.2.4
-  [d1185830] SymbolicUtils v4.11.0
-  [0c5d862f] Symbolics v7.5.1
+  [19f23fe9] SymbolicLimits v1.1.0
+  [d1185830] SymbolicUtils v4.13.1
+  [0c5d862f] Symbolics v7.8.0
   [3783bdb8] TableTraits v1.0.1
   [bd369af6] Tables v1.12.1
   [ed4db957] TaskLocalValues v0.1.3
@@ -281,7 +279,7 @@ Environment:
   [d7e528f0] FreeType2_jll v2.13.4+0
   [559328eb] FriBidi_jll v1.0.17+0
   [0656b61e] GLFW_jll v3.4.1+0
-  [d2c73de3] GR_jll v0.73.19+1
+  [d2c73de3] GR_jll v0.73.21+0
   [b0724c58] GettextRuntime_jll v0.22.4+0
   [61579ee1] Ghostscript_jll v9.55.1+0
   [020c3dae] Git_LFS_jll v3.7.0+0
@@ -403,4 +401,4 @@ Environment:
   [8e850b90] libblastrampoline_jll v5.15.0+0
   [8e850ede] nghttp2_jll v1.64.0+1
   [3f19e933] p7zip_jll v17.7.0+0
-Info Packages marked with ⌃ and ⌅ have new versions available. Those with ⌃ may be upgradable, but those with ⌅ are restricted by compatibility constraints from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.9.0/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.9.0/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Sunday 18 January 2026 21:40">Sunday 18 January 2026</span>. Using Julia version 1.12.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+Info Packages marked with ⌃ and ⌅ have new versions available. Those with ⌃ may be upgradable, but those with ⌅ are restricted by compatibility constraints from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.9.0/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v8.9.0/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Monday 26 January 2026 13:39">Monday 26 January 2026</span>. Using Julia version 1.12.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
