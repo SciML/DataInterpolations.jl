@@ -1,4 +1,4 @@
-module DataInterpolationsOptimExt
+module DataInterpolationsCurveFitExt
 
 using DataInterpolations
 import DataInterpolations: munge_data,
@@ -6,7 +6,7 @@ import DataInterpolations: munge_data,
     ExtrapolationError,
     integral, IntegralNotFoundError, DerivativeNotFoundError
 
-using Optim, ForwardDiff
+using CurveFit, ForwardDiff
 
 ### Curvefit
 function Curvefit(
@@ -14,24 +14,23 @@ function Curvefit(
         t,
         model,
         p0,
-        alg,
+        alg = nothing,
         box = false,
         lb = nothing,
         ub = nothing;
         extrapolate = false
     )
     u, t = munge_data(u, t)
-    errfun(t, u, p) = sum(abs2.(u .- model(t, p)))
-    if box == false
-        mfit = optimize(p -> errfun(t, u, p), p0, alg)
-    else
-        if lb === nothing || ub === nothing
-            error("lower or upper bound should not be nothing")
-        end
-        od = OnceDifferentiable(p -> errfun(t, u, p), p0, autodiff = :finite)
-        mfit = optimize(od, lb, ub, p0, Fminbox(alg))
+    if box && (lb === nothing || ub === nothing)
+        error("lower or upper bound should not be nothing")
     end
-    pmin = Optim.minimizer(mfit)
+    prob = CurveFit.NonlinearCurveFitProblem((p, x) -> model(x, p), p0, t, u)
+    sol = if isnothing(alg)
+        CurveFit.solve(prob)
+    else
+        CurveFit.solve(prob, alg)
+    end
+    pmin = sol.u
     return CurvefitCache(u, t, model, p0, ub, lb, alg, pmin, extrapolate)
 end
 
@@ -65,7 +64,7 @@ end
 
 function get_show(A::CurvefitCache)
     return "Curvefit" *
-        " with $(length(A.t)) points, using $(nameof(typeof(A.alg)))\n"
+        " with $(length(A.t)) points.\n"
 end
 
 function integral(A::CurvefitCache{<:AbstractVector{<:Number}}, t::Number)
