@@ -31,7 +31,7 @@ function Curvefit(
         CurveFit.solve(prob, alg)
     end
     pmin = sol.u
-    CurvefitCache(u, t, model, p0, ub, lb, alg, pmin, extrapolate)
+    return CurvefitCache(u, t, model, p0, ub, lb, alg, pmin, extrapolate)
 end
 
 # Curvefit
