@@ -182,14 +182,58 @@ function looks_linear(t; threshold = 1.0e-2)
     return norm_var < threshold^2
 end
 
-function get_idx(
+@inline function _searchsortedlast_branchless(v::AbstractVector, x)
+    n = length(v)
+    @inbounds begin
+        lo, hi = 1, n + 1  # hi is exclusive upper bound so lo can reach n
+        iters = 64 - leading_zeros((hi - lo - 1) % UInt64)
+        for _ in 1:iters
+            mid = (lo + hi) >>> 1  # mid ∈ [1, n], always in-bounds
+            cond = v[mid] <= x
+            lo = ifelse(cond, mid, lo)
+            hi = ifelse(cond, hi, mid)
+        end
+    end
+    return lo
+end
+
+@inline function _searchsortedlast_hint(v::AbstractVector, x, hint::Int)
+    n = length(v)
+    ix = clamp(hint, 1, n)
+    @inbounds begin
+        if v[ix] <= x
+            (ix == n || x < v[ix + 1]) && return ix          # direct hit
+            for _ in 1:8                                       # walk right
+                ix += 1
+                (ix == n || x < v[ix + 1]) && return ix
+            end
+        else
+            for _ in 1:8                                       # walk left
+                ix -= 1
+                ix < 1 && return 1
+                v[ix] <= x && return ix
+            end
+        end
+    end
+    return _searchsortedlast_branchless(v, x)                  # fallback
+end
+
+@inline function get_idx(
         A::AbstractInterpolation, t, iguess::Union{<:Integer, Guesser}; lb = 1,
         ub_shift = -1, idx_shift = 0, side = :last
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
     return if side == :last
-        clamp(searchsortedlastcorrelated(tvec, t, iguess) + idx_shift, lb, ub)
+        idx = if iguess isa Guesser
+            _searchsortedlast_hint(tvec, t, iguess.idx_prev[])
+        else
+            _searchsortedlast_branchless(tvec, t)
+        end
+        if iguess isa Guesser
+            iguess.idx_prev[] = idx
+        end
+        clamp(idx + idx_shift, lb, ub)
     elseif side == :first
         clamp(searchsortedfirstcorrelated(tvec, t, iguess) + idx_shift, lb, ub)
     else
