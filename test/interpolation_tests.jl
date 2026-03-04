@@ -1245,6 +1245,10 @@ end
     @test A(15.0) == model(15.0, A.pmin)
     A = Curvefit(u, t, model, p0, LevenbergMarquardt())
     @test_throws DataInterpolations.ExtrapolationError A(15.0)
+
+    # With lb, ub
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt(), false, [0.0, 0.0], [1.0, 1.0])
+    @test all(0.0 .<= A.pmin .<= 1.0)
 end
 
 @testset "Type of vector returned" begin
