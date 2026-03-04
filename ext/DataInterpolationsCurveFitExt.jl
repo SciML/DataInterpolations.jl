@@ -24,7 +24,7 @@ function Curvefit(
     if box && (lb === nothing || ub === nothing)
         error("lower or upper bound should not be nothing")
     end
-    prob = CurveFit.NonlinearCurveFitProblem((p, x) -> model(x, p), p0, t, u)
+    prob = CurveFit.NonlinearCurveFitProblem((p, x) -> model(x, p), p0, t, u; lb = lb, ub = ub)
     sol = if isnothing(alg)
         CurveFit.solve(prob)
     else
