@@ -9,7 +9,7 @@ using DataInterpolations, Plots
 using DataInterpolations: derivative
 u = [2.0, 1.0, 5.0, 4.0, 5.0, 4.0]
 t = [0.0, 2.0, 3.5, 4.0, 5.0, 6.5]
-bspline = BSplineInterpolation(u, t, 0, :Uniform, :Uniform; extrapolation_left=ExtrapolationType.Extension,  extrapolation_right=ExtrapolationType.Extension)
+bspline = BSplineInterpolation(u, t, 0, :Uniform; extrapolation_left=ExtrapolationType.Extension,  extrapolation_right=ExtrapolationType.Extension)
 plot(bspline)
 ```
 
@@ -19,7 +19,7 @@ Thus, the plot for B-Spline interpolation does not appear the same as the plot f
 # Derivative behavior of quadratic B-Spline 
 
 ```@example interpclarity
-bspline = BSplineInterpolation(u, t, 2, :Uniform, :Uniform; extrapolation_left=ExtrapolationType.Extension,  extrapolation_right=ExtrapolationType.Extension)
+bspline = BSplineInterpolation(u, t, 2, :Uniform; extrapolation_left=ExtrapolationType.Extension,  extrapolation_right=ExtrapolationType.Extension)
 plot(t->derivative(bspline, t))
 ```
 
