@@ -242,7 +242,6 @@ end
         args = [
             u, t, 2,
             :Uniform,
-            :Uniform,
         ],
         name = "BSpline Interpolation (Uniform, Uniform)"
     )
@@ -250,7 +249,6 @@ end
         BSplineInterpolation;
         args = [
             u, t, 2,
-            :ArcLen,
             :Average,
         ],
         name = "BSpline Interpolation (Arclen, Average)"
@@ -261,7 +259,6 @@ end
             u, t,
             3,
             4,
-            :Uniform,
             :Uniform,
         ],
         name = "BSpline Approx (Uniform, Uniform)"
@@ -280,7 +277,6 @@ end
             u3d, t3d,
             2,
             :Uniform,
-            :Uniform,
         ],
         name = "BSpline Interpolation (Uniform, Uniform): AbstractArray"
     )
@@ -290,7 +286,6 @@ end
         args = [
             u3d, t3d,
             2,
-            :ArcLen,
             :Average,
         ],
         name = "BSpline Interpolation (Arclen, Average): AbstractArray"
@@ -303,7 +298,6 @@ end
             3,
             4,
             :Uniform,
-            :Uniform,
         ],
         name = "BSpline Approx (Uniform, Uniform): AbstractArray"
     )
@@ -314,7 +308,6 @@ end
             u3d, t3d,
             3,
             4,
-            :ArcLen,
             :Average,
         ],
         name = "BSpline Approx (Arclen, Average): AbstractArray"

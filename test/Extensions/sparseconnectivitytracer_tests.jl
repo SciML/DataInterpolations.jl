@@ -241,8 +241,8 @@ end
             InterpolationTest(AkimaInterpolation(u, t)),
             InterpolationTest(QuadraticSpline(u, t)),
             InterpolationTest(CubicSpline(u, t)),
-            InterpolationTest(BSplineInterpolation(u, t, 3, :ArcLen, :Average)),
-            InterpolationTest(BSplineApprox(u, t, 3, 4, :ArcLen, :Average)),
+            InterpolationTest(BSplineInterpolation(u, t, 3, :Average)),
+            InterpolationTest(BSplineApprox(u, t, 3, 4, :Average)),
             InterpolationTest(PCHIPInterpolation(u, t)),
             InterpolationTest(CubicHermiteSpline(du, u, t)),
             InterpolationTest(QuinticHermiteSpline(ddu, du, u, t)),
@@ -267,10 +267,10 @@ for N in (2, 5)
                 InterpolationTest(LagrangeInterpolation(um, t)),
                 ## The following interpolations appear to not be supported on N dimensions as of DataInterpolations v6.2.0:
                 # InterpolationTest(AkimaInterpolation(um, t)),
-                # InterpolationTest(BSplineApprox(um, t, 3, 4, :ArcLen, :Average)),
+                # InterpolationTest(BSplineApprox(um, t, 3, 4, :Average)),
                 # InterpolationTest(QuadraticSpline(um, t)),
                 # InterpolationTest(CubicSpline(um, t)),
-                # InterpolationTest(BSplineInterpolation(um, t, 3, :ArcLen, :Average)),
+                # InterpolationTest(BSplineInterpolation(um, t, 3, :Average)),
                 # InterpolationTest(PCHIPInterpolation(um, t)),
             )
             test_jacobian(t)
