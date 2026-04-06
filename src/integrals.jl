@@ -287,11 +287,84 @@ end
 function _integral(A::LagrangeInterpolation, idx::Number, t1::Number, t2::Number)
     throw(IntegralNotFoundError())
 end
-function _integral(A::BSplineInterpolation, idx::Number, t1::Number, t2::Number)
-    throw(IntegralNotFoundError())
+# Evaluate the antiderivative of a B-spline at a point.
+# The antiderivative of a degree-d B-spline is a degree-(d+1) B-spline with
+# extended knot vector and coefficients derived from the original.
+function _bspline_antiderivative_val(c, d, k, t_eval)
+    nc = length(c)
+    dp1 = d + 1
+    # Antiderivative coefficients: C[1] = 0, C[i+1] = C[i] + c[i]*(k[i+d+1]-k[i])/(d+1)
+    T = promote_type(eltype(c), eltype(k), typeof(t_eval))
+    C = zeros(T, nc + 1)
+    for i in 1:nc
+        C[i + 1] = C[i] + c[i] * (k[i + dp1] - k[i]) / dp1
+    end
+    # Extended knot vector: prepend k[1], append k[end]
+    nk = length(k)
+    k_ext = zeros(eltype(k), nk + 2)
+    k_ext[1] = k[1]
+    for i in 1:nk
+        k_ext[i + 1] = k[i]
+    end
+    k_ext[end] = k[end]
+    # Evaluate degree-(d+1) B-spline with coefficients C on k_ext
+    sc = zeros(T, nc + 1)
+    nonzero = spline_coefficients!(sc, dp1, k_ext, t_eval)
+    result = zero(T)
+    for i in nonzero
+        result += sc[i] * C[i]
+    end
+    return result
 end
-function _integral(A::BSplineApprox, idx::Number, t1::Number, t2::Number)
-    throw(IntegralNotFoundError())
+
+function _integral(
+        A::BSplineInterpolation{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+    _bspline_antiderivative_val(A.c, A.d, A.k, t2) -
+        _bspline_antiderivative_val(A.c, A.d, A.k, t1)
+end
+function _integral(A::BSplineApprox{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
+    _bspline_antiderivative_val(A.c, A.d, A.k, t2) -
+        _bspline_antiderivative_val(A.c, A.d, A.k, t1)
+end
+
+# Override integral to bypass the hasfield(:I) check in the generic method.
+# The antiderivative is computed on the fly, so no cached I field is needed.
+const _BSplineTypes = Union{
+    BSplineInterpolation{<:AbstractVector{<:Number}},
+    BSplineApprox{<:AbstractVector{<:Number}}}
+
+function integral(A::_BSplineTypes, t::Number)
+    integral(A, first(A.t), t)
+end
+
+function integral(A::_BSplineTypes, t1::Number, t2::Number)
+    t1 == t2 && return zero(eltype(A.u))
+    t1 > t2 && return -integral(A, t2, t1)
+
+    total = zero(eltype(A.u))
+    lo = t1
+    hi = t2
+
+    if lo < first(A.t)
+        if hi <= first(A.t)
+            return _extrapolate_integral_left(A, lo) - _extrapolate_integral_left(A, hi)
+        end
+        total += _extrapolate_integral_left(A, lo)
+        lo = first(A.t)
+    end
+
+    if hi > last(A.t)
+        if lo >= last(A.t)
+            return _extrapolate_integral_right(A, hi) - _extrapolate_integral_right(A, lo)
+        end
+        total += _extrapolate_integral_right(A, hi)
+        hi = last(A.t)
+    end
+
+    total += _bspline_antiderivative_val(A.c, A.d, A.k, hi) -
+        _bspline_antiderivative_val(A.c, A.d, A.k, lo)
+
+    return total
 end
 
 # Cubic Hermite Spline

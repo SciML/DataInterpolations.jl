@@ -31,24 +31,45 @@ end
 
 function spline_coefficients!(N, d, k, u::Number)
     N .= zero(u)
+    n = length(N)
     if u == k[1]
         N[1] = one(u)
         return 1:1
     elseif u == k[end]
         N[end] = one(u)
-        return length(N):length(N)
+        return n:n
     else
-        i = findfirst(x -> x > u, k)::Int - 1
+        idx = findfirst(x -> x > u, k)
+        # For out-of-range points, extend the boundary polynomial span
+        i = if idx === nothing
+            # u > k[end]: use last span
+            findlast(j -> k[j] < k[end], 1:length(k))::Int
+        elseif idx == 1
+            # u < k[1]: use first span
+            findfirst(j -> k[j + 1] > k[1], 1:(length(k) - 1))::Int
+        else
+            idx - 1
+        end
         N[i] = one(u)
         for deg in 1:d
-            N[i - deg] = (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) * N[i - deg + 1]
-            for j in (i - deg + 1):(i - 1)
-                N[j] = (u - k[j]) / (k[j + deg] - k[j]) * N[j] +
-                    (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) * N[j + 1]
+            ii = i - deg
+            if ii >= 1
+                denom = k[i + 1] - k[ii + 1]
+                N[ii] = denom != 0 ? (k[i + 1] - u) / denom * N[ii + 1] : zero(u)
             end
-            N[i] = (u - k[i]) / (k[i + deg] - k[i]) * N[i]
+            for j in max(ii + 1, 1):(i - 1)
+                denom1 = k[j + deg] - k[j]
+                denom2 = k[j + deg + 1] - k[j + 1]
+                left = denom1 != 0 ? (u - k[j]) / denom1 * N[j] : zero(u)
+                right = denom2 != 0 ? (k[j + deg + 1] - u) / denom2 * N[j + 1] : zero(u)
+                N[j] = left + right
+            end
+            denom = k[i + deg] - k[i]
+            N[i] = denom != 0 ? (u - k[i]) / denom * N[i] : zero(u)
         end
-        return (i - d):i
+        lo = max(i - d, 1)
+        hi = min(i, n)
+        return lo:hi
     end
 end
 
