@@ -40,12 +40,12 @@ end
         @inferred method(u, t)
     end
     @testset "BSplineInterpolation" begin
-        @inferred BSplineInterpolation(u, t, 3, :Uniform, :Uniform)
-        @inferred BSplineInterpolation(u, t, 3, :ArcLen, :Average)
+        @inferred BSplineInterpolation(u, t, 3, :Uniform)
+        @inferred BSplineInterpolation(u, t, 3, :Average)
     end
     @testset "BSplineApprox" begin
-        @inferred BSplineApprox(u, t, 3, 5, :Uniform, :Uniform)
-        @inferred BSplineApprox(u, t, 3, 5, :ArcLen, :Average)
+        @inferred BSplineApprox(u, t, 3, 5, :Uniform)
+        @inferred BSplineApprox(u, t, 3, 5, :Average)
     end
     du = ones(10)
     ddu = zeros(10)

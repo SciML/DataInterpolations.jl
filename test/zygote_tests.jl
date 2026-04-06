@@ -126,11 +126,11 @@ end
     t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     test_zygote(
-        BSplineInterpolation, u, t; args_after = [2, :Uniform, :Uniform],
+        BSplineInterpolation, u, t; args_after = [2, :Uniform],
         name = "BSpline Interpolation"
     )
     test_zygote(
-        BSplineApprox, u, t; args_after = [2, 4, :Uniform, :Uniform],
+        BSplineApprox, u, t; args_after = [2, 4, :Uniform],
         name = "BSpline approximation"
     )
 end
