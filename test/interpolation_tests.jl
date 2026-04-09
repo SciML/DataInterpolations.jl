@@ -1,7 +1,7 @@
 using DataInterpolations
 using FindFirstFunctions: searchsortedfirstcorrelated
 using StableRNGs
-using Optim, ForwardDiff
+using CurveFit, NonlinearSolve, ForwardDiff
 using BenchmarkTools
 using Unitful
 using LinearAlgebra
@@ -1231,7 +1231,7 @@ end
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
 
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt())
 
     ts = [-7.0, -2.0, 0.0, 2.5, 5.0]
     vs = [
@@ -1247,10 +1247,14 @@ end
     @test @inferred(output_size(A)) == ()
 
     # Test extrapolation
-    A = Curvefit(u, t, model, p0, LBFGS(); extrapolate = true)
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt(); extrapolate = true)
     @test A(15.0) == model(15.0, A.pmin)
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt())
     @test_throws DataInterpolations.ExtrapolationError A(15.0)
+
+    # With lb, ub
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt(), false, [0.0, 0.0], [1.0, 1.0])
+    @test all(0.0 .<= A.pmin .<= 1.0)
 end
 
 @testset "Type of vector returned" begin

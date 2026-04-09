@@ -1,7 +1,7 @@
 using DataInterpolations, Test
 using QuadGK
 using DataInterpolations: integral
-using Optim, ForwardDiff
+using CurveFit, ForwardDiff
 using RegularizationTools
 using StableRNGs
 using Unitful
@@ -247,7 +247,7 @@ end
     t = range(-10, stop = 10, length = 40)
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 0.0, 1.0)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 5.0)
 end

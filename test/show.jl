@@ -1,5 +1,5 @@
 using DataInterpolations
-using Optim, StableRNGs
+using CurveFit, StableRNGs
 using RegularizationTools
 
 t = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -67,10 +67,10 @@ end
     t = range(-10, stop = 10, length = 40)
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0)
     @test startswith(
         sprint(io -> show(io, MIME"text/plain"(), A)),
-        "Curvefit with 40 points, using LBFGS\n"
+        "Curvefit with 40 points.\n"
     )
 end
 
