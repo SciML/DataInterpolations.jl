@@ -205,6 +205,12 @@ function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess
     return @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
 end
 
+function _interpolate(A::AkimaInterpolation{<:AbstractMatrix}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    wj = t - A.t[idx]
+    return @evalpoly wj A.u[:, idx] A.b[:, idx] A.c[:, idx] A.d[:, idx]
+end
+
 # Constant Interpolation
 function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     if A.dir === :left

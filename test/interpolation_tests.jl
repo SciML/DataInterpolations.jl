@@ -504,6 +504,27 @@ end
     @test @inferred(output_dim(A)) == 0
     @test @inferred(output_size(A)) == ()
 
+    # Matrix interpolation test (against Vector version)
+    u_matrix = [permutedims(u); permutedims(2u)]
+    A_matrix = @inferred(AkimaInterpolation(u_matrix, t))
+    A_row_1 = AkimaInterpolation(vec(u_matrix[1, :]), t)
+    A_row_2 = AkimaInterpolation(vec(u_matrix[2, :]), t)
+
+    for (_t, _u) in zip(t, eachcol(u_matrix))
+        @test A_matrix(_t) == _u
+    end
+    for _t in (0.5, 1.5, 5.1, 9.9)
+        @test A_matrix(_t) ≈ [A_row_1(_t), A_row_2(_t)]
+        @test DataInterpolations.derivative(A_matrix, _t) ≈ [
+            DataInterpolations.derivative(A_row_1, _t),
+            DataInterpolations.derivative(A_row_2, _t),
+        ]
+        @test DataInterpolations.derivative(A_matrix, _t, 2) ≈ [
+            DataInterpolations.derivative(A_row_1, _t, 2),
+            DataInterpolations.derivative(A_row_2, _t, 2),
+        ]
+    end
+
     # Test extrapolation
     A = @inferred(AkimaInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
     @test A(-1.0) ≈ -5.0

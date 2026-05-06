@@ -284,9 +284,11 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
 end
 
 function AkimaInterpolation(
-        u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        u::AbstractVector, t;
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1.0e-2
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false, assume_linear_t = 1.0e-2
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -315,6 +317,53 @@ function AkimaInterpolation(
     ) ./ f12[ind]
     c = (3 .* m[3:(end - 2)] .- 2 .* b[1:(end - 1)] .- b[2:end]) ./ dt
     d = (b[1:(end - 1)] .+ b[2:end] .- 2 .* m[3:(end - 2)]) ./ dt .^ 2
+
+    A = AkimaInterpolation(
+        u, t, nothing, b, c, d, extrapolation_left,
+        extrapolation_right, cache_parameters, linear_lookup
+    )
+    I = cumulative_integral(A, cache_parameters)
+    return AkimaInterpolation(
+        u, t, I, b, c, d, extrapolation_left,
+        extrapolation_right, cache_parameters, linear_lookup
+    )
+end
+
+function AkimaInterpolation(
+        u::AbstractMatrix, t;
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false, assume_linear_t = 1.0e-2
+    )
+    extrapolation_left,
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
+    u, t = munge_data(u, t)
+    linear_lookup = seems_linear(assume_linear_t, t)
+    n = length(t)
+    dt = diff(t)
+    dt = reshape(dt, 1, :)
+    m = Array{eltype(u)}(undef, size(u, 1), n + 3)
+    m[:, 3:(end - 2)] = diff(u; dims = 2) ./ dt
+    m[:, 2] = 2m[:, 3] - m[:, 4]
+    m[:, 1] = 2m[:, 2] - m[:, 3]
+    m[:, end - 1] = 2m[:, end - 2] - m[:, end - 3]
+    m[:, end] = 2m[:, end - 1] - m[:, end - 2]
+
+    b = (m[:, 4:end] .+ m[:, 1:(end - 3)]) ./ 2
+    dm = abs.(diff(m; dims = 2))
+    f1 = dm[:, 3:(n + 2)]
+    f2 = dm[:, 1:n]
+    f12 = f1 + f2
+    ind = findall(f12 .> 1.0e-9 .* maximum(f12; dims = 2))
+    for i in ind
+        row, col = Tuple(i)
+        b[i] = (f1[i] * m[row, col + 1] + f2[i] * m[row, col + 2]) / f12[i]
+    end
+    c = (3 .* m[:, 3:(end - 2)] .- 2 .* b[:, 1:(end - 1)] .- b[:, 2:end]) ./ dt
+    d = (b[:, 1:(end - 1)] .+ b[:, 2:end] .- 2 .* m[:, 3:(end - 2)]) ./ dt .^ 2
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
