@@ -130,9 +130,9 @@ end
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     test_mooncake_ugrad(
         BSplineInterpolation, u, t;
-        args_after = [2, :Uniform, :Uniform], name = "BSpline Interpolation"
+        args_after = [2, :Uniform], name = "BSpline Interpolation"
     )
-    A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension)
+    A = BSplineInterpolation(u, t, 2, :Uniform; extrapolation = ExtrapolationType.Extension)
     test_mooncake_tgrad(A, t; name = "BSpline Interpolation")
 end
 
@@ -141,8 +141,8 @@ end
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     test_mooncake_ugrad(
         BSplineApprox, u, t;
-        args_after = [2, 4, :Uniform, :Uniform], name = "BSpline Approximation"
+        args_after = [2, 4, :Uniform], name = "BSpline Approximation"
     )
-    A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension)
+    A = BSplineApprox(u, t, 2, 4, :Uniform; extrapolation = ExtrapolationType.Extension)
     test_mooncake_tgrad(A, t; name = "BSpline Approximation")
 end
