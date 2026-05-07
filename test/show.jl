@@ -46,14 +46,14 @@ end
         )
     end
     @testset "BSplineInterpolation" begin
-        A = BSplineInterpolation(x, t, 3, :Uniform, :Uniform)
+        A = BSplineInterpolation(x, t, 3, :Uniform)
         @test startswith(
             sprint(io -> show(io, MIME"text/plain"(), A)),
             "BSplineInterpolation with 5 points, with degree 3\n"
         )
     end
     @testset "BSplineApprox" begin
-        A = BSplineApprox(x, t, 2, 4, :Uniform, :Uniform)
+        A = BSplineApprox(x, t, 2, 4, :Uniform)
         @test startswith(
             sprint(io -> show(io, MIME"text/plain"(), A)),
             "BSplineApprox with 5 points, with degree 2, number of control points 4\n"

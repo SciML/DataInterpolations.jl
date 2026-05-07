@@ -935,10 +935,10 @@ end
         t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
         u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
         test_interpolation_type(BSplineInterpolation)
-        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform, :Uniform))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform))
 
-        @test [A(25.0), A(80.0)] == [13.454197730061425, 10.305633616059845]
-        @test [A(190.0), A(225.0)] == [14.07428439395079, 11.057784141519251]
+        @test [A(25.0), A(80.0)] == [14.411908462307684, 9.99346697254525]
+        @test [A(190.0), A(225.0)] == [13.56561617594697, 11.297503333875742]
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 0
@@ -947,45 +947,45 @@ end
         # Test extrapolation
         A = @inferred(
             BSplineInterpolation(
-                u, t, 2, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension
+                u, t, 2, :Uniform; extrapolation = ExtrapolationType.Constant
             )
         )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform, :Uniform))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform))
         @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
         @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
-        A = @inferred(BSplineInterpolation(u, t, 2, :ArcLen, :Average))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Average))
 
-        @test [A(25.0), A(80.0)] ≈ [13.363814458968484, 10.685201117692609]
-        @test [A(190.0), A(225.0)] ≈ [13.437481084762863, 11.367034741256461]
+        @test [A(25.0), A(80.0)] ≈ [13.364285794535945, 10.683641750973738]
+        @test [A(190.0), A(225.0)] ≈ [13.438136405352909, 11.365386175733823]
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
 
         @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
-            u[1:3], t[1:3], 3, :Uniform, :Uniform
+            u[1:3], t[1:3], 3, :Uniform
         )
         @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 5 points.") BSplineInterpolation(
-            u[1:4], t[1:4], 4, :ArcLen, :Average
+            u[1:4], t[1:4], 4, :Average
         )
-        @test_nowarn BSplineInterpolation(u[1:3], t[1:3], 2, :Uniform, :Uniform)
+        @test_nowarn BSplineInterpolation(u[1:3], t[1:3], 2, :Uniform)
 
         # Test extrapolation
         A = @inferred(
             BSplineInterpolation(
-                u, t, 2, :ArcLen, :Average; extrapolation = ExtrapolationType.Extension
+                u, t, 2, :Average; extrapolation = ExtrapolationType.Constant
             )
         )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = @inferred(BSplineInterpolation(u, t, 2, :ArcLen, :Average))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Average))
         @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
         @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
         @testset "AbstractMatrix" begin
             t = 0.1:0.1:1.0
             u2d = [sin.(t) cos.(t)]' |> collect
-            A = @inferred(BSplineInterpolation(u2d, t, 2, :Uniform, :Uniform))
+            A = @inferred(BSplineInterpolation(u2d, t, 2, :Uniform))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
@@ -993,7 +993,7 @@ end
             @test @inferred(output_dim(A)) == 1
             @test @inferred(output_size(A)) == (2,)
 
-            A = @inferred(BSplineInterpolation(u2d, t, 2, :ArcLen, :Average))
+            A = @inferred(BSplineInterpolation(u2d, t, 2, :Average))
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
@@ -1007,7 +1007,7 @@ end
             ]
             t = 0.1:0.1:1.0
             u3d = cat(f3d.(t)..., dims = 3)
-            A = @inferred(BSplineInterpolation(u3d, t, 2, :Uniform, :Uniform))
+            A = @inferred(BSplineInterpolation(u3d, t, 2, :Uniform))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             f_test = reduce(hcat, f3d.(t_test))
@@ -1015,7 +1015,7 @@ end
             @test @inferred(output_dim(A)) == 2
             @test @inferred(output_size(A)) == (2, 2)
 
-            A = @inferred(BSplineInterpolation(u3d, t, 2, :ArcLen, :Average))
+            A = @inferred(BSplineInterpolation(u3d, t, 2, :Average))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test, f_test, atol = 1.0e-2)
@@ -1028,41 +1028,41 @@ end
         test_interpolation_type(BSplineApprox)
         t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
         u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
-        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
+        A = BSplineApprox(u, t, 2, 4, :Uniform)
 
-        @test [A(25.0), A(80.0)] ≈ [12.979802931218234, 10.914310609953178]
-        @test [A(190.0), A(225.0)] ≈ [13.851245975109263, 12.963685868886575]
+        @test [A(25.0), A(80.0)] ≈ [12.653438633006644, 10.829963801404205]
+        @test [A(190.0), A(225.0)] ≈ [13.688412211160633, 12.785204994978452]
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
         test_cached_index(A)
 
         @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 3 control points.") BSplineApprox(
-            u, t, 2, 2, :Uniform, :Uniform
+            u, t, 2, 2, :Uniform
         )
         @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 4 control points.") BSplineApprox(
-            u, t, 3, 3, :ArcLen, :Average
+            u, t, 3, 3, :Average
         )
-        @test_nowarn BSplineApprox(u, t, 2, 3, :Uniform, :Uniform)
+        @test_nowarn BSplineApprox(u, t, 2, 3, :Uniform)
 
         # Test extrapolation
         A = BSplineApprox(
-            u, t, 2, 4, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension
+            u, t, 2, 4, :Uniform; extrapolation = ExtrapolationType.Constant
         )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
+        A = BSplineApprox(u, t, 2, 4, :Uniform)
         @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
         @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
         @testset "AbstractMatrix" begin
             t = 0.1:0.1:1.0
             u2d = [sin.(t) cos.(t)]' |> collect
-            A = BSplineApprox(u2d, t, 2, 5, :Uniform, :Uniform)
+            A = BSplineApprox(u2d, t, 2, 5, :Uniform)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
 
-            A = BSplineApprox(u2d, t, 2, 5, :ArcLen, :Average)
+            A = BSplineApprox(u2d, t, 2, 5, :Average)
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-2)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-2)
@@ -1074,13 +1074,13 @@ end
             ]
             t = 0.1:0.1:1.0
             u3d = cat(f3d.(t)..., dims = 3)
-            A = BSplineApprox(u3d, t, 2, 6, :Uniform, :Uniform)
+            A = BSplineApprox(u3d, t, 2, 6, :Uniform)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             f_test = reduce(hcat, f3d.(t_test))
             @test isapprox(u_test, f_test, atol = 1.0e-2)
 
-            A = BSplineApprox(u3d, t, 2, 7, :ArcLen, :Average)
+            A = BSplineApprox(u3d, t, 2, 7, :Average)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test, f_test, atol = 1.0e-2)
@@ -1385,6 +1385,6 @@ end
     @test_nowarn cs = CubicSpline(x, t)
 
     @test_throws Exception ai = AkimaInterpolation(x, t)
-    @test_throws Exception bsi = BSplineInterpolation(x, t, 3, :ArcLen, :Average)
+    @test_throws Exception bsi = BSplineInterpolation(x, t, 3, :Average)
     @test_throws Exception pc = PCHIPInterpolation(x, t)
 end
