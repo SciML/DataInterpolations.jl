@@ -318,12 +318,13 @@ function _bspline_antiderivative_val(c, d, k, t_eval)
 end
 
 function _integral(
-        A::BSplineInterpolation{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
-    _bspline_antiderivative_val(A.c, A.d, A.k, t2) -
+        A::BSplineInterpolation{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
+    )
+    return _bspline_antiderivative_val(A.c, A.d, A.k, t2) -
         _bspline_antiderivative_val(A.c, A.d, A.k, t1)
 end
 function _integral(A::BSplineApprox{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number)
-    _bspline_antiderivative_val(A.c, A.d, A.k, t2) -
+    return _bspline_antiderivative_val(A.c, A.d, A.k, t2) -
         _bspline_antiderivative_val(A.c, A.d, A.k, t1)
 end
 
@@ -331,10 +332,11 @@ end
 # The antiderivative is computed on the fly, so no cached I field is needed.
 const _BSplineTypes = Union{
     BSplineInterpolation{<:AbstractVector{<:Number}},
-    BSplineApprox{<:AbstractVector{<:Number}}}
+    BSplineApprox{<:AbstractVector{<:Number}},
+}
 
 function integral(A::_BSplineTypes, t::Number)
-    integral(A, first(A.t), t)
+    return integral(A, first(A.t), t)
 end
 
 function integral(A::_BSplineTypes, t1::Number, t2::Number)

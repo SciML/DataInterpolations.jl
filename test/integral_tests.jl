@@ -6,8 +6,10 @@ using RegularizationTools
 using StableRNGs
 using Unitful
 
-function test_integral(method; args = [], kwargs = [], name::String,
-        test_cache_parameters::Bool = true)
+function test_integral(
+        method; args = [], kwargs = [], name::String,
+        test_cache_parameters::Bool = true
+    )
     func = method(args...; kwargs..., extrapolation = ExtrapolationType.Extension)
     (; t) = func
     t1 = minimum(t)
@@ -66,7 +68,7 @@ function test_integral(method; args = [], kwargs = [], name::String,
         func, t[1], t[end] + 1.0
     )
 
-    if test_cache_parameters
+    return if test_cache_parameters
         # Test integration with cached parameters
         func = method(
             args...; kwargs..., cache_parameters = true,
