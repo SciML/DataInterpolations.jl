@@ -310,7 +310,7 @@ function _derivative(
     )
     if A.d == 0
         return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) :
-               typed_nan(A.u) .* A.u[:, 1]
+            typed_nan(A.u) .* A.u[:, 1]
     end
     ax_u = axes(A.u)[1:(end - 1)]
     n = length(A.t)
@@ -360,7 +360,7 @@ function _derivative(
     )
     if A.d == 0
         return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) :
-               typed_nan(A.u) .* A.u[:, 1]
+            typed_nan(A.u) .* A.u[:, 1]
     end
     ax_u = axes(A.u)[1:(end - 1)]
     sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
