@@ -215,6 +215,13 @@ function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
     return @evalpoly wj A.b[idx] 2A.c[j] 3A.d[j]
 end
 
+function _derivative(A::AkimaInterpolation{<:AbstractMatrix}, t::Number, iguess)
+    idx = get_idx(A, t, iguess; idx_shift = -1, side = :first)
+    j = min(idx, size(A.c, 2))  # for smooth derivative at A.t[end]
+    wj = t - A.t[idx]
+    return @evalpoly wj A.b[:, idx] 2A.c[:, j] 3A.d[:, j]
+end
+
 function _derivative(A::ConstantInterpolation, t::Number, iguess)
     return zero(first(A.u))
 end

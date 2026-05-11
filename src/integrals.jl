@@ -284,6 +284,15 @@ function _integral(
     return integrate_cubic_polynomial(t1, t2, A.t[idx], A.u[idx], A.b[idx], A.c[idx], A.d[idx])
 end
 
+function _integral(
+        A::AkimaInterpolation{<:AbstractMatrix{<:Number}},
+        idx::Number, t1::Number, t2::Number
+    )
+    return integrate_cubic_polynomial(
+        t1, t2, A.t[idx], A.u[:, idx], A.b[:, idx], A.c[:, idx], A.d[:, idx]
+    )
+end
+
 function _integral(A::LagrangeInterpolation, idx::Number, t1::Number, t2::Number)
     throw(IntegralNotFoundError())
 end
