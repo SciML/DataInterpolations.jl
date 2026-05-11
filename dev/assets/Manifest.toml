@@ -371,7 +371,7 @@ version = "1.16.0"
 
 [[deps.DataInterpolations]]
 deps = ["EnumX", "FindFirstFunctions", "ForwardDiff", "LinearAlgebra", "PrettyTables", "RecipesBase", "Reexport"]
-path = "/home/chrisrackauckas/github-runners/demeter4-21/_work/DataInterpolations.jl/DataInterpolations.jl"
+path = "/home/runner/work/DataInterpolations.jl/DataInterpolations.jl"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
 version = "8.10.0"
 
@@ -2000,9 +2000,9 @@ version = "1.4.0"
 
 [[deps.Qt6Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
-git-tree-sha1 = "d7a4bff94f42208ce3cf6bc8e4e7d1d663e7ee8b"
+git-tree-sha1 = "144895f6166994730ee7ff8113b981fc360638f1"
 uuid = "c0090381-4147-56d7-9ebc-da0b1113ec56"
-version = "6.10.2+1"
+version = "6.10.2+2"
 
 [[deps.Qt6Declarative_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll", "Qt6ShaderTools_jll", "Qt6Svg_jll"]
