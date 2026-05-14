@@ -40,4 +40,8 @@ const GROUP = get(ENV, "GROUP", "All")
         @safetestset "Quality Assurance" include("qa.jl")
         @safetestset "Allocation Tests" include("alloc_tests.jl")
     end
+
+    if GROUP == "MakimaTest"
+        include("makima_test.jl")
+    end
 end

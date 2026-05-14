@@ -327,6 +327,232 @@ function AkimaInterpolation(
     )
 end
 
+
+
+"""
+1d kernel for initialization of the MakimaInterpolation struct arrays. 
+This version is slow, but easy to understand. It is used to verify the correctness of the optimized version `makima_init!`.
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.Akima1DInterpolator.html
+https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/
+"""
+function makima_init_slow!(
+    u::AbstractVector{T}, # length n
+    t::AbstractVector{T}, # length n
+    b::AbstractVector{T}, # length n
+    c::AbstractVector{T}, # length n-1
+    d::AbstractVector{T}, # length n-1
+) where {T}
+    n = length(u)
+    dt = diff(t)
+    m = Vector{T}(undef, n + 3)
+
+    m[3:(end-2)] .= diff(u) ./ dt # length n-1 and we need 2 extra points on each side
+    # pad using linear extrapolation of the first and last two slopes
+    m[2] = 2m[3] - m[4]
+    m[1] = 2m[2] - m[3]
+    m[end - 1] = 2m[end - 2] - m[end - 3]
+    m[end] = 2m[end - 1] - m[end - 2]
+
+    w1 = abs.(m[4:end] .- m[3:(end-1)]) .+ abs.(m[4:end] .+ m[3:(end-1)]) ./ 2
+    w2 = abs.(m[1:(end-3)] .- m[2:(end-2)]) .+ abs.(m[1:(end-3)] .+ m[2:(end-2)]) ./ 2
+
+    b .= (w1 .* m[2:(end-2)] .+ w2 .* m[3:(end-1)]) ./ (w1 .+ w2)
+    c .= (3 .* m[3:(end-2)] .- 2 .* b[1:(end-1)] .- b[2:end]) ./ dt
+    d .= (b[1:(end - 1)] .+ b[2:end] .- 2 .* m[3:(end - 2)]) ./ dt .^ 2
+
+    return nothing
+end
+
+"""
+1d kernel for initialization of the MakimaInterpolation struct arrays. 
+This is separated from the constructor to allow for in-place initialization of pre-allocated arrays.
+"""
+function makima_init!(
+    u::AbstractVector{T}, # length n
+    t::AbstractVector{T}, # length n
+    b::AbstractVector{T}, # length n
+    c::AbstractVector{T}, # length n-1
+    d::AbstractVector{T}, # length n-1
+) where {T}
+    n = length(u)
+    @boundscheck begin
+        length(t) == n || throw(DimensionMismatch("u and t must have the same length"))
+        length(b) == n || throw(DimensionMismatch("b must have length n"))
+        length(c) == n - 1 || throw(DimensionMismatch("c must have length n - 1"))
+        length(d) == n - 1 || throw(DimensionMismatch("d must have length n - 1"))
+        n >= 3 || throw(ArgumentError("MAkima interpolation requires at least 3 points"))
+    end
+
+    @inbounds begin
+        m3 = (u[2] - u[1]) / (t[2] - t[1])
+        m4 = (u[3] - u[2]) / (t[3] - t[2])
+        m0 = 3m3 - 2m4
+        m1 = 2m3 - m4
+        m2 = m3
+        m3 = m4
+
+        last_m0 = (u[n - 1] - u[n - 2]) / (t[n - 1] - t[n - 2])
+        last_m1 = (u[n] - u[n - 1]) / (t[n] - t[n - 1])
+        right_m0 = 2last_m1 - last_m0
+        right_m1 = 2right_m0 - last_m1
+
+        w1 = abs(m3 - m2) + abs(m3 + m2) / 2
+        w2 = abs(m0 - m1) + abs(m0 + m1) / 2
+        b[1] = (w1 * m1 + w2 * m2) / (w1 + w2)
+
+        for i in 2:(n - 2)
+            next_m = (u[i + 2] - u[i + 1]) / (t[i + 2] - t[i + 1])
+            m0 = m1
+            m1 = m2
+            m2 = m3
+            m3 = next_m
+
+            w1 = abs(m3 - m2) + abs(m3 + m2) / 2
+            w2 = abs(m0 - m1) + abs(m0 + m1) / 2
+            b[i] = (w1 * m1 + w2 * m2) / (w1 + w2)
+
+            dt = t[i] - t[i - 1]
+            c[i - 1] = (3m1 - 2b[i - 1] - b[i]) / dt
+            d[i - 1] = (b[i - 1] + b[i] - 2m1) / (dt * dt)
+        end
+
+        m0 = m1
+        m1 = m2
+        m2 = m3
+        m3 = right_m0
+        w1 = abs(m3 - m2) + abs(m3 + m2) / 2
+        w2 = abs(m0 - m1) + abs(m0 + m1) / 2
+        b[n - 1] = (w1 * m1 + w2 * m2) / (w1 + w2)
+        dt = t[n - 1] - t[n - 2]
+        c[n - 2] = (3m1 - 2b[n - 2] - b[n - 1]) / dt
+        d[n - 2] = (b[n - 2] + b[n - 1] - 2m1) / (dt * dt)
+
+        m0 = m1
+        m1 = m2
+        m2 = m3
+        m3 = right_m1
+        w1 = abs(m3 - m2) + abs(m3 + m2) / 2
+        w2 = abs(m0 - m1) + abs(m0 + m1) / 2
+        b[n] = (w1 * m1 + w2 * m2) / (w1 + w2)
+        dt = t[n] - t[n - 1]
+        c[n - 1] = (3m1 - 2b[n - 1] - b[n]) / dt
+        d[n - 1] = (b[n - 1] + b[n] - 2m1) / (dt * dt)
+    end
+
+    return nothing
+end
+
+"""
+1d kernel for evaluation of makima coefficients at points tt. 
+Assumes that tt is sorted and that constant extrapolation is used outside the range of t.
+This is separated from the call overload to allow for in-place evaluation of pre-allocated arrays.
+"""
+function makima_interpolate!(
+    r::AbstractVector{T}, # results
+    u::AbstractVector{T}, # values at the knots
+    t::AbstractVector{T}, # knot positions, sorted
+    b::AbstractVector{T},
+    c::AbstractVector{T},
+    d::AbstractVector{T},
+    tt::AbstractVector{T} # evaluation points, sorted
+) where {T}
+    @inbounds begin
+        n = length(t)
+        ntt = length(tt)
+        i = 1
+
+        # extrapolate left
+        while i <= ntt && tt[i] < t[1]
+            r[i] = u[1] # constant extrapolation
+            i += 1
+        end
+
+        # interpolate
+        for it in 1:(n - 1)
+            ti = t[it]
+            tend = t[it + 1]
+            ui = u[it]
+            bi = b[it]
+            ci = c[it]
+            di = d[it]
+
+            while i <= ntt && tt[i] <= tend
+                x = tt[i] - ti
+                r[i] = @evalpoly x ui bi ci di
+                i += 1
+            end
+        end
+
+        # extrapolate right
+        while i <= ntt
+            r[i] = u[n] # constant extrapolation
+            i += 1
+        end
+    end
+
+    return nothing
+end
+
+"""
+Interpolate a single vector of evaluation points.
+For multiple vectors, use the matrix version or create a custom call function based on matrix version.
+"""
+function makima_interpolate!(
+    r::AbstractVector{T}, # results
+    u::AbstractVector{T},
+    t::AbstractVector{T},
+    tt::AbstractVector{T} # evaluation points
+) where {T}
+    n = length(u)
+    b = Vector{T}(undef, n)
+    c = Vector{T}(undef, n-1)
+    d = Vector{T}(undef, n-1)
+
+    @inbounds begin
+        makima_init!(
+            u, t,
+            b, c, d
+        )
+        makima_interpolate!(
+            r, u, t,
+            b, c, d,
+            tt,
+        )
+    end
+
+    return nothing
+end
+
+"""
+Interpolate multiple vectors of evaluation points in a loop reusing the same pre-allocated arrays for the coefficients.
+"""
+function makima_interpolate!(
+    r::AbstractMatrix{T}, # results
+    u::AbstractMatrix{T},
+    t::AbstractMatrix{T},
+    tt::AbstractMatrix{T} # evaluation points
+) where {T}
+    n, n_batch = size(u)
+    b = Vector{T}(undef, n)
+    c = Vector{T}(undef, n-1)
+    d = Vector{T}(undef, n-1)
+
+    @inbounds @views for j in axes(u, 2)
+        makima_init!(
+            u[:, j], t[:, j],
+            b, c, d
+        )
+        makima_interpolate!(
+            r[:, j], u[:, j], t[:, j],
+            b, c, d,
+            tt[:, j],
+        )
+    end
+
+    return nothing
+end
+
+
 """
     ConstantInterpolation(u, t; dir = :left, extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
