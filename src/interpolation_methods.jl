@@ -205,6 +205,134 @@ function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess
     return @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
 end
 
+# Sorted-batch fast path: when the query points are already sorted (and the
+# extrapolation modes don't require per-point transformation), walk the knots
+# and queries in lockstep instead of running a binary search per query.
+function (A::AkimaInterpolation{<:AbstractVector})(
+        out::AbstractVector, tt::AbstractVector
+    )
+    if length(out) != length(tt)
+        throw(
+            DimensionMismatch(
+                "number of evaluation points and length of the result vector must be equal"
+            )
+        )
+    end
+    if _akima_eval_fast_applicable(A) && issorted(tt)
+        _akima_eval_sorted!(out, A, tt)
+    else
+        map!(A, out, tt)
+    end
+    return out
+end
+
+@inline function _akima_eval_fast_applicable(A::AkimaInterpolation)
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    el_ok = el == ExtrapolationType.None ||
+        el == ExtrapolationType.Constant ||
+        el == ExtrapolationType.Linear ||
+        el == ExtrapolationType.Extension
+    er_ok = er == ExtrapolationType.None ||
+        er == ExtrapolationType.Constant ||
+        er == ExtrapolationType.Linear ||
+        er == ExtrapolationType.Extension
+    return el_ok && er_ok
+end
+
+function _akima_eval_sorted!(
+        out::AbstractVector, A::AkimaInterpolation{<:AbstractVector}, tt::AbstractVector
+    )
+    u = A.u
+    t = A.t
+    bv = A.b
+    cv = A.c
+    dv = A.d
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    n = length(t)
+    m = length(tt)
+    t1 = @inbounds t[1]
+    tn = @inbounds t[n]
+
+    i = 1
+
+    # Left extrapolation
+    if el == ExtrapolationType.None
+        @inbounds if i <= m && tt[i] < t1
+            throw(LeftExtrapolationError())
+        end
+    elseif el == ExtrapolationType.Constant
+        u1 = @inbounds u[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1
+            i += 1
+        end
+    elseif el == ExtrapolationType.Linear
+        u1 = @inbounds u[1]
+        b1 = @inbounds bv[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1 + b1 * (tt[i] - t1)
+            i += 1
+        end
+    else  # Extension
+        u1 = @inbounds u[1]
+        b1 = @inbounds bv[1]
+        c1 = @inbounds cv[1]
+        d1 = @inbounds dv[1]
+        @inbounds while i <= m && tt[i] < t1
+            wj = tt[i] - t1
+            out[i] = @evalpoly wj u1 b1 c1 d1
+            i += 1
+        end
+    end
+
+    # Interior: walk knots in lockstep
+    idx = 1
+    @inbounds while i <= m && tt[i] <= tn
+        ttt = tt[i]
+        while idx < n - 1 && ttt > t[idx + 1]
+            idx += 1
+        end
+        wj = ttt - t[idx]
+        out[i] = @evalpoly wj u[idx] bv[idx] cv[idx] dv[idx]
+        i += 1
+    end
+
+    # Right extrapolation
+    if er == ExtrapolationType.None
+        @inbounds if i <= m
+            throw(RightExtrapolationError())
+        end
+    elseif er == ExtrapolationType.Constant
+        un = @inbounds u[n]
+        @inbounds while i <= m
+            out[i] = un
+            i += 1
+        end
+    elseif er == ExtrapolationType.Linear
+        un = @inbounds u[n]
+        bn = @inbounds bv[n]
+        @inbounds while i <= m
+            out[i] = un + bn * (tt[i] - tn)
+            i += 1
+        end
+    else  # Extension
+        un1 = @inbounds u[n - 1]
+        bn1 = @inbounds bv[n - 1]
+        cn1 = @inbounds cv[n - 1]
+        dn1 = @inbounds dv[n - 1]
+        tn1 = @inbounds t[n - 1]
+        @inbounds while i <= m
+            wj = tt[i] - tn1
+            out[i] = @evalpoly wj un1 bn1 cn1 dn1
+            i += 1
+        end
+    end
+
+    return nothing
+end
+
 # Constant Interpolation
 function _interpolate(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     if A.dir === :left

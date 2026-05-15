@@ -288,6 +288,66 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
     end
 end
 
+# In-place scalar kernel for computing the Akima / makima coefficients.
+# Allocates a single length-(n+3) buffer for the padded divided differences;
+# every other intermediate (dm, f1, f2, f12, w1, w2, ind, b-default) from the
+# original vectorized formulation is fused into a scalar pass.
+function _akima_init!(
+        b::AbstractVector{T}, c::AbstractVector{T}, d::AbstractVector{T},
+        u::AbstractVector, t::AbstractVector, ::Val{modified}
+    ) where {T, modified}
+    n = length(u)
+    m = Vector{T}(undef, n + 3)
+    @inbounds begin
+        for i in 1:(n - 1)
+            m[i + 2] = (u[i + 1] - u[i]) / (t[i + 1] - t[i])
+        end
+        m[2] = 2 * m[3] - m[4]
+        m[1] = 2 * m[2] - m[3]
+        m[n + 2] = 2 * m[n + 1] - m[n]
+        m[n + 3] = 2 * m[n + 2] - m[n + 1]
+
+        # First pass: maximum weight, used as the small-weight cutoff
+        wmax = zero(T)
+        for i in 1:n
+            if modified
+                w1 = abs(m[i + 3] - m[i + 2]) + abs(m[i + 3] + m[i + 2]) / 2
+                w2 = abs(m[i + 1] - m[i]) + abs(m[i + 1] + m[i]) / 2
+            else
+                w1 = abs(m[i + 3] - m[i + 2])
+                w2 = abs(m[i + 1] - m[i])
+            end
+            w12 = w1 + w2
+            wmax = ifelse(w12 > wmax, w12, wmax)
+        end
+        tol = T(1.0e-9) * wmax
+
+        # Second pass: coefficients
+        for i in 1:n
+            if modified
+                w1 = abs(m[i + 3] - m[i + 2]) + abs(m[i + 3] + m[i + 2]) / 2
+                w2 = abs(m[i + 1] - m[i]) + abs(m[i + 1] + m[i]) / 2
+                bdefault = (m[i + 1] + m[i + 2]) / 2
+            else
+                w1 = abs(m[i + 3] - m[i + 2])
+                w2 = abs(m[i + 1] - m[i])
+                bdefault = (m[i + 3] + m[i]) / 2
+            end
+            w12 = w1 + w2
+            b[i] = w12 > tol ?
+                (w1 * m[i + 1] + w2 * m[i + 2]) / w12 :
+                bdefault
+        end
+
+        for i in 1:(n - 1)
+            dt = t[i + 1] - t[i]
+            c[i] = (3 * m[i + 2] - 2 * b[i] - b[i + 1]) / dt
+            d[i] = (b[i] + b[i + 1] - 2 * m[i + 2]) / (dt * dt)
+        end
+    end
+    return nothing
+end
+
 function AkimaInterpolation(
         u, t; modified::Bool = false,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
@@ -301,40 +361,11 @@ function AkimaInterpolation(
     u, t = munge_data(u, t)
     linear_lookup = seems_linear(assume_linear_t, t)
     n = length(t)
-    dt = diff(t)
-    m = Array{eltype(u)}(undef, n + 3)
-    m[3:(end - 2)] = diff(u) ./ dt
-    m[2] = 2m[3] - m[4]
-    m[1] = 2m[2] - m[3]
-    m[end - 1] = 2m[end - 2] - m[end - 3]
-    m[end] = 2m[end - 1] - m[end - 2]
-
-    if modified
-        # Modified Akima (makima): adds |m_{i+1} + m_i| / 2 to each weight, which
-        # reduces overshoot on flat regions. The simple-average fallback still
-        # guards the case where all four neighboring slopes vanish.
-        w1 = abs.(m[4:end] .- m[3:(end - 1)]) .+
-            abs.(m[4:end] .+ m[3:(end - 1)]) ./ 2
-        w2 = abs.(m[2:(end - 2)] .- m[1:(end - 3)]) .+
-            abs.(m[2:(end - 2)] .+ m[1:(end - 3)]) ./ 2
-        w12 = w1 .+ w2
-        b = (m[2:(end - 2)] .+ m[3:(end - 1)]) ./ 2
-        ind = findall(w12 .> 1.0e-9 * maximum(w12))
-        b[ind] = (w1[ind] .* m[ind .+ 1] .+ w2[ind] .* m[ind .+ 2]) ./ w12[ind]
-    else
-        b = (m[4:end] .+ m[1:(end - 3)]) ./ 2
-        dm = abs.(diff(m))
-        f1 = dm[3:(n + 2)]
-        f2 = dm[1:n]
-        f12 = f1 + f2
-        ind = findall(f12 .> 1.0e-9 * maximum(f12))
-        b[ind] = (
-            f1[ind] .* m[ind .+ 1] .+
-                f2[ind] .* m[ind .+ 2]
-        ) ./ f12[ind]
-    end
-    c = (3 .* m[3:(end - 2)] .- 2 .* b[1:(end - 1)] .- b[2:end]) ./ dt
-    d = (b[1:(end - 1)] .+ b[2:end] .- 2 .* m[3:(end - 2)]) ./ dt .^ 2
+    T = eltype(u)
+    b = Vector{T}(undef, n)
+    c = Vector{T}(undef, n - 1)
+    d = Vector{T}(undef, n - 1)
+    _akima_init!(b, c, d, u, t, Val(modified))
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
