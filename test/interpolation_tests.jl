@@ -514,15 +514,15 @@ end
 
     # Modified Akima (makima) — same struct, different b computation
     @testset "Modified Akima (makima)" begin
-        A_mak = @inferred(AkimaInterpolation(u, t; modified = true))
+        A_makima = @inferred(AkimaInterpolation(u, t; modified = true))
         # Interpolates the data points exactly
         for i in eachindex(t)
-            @test A_mak(t[i]) ≈ u[i]
+            @test A_makima(t[i]) ≈ u[i]
         end
         # Differs from standard Akima on this data set
         A_std = AkimaInterpolation(u, t)
         @test any(
-            !isapprox(A_mak(ti), A_std(ti); atol = 1.0e-12)
+            !isapprox(A_makima(ti), A_std(ti); atol = 1.0e-12)
                 for ti in 0.5:1.0:9.5
         )
 
@@ -540,7 +540,7 @@ end
         w2 = abs.(m[2:(end - 2)] .- m[1:(end - 3)]) .+
             abs.(m[2:(end - 2)] .+ m[1:(end - 3)]) ./ 2
         b_ref = (w1 .* m[2:(end - 2)] .+ w2 .* m[3:(end - 1)]) ./ (w1 .+ w2)
-        @test A_mak.b ≈ b_ref
+        @test A_makima.b ≈ b_ref
 
         # Makima avoids the w1 + w2 == 0 division-by-zero edge case
         # that the original Akima formula explicitly works around: a
@@ -562,8 +562,8 @@ end
         )
         @test isfinite(A_ext(-1.0))
         @test isfinite(A_ext(11.0))
-        @test isfinite(DataInterpolations.derivative(A_mak, 5.0))
-        @test isfinite(DataInterpolations.integral(A_mak, 0.0, 10.0))
+        @test isfinite(DataInterpolations.derivative(A_makima, 5.0))
+        @test isfinite(DataInterpolations.integral(A_makima, 0.0, 10.0))
     end
 end
 
