@@ -17,6 +17,7 @@ makedocs(
     ),
     linkcheck_ignore = [
         "https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf",
+        "https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/",
     ],
     pages = [
         "index.md",
