@@ -130,6 +130,108 @@ function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess
     return A.u[ax..., idx] + slope * Δt
 end
 
+# Sorted-batch fast path for LinearInterpolation.
+function (A::LinearInterpolation{<:AbstractVector{<:Number}})(
+        out::AbstractVector, tt::AbstractVector
+    )
+    if length(out) != length(tt)
+        throw(
+            DimensionMismatch(
+                "number of evaluation points and length of the result vector must be equal"
+            )
+        )
+    end
+    if _linear_eval_fast_applicable(A) && !any(isnan, A.u) && issorted(tt)
+        _linear_eval_sorted!(out, A, tt)
+    else
+        map!(A, out, tt)
+    end
+    return out
+end
+
+@inline function _linear_eval_fast_applicable(A::LinearInterpolation)
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    el_ok = el == ExtrapolationType.None ||
+        el == ExtrapolationType.Constant ||
+        el == ExtrapolationType.Linear ||
+        el == ExtrapolationType.Extension
+    er_ok = er == ExtrapolationType.None ||
+        er == ExtrapolationType.Constant ||
+        er == ExtrapolationType.Linear ||
+        er == ExtrapolationType.Extension
+    return el_ok && er_ok
+end
+
+function _linear_eval_sorted!(
+        out::AbstractVector, A::LinearInterpolation{<:AbstractVector{<:Number}}, tt::AbstractVector
+    )
+    u = A.u
+    t = A.t
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    n = length(t)
+    m = length(tt)
+    t1 = @inbounds t[1]
+    tn = @inbounds t[n]
+
+    i = 1
+
+    # Left extrapolation
+    if el == ExtrapolationType.None
+        @inbounds if i <= m && tt[i] < t1
+            throw(LeftExtrapolationError())
+        end
+    elseif el == ExtrapolationType.Constant
+        u1 = @inbounds u[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1
+            i += 1
+        end
+    else  # Linear or Extension — both reduce to the first-segment line
+        u1 = @inbounds u[1]
+        slope1 = get_parameters(A, 1)
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1 + slope1 * (tt[i] - t1)
+            i += 1
+        end
+    end
+
+    # Interior: per-segment outer loop, hoist coefficients
+    @inbounds for idx in 1:(n - 1)
+        ti = t[idx]
+        tip1 = t[idx + 1]
+        ui = u[idx]
+        slope = get_parameters(A, idx)
+        while i <= m && tt[i] <= tip1
+            out[i] = ui + slope * (tt[i] - ti)
+            i += 1
+        end
+    end
+
+    # Right extrapolation
+    if er == ExtrapolationType.None
+        @inbounds if i <= m
+            throw(RightExtrapolationError())
+        end
+    elseif er == ExtrapolationType.Constant
+        un = @inbounds u[n]
+        @inbounds while i <= m
+            out[i] = un
+            i += 1
+        end
+    else  # Linear or Extension — both reduce to the last-segment line
+        un = @inbounds u[n]
+        slope_n = get_parameters(A, n - 1)
+        @inbounds while i <= m
+            out[i] = un + slope_n * (tt[i] - tn)
+            i += 1
+        end
+    end
+
+    return nothing
+end
+
 # Quadratic Interpolation
 function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess)
@@ -403,6 +505,149 @@ function _interpolate(A::CubicSpline{<:AbstractArray}, t::Number, iguess)
     C = c₁ * Δt₁
     D = c₂ * Δt₂
     return I + C + D
+end
+
+# Sorted-batch fast path for CubicSpline.
+function (A::CubicSpline{<:AbstractVector{<:Number}})(
+        out::AbstractVector, tt::AbstractVector
+    )
+    if length(out) != length(tt)
+        throw(
+            DimensionMismatch(
+                "number of evaluation points and length of the result vector must be equal"
+            )
+        )
+    end
+    if _cubicspline_eval_fast_applicable(A) && issorted(tt)
+        _cubicspline_eval_sorted!(out, A, tt)
+    else
+        map!(A, out, tt)
+    end
+    return out
+end
+
+@inline function _cubicspline_eval_fast_applicable(A::CubicSpline)
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    el_ok = el == ExtrapolationType.None ||
+        el == ExtrapolationType.Constant ||
+        el == ExtrapolationType.Linear ||
+        el == ExtrapolationType.Extension
+    er_ok = er == ExtrapolationType.None ||
+        er == ExtrapolationType.Constant ||
+        er == ExtrapolationType.Linear ||
+        er == ExtrapolationType.Extension
+    return el_ok && er_ok
+end
+
+@inline function _cubicspline_segment_eval(
+        ttt, ti, tip1, zi, zip1, hinv6, c1, c2
+    )
+    dt1 = ttt - ti
+    dt2 = tip1 - ttt
+    return (zi * dt2 * dt2 * dt2 + zip1 * dt1 * dt1 * dt1) * hinv6 +
+        c1 * dt1 + c2 * dt2
+end
+
+function _cubicspline_eval_sorted!(
+        out::AbstractVector, A::CubicSpline{<:AbstractVector{<:Number}}, tt::AbstractVector
+    )
+    u = A.u
+    t = A.t
+    z = A.z
+    h = A.h
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    n = length(t)
+    m = length(tt)
+    t1 = @inbounds t[1]
+    tn = @inbounds t[n]
+
+    i = 1
+
+    # Left extrapolation
+    if el == ExtrapolationType.None
+        @inbounds if i <= m && tt[i] < t1
+            throw(LeftExtrapolationError())
+        end
+    elseif el == ExtrapolationType.Constant
+        u1 = @inbounds u[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1
+            i += 1
+        end
+    elseif el == ExtrapolationType.Linear
+        u1 = @inbounds u[1]
+        slope1 = _derivative(A, t1, 1)
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1 + slope1 * (tt[i] - t1)
+            i += 1
+        end
+    else  # Extension — continue the first-segment cubic
+        ti = t1
+        tip1 = @inbounds t[2]
+        zi = @inbounds z[1]
+        zip1 = @inbounds z[2]
+        hinv6 = inv(6 * @inbounds(h[2]))
+        c1, c2 = get_parameters(A, 1)
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = _cubicspline_segment_eval(
+                tt[i], ti, tip1, zi, zip1, hinv6, c1, c2
+            )
+            i += 1
+        end
+    end
+
+    # Interior: per-segment outer loop with hoisted coefficients
+    @inbounds for idx in 1:(n - 1)
+        ti = t[idx]
+        tip1 = t[idx + 1]
+        zi = z[idx]
+        zip1 = z[idx + 1]
+        hinv6 = inv(6 * h[idx + 1])
+        c1, c2 = get_parameters(A, idx)
+        while i <= m && tt[i] <= tip1
+            out[i] = _cubicspline_segment_eval(
+                tt[i], ti, tip1, zi, zip1, hinv6, c1, c2
+            )
+            i += 1
+        end
+    end
+
+    # Right extrapolation
+    if er == ExtrapolationType.None
+        @inbounds if i <= m
+            throw(RightExtrapolationError())
+        end
+    elseif er == ExtrapolationType.Constant
+        un = @inbounds u[n]
+        @inbounds while i <= m
+            out[i] = un
+            i += 1
+        end
+    elseif er == ExtrapolationType.Linear
+        un = @inbounds u[n]
+        slope_n = _derivative(A, tn, n)
+        @inbounds while i <= m
+            out[i] = un + slope_n * (tt[i] - tn)
+            i += 1
+        end
+    else  # Extension — continue the last-segment cubic
+        ti = @inbounds t[n - 1]
+        tip1 = tn
+        zi = @inbounds z[n - 1]
+        zip1 = @inbounds z[n]
+        hinv6 = inv(6 * @inbounds(h[n]))
+        c1, c2 = get_parameters(A, n - 1)
+        @inbounds while i <= m
+            out[i] = _cubicspline_segment_eval(
+                tt[i], ti, tip1, zi, zip1, hinv6, c1, c2
+            )
+            i += 1
+        end
+    end
+
+    return nothing
 end
 
 # BSpline Curve Interpolation

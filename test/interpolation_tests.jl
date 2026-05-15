@@ -274,6 +274,88 @@ end
     test_uvals = [1.0, 2.0, 4.0, 8.0]
     f(tvals) = LinearInterpolation(test_uvals, tvals)(3.5)
     @test_nowarn ForwardDiff.gradient(f, test_tvals)
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t_b = collect(0.0:10.0)
+
+        # Sorted query matches per-point path on the default (Constant) and
+        # each fast-path extrapolation mode paired left × right
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A_b = LinearInterpolation(
+                u_b, t_b; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+            # Knot pass-through
+            outk = similar(t_b)
+            A_b(outk, t_b)
+            for k in eachindex(t_b)
+                @test outk[k] ≈ u_b[k]
+            end
+        end
+
+        # Periodic/Reflective extrapolation falls back to map!
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A_b = LinearInterpolation(u_b, t_b; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        # ExtrapolationType.None throws on out-of-range sorted queries
+        A_none = LinearInterpolation(u_b, t_b)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # Unsorted query falls back to per-point path
+        A_b = LinearInterpolation(u_b, t_b; extrapolation = ExtrapolationType.Constant)
+        tt_u = [3.1, 7.7, 0.2, 5.5, 9.9]
+        out_u = similar(tt_u)
+        A_b(out_u, tt_u)
+        for k in eachindex(tt_u)
+            @test out_u[k] ≈ A_b(tt_u[k])
+        end
+
+        # NaN in u: fast path is skipped (since `any(isnan, u)` is true),
+        # preserving the per-point NaN semantics
+        u_nan = [0.0, NaN, 2.0, 3.0]
+        t_nan = [1.0, 2.0, 3.0, 4.0]
+        A_nan = LinearInterpolation(u_nan, t_nan; extrapolation = ExtrapolationType.Extension)
+        tt_nan = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+        out_nan = similar(tt_nan)
+        A_nan(out_nan, tt_nan)
+        for k in eachindex(tt_nan)
+            ref = A_nan(tt_nan[k])
+            @test (isnan(out_nan[k]) && isnan(ref)) || out_nan[k] ≈ ref
+        end
+
+        # DimensionMismatch
+        @test_throws DimensionMismatch LinearInterpolation(u_b, t_b)(
+            zeros(3), [1.0, 2.0]
+        )
+    end
 end
 
 @testset "Quadratic Interpolation" begin
@@ -1055,6 +1137,83 @@ end
         u_test = reduce(hcat, c.(t_test))
         f_test = reduce(hcat, f3d.(t_test))
         @test isapprox(u_test, f_test, atol = 1.0e-2)
+    end
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t_b = collect(0.0:10.0)
+
+        # Sorted query matches per-point path on each fast-path extrapolation mode
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A_b = CubicSpline(
+                u_b, t_b; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+            # Knot pass-through
+            outk = similar(t_b)
+            A_b(outk, t_b)
+            for k in eachindex(t_b)
+                @test outk[k] ≈ u_b[k]
+            end
+        end
+
+        # Periodic/Reflective extrapolation falls back to map!
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A_b = CubicSpline(u_b, t_b; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        # ExtrapolationType.None throws on out-of-range sorted queries
+        A_none = CubicSpline(u_b, t_b)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # Unsorted query falls back to per-point path
+        A_b = CubicSpline(u_b, t_b; extrapolation = ExtrapolationType.Constant)
+        tt_u = [3.1, 7.7, 0.2, 5.5, 9.9]
+        out_u = similar(tt_u)
+        A_b(out_u, tt_u)
+        for k in eachindex(tt_u)
+            @test out_u[k] ≈ A_b(tt_u[k])
+        end
+
+        # cache_parameters = true should also work (different get_parameters branch)
+        A_cache = CubicSpline(
+            u_b, t_b; extrapolation = ExtrapolationType.Extension, cache_parameters = true
+        )
+        tt = collect(-2.0:0.4:12.0)
+        out = similar(tt)
+        A_cache(out, tt)
+        for k in eachindex(tt)
+            @test out[k] ≈ A_cache(tt[k])
+        end
+
+        # DimensionMismatch
+        @test_throws DimensionMismatch CubicSpline(u_b, t_b)(zeros(3), [1.0, 2.0])
     end
 end
 
