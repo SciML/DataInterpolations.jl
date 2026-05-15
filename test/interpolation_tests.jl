@@ -490,6 +490,69 @@ end
     A = @inferred(QuadraticInterpolation(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(0.0)
     @test_throws DataInterpolations.RightExtrapolationError A(5.0)
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t_b = collect(0.0:10.0)
+
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A_b = QuadraticInterpolation(
+                u_b, t_b; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+            outk = similar(t_b)
+            A_b(outk, t_b)
+            for k in eachindex(t_b)
+                @test outk[k] ≈ u_b[k]
+            end
+        end
+
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A_b = QuadraticInterpolation(u_b, t_b; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        A_none = QuadraticInterpolation(u_b, t_b)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # Unsorted fallback
+        A_b = QuadraticInterpolation(u_b, t_b; extrapolation = ExtrapolationType.Constant)
+        tt_u = [3.1, 7.7, 0.2, 5.5, 9.9]
+        out_u = similar(tt_u)
+        A_b(out_u, tt_u)
+        for k in eachindex(tt_u)
+            @test out_u[k] ≈ A_b(tt_u[k])
+        end
+
+        @test_throws DimensionMismatch QuadraticInterpolation(u_b, t_b)(
+            zeros(3), [1.0, 2.0]
+        )
+    end
 end
 
 @testset "Lagrange Interpolation" begin
@@ -930,6 +993,81 @@ end
     itp = @inferred(ConstantInterpolation(u, t))
     @test @inferred(itp(t)) == itp.(t)
     @test typeof(itp(t)) === typeof(itp.(t)) === Vector{Int}
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [10.0, 20.0, 30.0, 40.0, 50.0]
+        t_b = [0.0, 1.0, 2.0, 3.0, 4.0]
+
+        for dir in (:left, :right)
+            for ext in (
+                    ExtrapolationType.Constant, ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+                A_b = ConstantInterpolation(
+                    u_b, t_b; dir = dir, extrapolation = ext
+                )
+                tt = collect(-1.0:0.25:5.0)
+                out = similar(tt)
+                A_b(out, tt)
+                for k in eachindex(tt)
+                    @test out[k] ≈ A_b(tt[k])
+                end
+                # Knot pass-through
+                outk = similar(t_b)
+                A_b(outk, t_b)
+                for k in eachindex(t_b)
+                    @test outk[k] ≈ A_b(t_b[k])
+                end
+            end
+
+            # Periodic/Reflective fall back to map!
+            for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+                A_b = ConstantInterpolation(u_b, t_b; dir = dir, extrapolation = ext)
+                tt = collect(-1.5:0.5:5.5)
+                out = similar(tt)
+                A_b(out, tt)
+                for k in eachindex(tt)
+                    @test out[k] ≈ A_b(tt[k])
+                end
+            end
+
+            # None throws on out-of-range
+            A_none = ConstantInterpolation(u_b, t_b; dir = dir)
+            @test_throws DataInterpolations.LeftExtrapolationError A_none(
+                similar([-0.5, 1.0]), [-0.5, 1.0]
+            )
+            @test_throws DataInterpolations.RightExtrapolationError A_none(
+                similar([1.0, 4.5]), [1.0, 4.5]
+            )
+
+            # Unsorted fallback
+            A_b = ConstantInterpolation(
+                u_b, t_b; dir = dir, extrapolation = ExtrapolationType.Constant
+            )
+            tt_u = [2.5, 0.7, 3.3, 1.1]
+            out_u = similar(tt_u)
+            A_b(out_u, tt_u)
+            for k in eachindex(tt_u)
+                @test out_u[k] ≈ A_b(tt_u[k])
+            end
+        end
+
+        # Non-Number eltype (strings) works because no arithmetic is performed
+        u_s = ["a", "b", "c", "d"]
+        t_s = [0.0, 1.0, 2.0, 3.0]
+        A_s = ConstantInterpolation(u_s, t_s; extrapolation = ExtrapolationType.Constant)
+        tt_s = collect(-1.0:0.25:4.0)
+        out_s = Vector{String}(undef, length(tt_s))
+        A_s(out_s, tt_s)
+        for k in eachindex(tt_s)
+            @test out_s[k] == A_s(tt_s[k])
+        end
+
+        # DimensionMismatch
+        @test_throws DimensionMismatch ConstantInterpolation(u_b, t_b)(
+            zeros(3), [1.0, 2.0]
+        )
+    end
 end
 
 @testset "Smoothed constant Interpolation" begin
@@ -1033,6 +1171,78 @@ end
     A = @inferred(QuadraticSpline(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(-2.0)
     @test_throws DataInterpolations.RightExtrapolationError A(2.0)
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t_b = collect(0.0:10.0)
+
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A_b = QuadraticSpline(
+                u_b, t_b; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+            outk = similar(t_b)
+            A_b(outk, t_b)
+            for k in eachindex(t_b)
+                @test outk[k] ≈ u_b[k]
+            end
+        end
+
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A_b = QuadraticSpline(u_b, t_b; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        A_none = QuadraticSpline(u_b, t_b)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # cache_parameters=true also works
+        A_cache = QuadraticSpline(
+            u_b, t_b; extrapolation = ExtrapolationType.Extension, cache_parameters = true
+        )
+        tt = collect(-2.0:0.4:12.0)
+        out = similar(tt)
+        A_cache(out, tt)
+        for k in eachindex(tt)
+            @test out[k] ≈ A_cache(tt[k])
+        end
+
+        # Unsorted fallback
+        A_b = QuadraticSpline(u_b, t_b; extrapolation = ExtrapolationType.Constant)
+        tt_u = [3.1, 7.7, 0.2, 5.5, 9.9]
+        out_u = similar(tt_u)
+        A_b(out_u, tt_u)
+        for k in eachindex(tt_u)
+            @test out_u[k] ≈ A_b(tt_u[k])
+        end
+
+        @test_throws DimensionMismatch QuadraticSpline(u_b, t_b)(zeros(3), [1.0, 2.0])
+    end
 end
 
 @testset "CubicSpline Interpolation" begin
@@ -1416,6 +1626,72 @@ end
         A3 = CubicHermiteSpline(du3, u3, t)
         @test u3 ≈ A3.(t)
     end
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t_b = collect(0.0:10.0)
+        du_b = [0.1, 0.2, -0.1, 0.4, -0.3, 0.5, -0.2, 0.1, -0.3, 0.4, 0.0]
+
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A_b = CubicHermiteSpline(
+                du_b, u_b, t_b; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+            outk = similar(t_b)
+            A_b(outk, t_b)
+            for k in eachindex(t_b)
+                @test outk[k] ≈ u_b[k]
+            end
+        end
+
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A_b = CubicHermiteSpline(du_b, u_b, t_b; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        A_none = CubicHermiteSpline(du_b, u_b, t_b)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # Unsorted fallback
+        A_b = CubicHermiteSpline(
+            du_b, u_b, t_b; extrapolation = ExtrapolationType.Constant
+        )
+        tt_u = [3.1, 7.7, 0.2, 5.5, 9.9]
+        out_u = similar(tt_u)
+        A_b(out_u, tt_u)
+        for k in eachindex(tt_u)
+            @test out_u[k] ≈ A_b(tt_u[k])
+        end
+
+        @test_throws DimensionMismatch CubicHermiteSpline(du_b, u_b, t_b)(
+            zeros(3), [1.0, 2.0]
+        )
+    end
 end
 
 @testset "PCHIPInterpolation" begin
@@ -1485,6 +1761,74 @@ end
         ddu3 = [[ddu[i] ddu[i]] for i in eachindex(ddu)]
         A3 = QuinticHermiteSpline(ddu3, du3, u3, t)
         @test u3 ≈ A3.(t)
+    end
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t_b = collect(0.0:10.0)
+        du_b = [0.1, 0.2, -0.1, 0.4, -0.3, 0.5, -0.2, 0.1, -0.3, 0.4, 0.0]
+        ddu_b = [0.0, 0.05, -0.05, 0.1, -0.1, 0.05, 0.0, -0.05, 0.05, 0.0, 0.0]
+
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A_b = QuinticHermiteSpline(
+                ddu_b, du_b, u_b, t_b;
+                extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+            outk = similar(t_b)
+            A_b(outk, t_b)
+            for k in eachindex(t_b)
+                @test outk[k] ≈ u_b[k]
+            end
+        end
+
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A_b = QuinticHermiteSpline(ddu_b, du_b, u_b, t_b; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        A_none = QuinticHermiteSpline(ddu_b, du_b, u_b, t_b)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # Unsorted fallback
+        A_b = QuinticHermiteSpline(
+            ddu_b, du_b, u_b, t_b; extrapolation = ExtrapolationType.Constant
+        )
+        tt_u = [3.1, 7.7, 0.2, 5.5, 9.9]
+        out_u = similar(tt_u)
+        A_b(out_u, tt_u)
+        for k in eachindex(tt_u)
+            @test out_u[k] ≈ A_b(tt_u[k])
+        end
+
+        @test_throws DimensionMismatch QuinticHermiteSpline(
+            ddu_b, du_b, u_b, t_b
+        )(zeros(3), [1.0, 2.0])
     end
 end
 
