@@ -565,6 +565,82 @@ end
         @test isfinite(DataInterpolations.derivative(A_makima, 5.0))
         @test isfinite(DataInterpolations.integral(A_makima, 0.0, 10.0))
     end
+
+    @testset "Sorted-batch evaluator" begin
+        u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t = collect(0.0:10.0)
+
+        for modified in (false, true)
+            A = AkimaInterpolation(u, t; modified = modified)
+            # Sorted query: fast path matches the per-point path
+            tt = sort!([0.0, 0.5, 1.0, 2.7, 5.3, 7.9, 10.0])
+            out = similar(tt)
+            A(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A(tt[k])
+            end
+            # Knot pass-through
+            outk = similar(t)
+            A(outk, t)
+            for k in eachindex(t)
+                @test outk[k] ≈ u[k]
+            end
+            # Unsorted query falls back to per-point and stays consistent
+            tt_unsorted = [3.1, 7.7, 0.2, 5.5, 9.9]
+            out_u = similar(tt_unsorted)
+            A(out_u, tt_unsorted)
+            for k in eachindex(tt_unsorted)
+                @test out_u[k] ≈ A(tt_unsorted[k])
+            end
+        end
+
+        # Each fast-path extrapolation mode matches the per-point path
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A = AkimaInterpolation(
+                u, t; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A(tt[k])
+            end
+        end
+
+        # Periodic/Reflective fall back to the map! path
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A = AkimaInterpolation(u, t; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A(tt[k])
+            end
+        end
+
+        # ExtrapolationType.None throws when a sorted query is out of range
+        A_none = AkimaInterpolation(u, t)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # DimensionMismatch
+        A_dim = AkimaInterpolation(u, t)
+        @test_throws DimensionMismatch A_dim(zeros(3), [1.0, 2.0])
+    end
 end
 
 @testset "ConstantInterpolation" begin
