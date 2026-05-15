@@ -220,7 +220,7 @@ function LagrangeInterpolation(
 end
 
 """
-    AkimaInterpolation(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+    AkimaInterpolation(u, t; modified = false, extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
 
 It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: [https://en.wikipedia.org/wiki/Akima_spline](https://en.wikipedia.org/wiki/Akima_spline).
@@ -233,6 +233,11 @@ Extrapolation extends the last cubic polynomial on each side.
 
 ## Keyword Arguments
 
+  - `modified`: if `true`, use the modified Akima (makima) formula for the slopes at the knots,
+    which adds an extra term `|m_{i+1} + m_i| / 2` to each weight. Tends to reduce overshoot
+    and oscillation on data with flat regions or repeated values. See
+    [https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/](https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/).
+    Defaults to `false`.
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
@@ -284,7 +289,8 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
 end
 
 function AkimaInterpolation(
-        u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        u, t; modified::Bool = false,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1.0e-2
     )
@@ -303,16 +309,30 @@ function AkimaInterpolation(
     m[end - 1] = 2m[end - 2] - m[end - 3]
     m[end] = 2m[end - 1] - m[end - 2]
 
-    b = (m[4:end] .+ m[1:(end - 3)]) ./ 2
-    dm = abs.(diff(m))
-    f1 = dm[3:(n + 2)]
-    f2 = dm[1:n]
-    f12 = f1 + f2
-    ind = findall(f12 .> 1.0e-9 * maximum(f12))
-    b[ind] = (
-        f1[ind] .* m[ind .+ 1] .+
-            f2[ind] .* m[ind .+ 2]
-    ) ./ f12[ind]
+    if modified
+        # Modified Akima (makima): adds |m_{i+1} + m_i| / 2 to each weight, which
+        # reduces overshoot on flat regions. The simple-average fallback still
+        # guards the case where all four neighboring slopes vanish.
+        w1 = abs.(m[4:end] .- m[3:(end - 1)]) .+
+            abs.(m[4:end] .+ m[3:(end - 1)]) ./ 2
+        w2 = abs.(m[2:(end - 2)] .- m[1:(end - 3)]) .+
+            abs.(m[2:(end - 2)] .+ m[1:(end - 3)]) ./ 2
+        w12 = w1 .+ w2
+        b = (m[2:(end - 2)] .+ m[3:(end - 1)]) ./ 2
+        ind = findall(w12 .> 1.0e-9 * maximum(w12))
+        b[ind] = (w1[ind] .* m[ind .+ 1] .+ w2[ind] .* m[ind .+ 2]) ./ w12[ind]
+    else
+        b = (m[4:end] .+ m[1:(end - 3)]) ./ 2
+        dm = abs.(diff(m))
+        f1 = dm[3:(n + 2)]
+        f2 = dm[1:n]
+        f12 = f1 + f2
+        ind = findall(f12 .> 1.0e-9 * maximum(f12))
+        b[ind] = (
+            f1[ind] .* m[ind .+ 1] .+
+                f2[ind] .* m[ind .+ 2]
+        ) ./ f12[ind]
+    end
     c = (3 .* m[3:(end - 2)] .- 2 .* b[1:(end - 1)] .- b[2:end]) ./ dt
     d = (b[1:(end - 1)] .+ b[2:end] .- 2 .* m[3:(end - 2)]) ./ dt .^ 2
 

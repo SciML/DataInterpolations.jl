@@ -511,6 +511,60 @@ end
     A = @inferred(AkimaInterpolation(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
     @test_throws DataInterpolations.RightExtrapolationError A(11.0)
+
+    # Modified Akima (makima) — same struct, different b computation
+    @testset "Modified Akima (makima)" begin
+        A_mak = @inferred(AkimaInterpolation(u, t; modified = true))
+        # Interpolates the data points exactly
+        for i in eachindex(t)
+            @test A_mak(t[i]) ≈ u[i]
+        end
+        # Differs from standard Akima on this data set
+        A_std = AkimaInterpolation(u, t)
+        @test any(
+            !isapprox(A_mak(ti), A_std(ti); atol = 1.0e-12)
+                for ti in 0.5:1.0:9.5
+        )
+
+        # Compare against a direct vectorized implementation of the makima formula
+        n = length(t)
+        dt_vec = diff(t)
+        m = Array{eltype(u)}(undef, n + 3)
+        m[3:(end - 2)] = diff(u) ./ dt_vec
+        m[2] = 2m[3] - m[4]
+        m[1] = 2m[2] - m[3]
+        m[end - 1] = 2m[end - 2] - m[end - 3]
+        m[end] = 2m[end - 1] - m[end - 2]
+        w1 = abs.(m[4:end] .- m[3:(end - 1)]) .+
+            abs.(m[4:end] .+ m[3:(end - 1)]) ./ 2
+        w2 = abs.(m[2:(end - 2)] .- m[1:(end - 3)]) .+
+            abs.(m[2:(end - 2)] .+ m[1:(end - 3)]) ./ 2
+        b_ref = (w1 .* m[2:(end - 2)] .+ w2 .* m[3:(end - 1)]) ./ (w1 .+ w2)
+        @test A_mak.b ≈ b_ref
+
+        # Makima avoids the w1 + w2 == 0 division-by-zero edge case
+        # that the original Akima formula explicitly works around: a
+        # constant-then-constant signal produces zero forward and backward
+        # slope differences at the transition.
+        u_flat = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
+        t_flat = collect(0.0:5.0)
+        A_flat = @inferred(AkimaInterpolation(u_flat, t_flat; modified = true))
+        @test all(isfinite, A_flat.b)
+        @test all(isfinite, A_flat.c)
+        @test all(isfinite, A_flat.d)
+        for i in eachindex(t_flat)
+            @test A_flat(t_flat[i]) ≈ u_flat[i]
+        end
+
+        # Extrapolation, derivatives and integrals work via the shared struct path
+        A_ext = AkimaInterpolation(
+            u, t; modified = true, extrapolation = ExtrapolationType.Extension
+        )
+        @test isfinite(A_ext(-1.0))
+        @test isfinite(A_ext(11.0))
+        @test isfinite(DataInterpolations.derivative(A_mak, 5.0))
+        @test isfinite(DataInterpolations.integral(A_mak, 0.0, 10.0))
+    end
 end
 
 @testset "ConstantInterpolation" begin
