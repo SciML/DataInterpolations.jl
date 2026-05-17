@@ -8,6 +8,7 @@ using LinearAlgebra, RecipesBase
 using PrettyTables
 using ForwardDiff
 using EnumX
+import FindFirstFunctions
 import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
     Guesser
 

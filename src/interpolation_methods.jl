@@ -52,6 +52,100 @@ function _extrapolate_other(A, t, extrapolation)
     end
 end
 
+# -- Sorted-batch helpers shared by the per-type fast paths --
+#
+# Predicate: which extrapolation modes admit the sorted-batch fast path.
+# Periodic and Reflective wrap each query independently, so per-query
+# transformations defeat the lockstep walk — fall back to `map!` instead.
+@inline function _sorted_batch_extrapolation_ok(A)
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    el_ok = el == ExtrapolationType.None ||
+        el == ExtrapolationType.Constant ||
+        el == ExtrapolationType.Linear ||
+        el == ExtrapolationType.Extension
+    er_ok = er == ExtrapolationType.None ||
+        er == ExtrapolationType.Constant ||
+        er == ExtrapolationType.Linear ||
+        er == ExtrapolationType.Extension
+    return el_ok && er_ok
+end
+
+# Given a sorted query vector `tt`, locate the rightmost index `j` with
+# `tt[j] <= tn` using a bounded binary search. Returns `i_first - 1` when no
+# index in `[i_first, m]` satisfies the predicate.
+@inline function _find_last_interior_index(
+        tt::AbstractVector, i_first::Integer, m::Integer, tn
+    )
+    if i_first > m
+        return i_first - 1
+    end
+    @inbounds if tt[m] <= tn
+        return m
+    end
+    @inbounds if tt[i_first] > tn
+        return i_first - 1
+    end
+    lo = i_first
+    hi = m
+    @inbounds while lo < hi
+        mid = (lo + hi + 1) >> 1
+        if tt[mid] <= tn
+            lo = mid
+        else
+            hi = mid - 1
+        end
+    end
+    return lo
+end
+
+# Dispatch between an inline hand-rolled lockstep walk (dense queries) and
+# `FindFirstFunctions.searchsortedlast!` (sparse queries) so the per-query
+# cost matches the right algorithm for every n/m regime. The crossover at
+# `32 * n_interior < length(t)` was determined by FFF's benchmark sweep.
+#
+# `eval_at(idx, ttt)` returns the polynomial value for segment `idx`
+# evaluated at query `ttt`. It must be cheap and inlinable — pass it as
+# a struct callable or a non-capturing closure to keep type stability.
+@inline function _eval_interior_adaptive!(
+        out::AbstractVector, t::AbstractVector, tt::AbstractVector,
+        i_first::Integer, i_last::Integer, n::Integer,
+        eval_at::F
+    ) where {F}
+    n_interior = i_last - i_first + 1
+    n_interior <= 0 && return
+    if 32 * n_interior < n
+        # Sparse path: amortize an O(log gap) gallop per query via FFF.
+        idx_buf = Vector{Int}(undef, n_interior)
+        FindFirstFunctions.searchsortedlast!(
+            idx_buf, t, view(tt, i_first:i_last)
+        )
+        @inbounds for k in 1:n_interior
+            idx = idx_buf[k]
+            if idx < 1
+                idx = 1
+            elseif idx >= n
+                idx = n - 1
+            end
+            j = i_first + k - 1
+            out[j] = eval_at(idx, tt[j])
+        end
+    else
+        # Dense path: inline lockstep walk fused with the cubic eval.
+        let idx = 1, i_local = i_first
+            @inbounds while i_local <= i_last
+                ttt = tt[i_local]
+                while idx < n - 1 && ttt > t[idx + 1]
+                    idx += 1
+                end
+                out[i_local] = eval_at(idx, ttt)
+                i_local += 1
+            end
+        end
+    end
+    return
+end
+
 function _extrapolate_left(A::ConstantInterpolation, t)
     (; extrapolation_left) = A
     return if extrapolation_left == ExtrapolationType.None
@@ -130,6 +224,125 @@ function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess
     return A.u[ax..., idx] + slope * Δt
 end
 
+# Sorted-batch fast path for LinearInterpolation. Falls back to `map!` when
+# the inputs don't fit the lockstep path: unsorted `tt`, Periodic/Reflective
+# extrapolation, or `u` containing NaN.
+function (A::LinearInterpolation{<:AbstractVector{<:Number}})(
+        out::AbstractVector, tt::AbstractVector
+    )
+    if length(out) != length(tt)
+        throw(
+            DimensionMismatch(
+                "number of evaluation points and length of the result vector must be equal"
+            )
+        )
+    end
+    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+        _linear_eval_sorted!(out, A, tt)
+    else
+        map!(A, out, tt)
+    end
+    return out
+end
+
+function _linear_eval_sorted!(
+        out::AbstractVector, A::LinearInterpolation{<:AbstractVector{<:Number}}, tt::AbstractVector
+    )
+    u = A.u
+    t = A.t
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    n = length(t)
+    m = length(tt)
+    t1 = @inbounds t[1]
+    tn = @inbounds t[n]
+
+    i = 1
+
+    # Left extrapolation
+    if el == ExtrapolationType.None
+        @inbounds if i <= m && tt[i] < t1
+            throw(LeftExtrapolationError())
+        end
+    elseif el == ExtrapolationType.Constant
+        u1 = @inbounds u[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1
+            i += 1
+        end
+    else  # Linear or Extension — for LinearInterpolation these coincide.
+        u1 = @inbounds u[1]
+        slope1 = get_parameters(A, 1)
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1 + slope1 * (tt[i] - t1)
+            i += 1
+        end
+    end
+
+    # Interior: adaptive dispatch. Hand-inlined here (rather than passing a
+    # callable through `_eval_interior_adaptive!`) because the per-segment
+    # `get_parameters` call doesn't inline cleanly through the closure
+    # boundary, costing ~70× on small-m sparse cases.
+    i_first_interior = i
+    i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
+    n_interior = i_last_interior - i_first_interior + 1
+    if n_interior > 0
+        if 32 * n_interior < n
+            idx_buf = Vector{Int}(undef, n_interior)
+            FindFirstFunctions.searchsortedlast!(
+                idx_buf, t,
+                view(tt, i_first_interior:i_last_interior)
+            )
+            @inbounds for k in 1:n_interior
+                idx = idx_buf[k]
+                if idx < 1
+                    idx = 1
+                elseif idx >= n
+                    idx = n - 1
+                end
+                j = i_first_interior + k - 1
+                slope = get_parameters(A, idx)
+                out[j] = u[idx] + slope * (tt[j] - t[idx])
+            end
+        else
+            let i_local = i_first_interior, idx = 1
+                @inbounds while i_local <= i_last_interior
+                    ttt = tt[i_local]
+                    while idx < n - 1 && ttt > t[idx + 1]
+                        idx += 1
+                    end
+                    slope = get_parameters(A, idx)
+                    out[i_local] = u[idx] + slope * (ttt - t[idx])
+                    i_local += 1
+                end
+            end
+        end
+    end
+    i = i_last_interior + 1
+
+    # Right extrapolation
+    if er == ExtrapolationType.None
+        @inbounds if i <= m
+            throw(RightExtrapolationError())
+        end
+    elseif er == ExtrapolationType.Constant
+        un = @inbounds u[n]
+        @inbounds while i <= m
+            out[i] = un
+            i += 1
+        end
+    else  # Linear or Extension
+        un = @inbounds u[n]
+        slope_n = get_parameters(A, n - 1)
+        @inbounds while i <= m
+            out[i] = un + slope_n * (tt[i] - tn)
+            i += 1
+        end
+    end
+
+    return nothing
+end
+
 # Quadratic Interpolation
 function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess)
@@ -205,9 +418,26 @@ function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess
     return @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
 end
 
+# Per-segment evaluator for the Akima cubic. Used by the adaptive interior
+# helper; the struct keeps the b/c/d/u/t arrays captured so the call-site
+# (idx, ttt) lambda inlines cleanly.
+struct _AkimaEvaluator{Tu, Tt, Tb, Tc, Td}
+    u::Tu
+    bv::Tb
+    cv::Tc
+    dv::Td
+    t::Tt
+end
+@inline function (e::_AkimaEvaluator)(idx::Integer, ttt)
+    @inbounds wj = ttt - e.t[idx]
+    return @inbounds @evalpoly wj e.u[idx] e.bv[idx] e.cv[idx] e.dv[idx]
+end
+
 # Sorted-batch fast path: when the query points are already sorted (and the
-# extrapolation modes don't require per-point transformation), walk the knots
-# and queries in lockstep instead of running a binary search per query.
+# extrapolation modes don't require per-point transformation), dispatch
+# through `_eval_interior_adaptive!` which picks dense vs sparse path per
+# call. The dense path uses an inline lockstep walk; the sparse path uses
+# FindFirstFunctions' batched `searchsortedlast!` with the `Auto` strategy.
 function (A::AkimaInterpolation{<:AbstractVector})(
         out::AbstractVector, tt::AbstractVector
     )
@@ -218,26 +448,12 @@ function (A::AkimaInterpolation{<:AbstractVector})(
             )
         )
     end
-    if _akima_eval_fast_applicable(A) && issorted(tt)
+    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
         _akima_eval_sorted!(out, A, tt)
     else
         map!(A, out, tt)
     end
     return out
-end
-
-@inline function _akima_eval_fast_applicable(A::AkimaInterpolation)
-    el = A.extrapolation_left
-    er = A.extrapolation_right
-    el_ok = el == ExtrapolationType.None ||
-        el == ExtrapolationType.Constant ||
-        el == ExtrapolationType.Linear ||
-        el == ExtrapolationType.Extension
-    er_ok = er == ExtrapolationType.None ||
-        er == ExtrapolationType.Constant ||
-        er == ExtrapolationType.Linear ||
-        er == ExtrapolationType.Extension
-    return el_ok && er_ok
 end
 
 function _akima_eval_sorted!(
@@ -287,17 +503,18 @@ function _akima_eval_sorted!(
         end
     end
 
-    # Interior: walk knots in lockstep
-    idx = 1
-    @inbounds while i <= m && tt[i] <= tn
-        ttt = tt[i]
-        while idx < n - 1 && ttt > t[idx + 1]
-            idx += 1
-        end
-        wj = ttt - t[idx]
-        out[i] = @evalpoly wj u[idx] bv[idx] cv[idx] dv[idx]
-        i += 1
-    end
+    # Interior: adaptive dispatch over the dense/sparse paths via the
+    # shared `_eval_interior_adaptive!` helper. Dense queries use the
+    # tight inline walk; sparse queries route through FFF's batched
+    # `searchsortedlast!` (which picks LinearScan / ExpFromLeft /
+    # InterpolationSearch from the n/m ratio + linearity probe).
+    i_first_interior = i
+    i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
+    _eval_interior_adaptive!(
+        out, t, tt, i_first_interior, i_last_interior, n,
+        _AkimaEvaluator(u, bv, cv, dv, t)
+    )
+    i = i_last_interior + 1
 
     # Right extrapolation
     if er == ExtrapolationType.None
@@ -403,6 +620,164 @@ function _interpolate(A::CubicSpline{<:AbstractArray}, t::Number, iguess)
     C = c₁ * Δt₁
     D = c₂ * Δt₂
     return I + C + D
+end
+
+# Sorted-batch fast path for CubicSpline.
+function (A::CubicSpline{<:AbstractVector{<:Number}})(
+        out::AbstractVector, tt::AbstractVector
+    )
+    if length(out) != length(tt)
+        throw(
+            DimensionMismatch(
+                "number of evaluation points and length of the result vector must be equal"
+            )
+        )
+    end
+    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+        _cubicspline_eval_sorted!(out, A, tt)
+    else
+        map!(A, out, tt)
+    end
+    return out
+end
+
+@inline function _cubicspline_segment_eval(
+        ttt, ti, tip1, zi, zip1, hinv6, c1, c2
+    )
+    dt1 = ttt - ti
+    dt2 = tip1 - ttt
+    return (zi * dt2 * dt2 * dt2 + zip1 * dt1 * dt1 * dt1) * hinv6 +
+        c1 * dt1 + c2 * dt2
+end
+
+function _cubicspline_eval_sorted!(
+        out::AbstractVector, A::CubicSpline{<:AbstractVector{<:Number}}, tt::AbstractVector
+    )
+    u = A.u
+    t = A.t
+    z = A.z
+    h = A.h
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    n = length(t)
+    m = length(tt)
+    t1 = @inbounds t[1]
+    tn = @inbounds t[n]
+
+    i = 1
+
+    # Left extrapolation
+    if el == ExtrapolationType.None
+        @inbounds if i <= m && tt[i] < t1
+            throw(LeftExtrapolationError())
+        end
+    elseif el == ExtrapolationType.Constant
+        u1 = @inbounds u[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1
+            i += 1
+        end
+    elseif el == ExtrapolationType.Linear
+        u1 = @inbounds u[1]
+        slope1 = _derivative(A, t1, 1)
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1 + slope1 * (tt[i] - t1)
+            i += 1
+        end
+    else  # Extension
+        ti = t1
+        tip1 = @inbounds t[2]
+        zi = @inbounds z[1]
+        zip1 = @inbounds z[2]
+        hinv6 = inv(6 * @inbounds(h[2]))
+        c1, c2 = get_parameters(A, 1)
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = _cubicspline_segment_eval(
+                tt[i], ti, tip1, zi, zip1, hinv6, c1, c2
+            )
+            i += 1
+        end
+    end
+
+    # Interior: adaptive dispatch.
+    i_first_interior = i
+    i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
+    n_interior = i_last_interior - i_first_interior + 1
+    if n_interior > 0
+        if 32 * n_interior < n
+            idx_buf = Vector{Int}(undef, n_interior)
+            FindFirstFunctions.searchsortedlast!(
+                idx_buf, t,
+                view(tt, i_first_interior:i_last_interior)
+            )
+            @inbounds for k in 1:n_interior
+                idx = idx_buf[k]
+                if idx < 1
+                    idx = 1
+                elseif idx >= n
+                    idx = n - 1
+                end
+                j = i_first_interior + k - 1
+                ttt = tt[j]
+                c1, c2 = get_parameters(A, idx)
+                hinv6 = inv(6 * h[idx + 1])
+                out[j] = _cubicspline_segment_eval(
+                    ttt, t[idx], t[idx + 1], z[idx], z[idx + 1], hinv6, c1, c2
+                )
+            end
+        else
+            let i_local = i_first_interior, idx = 1
+                @inbounds while i_local <= i_last_interior
+                    ttt = tt[i_local]
+                    while idx < n - 1 && ttt > t[idx + 1]
+                        idx += 1
+                    end
+                    c1, c2 = get_parameters(A, idx)
+                    hinv6 = inv(6 * h[idx + 1])
+                    out[i_local] = _cubicspline_segment_eval(
+                        ttt, t[idx], t[idx + 1], z[idx], z[idx + 1], hinv6, c1, c2
+                    )
+                    i_local += 1
+                end
+            end
+        end
+    end
+    i = i_last_interior + 1
+
+    # Right extrapolation
+    if er == ExtrapolationType.None
+        @inbounds if i <= m
+            throw(RightExtrapolationError())
+        end
+    elseif er == ExtrapolationType.Constant
+        un = @inbounds u[n]
+        @inbounds while i <= m
+            out[i] = un
+            i += 1
+        end
+    elseif er == ExtrapolationType.Linear
+        un = @inbounds u[n]
+        slope_n = _derivative(A, tn, n)
+        @inbounds while i <= m
+            out[i] = un + slope_n * (tt[i] - tn)
+            i += 1
+        end
+    else  # Extension
+        ti = @inbounds t[n - 1]
+        tip1 = tn
+        zi = @inbounds z[n - 1]
+        zip1 = @inbounds z[n]
+        hinv6 = inv(6 * @inbounds(h[n]))
+        c1, c2 = get_parameters(A, n - 1)
+        @inbounds while i <= m
+            out[i] = _cubicspline_segment_eval(
+                tt[i], ti, tip1, zi, zip1, hinv6, c1, c2
+            )
+            i += 1
+        end
+    end
+
+    return nothing
 end
 
 # BSpline Curve Interpolation
