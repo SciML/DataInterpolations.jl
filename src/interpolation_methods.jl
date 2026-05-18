@@ -353,6 +353,140 @@ function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
     return out
 end
 
+# Sorted-batch fast path for QuadraticInterpolation.
+function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(
+        out::AbstractVector, tt::AbstractVector
+    )
+    if length(out) != length(tt)
+        throw(
+            DimensionMismatch(
+                "number of evaluation points and length of the result vector must be equal"
+            )
+        )
+    end
+    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+        _quadratic_eval_sorted!(out, A, tt)
+    else
+        map!(A, out, tt)
+    end
+    return out
+end
+
+function _quadratic_eval_sorted!(
+        out::AbstractVector, A::QuadraticInterpolation{<:AbstractVector{<:Number}}, tt::AbstractVector
+    )
+    u = A.u
+    t = A.t
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    n = length(t)
+    m = length(tt)
+    t1 = @inbounds t[1]
+    tn = @inbounds t[n]
+
+    i = 1
+
+    # Left extrapolation
+    if el == ExtrapolationType.None
+        @inbounds if i <= m && tt[i] < t1
+            throw(LeftExtrapolationError())
+        end
+    elseif el == ExtrapolationType.Constant
+        u1 = @inbounds u[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1
+            i += 1
+        end
+    elseif el == ExtrapolationType.Linear
+        u1 = @inbounds u[1]
+        slope1 = _derivative(A, t1, 1)
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1 + slope1 * (tt[i] - t1)
+            i += 1
+        end
+    else  # Extension — continue the first-segment quadratic
+        u1 = @inbounds u[1]
+        α1, β1 = get_parameters(A, 1)
+        @inbounds while i <= m && tt[i] < t1
+            Δt = tt[i] - t1
+            out[i] = u1 + Δt * (α1 * Δt + β1)
+            i += 1
+        end
+    end
+
+    # Interior: adaptive dispatch.
+    i_first_interior = i
+    i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
+    n_interior = i_last_interior - i_first_interior + 1
+    if n_interior > 0
+        if 32 * n_interior < n
+            idx_buf = Vector{Int}(undef, n_interior)
+            FindFirstFunctions.searchsortedlast!(
+                idx_buf, t,
+                view(tt, i_first_interior:i_last_interior)
+            )
+            @inbounds for k in 1:n_interior
+                idx = idx_buf[k]
+                if idx < 1
+                    idx = 1
+                elseif idx >= n
+                    idx = n - 1
+                end
+                j = i_first_interior + k - 1
+                ttt = tt[j]
+                α, β = get_parameters(A, idx)
+                Δt = ttt - t[idx]
+                out[j] = u[idx] + Δt * (α * Δt + β)
+            end
+        else
+            let i_local = i_first_interior, idx = 1
+                @inbounds while i_local <= i_last_interior
+                    ttt = tt[i_local]
+                    while idx < n - 1 && ttt > t[idx + 1]
+                        idx += 1
+                    end
+                    α, β = get_parameters(A, idx)
+                    Δt = ttt - t[idx]
+                    out[i_local] = u[idx] + Δt * (α * Δt + β)
+                    i_local += 1
+                end
+            end
+        end
+    end
+    i = i_last_interior + 1
+
+    # Right extrapolation
+    if er == ExtrapolationType.None
+        @inbounds if i <= m
+            throw(RightExtrapolationError())
+        end
+    elseif er == ExtrapolationType.Constant
+        un = @inbounds u[n]
+        @inbounds while i <= m
+            out[i] = un
+            i += 1
+        end
+    elseif er == ExtrapolationType.Linear
+        un = @inbounds u[n]
+        slope_n = _derivative(A, tn, n)
+        @inbounds while i <= m
+            out[i] = un + slope_n * (tt[i] - tn)
+            i += 1
+        end
+    else  # Extension — continue the last-segment quadratic
+        tnm1 = @inbounds t[n - 1]
+        unm1 = @inbounds u[n - 1]
+        α, β = get_parameters(A, n - 1)
+        @inbounds while i <= m
+            Δt = tt[i] - tnm1
+            out[i] = unm1 + Δt * (α * Δt + β)
+            i += 1
+        end
+    end
+
+    return nothing
+end
+
 # Lagrange Interpolation
 function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
@@ -573,6 +707,145 @@ function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, igu
     return A.u[:, idx]
 end
 
+# Sorted-batch fast path for ConstantInterpolation. All four supported
+# extrapolation modes (None / Constant / Linear / Extension) just return the
+# nearest knot value for ConstantInterpolation, so this works for non-Number
+# element types as well (e.g. strings) without arithmetic.
+function (A::ConstantInterpolation{<:AbstractVector})(
+        out::AbstractVector, tt::AbstractVector
+    )
+    if length(out) != length(tt)
+        throw(
+            DimensionMismatch(
+                "number of evaluation points and length of the result vector must be equal"
+            )
+        )
+    end
+    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+        _constant_eval_sorted!(out, A, tt)
+    else
+        map!(A, out, tt)
+    end
+    return out
+end
+
+function _constant_eval_sorted!(
+        out::AbstractVector, A::ConstantInterpolation{<:AbstractVector}, tt::AbstractVector
+    )
+    u = A.u
+    t = A.t
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    is_left = A.dir === :left
+    n = length(t)
+    m = length(tt)
+    t1 = @inbounds t[1]
+    tn = @inbounds t[n]
+    u1 = @inbounds u[1]
+    un = @inbounds u[n]
+
+    i = 1
+
+    # Left extrapolation — every supported mode returns u[1] for ConstantInterpolation.
+    if el == ExtrapolationType.None
+        @inbounds if i <= m && tt[i] < t1
+            throw(LeftExtrapolationError())
+        end
+    else
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1
+            i += 1
+        end
+    end
+
+    # Interior: adaptive dispatch. Even though ConstantInterpolation's
+    # per-segment work is trivial (just `u[idx]`), the hand-rolled walk is
+    # still O(n) per call for sparse queries on long `t` — that's the same
+    # regression as the original Akima bug. Route sparse cases through FFF
+    # and keep the inline walk for dense.
+    i_first_interior = i
+    i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
+    n_interior = i_last_interior - i_first_interior + 1
+    if n_interior > 0
+        if 32 * n_interior < n
+            idx_buf = Vector{Int}(undef, n_interior)
+            FindFirstFunctions.searchsortedlast!(
+                idx_buf, t,
+                view(tt, i_first_interior:i_last_interior)
+            )
+            # `searchsortedlast` returns `last idx with t[idx] <= ttt`, which
+            # is exactly what `:left` direction wants. For `:right` we need
+            # the first idx with t[idx] >= ttt, which is `idx_buf[k] + 1`
+            # unless the query equals a knot (where the :right behavior is
+            # to use the index at which `t[idx] == ttt`).
+            if is_left
+                @inbounds for k in 1:n_interior
+                    idx = idx_buf[k]
+                    if idx < 1
+                        idx = 1
+                    elseif idx > n
+                        idx = n
+                    end
+                    j = i_first_interior + k - 1
+                    out[j] = u[idx]
+                end
+            else
+                @inbounds for k in 1:n_interior
+                    j = i_first_interior + k - 1
+                    idx = idx_buf[k]
+                    # Promote to next index unless ttt is exactly on the knot.
+                    if idx < n && tt[j] != t[idx]
+                        idx += 1
+                    end
+                    if idx < 1
+                        idx = 1
+                    elseif idx > n
+                        idx = n
+                    end
+                    out[j] = u[idx]
+                end
+            end
+        elseif is_left
+            idx = 1
+            @inbounds while i <= m && tt[i] <= tn
+                ttt = tt[i]
+                while idx < n && ttt >= t[idx + 1]
+                    idx += 1
+                end
+                out[i] = u[idx]
+                i += 1
+            end
+            i_last_interior = i - 1  # let the right-ext block resume from here
+        else
+            idx = 1
+            @inbounds while i <= m && tt[i] <= tn
+                ttt = tt[i]
+                while idx < n && ttt > t[idx]
+                    idx += 1
+                end
+                out[i] = u[idx]
+                i += 1
+            end
+            i_last_interior = i - 1
+        end
+    end
+    i = i_last_interior + 1
+
+    # Right extrapolation
+    if er == ExtrapolationType.None
+        @inbounds if i <= m
+            throw(RightExtrapolationError())
+        end
+    else
+        @inbounds while i <= m
+            out[i] = un
+            i += 1
+        end
+    end
+
+    return nothing
+end
+
 # Smoothed constant Interpolation
 function _interpolate(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
@@ -596,6 +869,145 @@ function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     uᵢ = A.u[idx]
     Δt_scaled = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
     return Δt_scaled * (α * Δt_scaled + β) + uᵢ
+end
+
+# Sorted-batch fast path for QuadraticSpline.
+function (A::QuadraticSpline{<:AbstractVector{<:Number}})(
+        out::AbstractVector, tt::AbstractVector
+    )
+    if length(out) != length(tt)
+        throw(
+            DimensionMismatch(
+                "number of evaluation points and length of the result vector must be equal"
+            )
+        )
+    end
+    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+        _quadraticspline_eval_sorted!(out, A, tt)
+    else
+        map!(A, out, tt)
+    end
+    return out
+end
+
+function _quadraticspline_eval_sorted!(
+        out::AbstractVector, A::QuadraticSpline{<:AbstractVector{<:Number}}, tt::AbstractVector
+    )
+    u = A.u
+    t = A.t
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    n = length(t)
+    m = length(tt)
+    t1 = @inbounds t[1]
+    tn = @inbounds t[n]
+
+    i = 1
+
+    # Left extrapolation
+    if el == ExtrapolationType.None
+        @inbounds if i <= m && tt[i] < t1
+            throw(LeftExtrapolationError())
+        end
+    elseif el == ExtrapolationType.Constant
+        u1 = @inbounds u[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1
+            i += 1
+        end
+    elseif el == ExtrapolationType.Linear
+        u1 = @inbounds u[1]
+        slope1 = _derivative(A, t1, 1)
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1 + slope1 * (tt[i] - t1)
+            i += 1
+        end
+    else  # Extension — continue the first-segment quadratic
+        u1 = @inbounds u[1]
+        tip1 = @inbounds t[2]
+        seg_inv = inv(tip1 - t1)
+        α, β = get_parameters(A, 1)
+        @inbounds while i <= m && tt[i] < t1
+            dts = (tt[i] - t1) * seg_inv
+            out[i] = dts * (α * dts + β) + u1
+            i += 1
+        end
+    end
+
+    # Interior: adaptive dispatch.
+    i_first_interior = i
+    i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
+    n_interior = i_last_interior - i_first_interior + 1
+    if n_interior > 0
+        if 32 * n_interior < n
+            idx_buf = Vector{Int}(undef, n_interior)
+            FindFirstFunctions.searchsortedlast!(
+                idx_buf, t,
+                view(tt, i_first_interior:i_last_interior)
+            )
+            @inbounds for k in 1:n_interior
+                idx = idx_buf[k]
+                if idx < 1
+                    idx = 1
+                elseif idx >= n
+                    idx = n - 1
+                end
+                j = i_first_interior + k - 1
+                ttt = tt[j]
+                α, β = get_parameters(A, idx)
+                seg_inv = inv(t[idx + 1] - t[idx])
+                dts = (ttt - t[idx]) * seg_inv
+                out[j] = dts * (α * dts + β) + u[idx]
+            end
+        else
+            let i_local = i_first_interior, idx = 1
+                @inbounds while i_local <= i_last_interior
+                    ttt = tt[i_local]
+                    while idx < n - 1 && ttt > t[idx + 1]
+                        idx += 1
+                    end
+                    α, β = get_parameters(A, idx)
+                    seg_inv = inv(t[idx + 1] - t[idx])
+                    dts = (ttt - t[idx]) * seg_inv
+                    out[i_local] = dts * (α * dts + β) + u[idx]
+                    i_local += 1
+                end
+            end
+        end
+    end
+    i = i_last_interior + 1
+
+    # Right extrapolation
+    if er == ExtrapolationType.None
+        @inbounds if i <= m
+            throw(RightExtrapolationError())
+        end
+    elseif er == ExtrapolationType.Constant
+        un = @inbounds u[n]
+        @inbounds while i <= m
+            out[i] = un
+            i += 1
+        end
+    elseif er == ExtrapolationType.Linear
+        un = @inbounds u[n]
+        slope_n = _derivative(A, tn, n)
+        @inbounds while i <= m
+            out[i] = un + slope_n * (tt[i] - tn)
+            i += 1
+        end
+    else  # Extension — continue the last-segment quadratic
+        tnm1 = @inbounds t[n - 1]
+        unm1 = @inbounds u[n - 1]
+        seg_inv = inv(tn - tnm1)
+        α, β = get_parameters(A, n - 1)
+        @inbounds while i <= m
+            dts = (tt[i] - tnm1) * seg_inv
+            out[i] = dts * (α * dts + β) + unm1
+            i += 1
+        end
+    end
+
+    return nothing
 end
 
 # CubicSpline Interpolation
@@ -869,6 +1281,152 @@ function _interpolate(
     return out
 end
 
+@inline function _cubic_hermite_segment_eval(ttt, ti, tip1, ui, dui, c1, c2)
+    dt0 = ttt - ti
+    dt1 = ttt - tip1
+    return ui + dt0 * dui + dt0 * dt0 * (c1 + dt1 * c2)
+end
+
+# Sorted-batch fast path for CubicHermiteSpline. For Hermite splines the
+# slope at each knot is `du[idx]`, so Linear extrapolation is a single
+# multiply.
+function (A::CubicHermiteSpline{<:AbstractVector{<:Number}})(
+        out::AbstractVector, tt::AbstractVector
+    )
+    if length(out) != length(tt)
+        throw(
+            DimensionMismatch(
+                "number of evaluation points and length of the result vector must be equal"
+            )
+        )
+    end
+    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+        _cubic_hermite_eval_sorted!(out, A, tt)
+    else
+        map!(A, out, tt)
+    end
+    return out
+end
+
+function _cubic_hermite_eval_sorted!(
+        out::AbstractVector, A::CubicHermiteSpline{<:AbstractVector{<:Number}}, tt::AbstractVector
+    )
+    u = A.u
+    t = A.t
+    du = A.du
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    n = length(t)
+    m = length(tt)
+    t1 = @inbounds t[1]
+    tn = @inbounds t[n]
+
+    i = 1
+
+    # Left extrapolation
+    if el == ExtrapolationType.None
+        @inbounds if i <= m && tt[i] < t1
+            throw(LeftExtrapolationError())
+        end
+    elseif el == ExtrapolationType.Constant
+        u1 = @inbounds u[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1
+            i += 1
+        end
+    elseif el == ExtrapolationType.Linear
+        u1 = @inbounds u[1]
+        du1 = @inbounds du[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1 + du1 * (tt[i] - t1)
+            i += 1
+        end
+    else  # Extension
+        ui = @inbounds u[1]
+        dui = @inbounds du[1]
+        tip1 = @inbounds t[2]
+        c1, c2 = get_parameters(A, 1)
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = _cubic_hermite_segment_eval(tt[i], t1, tip1, ui, dui, c1, c2)
+            i += 1
+        end
+    end
+
+    # Interior: adaptive dispatch.
+    i_first_interior = i
+    i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
+    n_interior = i_last_interior - i_first_interior + 1
+    if n_interior > 0
+        if 32 * n_interior < n
+            idx_buf = Vector{Int}(undef, n_interior)
+            FindFirstFunctions.searchsortedlast!(
+                idx_buf, t,
+                view(tt, i_first_interior:i_last_interior)
+            )
+            @inbounds for k in 1:n_interior
+                idx = idx_buf[k]
+                if idx < 1
+                    idx = 1
+                elseif idx >= n
+                    idx = n - 1
+                end
+                j = i_first_interior + k - 1
+                ttt = tt[j]
+                c1, c2 = get_parameters(A, idx)
+                out[j] = _cubic_hermite_segment_eval(
+                    ttt, t[idx], t[idx + 1], u[idx], du[idx], c1, c2
+                )
+            end
+        else
+            let i_local = i_first_interior, idx = 1
+                @inbounds while i_local <= i_last_interior
+                    ttt = tt[i_local]
+                    while idx < n - 1 && ttt > t[idx + 1]
+                        idx += 1
+                    end
+                    c1, c2 = get_parameters(A, idx)
+                    out[i_local] = _cubic_hermite_segment_eval(
+                        ttt, t[idx], t[idx + 1], u[idx], du[idx], c1, c2
+                    )
+                    i_local += 1
+                end
+            end
+        end
+    end
+    i = i_last_interior + 1
+
+    # Right extrapolation
+    if er == ExtrapolationType.None
+        @inbounds if i <= m
+            throw(RightExtrapolationError())
+        end
+    elseif er == ExtrapolationType.Constant
+        un = @inbounds u[n]
+        @inbounds while i <= m
+            out[i] = un
+            i += 1
+        end
+    elseif er == ExtrapolationType.Linear
+        un = @inbounds u[n]
+        dun = @inbounds du[n]
+        @inbounds while i <= m
+            out[i] = un + dun * (tt[i] - tn)
+            i += 1
+        end
+    else  # Extension
+        ti = @inbounds t[n - 1]
+        ui = @inbounds u[n - 1]
+        dui = @inbounds du[n - 1]
+        c1, c2 = get_parameters(A, n - 1)
+        @inbounds while i <= m
+            out[i] = _cubic_hermite_segment_eval(tt[i], ti, tn, ui, dui, c1, c2)
+            i += 1
+        end
+    end
+
+    return nothing
+end
+
 # Quintic Hermite Spline
 function _interpolate(
         A::QuinticHermiteSpline{<:AbstractVector}, t::Number, iguess
@@ -880,6 +1438,159 @@ function _interpolate(
     c₁, c₂, c₃ = get_parameters(A, idx)
     out += Δt₀^3 * (c₁ + Δt₁ * (c₂ + c₃ * Δt₁))
     return out
+end
+
+@inline function _quintic_hermite_segment_eval(
+        ttt, ti, tip1, ui, dui, ddui, c1, c2, c3
+    )
+    dt0 = ttt - ti
+    dt1 = ttt - tip1
+    quad = ui + dt0 * (dui + ddui * dt0 / 2)
+    high = dt0 * dt0 * dt0 * (c1 + dt1 * (c2 + c3 * dt1))
+    return quad + high
+end
+
+# Sorted-batch fast path for QuinticHermiteSpline.
+function (A::QuinticHermiteSpline{<:AbstractVector{<:Number}})(
+        out::AbstractVector, tt::AbstractVector
+    )
+    if length(out) != length(tt)
+        throw(
+            DimensionMismatch(
+                "number of evaluation points and length of the result vector must be equal"
+            )
+        )
+    end
+    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+        _quintic_hermite_eval_sorted!(out, A, tt)
+    else
+        map!(A, out, tt)
+    end
+    return out
+end
+
+function _quintic_hermite_eval_sorted!(
+        out::AbstractVector, A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, tt::AbstractVector
+    )
+    u = A.u
+    t = A.t
+    du = A.du
+    ddu = A.ddu
+    el = A.extrapolation_left
+    er = A.extrapolation_right
+    n = length(t)
+    m = length(tt)
+    t1 = @inbounds t[1]
+    tn = @inbounds t[n]
+
+    i = 1
+
+    if el == ExtrapolationType.None
+        @inbounds if i <= m && tt[i] < t1
+            throw(LeftExtrapolationError())
+        end
+    elseif el == ExtrapolationType.Constant
+        u1 = @inbounds u[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1
+            i += 1
+        end
+    elseif el == ExtrapolationType.Linear
+        u1 = @inbounds u[1]
+        du1 = @inbounds du[1]
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = u1 + du1 * (tt[i] - t1)
+            i += 1
+        end
+    else  # Extension
+        ui = @inbounds u[1]
+        dui = @inbounds du[1]
+        ddui = @inbounds ddu[1]
+        tip1 = @inbounds t[2]
+        c1, c2, c3 = get_parameters(A, 1)
+        @inbounds while i <= m && tt[i] < t1
+            out[i] = _quintic_hermite_segment_eval(
+                tt[i], t1, tip1, ui, dui, ddui, c1, c2, c3
+            )
+            i += 1
+        end
+    end
+
+    # Interior: adaptive dispatch.
+    i_first_interior = i
+    i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
+    n_interior = i_last_interior - i_first_interior + 1
+    if n_interior > 0
+        if 32 * n_interior < n
+            idx_buf = Vector{Int}(undef, n_interior)
+            FindFirstFunctions.searchsortedlast!(
+                idx_buf, t,
+                view(tt, i_first_interior:i_last_interior)
+            )
+            @inbounds for k in 1:n_interior
+                idx = idx_buf[k]
+                if idx < 1
+                    idx = 1
+                elseif idx >= n
+                    idx = n - 1
+                end
+                j = i_first_interior + k - 1
+                ttt = tt[j]
+                c1, c2, c3 = get_parameters(A, idx)
+                out[j] = _quintic_hermite_segment_eval(
+                    ttt, t[idx], t[idx + 1], u[idx], du[idx], ddu[idx], c1, c2, c3
+                )
+            end
+        else
+            let i_local = i_first_interior, idx = 1
+                @inbounds while i_local <= i_last_interior
+                    ttt = tt[i_local]
+                    while idx < n - 1 && ttt > t[idx + 1]
+                        idx += 1
+                    end
+                    c1, c2, c3 = get_parameters(A, idx)
+                    out[i_local] = _quintic_hermite_segment_eval(
+                        ttt, t[idx], t[idx + 1], u[idx], du[idx], ddu[idx], c1, c2, c3
+                    )
+                    i_local += 1
+                end
+            end
+        end
+    end
+    i = i_last_interior + 1
+
+    if er == ExtrapolationType.None
+        @inbounds if i <= m
+            throw(RightExtrapolationError())
+        end
+    elseif er == ExtrapolationType.Constant
+        un = @inbounds u[n]
+        @inbounds while i <= m
+            out[i] = un
+            i += 1
+        end
+    elseif er == ExtrapolationType.Linear
+        un = @inbounds u[n]
+        dun = @inbounds du[n]
+        @inbounds while i <= m
+            out[i] = un + dun * (tt[i] - tn)
+            i += 1
+        end
+    else  # Extension
+        ti = @inbounds t[n - 1]
+        ui = @inbounds u[n - 1]
+        dui = @inbounds du[n - 1]
+        ddui = @inbounds ddu[n - 1]
+        c1, c2, c3 = get_parameters(A, n - 1)
+        @inbounds while i <= m
+            out[i] = _quintic_hermite_segment_eval(
+                tt[i], ti, tn, ui, dui, ddui, c1, c2, c3
+            )
+            i += 1
+        end
+    end
+
+    return nothing
 end
 
 function _interpolate(A::SmoothArcLengthInterpolation, t::Number, iguess)
