@@ -1,4 +1,4 @@
-function _interpolate(A, t)
+@inline function _interpolate(A, t)
     return if t < first(A.t)
         _extrapolate_left(A, t)
     elseif t > last(A.t)
@@ -94,7 +94,7 @@ function _extrapolate_right(A::SmoothedConstantInterpolation, t)
 end
 
 # Linear Interpolation
-function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
+@inline function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     if isnan(t)
         # For correct derivative with NaN
         idx = firstindex(A.u)
@@ -382,7 +382,7 @@ function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
 end
 
 # CubicSpline Interpolation
-function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
+@inline function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
