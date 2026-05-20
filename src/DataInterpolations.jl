@@ -9,8 +9,7 @@ using PrettyTables
 using ForwardDiff
 using EnumX
 import FindFirstFunctions
-import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
-    Guesser
+import FindFirstFunctions: Guesser
 
 @enumx ExtrapolationType None Constant Linear Extension Periodic Reflective
 

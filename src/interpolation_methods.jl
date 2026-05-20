@@ -52,11 +52,6 @@ function _extrapolate_other(A, t, extrapolation)
     end
 end
 
-# -- Sorted-batch helpers shared by the per-type fast paths --
-#
-# Predicate: which extrapolation modes admit the sorted-batch fast path.
-# Periodic and Reflective wrap each query independently, so per-query
-# transformations defeat the lockstep walk — fall back to `map!` instead.
 @inline function _sorted_batch_extrapolation_ok(A)
     el = A.extrapolation_left
     er = A.extrapolation_right
@@ -71,9 +66,6 @@ end
     return el_ok && er_ok
 end
 
-# Given a sorted query vector `tt`, locate the rightmost index `j` with
-# `tt[j] <= tn` using a bounded binary search. Returns `i_first - 1` when no
-# index in `[i_first, m]` satisfies the predicate.
 @inline function _find_last_interior_index(
         tt::AbstractVector, i_first::Integer, m::Integer, tn
     )
@@ -99,14 +91,6 @@ end
     return lo
 end
 
-# Dispatch between an inline hand-rolled lockstep walk (dense queries) and
-# `FindFirstFunctions.searchsortedlast!` (sparse queries) so the per-query
-# cost matches the right algorithm for every n/m regime. The crossover at
-# `32 * n_interior < length(t)` was determined by FFF's benchmark sweep.
-#
-# `eval_at(idx, ttt)` returns the polynomial value for segment `idx`
-# evaluated at query `ttt`. It must be cheap and inlinable — pass it as
-# a struct callable or a non-capturing closure to keep type stability.
 @inline function _eval_interior_adaptive!(
         out::AbstractVector, t::AbstractVector, tt::AbstractVector,
         i_first::Integer, i_last::Integer, n::Integer,
@@ -115,7 +99,6 @@ end
     n_interior = i_last - i_first + 1
     n_interior <= 0 && return
     if 32 * n_interior < n
-        # Sparse path: amortize an O(log gap) gallop per query via FFF.
         idx_buf = Vector{Int}(undef, n_interior)
         FindFirstFunctions.searchsortedlast!(
             idx_buf, t, view(tt, i_first:i_last)
@@ -131,7 +114,6 @@ end
             out[j] = eval_at(idx, tt[j])
         end
     else
-        # Dense path: inline lockstep walk fused with the cubic eval.
         let idx = 1, i_local = i_first
             @inbounds while i_local <= i_last
                 ttt = tt[i_local]
@@ -224,9 +206,6 @@ function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess
     return A.u[ax..., idx] + slope * Δt
 end
 
-# Sorted-batch fast path for LinearInterpolation. Falls back to `map!` when
-# the inputs don't fit the lockstep path: unsorted `tt`, Periodic/Reflective
-# extrapolation, or `u` containing NaN.
 function (A::LinearInterpolation{<:AbstractVector{<:Number}})(
         out::AbstractVector, tt::AbstractVector
     )
@@ -270,7 +249,7 @@ function _linear_eval_sorted!(
             out[i] = u1
             i += 1
         end
-    else  # Linear or Extension — for LinearInterpolation these coincide.
+    else
         u1 = @inbounds u[1]
         slope1 = get_parameters(A, 1)
         @inbounds while i <= m && tt[i] < t1
@@ -279,10 +258,6 @@ function _linear_eval_sorted!(
         end
     end
 
-    # Interior: adaptive dispatch. Hand-inlined here (rather than passing a
-    # callable through `_eval_interior_adaptive!`) because the per-segment
-    # `get_parameters` call doesn't inline cleanly through the closure
-    # boundary, costing ~70× on small-m sparse cases.
     i_first_interior = i
     i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
     n_interior = i_last_interior - i_first_interior + 1
@@ -331,7 +306,7 @@ function _linear_eval_sorted!(
             out[i] = un
             i += 1
         end
-    else  # Linear or Extension
+    else
         un = @inbounds u[n]
         slope_n = get_parameters(A, n - 1)
         @inbounds while i <= m
@@ -353,7 +328,6 @@ function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
     return out
 end
 
-# Sorted-batch fast path for QuadraticInterpolation.
 function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(
         out::AbstractVector, tt::AbstractVector
     )
@@ -404,7 +378,7 @@ function _quadratic_eval_sorted!(
             out[i] = u1 + slope1 * (tt[i] - t1)
             i += 1
         end
-    else  # Extension — continue the first-segment quadratic
+    else
         u1 = @inbounds u[1]
         α1, β1 = get_parameters(A, 1)
         @inbounds while i <= m && tt[i] < t1
@@ -414,7 +388,6 @@ function _quadratic_eval_sorted!(
         end
     end
 
-    # Interior: adaptive dispatch.
     i_first_interior = i
     i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
     n_interior = i_last_interior - i_first_interior + 1
@@ -473,7 +446,7 @@ function _quadratic_eval_sorted!(
             out[i] = un + slope_n * (tt[i] - tn)
             i += 1
         end
-    else  # Extension — continue the last-segment quadratic
+    else
         tnm1 = @inbounds t[n - 1]
         unm1 = @inbounds u[n - 1]
         α, β = get_parameters(A, n - 1)
@@ -552,9 +525,6 @@ function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess
     return @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
 end
 
-# Per-segment evaluator for the Akima cubic. Used by the adaptive interior
-# helper; the struct keeps the b/c/d/u/t arrays captured so the call-site
-# (idx, ttt) lambda inlines cleanly.
 struct _AkimaEvaluator{Tu, Tt, Tb, Tc, Td}
     u::Tu
     bv::Tb
@@ -567,11 +537,6 @@ end
     return @inbounds @evalpoly wj e.u[idx] e.bv[idx] e.cv[idx] e.dv[idx]
 end
 
-# Sorted-batch fast path: when the query points are already sorted (and the
-# extrapolation modes don't require per-point transformation), dispatch
-# through `_eval_interior_adaptive!` which picks dense vs sparse path per
-# call. The dense path uses an inline lockstep walk; the sparse path uses
-# FindFirstFunctions' batched `searchsortedlast!` with the `Auto` strategy.
 function (A::AkimaInterpolation{<:AbstractVector})(
         out::AbstractVector, tt::AbstractVector
     )
@@ -637,11 +602,6 @@ function _akima_eval_sorted!(
         end
     end
 
-    # Interior: adaptive dispatch over the dense/sparse paths via the
-    # shared `_eval_interior_adaptive!` helper. Dense queries use the
-    # tight inline walk; sparse queries route through FFF's batched
-    # `searchsortedlast!` (which picks LinearScan / ExpFromLeft /
-    # InterpolationSearch from the n/m ratio + linearity probe).
     i_first_interior = i
     i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
     _eval_interior_adaptive!(
@@ -707,10 +667,6 @@ function _interpolate(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, igu
     return A.u[:, idx]
 end
 
-# Sorted-batch fast path for ConstantInterpolation. All four supported
-# extrapolation modes (None / Constant / Linear / Extension) just return the
-# nearest knot value for ConstantInterpolation, so this works for non-Number
-# element types as well (e.g. strings) without arithmetic.
 function (A::ConstantInterpolation{<:AbstractVector})(
         out::AbstractVector, tt::AbstractVector
     )
@@ -746,7 +702,7 @@ function _constant_eval_sorted!(
 
     i = 1
 
-    # Left extrapolation — every supported mode returns u[1] for ConstantInterpolation.
+    # Left extrapolation
     if el == ExtrapolationType.None
         @inbounds if i <= m && tt[i] < t1
             throw(LeftExtrapolationError())
@@ -758,11 +714,6 @@ function _constant_eval_sorted!(
         end
     end
 
-    # Interior: adaptive dispatch. Even though ConstantInterpolation's
-    # per-segment work is trivial (just `u[idx]`), the hand-rolled walk is
-    # still O(n) per call for sparse queries on long `t` — that's the same
-    # regression as the original Akima bug. Route sparse cases through FFF
-    # and keep the inline walk for dense.
     i_first_interior = i
     i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
     n_interior = i_last_interior - i_first_interior + 1
@@ -773,11 +724,6 @@ function _constant_eval_sorted!(
                 idx_buf, t,
                 view(tt, i_first_interior:i_last_interior)
             )
-            # `searchsortedlast` returns `last idx with t[idx] <= ttt`, which
-            # is exactly what `:left` direction wants. For `:right` we need
-            # the first idx with t[idx] >= ttt, which is `idx_buf[k] + 1`
-            # unless the query equals a knot (where the :right behavior is
-            # to use the index at which `t[idx] == ttt`).
             if is_left
                 @inbounds for k in 1:n_interior
                     idx = idx_buf[k]
@@ -793,7 +739,6 @@ function _constant_eval_sorted!(
                 @inbounds for k in 1:n_interior
                     j = i_first_interior + k - 1
                     idx = idx_buf[k]
-                    # Promote to next index unless ttt is exactly on the knot.
                     if idx < n && tt[j] != t[idx]
                         idx += 1
                     end
@@ -815,7 +760,7 @@ function _constant_eval_sorted!(
                 out[i] = u[idx]
                 i += 1
             end
-            i_last_interior = i - 1  # let the right-ext block resume from here
+            i_last_interior = i - 1
         else
             idx = 1
             @inbounds while i <= m && tt[i] <= tn
@@ -871,7 +816,6 @@ function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
     return Δt_scaled * (α * Δt_scaled + β) + uᵢ
 end
 
-# Sorted-batch fast path for QuadraticSpline.
 function (A::QuadraticSpline{<:AbstractVector{<:Number}})(
         out::AbstractVector, tt::AbstractVector
     )
@@ -922,7 +866,7 @@ function _quadraticspline_eval_sorted!(
             out[i] = u1 + slope1 * (tt[i] - t1)
             i += 1
         end
-    else  # Extension — continue the first-segment quadratic
+    else
         u1 = @inbounds u[1]
         tip1 = @inbounds t[2]
         seg_inv = inv(tip1 - t1)
@@ -934,7 +878,6 @@ function _quadraticspline_eval_sorted!(
         end
     end
 
-    # Interior: adaptive dispatch.
     i_first_interior = i
     i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
     n_interior = i_last_interior - i_first_interior + 1
@@ -995,7 +938,7 @@ function _quadraticspline_eval_sorted!(
             out[i] = un + slope_n * (tt[i] - tn)
             i += 1
         end
-    else  # Extension — continue the last-segment quadratic
+    else
         tnm1 = @inbounds t[n - 1]
         unm1 = @inbounds u[n - 1]
         seg_inv = inv(tn - tnm1)
@@ -1034,7 +977,6 @@ function _interpolate(A::CubicSpline{<:AbstractArray}, t::Number, iguess)
     return I + C + D
 end
 
-# Sorted-batch fast path for CubicSpline.
 function (A::CubicSpline{<:AbstractVector{<:Number}})(
         out::AbstractVector, tt::AbstractVector
     )
@@ -1111,7 +1053,6 @@ function _cubicspline_eval_sorted!(
         end
     end
 
-    # Interior: adaptive dispatch.
     i_first_interior = i
     i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
     n_interior = i_last_interior - i_first_interior + 1
@@ -1287,9 +1228,6 @@ end
     return ui + dt0 * dui + dt0 * dt0 * (c1 + dt1 * c2)
 end
 
-# Sorted-batch fast path for CubicHermiteSpline. For Hermite splines the
-# slope at each knot is `du[idx]`, so Linear extrapolation is a single
-# multiply.
 function (A::CubicHermiteSpline{<:AbstractVector{<:Number}})(
         out::AbstractVector, tt::AbstractVector
     )
@@ -1352,7 +1290,6 @@ function _cubic_hermite_eval_sorted!(
         end
     end
 
-    # Interior: adaptive dispatch.
     i_first_interior = i
     i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
     n_interior = i_last_interior - i_first_interior + 1
@@ -1450,7 +1387,6 @@ end
     return quad + high
 end
 
-# Sorted-batch fast path for QuinticHermiteSpline.
 function (A::QuinticHermiteSpline{<:AbstractVector{<:Number}})(
         out::AbstractVector, tt::AbstractVector
     )
@@ -1516,7 +1452,6 @@ function _quintic_hermite_eval_sorted!(
         end
     end
 
-    # Interior: adaptive dispatch.
     i_first_interior = i
     i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
     n_interior = i_last_interior - i_first_interior + 1
