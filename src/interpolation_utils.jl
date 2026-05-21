@@ -210,13 +210,28 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     return U, t
 end
 
+# Resolve a concrete `FindFirstFunctions.SearchStrategy` singleton at
+# construction time. Stored on every interpolation cache as `A.strategy` so
+# that `get_idx`'s `searchsortedlast(A.strategy, …)` is fully static-dispatched
+# — no per-query `_auto_pick` branch.
+#
+# We always pick `BracketGallop`: it gives optimal O(log n) refinement with a
+# hint at any length, and the alternative (`LinearScan` for `length(t) ≤ 16`)
+# would make this function return `Union{BracketGallop, LinearScan}` and
+# infect every downstream `@inferred` test. The `LinearScan` benefit at tiny
+# `n` is ~10 ns absolute — not worth the inference-instability cost.
+@inline _resolve_strategy(::AbstractVector) = FindFirstFunctions.BracketGallop()
+
 function get_idx(
         A::AbstractInterpolation, t, iguess::Integer; lb = 1,
         ub_shift = -1, idx_shift = 0, side = :last
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    strat = FindFirstFunctions.Auto(A.t_props)
+    # `A.strategy` is a concrete `SearchStrategy` singleton resolved at
+    # construction time. Static dispatch avoids the `Auto` per-call
+    # `_auto_pick` branch.
+    strat = A.strategy
     raw = if side == :last
         searchsortedlast(strat, tvec, t, iguess)
     elseif side == :first
@@ -233,11 +248,9 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    strat = FindFirstFunctions.Auto(A.t_props)
+    strat = A.strategy
     # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
-    # falls back to the cached `idx_prev` otherwise. `Auto` short-circuits to
-    # `UniformStep` for exact-uniform grids and ignores the hint there; for
-    # near-uniform-but-not-uniform grids the linear hint still beats `idx_prev`.
+    # falls back to the cached `idx_prev` otherwise.
     hint = iguess(t)
     raw = if side == :last
         searchsortedlast(strat, tvec, t, hint)
