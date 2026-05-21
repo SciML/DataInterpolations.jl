@@ -8,8 +8,8 @@ using LinearAlgebra, RecipesBase
 using PrettyTables
 using ForwardDiff
 using EnumX
-import FindFirstFunctions: searchsortedfirstcorrelated, searchsortedlastcorrelated,
-    Guesser
+import FindFirstFunctions
+import FindFirstFunctions: Guesser
 
 @enumx ExtrapolationType None Constant Linear Extension Periodic Reflective
 

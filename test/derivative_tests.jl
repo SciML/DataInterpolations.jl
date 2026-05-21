@@ -1,5 +1,5 @@
 using DataInterpolations, Test
-using FindFirstFunctions: searchsortedfirstcorrelated
+using FindFirstFunctions: BracketGallop
 using FiniteDifferences
 using DataInterpolations: derivative, get_transition_ts
 using Symbolics
@@ -53,7 +53,9 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             if hasproperty(func, :iguesser) && !func.iguesser.linear_lookup
                 @test abs(
                     func.iguesser.idx_prev[] -
-                        searchsortedfirstcorrelated(func.t, _t, func.iguesser(_t))
+                        searchsortedfirst(
+                        BracketGallop(), func.t, _t, func.iguesser(_t)
+                    )
                 ) <= 1
             end
         end

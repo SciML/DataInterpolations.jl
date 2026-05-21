@@ -1,5 +1,5 @@
 using DataInterpolations
-using FindFirstFunctions: searchsortedfirstcorrelated
+using FindFirstFunctions: GuesserHint
 using StableRNGs
 using Optim, ForwardDiff
 using BenchmarkTools
@@ -23,10 +23,10 @@ end
 function test_cached_index(A)
     for t in range(first(A.t), last(A.t); length = 2 * length(A.t) - 1)
         A(t)
-        idx = searchsortedfirstcorrelated(A.t, t, A.iguesser)
+        idx = searchsortedfirst(GuesserHint(A.iguesser), A.t, t)
         @test abs(
             A.iguesser.idx_prev[] -
-                searchsortedfirstcorrelated(A.t, t, A.iguesser)
+                searchsortedfirst(GuesserHint(A.iguesser), A.t, t)
         ) <= 2
     end
     return
@@ -274,6 +274,84 @@ end
     test_uvals = [1.0, 2.0, 4.0, 8.0]
     f(tvals) = LinearInterpolation(test_uvals, tvals)(3.5)
     @test_nowarn ForwardDiff.gradient(f, test_tvals)
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t_b = collect(0.0:10.0)
+
+        # Each fast-path extrapolation mode matches the per-point path
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A_b = LinearInterpolation(
+                u_b, t_b; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        # Periodic/Reflective fall back to map!
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A_b = LinearInterpolation(u_b, t_b; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        # ExtrapolationType.None throws on out-of-range
+        A_none = LinearInterpolation(u_b, t_b)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # Unsorted falls back to map!
+        A_b = LinearInterpolation(u_b, t_b; extrapolation = ExtrapolationType.Constant)
+        tt_u = [3.1, 7.7, 0.2, 5.5, 9.9]
+        out_u = similar(tt_u)
+        A_b(out_u, tt_u)
+        for k in eachindex(tt_u)
+            @test out_u[k] ≈ A_b(tt_u[k])
+        end
+
+        # Sparse n >> m case: this is where the FindFirstFunctions path
+        # kicks in. Verify both correctness and that it doesn't error.
+        rng = StableRNG(1)
+        n, m = 4096, 4
+        t_big = sort!(rand(rng, n) .* 10.0)
+        u_big = rand(rng, n)
+        tt_sparse = sort!(rand(rng, m) .* 10.0)
+        A_big = LinearInterpolation(
+            u_big, t_big; extrapolation = ExtrapolationType.Constant
+        )
+        out_sparse = similar(tt_sparse)
+        A_big(out_sparse, tt_sparse)
+        for k in eachindex(tt_sparse)
+            @test out_sparse[k] ≈ A_big(tt_sparse[k])
+        end
+
+        # DimensionMismatch
+        @test_throws DimensionMismatch LinearInterpolation(u_b, t_b)(
+            zeros(3), [1.0, 2.0]
+        )
+    end
 end
 
 @testset "Quadratic Interpolation" begin
@@ -1055,6 +1133,79 @@ end
         u_test = reduce(hcat, c.(t_test))
         f_test = reduce(hcat, f3d.(t_test))
         @test isapprox(u_test, f_test, atol = 1.0e-2)
+    end
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t_b = collect(0.0:10.0)
+
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A_b = CubicSpline(
+                u_b, t_b; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A_b = CubicSpline(u_b, t_b; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        A_none = CubicSpline(u_b, t_b)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # cache_parameters=true also works
+        A_cache = CubicSpline(
+            u_b, t_b; extrapolation = ExtrapolationType.Extension, cache_parameters = true
+        )
+        tt = collect(-2.0:0.4:12.0)
+        out = similar(tt)
+        A_cache(out, tt)
+        for k in eachindex(tt)
+            @test out[k] ≈ A_cache(tt[k])
+        end
+
+        # Sparse n >> m
+        rng = StableRNG(2)
+        n, m = 4096, 4
+        t_big = sort!(rand(rng, n) .* 10.0)
+        u_big = rand(rng, n)
+        tt_sparse = sort!(rand(rng, m) .* 10.0)
+        A_big = CubicSpline(
+            u_big, t_big; extrapolation = ExtrapolationType.Constant
+        )
+        out_sparse = similar(tt_sparse)
+        A_big(out_sparse, tt_sparse)
+        for k in eachindex(tt_sparse)
+            @test out_sparse[k] ≈ A_big(tt_sparse[k])
+        end
+
+        @test_throws DimensionMismatch CubicSpline(u_b, t_b)(zeros(3), [1.0, 2.0])
     end
 end
 

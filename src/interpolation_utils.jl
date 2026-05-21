@@ -183,15 +183,42 @@ function looks_linear(t; threshold = 1.0e-2)
 end
 
 function get_idx(
-        A::AbstractInterpolation, t, iguess::Union{<:Integer, Guesser}; lb = 1,
+        A::AbstractInterpolation, t, iguess::Integer; lb = 1,
         ub_shift = -1, idx_shift = 0, side = :last
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
     return if side == :last
-        clamp(searchsortedlastcorrelated(tvec, t, iguess) + idx_shift, lb, ub)
+        clamp(
+            searchsortedlast(FindFirstFunctions.BracketGallop(), tvec, t, iguess) +
+                idx_shift, lb, ub
+        )
     elseif side == :first
-        clamp(searchsortedfirstcorrelated(tvec, t, iguess) + idx_shift, lb, ub)
+        clamp(
+            searchsortedfirst(FindFirstFunctions.BracketGallop(), tvec, t, iguess) +
+                idx_shift, lb, ub
+        )
+    else
+        error("side must be :first or :last")
+    end
+end
+
+function get_idx(
+        A::AbstractInterpolation, t, iguess::Guesser; lb = 1,
+        ub_shift = -1, idx_shift = 0, side = :last
+    )
+    tvec = A.t
+    ub = length(tvec) + ub_shift
+    return if side == :last
+        clamp(
+            searchsortedlast(FindFirstFunctions.GuesserHint(iguess), tvec, t) +
+                idx_shift, lb, ub
+        )
+    elseif side == :first
+        clamp(
+            searchsortedfirst(FindFirstFunctions.GuesserHint(iguess), tvec, t) +
+                idx_shift, lb, ub
+        )
     else
         error("side must be :first or :last")
     end
