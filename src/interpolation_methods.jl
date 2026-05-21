@@ -94,14 +94,14 @@ end
 @inline function _eval_interior_adaptive!(
         out::AbstractVector, t::AbstractVector, tt::AbstractVector,
         i_first::Integer, i_last::Integer, n::Integer,
-        eval_at::F
+        eval_at::F, strategy::FindFirstFunctions.SearchStrategy
     ) where {F}
     n_interior = i_last - i_first + 1
     n_interior <= 0 && return
     if 32 * n_interior < n
         idx_buf = Vector{Int}(undef, n_interior)
         FindFirstFunctions.searchsortedlast!(
-            idx_buf, t, view(tt, i_first:i_last)
+            idx_buf, t, view(tt, i_first:i_last); strategy = strategy
         )
         @inbounds for k in 1:n_interior
             idx = idx_buf[k]
@@ -266,7 +266,8 @@ function _linear_eval_sorted!(
             idx_buf = Vector{Int}(undef, n_interior)
             FindFirstFunctions.searchsortedlast!(
                 idx_buf, t,
-                view(tt, i_first_interior:i_last_interior)
+                view(tt, i_first_interior:i_last_interior);
+                strategy = FindFirstFunctions.Auto(A.t_props)
             )
             @inbounds for k in 1:n_interior
                 idx = idx_buf[k]
@@ -396,7 +397,8 @@ function _quadratic_eval_sorted!(
             idx_buf = Vector{Int}(undef, n_interior)
             FindFirstFunctions.searchsortedlast!(
                 idx_buf, t,
-                view(tt, i_first_interior:i_last_interior)
+                view(tt, i_first_interior:i_last_interior);
+                strategy = FindFirstFunctions.Auto(A.t_props)
             )
             @inbounds for k in 1:n_interior
                 idx = idx_buf[k]
@@ -606,7 +608,8 @@ function _akima_eval_sorted!(
     i_last_interior = _find_last_interior_index(tt, i_first_interior, m, tn)
     _eval_interior_adaptive!(
         out, t, tt, i_first_interior, i_last_interior, n,
-        _AkimaEvaluator(u, bv, cv, dv, t)
+        _AkimaEvaluator(u, bv, cv, dv, t),
+        FindFirstFunctions.Auto(A.t_props)
     )
     i = i_last_interior + 1
 
@@ -722,7 +725,8 @@ function _constant_eval_sorted!(
             idx_buf = Vector{Int}(undef, n_interior)
             FindFirstFunctions.searchsortedlast!(
                 idx_buf, t,
-                view(tt, i_first_interior:i_last_interior)
+                view(tt, i_first_interior:i_last_interior);
+                strategy = FindFirstFunctions.Auto(A.t_props)
             )
             if is_left
                 @inbounds for k in 1:n_interior
@@ -886,7 +890,8 @@ function _quadraticspline_eval_sorted!(
             idx_buf = Vector{Int}(undef, n_interior)
             FindFirstFunctions.searchsortedlast!(
                 idx_buf, t,
-                view(tt, i_first_interior:i_last_interior)
+                view(tt, i_first_interior:i_last_interior);
+                strategy = FindFirstFunctions.Auto(A.t_props)
             )
             @inbounds for k in 1:n_interior
                 idx = idx_buf[k]
@@ -1061,7 +1066,8 @@ function _cubicspline_eval_sorted!(
             idx_buf = Vector{Int}(undef, n_interior)
             FindFirstFunctions.searchsortedlast!(
                 idx_buf, t,
-                view(tt, i_first_interior:i_last_interior)
+                view(tt, i_first_interior:i_last_interior);
+                strategy = FindFirstFunctions.Auto(A.t_props)
             )
             @inbounds for k in 1:n_interior
                 idx = idx_buf[k]
@@ -1298,7 +1304,8 @@ function _cubic_hermite_eval_sorted!(
             idx_buf = Vector{Int}(undef, n_interior)
             FindFirstFunctions.searchsortedlast!(
                 idx_buf, t,
-                view(tt, i_first_interior:i_last_interior)
+                view(tt, i_first_interior:i_last_interior);
+                strategy = FindFirstFunctions.Auto(A.t_props)
             )
             @inbounds for k in 1:n_interior
                 idx = idx_buf[k]
@@ -1460,7 +1467,8 @@ function _quintic_hermite_eval_sorted!(
             idx_buf = Vector{Int}(undef, n_interior)
             FindFirstFunctions.searchsortedlast!(
                 idx_buf, t,
-                view(tt, i_first_interior:i_last_interior)
+                view(tt, i_first_interior:i_last_interior);
+                strategy = FindFirstFunctions.Auto(A.t_props)
             )
             @inbounds for k in 1:n_interior
                 idx = idx_buf[k]

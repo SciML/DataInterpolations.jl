@@ -27,7 +27,8 @@ Extrapolation extends the last linear polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolation{T}
+struct LinearInterpolation{uType, tType, IType, pType, T, propsType} <:
+    AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -35,6 +36,7 @@ struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolati
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     cache_parameters::Bool
     linear_lookup::Bool
     function LinearInterpolation(
@@ -42,9 +44,13 @@ struct LinearInterpolation{uType, tType, IType, pType, T} <: AbstractInterpolati
             cache_parameters, assume_linear_t
         )
         linear_lookup = seems_linear(assume_linear_t, t)
-        return new{typeof(u), typeof(t), typeof(I), typeof(p.slope), eltype(u)}(
+        t_props = FindFirstFunctions.SearchProperties(t)
+        return new{
+            typeof(u), typeof(t), typeof(I), typeof(p.slope),
+            eltype(u), typeof(t_props),
+        }(
             u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup
+            Guesser(t), t_props, cache_parameters, linear_lookup
         )
     end
 end
@@ -100,7 +106,7 @@ Extrapolation extends the last quadratic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct QuadraticInterpolation{uType, tType, IType, pType, T} <:
+struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -110,6 +116,7 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T} <:
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     cache_parameters::Bool
     linear_lookup::Bool
     function QuadraticInterpolation(
@@ -119,9 +126,13 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T} <:
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
         linear_lookup = seems_linear(assume_linear_t, t)
-        return new{typeof(u), typeof(t), typeof(I), typeof(p.α), eltype(u)}(
+        t_props = FindFirstFunctions.SearchProperties(t)
+        return new{
+            typeof(u), typeof(t), typeof(I), typeof(p.α),
+            eltype(u), typeof(t_props),
+        }(
             u, t, I, p, mode, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup
+            Guesser(t), t_props, cache_parameters, linear_lookup
         )
     end
 end
@@ -175,7 +186,7 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
 """
-struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
+struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -185,11 +196,13 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     function LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right)
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
-        return new{typeof(u), typeof(t), eltype(u), typeof(bcache)}(
+        t_props = FindFirstFunctions.SearchProperties(t)
+        return new{typeof(u), typeof(t), eltype(u), typeof(bcache), typeof(t_props)}(
             u,
             t,
             n,
@@ -197,7 +210,8 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType} <:
             idxs,
             extrapolation_left,
             extrapolation_right,
-            Guesser(t)
+            Guesser(t),
+            t_props
         )
     end
 end
@@ -251,7 +265,7 @@ Extrapolation extends the last cubic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
+struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -262,6 +276,7 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     cache_parameters::Bool
     linear_lookup::Bool
     function AkimaInterpolation(
@@ -269,9 +284,10 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
             extrapolation_right, cache_parameters, assume_linear_t
         )
         linear_lookup = seems_linear(assume_linear_t, t)
+        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
-            typeof(d), eltype(u),
+            typeof(d), eltype(u), typeof(t_props),
         }(
             u,
             t,
@@ -282,6 +298,7 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T} <:
             extrapolation_left,
             extrapolation_right,
             Guesser(t),
+            t_props,
             cache_parameters,
             linear_lookup
         )
@@ -407,7 +424,8 @@ Extrapolation extends the last constant polynomial at the end points on each sid
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
+struct ConstantInterpolation{uType, tType, IType, T, propsType} <:
+    AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
@@ -416,6 +434,7 @@ struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     cache_parameters::Bool
     linear_lookup::Bool
     function ConstantInterpolation(
@@ -423,9 +442,10 @@ struct ConstantInterpolation{uType, tType, IType, T} <: AbstractInterpolation{T}
             cache_parameters, assume_linear_t
         )
         linear_lookup = seems_linear(assume_linear_t, t)
-        return new{typeof(u), typeof(t), typeof(I), eltype(u)}(
+        t_props = FindFirstFunctions.SearchProperties(t)
+        return new{typeof(u), typeof(t), typeof(I), eltype(u), typeof(t_props)}(
             u, t, I, nothing, dir, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup
+            Guesser(t), t_props, cache_parameters, linear_lookup
         )
     end
 end
@@ -483,7 +503,9 @@ except when using extrapolation types `Constant` or `Extension`.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType, T} <:
+struct SmoothedConstantInterpolation{
+        uType, tType, IType, dType, cType, dmaxType, T, propsType,
+    } <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -493,6 +515,7 @@ struct SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     cache_parameters::Bool
     linear_lookup::Bool
     function SmoothedConstantInterpolation(
@@ -500,12 +523,13 @@ struct SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType
             extrapolation_right, cache_parameters, assume_linear_t
         )
         linear_lookup = seems_linear(assume_linear_t, t)
+        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.d),
-            typeof(p.c), typeof(d_max), eltype(u),
+            typeof(p.c), typeof(d_max), eltype(u), typeof(t_props),
         }(
             u, t, I, p, d_max, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup
+            Guesser(t), t_props, cache_parameters, linear_lookup
         )
     end
 end
@@ -562,7 +586,7 @@ Extrapolation extends the last quadratic polynomial on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T} <:
+struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -574,6 +598,7 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T} <:
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     cache_parameters::Bool
     linear_lookup::Bool
     function QuadraticSpline(
@@ -581,9 +606,10 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T} <:
             extrapolation_right, cache_parameters, assume_linear_t
         )
         linear_lookup = seems_linear(assume_linear_t, t)
+        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
-            typeof(c), typeof(sc), eltype(u),
+            typeof(c), typeof(sc), eltype(u), typeof(t_props),
         }(
             u,
             t,
@@ -595,6 +621,7 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T} <:
             extrapolation_left,
             extrapolation_right,
             Guesser(t),
+            t_props,
             cache_parameters,
             linear_lookup
         )
@@ -698,7 +725,7 @@ Second derivative on both ends are zero, which are also called "natural" boundar
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <:
+struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -709,6 +736,7 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <:
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     cache_parameters::Bool
     linear_lookup::Bool
     function CubicSpline(
@@ -716,9 +744,10 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <:
             extrapolation_right, cache_parameters, assume_linear_t
         )
         linear_lookup = seems_linear(assume_linear_t, t)
+        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.c₁),
-            typeof(h), typeof(z), eltype(u),
+            typeof(h), typeof(z), eltype(u), typeof(t_props),
         }(
             u,
             t,
@@ -729,6 +758,7 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T} <:
             extrapolation_left,
             extrapolation_right,
             Guesser(t),
+            t_props,
             cache_parameters,
             linear_lookup
         )
@@ -893,7 +923,7 @@ Extrapolation is a constant polynomial of the end points on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T} <:
+struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -907,6 +937,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T} <:
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     linear_lookup::Bool
     function BSplineInterpolation(
             u,
@@ -923,7 +954,11 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T} <:
             assume_linear_t
         )
         linear_lookup = seems_linear(assume_linear_t, t)
-        return new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u)}(
+        t_props = FindFirstFunctions.SearchProperties(t)
+        return new{
+            typeof(u), typeof(t), typeof(p), typeof(k),
+            typeof(c), typeof(sc), eltype(u), typeof(t_props),
+        }(
             u,
             t,
             d,
@@ -936,6 +971,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T} <:
             extrapolation_left,
             extrapolation_right,
             Guesser(t),
+            t_props,
             linear_lookup
         )
     end
@@ -1134,7 +1170,7 @@ Extrapolation is a constant polynomial of the end points on each side.
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct BSplineApprox{uType, tType, pType, kType, cType, scType, T} <:
+struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -1149,6 +1185,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T} <:
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     linear_lookup::Bool
     function BSplineApprox(
             u,
@@ -1166,7 +1203,11 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T} <:
             assume_linear_t
         )
         linear_lookup = seems_linear(assume_linear_t, t)
-        return new{typeof(u), typeof(t), typeof(p), typeof(k), typeof(c), typeof(sc), eltype(u)}(
+        t_props = FindFirstFunctions.SearchProperties(t)
+        return new{
+            typeof(u), typeof(t), typeof(p), typeof(k),
+            typeof(c), typeof(sc), eltype(u), typeof(t_props),
+        }(
             u,
             t,
             d,
@@ -1180,6 +1221,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T} <:
             extrapolation_left,
             extrapolation_right,
             Guesser(t),
+            t_props,
             linear_lookup
         )
     end
@@ -1420,7 +1462,7 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <:
+struct CubicHermiteSpline{uType, tType, IType, duType, pType, T, propsType} <:
     AbstractInterpolation{T}
     du::duType
     u::uType
@@ -1430,6 +1472,7 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <:
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     cache_parameters::Bool
     linear_lookup::Bool
     function CubicHermiteSpline(
@@ -1437,9 +1480,13 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T} <:
             cache_parameters, assume_linear_t
         )
         linear_lookup = seems_linear(assume_linear_t, t)
-        return new{typeof(u), typeof(t), typeof(I), typeof(du), typeof(p.c₁), eltype(u)}(
+        t_props = FindFirstFunctions.SearchProperties(t)
+        return new{
+            typeof(u), typeof(t), typeof(I), typeof(du),
+            typeof(p.c₁), eltype(u), typeof(t_props),
+        }(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup
+            Guesser(t), t_props, cache_parameters, linear_lookup
         )
     end
 end
@@ -1530,7 +1577,7 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
     for a test based on the normalized standard deviation of the difference with respect
     to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
 """
-struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
+struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T, propsType} <:
     AbstractInterpolation{T}
     ddu::dduType
     du::duType
@@ -1541,6 +1588,7 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     cache_parameters::Bool
     linear_lookup::Bool
     function QuinticHermiteSpline(
@@ -1548,12 +1596,13 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T} <:
             extrapolation_right, cache_parameters, assume_linear_t
         )
         linear_lookup = seems_linear(assume_linear_t, t)
+        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
-            typeof(ddu), typeof(p.c₁), eltype(u),
+            typeof(ddu), typeof(p.c₁), eltype(u), typeof(t_props),
         }(
             ddu, du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), cache_parameters, linear_lookup
+            Guesser(t), t_props, cache_parameters, linear_lookup
         )
     end
 end
@@ -1584,7 +1633,7 @@ function QuinticHermiteSpline(
 end
 
 struct SmoothArcLengthInterpolation{
-        uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing}, T,
+        uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing}, T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -1604,6 +1653,7 @@ struct SmoothArcLengthInterpolation{
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     cache_parameters::Bool
     linear_lookup::Bool
     out::Vector{P}
@@ -1616,14 +1666,15 @@ struct SmoothArcLengthInterpolation{
             assume_linear_t, out, derivative, in_place
         )
         linear_lookup = seems_linear(assume_linear_t, t)
+        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), eltype(radius),
-            eltype(d), typeof(shape_itp), eltype(u),
+            eltype(d), typeof(shape_itp), eltype(u), typeof(t_props),
         }(
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, nothing, extrapolation_left, extrapolation_right,
-            Guesser(t), false, linear_lookup, out, derivative, in_place
+            Guesser(t), t_props, false, linear_lookup, out, derivative, in_place
         )
     end
 end

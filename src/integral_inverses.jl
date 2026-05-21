@@ -33,17 +33,19 @@ Can be easily constructed with `invert_integral(A::LinearInterpolation{<:Abstrac
   - `t` : Given by `A.I` (the cumulative integral of `A`)
   - `A` : The `LinearInterpolation` object
 """
-struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
+struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     itp::itpType
     function LinearInterpolationIntInv(u, t, A, extrapolation_left, extrapolation_right)
-        return new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, extrapolation_left, extrapolation_right, Guesser(t), A
+        t_props = FindFirstFunctions.SearchProperties(t)
+        return new{typeof(u), typeof(t), typeof(A), eltype(u), typeof(t_props)}(
+            u, t, extrapolation_left, extrapolation_right, Guesser(t), t_props, A
         )
     end
 end
@@ -93,19 +95,21 @@ Can be easily constructed with `invert_integral(A::ConstantInterpolation{<:Abstr
   - `t` : Given by `A.I` (the cumulative integral of `A`)
   - `A` : The `ConstantInterpolation` object
 """
-struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
+struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
     itp::itpType
     function ConstantInterpolationIntInv(
             u, t, A, extrapolation_left, extrapolation_right
         )
-        return new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, extrapolation_left, extrapolation_right, Guesser(t), A
+        t_props = FindFirstFunctions.SearchProperties(t)
+        return new{typeof(u), typeof(t), typeof(A), eltype(u), typeof(t_props)}(
+            u, t, extrapolation_left, extrapolation_right, Guesser(t), t_props, A
         )
     end
 end
