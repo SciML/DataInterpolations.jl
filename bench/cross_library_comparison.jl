@@ -2,7 +2,8 @@
 Cross-library 1D interpolation benchmark for DataInterpolations.jl.
 
 Compares DataInterpolations.jl (PR #529 branch, with cached Auto(t_props)) against
-Interpolations.jl, Dierckx.jl, BasicInterpolators.jl, and PCHIPInterpolation.jl.
+Interpolations.jl, Dierckx.jl, BasicInterpolators.jl, PCHIPInterpolation.jl,
+and FastInterpolations.jl.
 
 Usage:
     julia +1.11 --project=bench bench/cross_library_comparison.jl
@@ -27,12 +28,14 @@ using Interpolations
 using Dierckx
 using BasicInterpolators
 using PCHIPInterpolation
+using FastInterpolations
 
 const DI = DataInterpolations
 const ITP = Interpolations
 const DRX = Dierckx
 const BI = BasicInterpolators
 const PCHIP = PCHIPInterpolation
+const FI = FastInterpolations
 
 const RNG = MersenneTwister(0x00C0FFEE)
 
@@ -127,19 +130,28 @@ build_itp_linear_uniform(u, t) = ITP.linear_interpolation(t, u) # t may be a ran
 build_itp_linear_nonuniform(u, t) = ITP.interpolate((_vec(t),), _vec(u), ITP.Gridded(ITP.Linear()))
 build_drx_linear(u, t) = DRX.Spline1D(_vec(t), _vec(u); k = 1, bc = "extrapolate")
 build_bi_linear(u, t) = BI.LinearInterpolator(_vec(t), _vec(u), BI.WeakBoundaries())
+# FastInterpolations accepts both AbstractRange and Vector; passing the raw `t` so
+# uniform-grid (range) builds keep their O(1) DirectSearch optimization.
+build_fi_linear(u, t) = FI.linear_interp(t, _vec(u))
 
 # --- Cubic spline (natural BC for DI, Interpolations) --------------------
 build_di_cubic(u, t) = DI.CubicSpline(_vec(u), _vec(t))
 build_itp_cubic_uniform(u, t) = ITP.cubic_spline_interpolation(t, u)
 build_drx_cubic(u, t) = DRX.Spline1D(_vec(t), _vec(u); k = 3, bc = "extrapolate")
 build_bi_cubic(u, t) = BI.CubicSplineInterpolator(_vec(t), _vec(u), BI.WeakBoundaries())
+# FastInterpolations cubic: default BC is `CubicFit()` (cubic polynomial fit at
+# endpoints), not natural BC. Numerically different in the boundary cells from
+# DI's natural cubic but matches in the interior — comparable for speed.
+build_fi_cubic(u, t) = FI.cubic_interp(t, _vec(u))
 
 # --- Quadratic spline ----------------------------------------------------
 build_di_quadratic(u, t) = DI.QuadraticSpline(_vec(u), _vec(t))
 build_drx_quadratic(u, t) = DRX.Spline1D(_vec(t), _vec(u); k = 2, bc = "extrapolate")
+build_fi_quadratic(u, t) = FI.quadratic_interp(t, _vec(u))
 
 # --- Akima ---------------------------------------------------------------
 build_di_akima(u, t) = DI.AkimaInterpolation(_vec(u), _vec(t))
+build_fi_akima(u, t) = FI.akima_interp(t, _vec(u))
 
 # --- PCHIP / monotone cubic Hermite -------------------------------------
 function build_di_cubic_hermite(u, t)
@@ -155,6 +167,8 @@ function build_di_cubic_hermite(u, t)
     return DI.CubicHermiteSpline(du, uv, tv)
 end
 build_pchip(u, t) = PCHIP.Interpolator(_vec(t), _vec(u))
+# FastInterpolations PCHIP (Fritsch-Carlson monotone cubic Hermite).
+build_fi_pchip(u, t) = FI.pchip_interp(t, _vec(u))
 
 # --- Single-eval dispatch -----------------------------------------------
 # DI, Dierckx, BasicInterpolators all use `A(x)`
@@ -174,6 +188,8 @@ batched_eval_drx!(out, A::DRX.Spline1D, tt) = (out .= DRX.evaluate.(Ref(A), tt);
 batched_eval_bi!(out, A, tt) = (out .= A.(tt); out)
 # PCHIP: broadcast
 batched_eval_pchip!(out, A, tt) = (out .= A.(tt); out)
+# FastInterpolations: `A(out, xq)` in-place (zero-alloc, with AutoSearch).
+batched_eval_fi!(out, A, tt) = (A(out, tt); out)
 
 # -----------------------------------------------------------------------------
 # Verification: every library should agree on the same query to within tol
@@ -218,6 +234,7 @@ const ALGORITHMS = let
             "Interpolations (gridded)" => build_itp_linear_nonuniform,
             "Dierckx (k=1)" => build_drx_linear,
             "BasicInterpolators" => build_bi_linear,
+            "FastInterpolations" => build_fi_linear,
         ),
         batched! = Dict(
             "DataInterpolations" => batched_eval_di!,
@@ -225,6 +242,7 @@ const ALGORITHMS = let
             "Interpolations (gridded)" => batched_eval_itp!,
             "Dierckx (k=1)" => batched_eval_drx!,
             "BasicInterpolators" => batched_eval_bi!,
+            "FastInterpolations" => batched_eval_fi!,
         ),
         supports = Dict(
             "DataInterpolations" => [:uniform, :nonuniform],
@@ -232,6 +250,7 @@ const ALGORITHMS = let
             "Interpolations (gridded)" => [:uniform, :nonuniform],
             "Dierckx (k=1)" => [:uniform, :nonuniform],
             "BasicInterpolators" => [:uniform, :nonuniform],
+            "FastInterpolations" => [:uniform, :nonuniform],
         ),
     )
     d["CubicSpline"] = (
@@ -240,51 +259,69 @@ const ALGORITHMS = let
             "Interpolations (uniform)" => build_itp_cubic_uniform,
             "Dierckx (k=3)" => build_drx_cubic,
             "BasicInterpolators" => build_bi_cubic,
+            "FastInterpolations" => build_fi_cubic,
         ),
         batched! = Dict(
             "DataInterpolations" => batched_eval_di!,
             "Interpolations (uniform)" => batched_eval_itp!,
             "Dierckx (k=3)" => batched_eval_drx!,
             "BasicInterpolators" => batched_eval_bi!,
+            "FastInterpolations" => batched_eval_fi!,
         ),
         supports = Dict(
             "DataInterpolations" => [:uniform, :nonuniform],
             "Interpolations (uniform)" => [:uniform],
             "Dierckx (k=3)" => [:uniform, :nonuniform],
             "BasicInterpolators" => [:uniform, :nonuniform],
+            "FastInterpolations" => [:uniform, :nonuniform],
         ),
     )
     d["QuadraticSpline"] = (
         builders = Dict(
             "DataInterpolations" => build_di_quadratic,
             "Dierckx (k=2)" => build_drx_quadratic,
+            "FastInterpolations" => build_fi_quadratic,
         ),
         batched! = Dict(
             "DataInterpolations" => batched_eval_di!,
             "Dierckx (k=2)" => batched_eval_drx!,
+            "FastInterpolations" => batched_eval_fi!,
         ),
         supports = Dict(
             "DataInterpolations" => [:uniform, :nonuniform],
             "Dierckx (k=2)" => [:uniform, :nonuniform],
+            "FastInterpolations" => [:uniform, :nonuniform],
         ),
     )
     d["Akima"] = (
-        builders = Dict("DataInterpolations" => build_di_akima),
-        batched! = Dict("DataInterpolations" => batched_eval_di!),
-        supports = Dict("DataInterpolations" => [:uniform, :nonuniform]),
+        builders = Dict(
+            "DataInterpolations" => build_di_akima,
+            "FastInterpolations" => build_fi_akima,
+        ),
+        batched! = Dict(
+            "DataInterpolations" => batched_eval_di!,
+            "FastInterpolations" => batched_eval_fi!,
+        ),
+        supports = Dict(
+            "DataInterpolations" => [:uniform, :nonuniform],
+            "FastInterpolations" => [:uniform, :nonuniform],
+        ),
     )
     d["MonotoneCubic"] = (
         builders = Dict(
             "DataInterpolations (CubicHermite)" => build_di_cubic_hermite,
             "PCHIPInterpolation" => build_pchip,
+            "FastInterpolations (PCHIP)" => build_fi_pchip,
         ),
         batched! = Dict(
             "DataInterpolations (CubicHermite)" => batched_eval_di!,
             "PCHIPInterpolation" => batched_eval_pchip!,
+            "FastInterpolations (PCHIP)" => batched_eval_fi!,
         ),
         supports = Dict(
             "DataInterpolations (CubicHermite)" => [:uniform, :nonuniform],
             "PCHIPInterpolation" => [:uniform, :nonuniform],
+            "FastInterpolations (PCHIP)" => [:uniform, :nonuniform],
         ),
     )
     d
@@ -549,7 +586,7 @@ function write_report(path::String; total_seconds = 0.0)
         println(io, "```")
         deps = Pkg.project().dependencies
         all_info = Pkg.dependencies()
-        for pkg in ("DataInterpolations", "Interpolations", "Dierckx", "BasicInterpolators", "PCHIPInterpolation", "BenchmarkTools")
+        for pkg in ("DataInterpolations", "Interpolations", "Dierckx", "BasicInterpolators", "PCHIPInterpolation", "FastInterpolations", "BenchmarkTools")
             if haskey(deps, pkg)
                 v = all_info[deps[pkg]].version
                 println(io, "  ", pkg, " ", v)
