@@ -49,7 +49,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             @test isapprox(fdiff, adiff, atol = 1.0e-8)
             @test isapprox(fdiff2, adiff2, atol = 1.0e-8)
             # Cached index
-            if hasproperty(func, :iguesser) && !func.iguesser.linear_lookup
+            if hasproperty(func, :t_props) && !func.t_props.is_uniform
                 @test abs(
                     func.iguesser.idx_prev[] -
                         searchsortedfirst(
