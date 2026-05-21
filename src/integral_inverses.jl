@@ -33,7 +33,7 @@ Can be easily constructed with `invert_integral(A::LinearInterpolation{<:Abstrac
   - `t` : Given by `A.I` (the cumulative integral of `A`)
   - `A` : The `LinearInterpolation` object
 """
-struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType} <:
+struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType, strategyType} <:
     AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
@@ -41,12 +41,18 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    strategy::strategyType
     itp::itpType
     function LinearInterpolationIntInv(
             u, t, A, extrapolation_left, extrapolation_right, t_props,
         )
-        return new{typeof(u), typeof(t), typeof(A), eltype(u), typeof(t_props)}(
-            u, t, extrapolation_left, extrapolation_right, Guesser(t), t_props, A
+        strategy = _resolve_strategy(t)
+        return new{
+            typeof(u), typeof(t), typeof(A), eltype(u),
+            typeof(t_props), typeof(strategy),
+        }(
+            u, t, extrapolation_left, extrapolation_right,
+            Guesser(t), t_props, strategy, A
         )
     end
 end
@@ -98,7 +104,7 @@ Can be easily constructed with `invert_integral(A::ConstantInterpolation{<:Abstr
   - `t` : Given by `A.I` (the cumulative integral of `A`)
   - `A` : The `ConstantInterpolation` object
 """
-struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType} <:
+struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType, strategyType} <:
     AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
@@ -106,12 +112,18 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    strategy::strategyType
     itp::itpType
     function ConstantInterpolationIntInv(
             u, t, A, extrapolation_left, extrapolation_right, t_props,
         )
-        return new{typeof(u), typeof(t), typeof(A), eltype(u), typeof(t_props)}(
-            u, t, extrapolation_left, extrapolation_right, Guesser(t), t_props, A
+        strategy = _resolve_strategy(t)
+        return new{
+            typeof(u), typeof(t), typeof(A), eltype(u),
+            typeof(t_props), typeof(strategy),
+        }(
+            u, t, extrapolation_left, extrapolation_right,
+            Guesser(t), t_props, strategy, A
         )
     end
 end
