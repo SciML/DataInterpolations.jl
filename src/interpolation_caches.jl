@@ -36,9 +36,8 @@ struct LinearInterpolation{uType, tType, IType, pType, T, propsType} <:
     cache_parameters::Bool
     function LinearInterpolation(
             u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters
+            cache_parameters, t_props
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.slope),
             eltype(u), typeof(t_props),
@@ -52,22 +51,25 @@ end
 function LinearInterpolation(
         u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = LinearParameterCache(u, t, cache_parameters)
     A = LinearInterpolation(
         u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return LinearInterpolation(
         u, t, I, p, extrapolation_left, extrapolation_right,
-        cache_parameters
+        cache_parameters, t_props
     )
 end
 
@@ -110,11 +112,10 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
     cache_parameters::Bool
     function QuadraticInterpolation(
             u, t, I, p, mode, extrapolation_left,
-            extrapolation_right, cache_parameters
+            extrapolation_right, cache_parameters, t_props
         )
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.α),
             eltype(u), typeof(t_props),
@@ -128,22 +129,25 @@ end
 function QuadraticInterpolation(
         u, t, mode; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = QuadraticParameterCache(u, t, cache_parameters, mode)
     A = QuadraticInterpolation(
         u, t, nothing, p, mode, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return QuadraticInterpolation(
         u, t, I, p, mode, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -184,11 +188,10 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    function LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right)
+    function LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right, t_props)
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{typeof(u), typeof(t), eltype(u), typeof(bcache), typeof(t_props)}(
             u,
             t,
@@ -207,7 +210,8 @@ function LagrangeInterpolation(
         u, t, n = length(t) - 1;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -217,7 +221,8 @@ function LagrangeInterpolation(
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
     end
-    return LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
+    return LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right, t_props)
 end
 
 """
@@ -263,9 +268,8 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, propsType
     cache_parameters::Bool
     function AkimaInterpolation(
             u, t, I, b, c, d, extrapolation_left,
-            extrapolation_right, cache_parameters
+            extrapolation_right, cache_parameters, t_props
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
             typeof(d), eltype(u), typeof(t_props),
@@ -350,13 +354,16 @@ function AkimaInterpolation(
         u, t; modified::Bool = false,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     T = eltype(u)
     b = Vector{T}(undef, n)
@@ -366,12 +373,12 @@ function AkimaInterpolation(
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return AkimaInterpolation(
         u, t, I, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -414,9 +421,8 @@ struct ConstantInterpolation{uType, tType, IType, T, propsType} <:
     cache_parameters::Bool
     function ConstantInterpolation(
             u, t, I, dir, extrapolation_left, extrapolation_right,
-            cache_parameters
+            cache_parameters, t_props
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{typeof(u), typeof(t), typeof(I), eltype(u), typeof(t_props)}(
             u, t, I, nothing, dir, extrapolation_left, extrapolation_right,
             Guesser(t), t_props, cache_parameters
@@ -428,21 +434,23 @@ function ConstantInterpolation(
         u, t; dir = :left, extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     A = ConstantInterpolation(
         u, t, nothing, dir, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return ConstantInterpolation(
         u, t, I, dir, extrapolation_left, extrapolation_right,
-        cache_parameters
+        cache_parameters, t_props
     )
 end
 
@@ -489,9 +497,8 @@ struct SmoothedConstantInterpolation{
     cache_parameters::Bool
     function SmoothedConstantInterpolation(
             u, t, I, p, d_max, extrapolation_left,
-            extrapolation_right, cache_parameters
+            extrapolation_right, cache_parameters, t_props
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.d),
             typeof(p.c), typeof(d_max), eltype(u), typeof(t_props),
@@ -506,24 +513,26 @@ function SmoothedConstantInterpolation(
         u, t; d_max = Inf, extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = SmoothedConstantParameterCache(
         u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right
     )
     A = SmoothedConstantInterpolation(
         u, t, nothing, p, d_max, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return SmoothedConstantInterpolation(
         u, t, I, p, d_max, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -566,9 +575,8 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, prop
     cache_parameters::Bool
     function QuadraticSpline(
             u, t, I, p, k, c, sc, extrapolation_left,
-            extrapolation_right, cache_parameters
+            extrapolation_right, cache_parameters, t_props
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props),
@@ -594,13 +602,15 @@ function QuadraticSpline(
         u::AbstractVector{<:Number}, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
 
     n = length(t)
     dtype_sc = typeof(one(eltype(t)) / one(eltype(t)))
@@ -611,25 +621,28 @@ function QuadraticSpline(
     p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return QuadraticSpline(
         u, t, I, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
 function QuadraticSpline(
         u::AbstractVector, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
 
     n = length(t)
     dtype_sc = typeof(one(eltype(t)) / one(eltype(t)))
@@ -650,12 +663,12 @@ function QuadraticSpline(
     p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return QuadraticSpline(
         u, t, I, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -697,9 +710,8 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
     cache_parameters::Bool
     function CubicSpline(
             u, t, I, p, h, z, extrapolation_left,
-            extrapolation_right, cache_parameters
+            extrapolation_right, cache_parameters, t_props
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.c₁),
             typeof(h), typeof(z), eltype(u), typeof(t_props),
@@ -724,13 +736,16 @@ function CubicSpline(
         u::AbstractVector{<:Number},
         t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
     dl = vcat(h[2:n], zero(eltype(h)))
@@ -753,26 +768,30 @@ function CubicSpline(
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicSpline(
         u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
 function CubicSpline(
         u::AbstractArray{T, N},
         t;
-        extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     ) where {T, N}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
     dl = vcat(h[2:n], zero(eltype(h)))
@@ -798,25 +817,28 @@ function CubicSpline(
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicSpline(
         u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
 function CubicSpline(
         u::AbstractVector, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
     dl = vcat(h[2:n], zero(eltype(h)))
@@ -835,12 +857,12 @@ function CubicSpline(
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicSpline(
         u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -896,8 +918,8 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T, propsT
             knotVecType,
             extrapolation_left,
             extrapolation_right,
+            t_props,
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(p), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props),
@@ -923,13 +945,15 @@ function BSplineInterpolation(
         u::AbstractVector, t, d, pVecType, knotVecType;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
     s = zero(eltype(u))
@@ -994,7 +1018,7 @@ function BSplineInterpolation(
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
         u, t, d, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right
+        extrapolation_left, extrapolation_right, t_props
     )
 end
 
@@ -1003,12 +1027,14 @@ function BSplineInterpolation(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
     s = zero(eltype(u))
@@ -1076,7 +1102,7 @@ function BSplineInterpolation(
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
         u, t, d, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right
+        extrapolation_left, extrapolation_right, t_props
     )
 end
 
@@ -1136,8 +1162,8 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, propsType} <:
             knotVecType,
             extrapolation_left,
             extrapolation_right,
+            t_props,
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(p), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props),
@@ -1164,13 +1190,15 @@ function BSplineApprox(
         u::AbstractVector, t, d, h, pVecType, knotVecType;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
     s = zero(eltype(u))
@@ -1256,7 +1284,7 @@ function BSplineApprox(
     sc = zeros(eltype(t), h)
     return BSplineApprox(
         u, t, d, h, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right
+        extrapolation_left, extrapolation_right, t_props
     )
 end
 
@@ -1265,12 +1293,14 @@ function BSplineApprox(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
     ) where {T, N}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
     s = zero(eltype(u))
@@ -1364,7 +1394,7 @@ function BSplineApprox(
     sc = zeros(eltype(t), h)
     return BSplineApprox(
         u, t, d, h, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right
+        extrapolation_left, extrapolation_right, t_props
     )
 end
 """
@@ -1404,9 +1434,8 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T, propsType} <:
     cache_parameters::Bool
     function CubicHermiteSpline(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters
+            cache_parameters, t_props
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
             typeof(p.c₁), eltype(u), typeof(t_props),
@@ -1420,7 +1449,9 @@ end
 function CubicHermiteSpline(
         du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     @assert length(u) == length(du) "Length of `u` is not equal to length of `du`."
     extrapolation_left,
@@ -1428,15 +1459,16 @@ function CubicHermiteSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = CubicHermiteParameterCache(du, u, t, cache_parameters)
     A = CubicHermiteSpline(
         du, u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicHermiteSpline(
         du, u, t, I, p, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -1509,9 +1541,8 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T, prop
     cache_parameters::Bool
     function QuinticHermiteSpline(
             ddu, du, u, t, I, p, extrapolation_left,
-            extrapolation_right, cache_parameters
+            extrapolation_right, cache_parameters, t_props
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
             typeof(ddu), typeof(p.c₁), eltype(u), typeof(t_props),
@@ -1526,7 +1557,8 @@ function QuinticHermiteSpline(
         ddu, du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     @assert length(u) == length(du) == length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     extrapolation_left,
@@ -1534,15 +1566,16 @@ function QuinticHermiteSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
     A = QuinticHermiteSpline(
         ddu, du, u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return QuinticHermiteSpline(
         ddu, du, u, t, I, p, extrapolation_left,
-        extrapolation_right, cache_parameters
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -1576,9 +1609,8 @@ struct SmoothArcLengthInterpolation{
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, extrapolation_left, extrapolation_right,
-            out, derivative, in_place
+            out, derivative, in_place, t_props
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
         return new{
             typeof(u), typeof(t), typeof(I), eltype(radius),
             eltype(d), typeof(shape_itp), eltype(u), typeof(t_props),
@@ -1830,7 +1862,8 @@ function SmoothArcLengthInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters::Bool = false,
-        in_place::Bool = true
+        in_place::Bool = true,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     N = size(u, 1)
     n_circle_arcs = size(u, 2) - 1
@@ -1884,9 +1917,11 @@ function SmoothArcLengthInterpolation(
     out = Vector{P}(undef, N)
     derivative = Vector{P}(undef, N)
 
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     return SmoothArcLengthInterpolation(
         u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
         center, radius, dir_1, dir_2, short_side_left,
-        nothing, extrapolation_left, extrapolation_right, out, derivative, in_place
+        nothing, extrapolation_left, extrapolation_right,
+        out, derivative, in_place, t_props
     )
 end
