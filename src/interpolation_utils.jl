@@ -173,19 +173,15 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    return if side == :last
-        clamp(
-            searchsortedlast(FindFirstFunctions.BracketGallop(), tvec, t, iguess) +
-                idx_shift, lb, ub
-        )
+    strat = FindFirstFunctions.Auto(A.t_props)
+    raw = if side == :last
+        searchsortedlast(strat, tvec, t, iguess)
     elseif side == :first
-        clamp(
-            searchsortedfirst(FindFirstFunctions.BracketGallop(), tvec, t, iguess) +
-                idx_shift, lb, ub
-        )
+        searchsortedfirst(strat, tvec, t, iguess)
     else
         error("side must be :first or :last")
     end
+    return clamp(raw + idx_shift, lb, ub)
 end
 
 function get_idx(
@@ -194,19 +190,22 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    return if side == :last
-        clamp(
-            searchsortedlast(FindFirstFunctions.GuesserHint(iguess), tvec, t) +
-                idx_shift, lb, ub
-        )
+    strat = FindFirstFunctions.Auto(A.t_props)
+    # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
+    # falls back to the cached `idx_prev` otherwise. `Auto` short-circuits to
+    # `UniformStep` for exact-uniform grids and ignores the hint there; for
+    # near-uniform-but-not-uniform grids the linear hint still beats `idx_prev`.
+    hint = iguess(t)
+    raw = if side == :last
+        searchsortedlast(strat, tvec, t, hint)
     elseif side == :first
-        clamp(
-            searchsortedfirst(FindFirstFunctions.GuesserHint(iguess), tvec, t) +
-                idx_shift, lb, ub
-        )
+        searchsortedfirst(strat, tvec, t, hint)
     else
         error("side must be :first or :last")
     end
+    idx = clamp(raw + idx_shift, lb, ub)
+    iguess.idx_prev[] = idx
+    return idx
 end
 
 cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
