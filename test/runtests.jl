@@ -27,6 +27,7 @@ const GROUP = get(ENV, "GROUP", "All")
             @safetestset "SparseConnectivityTracer Tests" include("sparseconnectivitytracer_tests.jl")
             @safetestset "Zygote support Tests" include("zygote_tests.jl")
             @safetestset "Mooncake support Tests" include("mooncake_tests.jl")
+            @safetestset "Reactant support Tests" include("reactant_tests.jl")
         end
     end
 
