@@ -23,7 +23,9 @@ Extrapolation extends the last linear polynomial on each side.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation
     computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
 """
-struct LinearInterpolation{uType, tType, IType, pType, T, propsType, strategyType} <:
+struct LinearInterpolation{
+        uType, tType, IType, pType, T, propsType, strategyType, IsUniform,
+    } <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -35,19 +37,37 @@ struct LinearInterpolation{uType, tType, IType, pType, T, propsType, strategyTyp
     t_props::propsType
     strategy::strategyType
     cache_parameters::Bool
-    function LinearInterpolation(
+    # `IsUniform` is a static tag matching `t_props.is_uniform` at construction.
+    # Lets `_interpolate` dispatch to a uniform-grid kernel that consumes
+    # `t_props.first_val` / `t_props.inv_step` directly, with no runtime branch.
+    is_uniform_static::Val{IsUniform}
+    @inline function LinearInterpolation(
             u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters, t_props
-        )
+            cache_parameters, t_props, ::Val{IsUniform},
+        ) where {IsUniform}
         strategy = _resolve_strategy(t)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.slope),
-            eltype(u), typeof(t_props), typeof(strategy),
+            eltype(u), typeof(t_props), typeof(strategy), IsUniform,
         }(
             u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, strategy, cache_parameters
+            Guesser(t), t_props, strategy, cache_parameters,
+            Val(IsUniform),
         )
     end
+end
+
+# Forward the legacy 8-arg constructor (no IsUniform Val) through the static
+# uniformity dispatcher. Forwards `Val(true)` for ranges (compile-time) and
+# `Val(t_props.is_uniform)` for vectors (value-dependent).
+@inline function LinearInterpolation(
+        u, t, I, p, extrapolation_left, extrapolation_right,
+        cache_parameters, t_props,
+    )
+    return LinearInterpolation(
+        u, t, I, p, extrapolation_left, extrapolation_right,
+        cache_parameters, t_props, _static_uniform_tag(t, t_props),
+    )
 end
 
 function LinearInterpolation(

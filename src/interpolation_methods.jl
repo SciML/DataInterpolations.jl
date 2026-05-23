@@ -198,6 +198,68 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
     return val
 end
 
+# Uniform-grid fast path. Statically dispatched on the `IsUniform == true`
+# type parameter — no runtime uniformity branch. Uses the precomputed
+# `inv_step` / `first_val` baked into `t_props` to skip the `A.t[idx]` load
+# and the cached slope lookup. The linear-blend form
+# `u[idx] + α * (u[idx+1] - u[idx])` is mathematically equivalent to the
+# slope form modulo a few ulps of floating-point roundoff.
+#
+# `inv_step` / `first_val` are always `AbstractFloat` (`_ratio_type` of the
+# knot eltype), so the lerp's intermediate `α` is `AbstractFloat`. The
+# constraint on `eltype(u) <: AbstractFloat` keeps the result type
+# `AbstractFloat` too — for `Rational` / `Integer` `u`, we fall back to the
+# non-uniform method which preserves the more general arithmetic type.
+function _interpolate(
+        A::LinearInterpolation{
+            <:AbstractVector{<:AbstractFloat}, <:Any, <:Any, <:Any,
+            <:Any, <:Any, <:Any, true,
+        },
+        t::Number, iguess,
+    )
+    if isnan(t)
+        # Propagate NaN through the partial of `t` so `ForwardDiff.derivative`
+        # at a NaN query returns NaN. The non-uniform method does this by
+        # computing `u1 + slope * (t - t1)` with `t - t1 = NaN`; replicate the
+        # `slope * (t - t1)` poisoning here.
+        idx = firstindex(A.u)
+        u1 = oneunit(eltype(A.u))
+        slope = t / t * get_parameters(A, idx)
+        Δu = slope * (t - oneunit(eltype(A.t)))
+        return oftype(Δu, u1) + Δu
+    end
+    # Closed-form index lookup on a uniform grid: `f` is the float position
+    # in `[0, length-1]`, `idx0` its floor (zero-based), `α` the fractional
+    # part. Clamping into `[0, length-2]` keeps `idx0 + 1` and `idx0 + 2`
+    # in bounds for the two-sample load below.
+    f = (t - A.t_props.first_val) * A.t_props.inv_step
+    n = length(A.t)
+    idx0 = unsafe_trunc(Int, floor(f))
+    if idx0 < 0
+        idx0 = 0
+    elseif idx0 > n - 2
+        idx0 = n - 2
+    end
+    A.iguesser.idx_prev[] = idx0 + 1
+    α = f - idx0
+    @inbounds u1 = A.u[idx0 + 1]
+    @inbounds u2 = A.u[idx0 + 2]
+    Δu = α * (u2 - u1)
+    if any(isnan.(Δu))
+        # When NaN appears in `u` adjacent to the segment, `0 * NaN = NaN`
+        # poisons the answer at exact-knot queries. Resolve by comparing
+        # the query against the knot values directly.
+        @inbounds t1 = A.t[idx0 + 1]
+        @inbounds t2 = A.t[idx0 + 2]
+        if t == t2
+            return u2 + zero(Δu)
+        elseif t == t1
+            return u1 + zero(Δu)
+        end
+    end
+    return u1 + Δu
+end
+
 function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]

@@ -234,6 +234,19 @@ end
 # Float-knot cases.
 @inline _resolve_strategy(t::AbstractVector) = FindFirstFunctions.Auto(t)
 
+# Static-uniformity tag for caches. `AbstractRange{<:Real}` is uniform at the
+# type level — `Val(true)` is a compile-time constant. For `AbstractVector`
+# we fall through to the runtime `t_props.is_uniform` flag, which makes the
+# constructor's return type a `Union{LinearInterpolation{..., true},
+# LinearInterpolation{..., false}}`. Each concrete instance is fully
+# type-stable per query — only the construction boundary sees the union.
+@inline _static_uniform_tag(
+    ::AbstractRange{<:Real}, ::FindFirstFunctions.SearchProperties
+) = Val(true)
+@inline _static_uniform_tag(
+    ::AbstractVector, props::FindFirstFunctions.SearchProperties
+) = Val(props.is_uniform)
+
 function get_idx(
         A::AbstractInterpolation, t, iguess::Integer; lb = 1,
         ub_shift = -1, idx_shift = 0, side = :last

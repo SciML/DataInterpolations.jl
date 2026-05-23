@@ -30,7 +30,14 @@ end
 
 @testset "Type Inference" begin
     u = 2.0collect(1:10)
-    t = 1.0collect(1:10)
+    # `LinearInterpolation`'s constructor encodes uniformity in the cache's
+    # `IsUniform` type parameter. For an `AbstractRange` knot vector the tag
+    # is `Val(true)` statically, so the constructor is type-stable. For a
+    # `Vector` knot vector the tag depends on the values, so the constructor
+    # returns `Union{LinearInterpolation{..., true}, LinearInterpolation{..., false}}`.
+    # Each concrete instance is fully type-stable per query — only the
+    # construction boundary sees the union.
+    t = 1.0:10.0
     methods = [
         ConstantInterpolation, LinearInterpolation,
         QuadraticInterpolation, LagrangeInterpolation,
