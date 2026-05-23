@@ -1,9 +1,9 @@
 module DataInterpolationsMooncakeExt
 
-using DataInterpolations, Mooncake, ChainRulesCore
+using DataInterpolations, Mooncake, ChainRulesCore, FindFirstFunctions
 using DataInterpolations: _interpolate, munge_data, AbstractInterpolation,
     LinearInterpolation, QuadraticInterpolation
-import Mooncake: @from_chainrules, MinimalCtx
+import Mooncake: @from_chainrules, @zero_adjoint, MinimalCtx, DefaultCtx
 
 # When the ChainRules pullback for _interpolate returns a Tangent{AbstractInterpolation},
 # this tells Mooncake how to accumulate the u-component into the interpolation's fdata.
@@ -56,5 +56,19 @@ end
 @from_chainrules MinimalCtx Tuple{typeof(munge_data), AbstractVector, AbstractVector} true
 @from_chainrules MinimalCtx Tuple{typeof(munge_data), AbstractMatrix, AbstractVector} true
 @from_chainrules MinimalCtx Tuple{typeof(munge_data), AbstractArray, Any} true
+
+# Sorted-search dispatched through `Auto{T}` carries the props' `first_val::T`
+# and `inv_step::T` Float fields, which Mooncake exposes as rdata. The
+# `searchsortedlast` / `searchsortedfirst` calls return integer indices —
+# they are positional bookkeeping, not differentiable. Declare them as
+# zero-adjoint so Mooncake doesn't try to recurse into FFF's strategy
+# kernels (which contain `llvmcall` SIMD intrinsics that Mooncake cannot
+# differentiate through). DI's interpolation `_interpolate` always feeds
+# the search results into integer indexing, so the gradient flow is
+# already cut at the index boundary — zero-adjoint here is correct.
+@zero_adjoint DefaultCtx Tuple{typeof(searchsortedlast), FindFirstFunctions.Auto, AbstractVector, Any, Integer}
+@zero_adjoint DefaultCtx Tuple{typeof(searchsortedfirst), FindFirstFunctions.Auto, AbstractVector, Any, Integer}
+@zero_adjoint DefaultCtx Tuple{typeof(searchsortedlast), FindFirstFunctions.Auto, AbstractVector, Any}
+@zero_adjoint DefaultCtx Tuple{typeof(searchsortedfirst), FindFirstFunctions.Auto, AbstractVector, Any}
 
 end
