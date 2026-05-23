@@ -35,14 +35,26 @@ end
 @testset "Linear Interpolation" begin
     test_interpolation_type(LinearInterpolation)
 
+    # `LinearInterpolation`'s cache type encodes uniformity statically. For
+    # `AbstractRange` knots the tag resolves at compile time, so the
+    # constructor is type-stable and `@inferred` succeeds. For `Vector`
+    # knots the tag depends on the values, so the constructor returns
+    # `Union{LinearInterpolation{..., true}, LinearInterpolation{..., false}}`
+    # and `@inferred` on the constructor does not hold (per-query dispatch
+    # on the resulting instance remains type-stable).
     for t in (1.0:10.0, 1.0collect(1:10))
         u = 2.0collect(1:10)
-        #t = 1.0collect(1:10)
-        A = @inferred(
+        A = if t isa AbstractRange
+            @inferred(
+                LinearInterpolation(
+                    u, t; extrapolation = ExtrapolationType.Extension
+                )
+            )
+        else
             LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
             )
-        )
+        end
 
         for (_t, _u) in zip(t, u)
             @test A(_t) == _u
@@ -54,14 +66,18 @@ end
         @test @inferred(output_size(A)) == ()
 
         u = vcat(2.0collect(1:10)', 3.0collect(1:10)')
-        @test @inferred(
-            LinearInterpolation(
+        if t isa AbstractRange
+            @test @inferred(
+                LinearInterpolation(
+                    u, t; extrapolation = ExtrapolationType.Extension
+                )
+            ) isa LinearInterpolation broken = VERSION <
+                v"1.11"
+        else
+            @test LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
-            )
-        ) isa LinearInterpolation broken = VERSION <
-            v"1.11" &&
-            t isa
-            AbstractRange
+            ) isa LinearInterpolation
+        end
         A = LinearInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
@@ -79,14 +95,18 @@ end
         y = 2:4
         u_ = x' .* y
         u = [u_[:, i] for i in 1:size(u_, 2)]
-        @test @inferred(
-            LinearInterpolation(
+        if t isa AbstractRange
+            @test @inferred(
+                LinearInterpolation(
+                    u, t; extrapolation = ExtrapolationType.Extension
+                )
+            ) isa LinearInterpolation broken = VERSION <
+                v"1.11"
+        else
+            @test LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
-            )
-        ) isa LinearInterpolation broken = VERSION <
-            v"1.11" &&
-            t isa
-            AbstractRange
+            ) isa LinearInterpolation
+        end
         A = LinearInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
@@ -98,11 +118,17 @@ end
 
         # Test allocation-free interpolation with StaticArrays
         u_s = [convert(SVector{length(y), eltype(u_)}, i) for i in u]
-        @test @inferred(
-            LinearInterpolation(
+        if t isa AbstractRange
+            @test @inferred(
+                LinearInterpolation(
+                    u_s, t; extrapolation = ExtrapolationType.Extension
+                )
+            ) isa LinearInterpolation
+        else
+            @test LinearInterpolation(
                 u_s, t; extrapolation = ExtrapolationType.Extension
-            )
-        ) isa LinearInterpolation
+            ) isa LinearInterpolation
+        end
         A_s = LinearInterpolation(u_s, t; extrapolation = ExtrapolationType.Extension)
         for x in (0, 5.5, 11)
             @test A(x) == A_s(x)
@@ -184,7 +210,9 @@ end
     # Test type stability
     u = Float32.(1:5)
     t = Float32.(1:5)
-    A1 = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
+    # `Float32.(1:5)` materialises a `Vector{Float32}`; the constructor is
+    # value-dependent for `Vector` knots (see Type Inference testset).
+    A1 = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     u = 1:5
     t = 1:5
     A2 = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
@@ -193,7 +221,8 @@ end
     A3 = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
     u = [1 // i for i in 1:5]
     t = [1 // (6 - i) for i in 1:5]
-    A4 = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
+    # Vector knots — constructor is type-unstable (see Type Inference testset).
+    A4 = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
     F32 = Float32(1)
     F64 = Float64(1)
@@ -244,7 +273,8 @@ end
     # Test array-valued interpolation
     u = collect.(2.0collect(1:10))
     t = 1.0collect(1:10)
-    A = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
+    # Vector knots — constructor returns a Union, see Type Inference testset.
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(0) == fill(0.0)
     @test A(5.5) == fill(11.0)
     @test A(11) == fill(22)
@@ -254,17 +284,17 @@ end
     # Test constant -Inf interpolation
     u = [-Inf, -Inf]
     t = [0.0, 1.0]
-    A = @inferred(LinearInterpolation(u, t))
+    A = LinearInterpolation(u, t)
     @test A(0.0) == -Inf
     @test A(0.5) == -Inf
 
     # Test extrapolation
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
-    A = @inferred(LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
+    A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
     @test A(-1.0) == -2.0
     @test A(11.0) == 22.0
-    A = @inferred(LinearInterpolation(u, t))
+    A = LinearInterpolation(u, t)
     @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
     @test_throws DataInterpolations.RightExtrapolationError A(11.0)
     @test_throws DataInterpolations.LeftExtrapolationError A([-1.0, 11.0])
@@ -351,6 +381,63 @@ end
         @test_throws DimensionMismatch LinearInterpolation(u_b, t_b)(
             zeros(3), [1.0, 2.0]
         )
+    end
+
+    @testset "Uniform-grid fast path parity" begin
+        # The static-dispatched uniform kernel uses the lerp form
+        # `u1 + α * (u2 - u1)` with α computed from the precomputed
+        # `inv_step` / `first_val`. This is mathematically equivalent
+        # to the slope form `u1 + slope * (t - t1)` but differs by a
+        # few ulps of float roundoff. The dominant error source is the
+        # multiplication `(q - first_val) * inv_step` which produces a
+        # value at scale `length(t)` before subtracting `(idx - 1)` to
+        # recover α, costing log2(length(t)) bits of precision relative
+        # to a direct `q - t[idx]` subtract. So the realistic error
+        # scales as `length(t) * eps * max(|u|)`.
+
+        # Compare a uniform interpolation against an equivalent slope-form
+        # evaluation built by reconstructing the slopes manually.
+        function slope_form_eval(A, q)
+            idx = DataInterpolations.get_idx(A, q, A.iguesser)
+            t1 = A.t[idx]
+            u1 = A.u[idx]
+            slope = DataInterpolations.get_parameters(A, idx)
+            return u1 + slope * (q - t1)
+        end
+
+        rng = StableRNG(0xfacefeed)
+        n = 1001
+        # AbstractRange knots
+        t_r = range(0.0, 10.0; length = n)
+        # Vector knots that the props probe classifies as uniform
+        t_v = collect(t_r)
+        u = randn(rng, n)
+
+        for t in (t_r, t_v)
+            A = LinearInterpolation(u, t)
+            @test A.t_props.is_uniform
+            @test A.is_uniform_static === Val(true)
+
+            # Tolerance scaled to `length(t) * eps * max(|u|)`; the realistic
+            # ulp gap at the per-segment scale is O(length(t)).
+            tol = n * eps(Float64) * maximum(abs, u)
+            qs = sort!(rand(rng, 5000) .* 9.999)
+            for q in qs
+                @test isapprox(A(q), slope_form_eval(A, q); atol = tol, rtol = 0)
+            end
+        end
+
+        # Non-uniform must still take the slope-form path and produce the
+        # exact same value as the manual slope-form reconstruction.
+        t_nu = sort!(rand(StableRNG(0xcafef00d), n)) .* 10.0
+        A_nu = LinearInterpolation(u, t_nu)
+        @test !A_nu.t_props.is_uniform
+        @test A_nu.is_uniform_static === Val(false)
+        qs_nu = sort!(rand(StableRNG(0x0b0bcafe), 5000)) .* (last(t_nu) - first(t_nu)) .+
+            first(t_nu)
+        for q in qs_nu
+            @test A_nu(q) == slope_form_eval(A_nu, q)
+        end
     end
 end
 
@@ -1567,7 +1654,8 @@ end
     ut2 = Float64[0.1, 0.2, 0.3, 0.4, 0.5]
     for u in (ut1, ut2), t in (ut1, ut2)
 
-        interp = @inferred(LinearInterpolation(ut1, ut2))
+        # Vector knots — constructor returns a Union, see Type Inference testset.
+        interp = LinearInterpolation(ut1, ut2)
         for xs in (u, t)
             ys = @inferred(interp(xs))
             @test ys isa Vector{typeof(interp(first(xs)))}
