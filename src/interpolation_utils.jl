@@ -210,17 +210,29 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     return U, t
 end
 
-# Resolve a concrete `FindFirstFunctions.SearchStrategy` singleton at
-# construction time. Stored on every interpolation cache as `A.strategy` so
-# that `get_idx`'s `searchsortedlast(A.strategy, …)` is fully static-dispatched
-# — no per-query `_auto_pick` branch.
+# Resolve a concrete `FindFirstFunctions.SearchStrategy` for the given
+# knot vector at construction time. Stored on every interpolation cache
+# as `A.strategy` so that `get_idx`'s `searchsortedlast(A.strategy, …)` is
+# fully static-dispatched — no per-query `_auto_pick` branch.
 #
-# We always pick `BracketGallop`: it gives optimal O(log n) refinement with a
-# hint at any length, and the alternative (`LinearScan` for `length(t) ≤ 16`)
-# would make this function return `Union{BracketGallop, LinearScan}` and
-# infect every downstream `@inferred` test. The `LinearScan` benefit at tiny
-# `n` is ~10 ns absolute — not worth the inference-instability cost.
-@inline _resolve_strategy(::AbstractVector) = FindFirstFunctions.BracketGallop()
+# We dispatch to `FindFirstFunctions.Auto(t)`, which:
+#
+#   - Resolves a concrete `StrategyKind` from `length(t)` + the
+#     `SearchProperties{T}(t)` probe at construction.
+#   - For uniformly-spaced data (any `AbstractRange` or a `Vector` whose
+#     9-point linearity probe is within ~1e-12 of exact uniformity),
+#     picks `KIND_UNIFORM_STEP` and bakes the precomputed `inv_step`
+#     into `props`. The hot path is then one subtract, one multiply,
+#     one truncate per query — no division, no logarithmic search.
+#   - For non-uniform data with `length(t) ≤ 16`, picks `KIND_LINEAR_SCAN`.
+#   - Otherwise picks `KIND_BRACKET_GALLOP` (the v2 default).
+#
+# `Auto{T}` is parametric on the data ratio type, so the cache's
+# `strategyType` parameter resolves to a single concrete `Auto{T}` per
+# `t` and dispatch stays type-stable. `Vector{Int}` and `Vector{Float64}`
+# both ratio-promote to `Float64`, so `Auto{Float64}` covers the common
+# Float-knot cases.
+@inline _resolve_strategy(t::AbstractVector) = FindFirstFunctions.Auto(t)
 
 function get_idx(
         A::AbstractInterpolation, t, iguess::Integer; lb = 1,
