@@ -256,7 +256,8 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
     n = length(A.t)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
+    # Per-call scratch buffer: evaluation must be reentrant for thread safety (#532)
+    sc = zeros(eltype(t), n)
     spline_coefficients!(sc, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
@@ -280,7 +281,8 @@ function _derivative(
     n = length(A.t)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
+    # Per-call scratch buffer: evaluation must be reentrant for thread safety (#532)
+    sc = zeros(eltype(t), n)
     spline_coefficients!(sc, A.d - 1, A.k, t_)
     ducum = zeros(size(A.u)[1:(end - 1)]...)
     if t == A.t[1]
@@ -302,7 +304,8 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
     idx = get_idx(A, t, iguess)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
+    # Per-call scratch buffer: evaluation must be reentrant for thread safety (#532)
+    sc = zeros(eltype(t), A.h)
     spline_coefficients!(sc, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
@@ -325,7 +328,8 @@ function _derivative(
     idx = get_idx(A, t, iguess)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
+    # Per-call scratch buffer: evaluation must be reentrant for thread safety (#532)
+    sc = zeros(eltype(t), A.h)
     spline_coefficients!(sc, A.d - 1, A.k, t_)
     ducum = zeros(size(A.u)[1:(end - 1)]...)
     if t == A.t[1]
