@@ -668,7 +668,7 @@ function QuadraticSpline(
     k, A = quadratic_spline_params(t, sc)
     c = A \ u
 
-    p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
+    p = QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
         extrapolation_right, cache_parameters, t_props
@@ -710,7 +710,7 @@ function QuadraticSpline(
         end
     end
 
-    p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
+    p = QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
         extrapolation_right, cache_parameters, t_props

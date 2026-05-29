@@ -301,7 +301,7 @@ function get_parameters(A::QuadraticSpline, idx)
     return if A.cache_parameters
         A.p.α[idx], A.p.β[idx]
     else
-        quadratic_spline_parameters(A.u, A.t, A.k, A.c, A.sc, idx)
+        quadratic_spline_parameters(A.u, A.t, A.k, A.c, idx)
     end
 end
 
