@@ -17,6 +17,8 @@ function thread_safety_interpolants()
             1.0 0.0 1.0 0.0 1.0 0.0]            # 2 × length(t): last axis indexes t
     return [
         ("BSplineInterpolation", BSplineInterpolation(u, t, 3, :Uniform, :Average)),
+        # degree 1 == "linear" B-spline: same `_interpolate` method, so equally affected
+        ("BSplineInterpolation (degree 1)", BSplineInterpolation(u, t, 1, :Uniform, :Average)),
         ("BSplineApprox", BSplineApprox(u, t, 3, 4, :Uniform, :Average)),
         ("BSplineInterpolation (array)", BSplineInterpolation(umat, t, 3, :Uniform, :Average)),
         ("BSplineApprox (array)", BSplineApprox(umat, t, 3, 4, :Uniform, :Average)),
