@@ -131,27 +131,40 @@ struct QuadraticSplineParameterCache{pType}
     β::pType
 end
 
-function QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
+function QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     return if cache_parameters
         parameters = quadratic_spline_parameters.(
-            Ref(u), Ref(t), Ref(k), Ref(c), Ref(sc), 1:(length(t) - 1)
+            Ref(u), Ref(t), Ref(k), Ref(c), 1:(length(t) - 1)
         )
         α, β = collect.(eachrow(stack(collect.(parameters))))
         QuadraticSplineParameterCache(α, β)
     else
         # Compute parameters once to infer types
-        α, β = quadratic_spline_parameters(u, t, k, c, sc, 1)
+        α, β = quadratic_spline_parameters(u, t, k, c, 1)
         QuadraticSplineParameterCache(typeof(α)[], typeof(β)[])
     end
 end
 
-function quadratic_spline_parameters(u, t, k, c, sc, idx)
+function quadratic_spline_parameters(u, t, k, c, idx)
     tᵢ₊ = (t[idx] + t[idx + 1]) / 2
-    nonzero_coefficient_idxs = spline_coefficients!(sc, 2, k, tᵢ₊)
+    # Value of the spline at the segment midpoint via the (degree 2) B-spline basis.
+    # The three nonzero basis values are evaluated into local variables rather than a
+    # shared scratch buffer so that evaluation is reentrant / thread-safe (#532).
+    # `tᵢ₊` is always interior, so only the non-boundary branch of the Cox-de Boor
+    # recursion is needed (cf. `spline_coefficients!`).
+    i = findfirst(x -> x > tᵢ₊, k)::Int - 1
+    w₁ = (k[i + 1] - tᵢ₊) / (k[i + 1] - k[i])
+    w₂ = (tᵢ₊ - k[i]) / (k[i + 1] - k[i])
+    N₁ = (k[i + 1] - tᵢ₊) / (k[i + 1] - k[i - 1]) * w₁
+    N₂ = (tᵢ₊ - k[i - 1]) / (k[i + 1] - k[i - 1]) * w₁ +
+        (k[i + 2] - tᵢ₊) / (k[i + 2] - k[i]) * w₂
+    N₃ = (tᵢ₊ - k[i]) / (k[i + 2] - k[i]) * w₂
+    # Seed the accumulator with `zero(first(u))` (as the buffer-based version did) so
+    # `uᵢ₊` keeps the element type of `u` for vector-valued data.
     uᵢ₊ = zero(first(u))
-    for j in nonzero_coefficient_idxs
-        uᵢ₊ += sc[j] * c[j]
-    end
+    uᵢ₊ += N₁ * c[i - 2]
+    uᵢ₊ += N₂ * c[i - 1]
+    uᵢ₊ += N₃ * c[i]
     α = 2 * (u[idx + 1] + u[idx]) - 4uᵢ₊
     β = 4 * (uᵢ₊ - u[idx]) - (u[idx + 1] - u[idx])
     return α, β

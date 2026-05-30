@@ -1151,7 +1151,8 @@ function _interpolate(
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
+    # Per-call scratch buffer: evaluation must be reentrant for thread safety (#532)
+    sc = zeros(eltype(t), n)
     nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
     ucum = zero(eltype(A.u))
     for i in nonzero_coefficient_idxs
@@ -1172,7 +1173,8 @@ function _interpolate(
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
+    # Per-call scratch buffer: evaluation must be reentrant for thread safety (#532)
+    sc = zeros(eltype(t), n)
     nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
     ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)
     for i in nonzero_coefficient_idxs
@@ -1188,7 +1190,8 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
     # change t into param [0 1]
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
+    # Per-call scratch buffer: evaluation must be reentrant for thread safety (#532)
+    sc = zeros(eltype(t), A.h)
     nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
     ucum = zero(eltype(A.u))
     for i in nonzero_coefficient_idxs
@@ -1206,7 +1209,8 @@ function _interpolate(
     # change t into param [0 1]
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
+    # Per-call scratch buffer: evaluation must be reentrant for thread safety (#532)
+    sc = zeros(eltype(t), A.h)
     nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
     ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)
     for i in nonzero_coefficient_idxs

@@ -15,6 +15,7 @@ const GROUP = get(ENV, "GROUP", "All")
     if GROUP == "All" || GROUP == "Methods"
         @testset "Methods" begin
             @safetestset "Derivative Tests" include("derivative_tests.jl")
+            @safetestset "Thread Safety Tests" include("thread_safety_tests.jl")
             @safetestset "Integral Tests" include("integral_tests.jl")
             @safetestset "Integral Inverse Tests" include("integral_inverse_tests.jl")
             @safetestset "Online Tests" include("online_tests.jl")
