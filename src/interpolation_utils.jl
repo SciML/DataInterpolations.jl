@@ -69,7 +69,7 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
     k[4:(end - 3)] .= t[2:(end - 2)]
 
     # Create linear system Ac = u, where:
-    # - A consists of basis function evaulations in t
+    # - A consists of basis function evaluations in t
     # - c are 1D control points
     n = length(t)
     dtype_sc = typeof(t[1] / t[1])
