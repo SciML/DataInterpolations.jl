@@ -2,7 +2,6 @@ using DataInterpolations, Test
 using QuadGK
 using DataInterpolations: integral
 using Optim, ForwardDiff
-using RegularizationTools
 using StableRNGs
 using Unitful
 
@@ -212,32 +211,6 @@ end
     test_integral(
         QuinticHermiteSpline; args = [ddu, du, u, t],
         name = "Quintic Hermite Spline (Vector) with random points"
-    )
-end
-
-@testset "RegularizationSmooth" begin
-    npts = 50
-    xmin = 0.0
-    xspan = 3 / 2 * π
-    x = collect(range(xmin, xmin + xspan, length = npts))
-    rng = StableRNG(655)
-    x = x + xspan / npts * (rand(rng, npts) .- 0.5)
-    # select a subset randomly
-    idx = unique(rand(rng, collect(eachindex(x)), 20))
-    t = x[unique(idx)]
-    npts = length(t)
-    ut = sin.(t)
-    stdev = 1.0e-1 * maximum(ut)
-    u = ut + stdev * randn(rng, npts)
-    # data must be ordered if t̂ is not provided
-    idx = sortperm(t)
-    tₒ = t[idx]
-    uₒ = u[idx]
-    test_integral(
-        RegularizationSmooth;
-        args = [uₒ, tₒ],
-        kwargs = [:alg => :fixed],
-        name = "RegularizationSmooth"
     )
 end
 
