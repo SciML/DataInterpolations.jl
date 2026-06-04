@@ -126,55 +126,6 @@ export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     ConstantInterpolationIntInv, ExtrapolationType
 export output_dim, output_size
 
-# added for RegularizationSmooth, JJS 11/27/21
-### Regularization data smoothing and interpolation
-struct RegularizationSmooth{uType, tType, T, T2, ITP <: AbstractInterpolation{T}} <:
-    AbstractInterpolation{T}
-    u::uType
-    û::uType
-    t::tType
-    t̂::tType
-    wls::uType
-    wr::uType
-    d::Int       # derivative degree used to calculate the roughness
-    λ::T2        # regularization parameter
-    alg::Symbol  # how to determine λ: `:fixed`, `:gcv_svd`, `:gcv_tr`, `L_curve`
-    Aitp::ITP
-    extrapolation_left::ExtrapolationType.T
-    extrapolation_right::ExtrapolationType.T
-    function RegularizationSmooth(
-            u,
-            û,
-            t,
-            t̂,
-            wls,
-            wr,
-            d,
-            λ,
-            alg,
-            Aitp,
-            extrapolation_left,
-            extrapolation_right
-        )
-        return new{typeof(u), typeof(t), eltype(u), typeof(λ), typeof(Aitp)}(
-            u,
-            û,
-            t,
-            t̂,
-            wls,
-            wr,
-            d,
-            λ,
-            alg,
-            Aitp,
-            extrapolation_left,
-            extrapolation_right
-        )
-    end
-end
-
-export RegularizationSmooth
-
 # CurveFit
 struct CurvefitCache{
         uType,

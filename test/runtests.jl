@@ -18,7 +18,6 @@ const GROUP = get(ENV, "GROUP", "All")
             @safetestset "Integral Tests" include("integral_tests.jl")
             @safetestset "Integral Inverse Tests" include("integral_inverse_tests.jl")
             @safetestset "Online Tests" include("online_tests.jl")
-            @safetestset "Regularization Smoothing Tests" include("regularization.jl")
         end
     end
 

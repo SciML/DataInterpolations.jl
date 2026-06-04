@@ -70,8 +70,6 @@ corresponding to `(u,t)` pairs.
 The following methods require extra dependencies and will be loaded as package extensions.
 
   - `Curvefit(u,t,m,p,alg)` - An interpolation which is done by fitting a user-given functional form `m(t,p)` where `p` is the vector of parameters. The user's input `p` is a an initial value for a least-square fitting, `alg` is the algorithm choice to use for optimize the cost function (sum of squared deviations) via `Optim.jl` and optimal `p`s are used in the interpolation. Requires `using Optim`.
-  - `RegularizationSmooth(u,t,d;λ,alg)` - A regularization algorithm (ridge regression) which is done by minimizing an objective function (l2 loss + derivatives of order `d`) integrated in the time span. It is a global method and creates a smooth curve.
-    Requires `using RegularizationTools`.
 
 ## Plotting
 

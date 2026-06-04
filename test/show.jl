@@ -1,6 +1,5 @@
 using DataInterpolations
 using Optim, StableRNGs
-using RegularizationTools
 
 t = [1.0, 2.0, 3.0, 4.0, 5.0]
 x = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -71,30 +70,5 @@ end
     @test startswith(
         sprint(io -> show(io, MIME"text/plain"(), A)),
         "Curvefit with 40 points, using LBFGS\n"
-    )
-end
-
-@testset "RegularizationSmooth" begin
-    npts = 50
-    xmin = 0.0
-    xspan = 3 / 2 * π
-    x = collect(range(xmin, xmin + xspan, length = npts))
-    rng = StableRNG(655)
-    x = x + xspan / npts * (rand(rng, npts) .- 0.5)
-    # select a subset randomly
-    idx = unique(rand(rng, collect(eachindex(x)), 20))
-    t = x[unique(idx)]
-    npts = length(t)
-    ut = sin.(t)
-    stdev = 1.0e-1 * maximum(ut)
-    u = ut + stdev * randn(rng, npts)
-    # data must be ordered if t̂ is not provided
-    idx = sortperm(t)
-    tₒ = t[idx]
-    uₒ = u[idx]
-    A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
-    @test startswith(
-        sprint(io -> show(io, MIME"text/plain"(), A)),
-        "RegularizationSmooth with 15 points, with regularization coefficient 1.0\n"
     )
 end

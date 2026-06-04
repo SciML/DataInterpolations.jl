@@ -4,7 +4,6 @@ using FiniteDifferences
 using DataInterpolations: derivative, get_transition_ts
 using Symbolics
 using StableRNGs
-using RegularizationTools
 using Optim
 import ForwardDiff
 using LinearAlgebra
@@ -364,32 +363,6 @@ end
     @test all(t -> norm(derivative(A, t)) ≈ 1, range(0, A.t[end]; length = 100))
     @test all(
         t_ -> derivative(A, prevfloat(t_)) ≈ derivative(A, nextfloat(t_)), A.t[2:(end - 1)]
-    )
-end
-
-@testset "RegularizationSmooth" begin
-    npts = 50
-    xmin = 0.0
-    xspan = 3 / 2 * π
-    x = collect(range(xmin, xmin + xspan, length = npts))
-    rng = StableRNG(655)
-    x = x + xspan / npts * (rand(rng, npts) .- 0.5)
-    # select a subset randomly
-    idx = unique(rand(rng, collect(eachindex(x)), 20))
-    t = x[unique(idx)]
-    npts = length(t)
-    ut = sin.(t)
-    stdev = 1.0e-1 * maximum(ut)
-    u = ut + stdev * randn(rng, npts)
-    # data must be ordered if t̂ is not provided
-    idx = sortperm(t)
-    tₒ = t[idx]
-    uₒ = u[idx]
-    A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
-    test_derivatives(
-        RegularizationSmooth; args = [uₒ, tₒ],
-        kwargs = [:alg => :fixed],
-        name = "RegularizationSmooth"
     )
 end
 

@@ -1,6 +1,6 @@
 name = "DataInterpolations"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
-version = "8.10.0"
+version = "9.0.0"
 
 [deps]
 EnumX = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
@@ -17,7 +17,6 @@ FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
-RegularizationTools = "29dad682-9a27-4bc3-9c72-016788665182"
 SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
@@ -25,7 +24,6 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 [extensions]
 DataInterpolationsChainRulesCoreExt = "ChainRulesCore"
 DataInterpolationsOptimExt = "Optim"
-DataInterpolationsRegularizationToolsExt = "RegularizationTools"
 DataInterpolationsSparseConnectivityTracerExt = ["SparseConnectivityTracer", "FillArrays"]
 DataInterpolationsSymbolicsExt = "Symbolics"
 DataInterpolationsMakieExt = "Makie"
@@ -49,7 +47,6 @@ PrettyTables = "2.4, 3"
 QuadGK = "2.9.1"
 RecipesBase = "1.3.4"
 Reexport = "1"
-RegularizationTools = "0.6"
 SafeTestsets = "0.1"
 SparseConnectivityTracer = "1"
 StableRNGs = "1"
@@ -71,7 +68,6 @@ Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
-RegularizationTools = "29dad682-9a27-4bc3-9c72-016788665182"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 StableRNGs = "860ef19b-820b-49d6-a774-d7a799459cd3"
@@ -82,4 +78,4 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [targets]
-test = ["Aqua", "AllocCheck", "BenchmarkTools", "SafeTestsets", "ChainRulesCore", "Mooncake", "Optim", "RegularizationTools", "Test", "StableRNGs", "FiniteDifferences", "QuadGK", "ForwardDiff", "StaticArrays", "Symbolics", "Unitful", "Zygote", "SparseConnectivityTracer"]
+test = ["Aqua", "AllocCheck", "BenchmarkTools", "SafeTestsets", "ChainRulesCore", "Mooncake", "Optim", "Test", "StableRNGs", "FiniteDifferences", "QuadGK", "ForwardDiff", "StaticArrays", "Symbolics", "Unitful", "Zygote", "SparseConnectivityTracer"]

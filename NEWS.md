@@ -1,3 +1,9 @@
+# DataInterpolations v9 Release Notes
+
+## Breaking changes
+
+  - The deprecated `RegularizationTools` extension and the `RegularizationSmooth` interpolation type have been removed. `RegularizationTools` was deprecated and capped `Optim` to `≤ 1`; removing it restores support for `Optim` v2.
+
 # DataInterpolations v5 Release Notes
 
 ## Breaking changes
