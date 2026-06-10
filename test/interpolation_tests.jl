@@ -438,6 +438,43 @@ end
         for q in qs_nu
             @test A_nu(q) == slope_form_eval(A_nu, q)
         end
+
+        # Vector knots uniform at the sampled probe points but jittered
+        # between them must not be classified uniform — a false positive
+        # here would silently corrupt interpolated values on the fast path.
+        t_trick = collect(1.0:101.0)
+        t_trick[52:60] .= range(54.5, 60.0, length = 9)
+        A_trick = LinearInterpolation(randn(StableRNG(0xdeadbeef), 101), t_trick)
+        @test !A_trick.t_props.is_uniform
+        @test A_trick.is_uniform_static === Val(false)
+
+        # Extension extrapolation reaches the fast path with t far outside
+        # the knot span, where the closed-form float index exceeds
+        # typemax(Int); the kernel must clamp before truncating.
+        A_ext = LinearInterpolation(
+            u, t_v; extrapolation = ExtrapolationType.Extension
+        )
+        for q in (1.0e300, -1.0e300)
+            @test isapprox(A_ext(q), slope_form_eval(A_ext, q); rtol = 1.0e-10)
+        end
+
+        # push! mutates A.t while t_props (and the IsUniform type tag)
+        # keep their construction-time values. The fast path must detect
+        # the stale cell/spacing against the live knots and fall back
+        # rather than silently interpolate with the stale inv_step.
+        t_m = collect(0.0:1.0:10.0)
+        A_m = LinearInterpolation(sin.(t_m), t_m)
+        @test A_m.is_uniform_static === Val(true)
+        push!(A_m, -0.3, 10.5)   # breaks the uniform spacing (1.0 → 0.5)
+        # Queries in the mutated region must fall back to the slope path
+        # (exact match); queries in the untouched uniform region still
+        # take the lerp fast path (equal up to a few ulps).
+        for q in (10.1, 10.25, 10.4)
+            @test A_m(q) == slope_form_eval(A_m, q)
+        end
+        for q in (5.5, 0.3)
+            @test isapprox(A_m(q), slope_form_eval(A_m, q); atol = 1.0e-12)
+        end
     end
 end
 
