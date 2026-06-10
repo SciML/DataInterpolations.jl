@@ -46,7 +46,7 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType, strategyTy
     function LinearInterpolationIntInv(
             u, t, A, extrapolation_left, extrapolation_right, t_props,
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(A), eltype(u),
             typeof(t_props), typeof(strategy),
@@ -117,7 +117,7 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType, strategy
     function ConstantInterpolationIntInv(
             u, t, A, extrapolation_left, extrapolation_right, t_props,
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(A), eltype(u),
             typeof(t_props), typeof(strategy),
