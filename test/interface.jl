@@ -30,21 +30,26 @@ end
 
 @testset "Type Inference" begin
     u = 2.0collect(1:10)
-    # `LinearInterpolation`'s constructor encodes uniformity in the cache's
-    # `IsUniform` type parameter. For an `AbstractRange` knot vector the tag
-    # is `Val(true)` statically, so the constructor is type-stable. For a
-    # `Vector` knot vector the tag depends on the values, so the constructor
-    # returns `Union{LinearInterpolation{..., true}, LinearInterpolation{..., false}}`.
-    # Each concrete instance is fully type-stable per query — only the
-    # construction boundary sees the union.
-    t = 1.0:10.0
+    t = 1.0collect(1:10)
+    tr = 1.0:10.0
     methods = [
         ConstantInterpolation, LinearInterpolation,
         QuadraticInterpolation, LagrangeInterpolation,
         QuadraticSpline, CubicSpline, AkimaInterpolation,
     ]
     @testset "$method" for method in methods
-        @inferred method(u, t)
+        if method === LinearInterpolation
+            # The constructor encodes uniformity in the cache's `IsUniform`
+            # type parameter: `Val(true)` statically for Range knots
+            # (constructor inferred), value-dependent for Vector knots (the
+            # constructor returns a Union over the tag; each concrete
+            # instance is type-stable per query).
+            @inferred method(u, tr)
+            A = method(u, t)
+            @inferred A(2.5)
+        else
+            @inferred method(u, t)
+        end
     end
     @testset "BSplineInterpolation" begin
         @inferred BSplineInterpolation(u, t, 3, :Uniform, :Uniform)

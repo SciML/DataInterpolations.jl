@@ -1,7 +1,7 @@
 #=
 Cross-library 1D interpolation benchmark for DataInterpolations.jl.
 
-Compares DataInterpolations.jl (PR #529 branch, with cached Auto(t_props)) against
+Compares DataInterpolations.jl against
 Interpolations.jl, Dierckx.jl, BasicInterpolators.jl, PCHIPInterpolation.jl,
 and FastInterpolations.jl.
 
