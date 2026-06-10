@@ -45,7 +45,7 @@ struct LinearInterpolation{
             u, t, I, p, extrapolation_left, extrapolation_right,
             cache_parameters, t_props, ::Val{IsUniform},
         ) where {IsUniform}
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.slope),
             eltype(u), typeof(t_props), typeof(strategy), IsUniform,
@@ -139,7 +139,7 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType, strategy
         )
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.α),
             eltype(u), typeof(t_props), typeof(strategy),
@@ -217,7 +217,7 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType, strategyTyp
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), eltype(u), typeof(bcache),
             typeof(t_props), typeof(strategy),
@@ -303,7 +303,7 @@ struct AkimaInterpolation{
             u, t, I, b, c, d, extrapolation_left,
             extrapolation_right, cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
             typeof(d), eltype(u), typeof(t_props), typeof(strategy),
@@ -458,7 +458,7 @@ struct ConstantInterpolation{uType, tType, IType, T, propsType, strategyType} <:
             u, t, I, dir, extrapolation_left, extrapolation_right,
             cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), eltype(u),
             typeof(t_props), typeof(strategy),
@@ -539,7 +539,7 @@ struct SmoothedConstantInterpolation{
             u, t, I, p, d_max, extrapolation_left,
             extrapolation_right, cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.d),
             typeof(p.c), typeof(d_max), eltype(u), typeof(t_props), typeof(strategy),
@@ -621,7 +621,7 @@ struct QuadraticSpline{
             u, t, I, p, k, c, sc, extrapolation_left,
             extrapolation_right, cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props), typeof(strategy),
@@ -758,7 +758,7 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType, strat
             u, t, I, p, h, z, extrapolation_left,
             extrapolation_right, cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.c₁),
             typeof(h), typeof(z), eltype(u), typeof(t_props), typeof(strategy),
@@ -970,7 +970,7 @@ struct BSplineInterpolation{
             extrapolation_right,
             t_props,
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(p), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props), typeof(strategy),
@@ -1219,7 +1219,7 @@ struct BSplineApprox{
             extrapolation_right,
             t_props,
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(p), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props), typeof(strategy),
@@ -1496,7 +1496,7 @@ struct CubicHermiteSpline{
             du, u, t, I, p, extrapolation_left, extrapolation_right,
             cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
             typeof(p.c₁), eltype(u), typeof(t_props), typeof(strategy),
@@ -1607,7 +1607,7 @@ struct QuinticHermiteSpline{
             ddu, du, u, t, I, p, extrapolation_left,
             extrapolation_right, cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
             typeof(ddu), typeof(p.c₁), eltype(u), typeof(t_props), typeof(strategy),
@@ -1678,7 +1678,7 @@ struct SmoothArcLengthInterpolation{
             I, extrapolation_left, extrapolation_right,
             out, derivative, in_place, t_props
         )
-        strategy = _resolve_strategy(t)
+        strategy = _resolve_strategy(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), eltype(radius),
             eltype(d), typeof(shape_itp), eltype(u), typeof(t_props), typeof(strategy),

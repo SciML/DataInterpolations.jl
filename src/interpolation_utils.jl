@@ -220,7 +220,7 @@ end
 #   - Resolves a concrete `StrategyKind` from `length(t)` + the
 #     `SearchProperties{T}(t)` probe at construction.
 #   - For uniformly-spaced data (any `AbstractRange` or a `Vector` whose
-#     9-point linearity probe is within ~1e-12 of exact uniformity),
+#     every element lies within ~1e-12 of the exactly-uniform line),
 #     picks `KIND_UNIFORM_STEP` and bakes the precomputed `inv_step`
 #     into `props`. The hot path is then one subtract, one multiply,
 #     one truncate per query — no division, no logarithmic search.
@@ -233,6 +233,11 @@ end
 # both ratio-promote to `Float64`, so `Auto{Float64}` covers the common
 # Float-knot cases.
 @inline _resolve_strategy(t::AbstractVector) = FindFirstFunctions.Auto(t)
+# Props-aware form: reuses the already-computed (possibly caller-supplied)
+# `SearchProperties` instead of re-probing `t` inside `Auto(t)`, and keeps
+# `A.strategy.props` consistent with `A.t_props`.
+@inline _resolve_strategy(t::AbstractVector, props::FindFirstFunctions.SearchProperties) =
+    FindFirstFunctions.Auto(t, props)
 
 # Static-uniformity tag for caches. `AbstractRange{<:Real}` is uniform at the
 # type level — `Val(true)` is a compile-time constant. For `AbstractVector`
@@ -253,9 +258,8 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    # `A.strategy` is a concrete `SearchStrategy` singleton resolved at
-    # construction time. Static dispatch avoids the `Auto` per-call
-    # `_auto_pick` branch.
+    # `A.strategy` is a concrete `Auto{T}` resolved at construction time;
+    # its stored kind dispatches without any per-call re-probing.
     strat = A.strategy
     raw = if side == :last
         searchsortedlast(strat, tvec, t, iguess)
