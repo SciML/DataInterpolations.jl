@@ -1,5 +1,6 @@
 #=
-DI per-query micro-bench, focused on the cells the user asked about:
+DI per-query micro-bench over the knot/query regimes where the search
+strategy dominates:
 
    Workload                                | DI before | DI after | FastInterp
    --------------------------------------- | --------- | -------- | ----------

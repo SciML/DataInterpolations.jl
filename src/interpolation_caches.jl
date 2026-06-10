@@ -22,6 +22,9 @@ Extrapolation extends the last linear polynomial on each side.
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation
     computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct LinearInterpolation{
         uType, tType, IType, pType, T, propsType, strategyType, IsUniform,
@@ -119,6 +122,9 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType, strategyType} <:
     AbstractInterpolation{T}
@@ -200,6 +206,10 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
 struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType, strategyType} <:
     AbstractInterpolation{T}
@@ -282,6 +292,9 @@ Extrapolation extends the last cubic polynomial on each side.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct AkimaInterpolation{
         uType, tType, IType, bType, cType, dType, T, propsType, strategyType,
@@ -440,6 +453,9 @@ Extrapolation extends the last constant polynomial at the end points on each sid
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct ConstantInterpolation{uType, tType, IType, T, propsType, strategyType} <:
     AbstractInterpolation{T}
@@ -519,6 +535,9 @@ except when using extrapolation types `Constant` or `Extension`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct SmoothedConstantInterpolation{
         uType, tType, IType, dType, cType, dmaxType, T, propsType, strategyType,
@@ -599,6 +618,9 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct QuadraticSpline{
         uType, tType, IType, pType, kType, cType, scType, T, propsType, strategyType,
@@ -739,6 +761,9 @@ Second derivative on both ends are zero, which are also called "natural" boundar
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType, strategyType} <:
     AbstractInterpolation{T}
@@ -937,6 +962,10 @@ Extrapolation is a constant polynomial of the end points on each side.
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
 struct BSplineInterpolation{
         uType, tType, pType, kType, cType, scType, T, propsType, strategyType,
@@ -1184,6 +1213,10 @@ Extrapolation is a constant polynomial of the end points on each side.
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
 struct BSplineApprox{
         uType, tType, pType, kType, cType, scType, T, propsType, strategyType,
@@ -1476,6 +1509,9 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct CubicHermiteSpline{
         uType, tType, IType, duType, pType, T, propsType, strategyType,
@@ -1556,6 +1592,9 @@ section 3.4 for more details.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 function PCHIPInterpolation(u, t; kwargs...)
     u, t = munge_data(u, t)
@@ -1586,6 +1625,9 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct QuinticHermiteSpline{
         uType, tType, IType, duType, dduType, pType, T, propsType, strategyType,
@@ -1724,6 +1766,10 @@ If you want to do this, construct the shape interpolation yourself and use the
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
 function SmoothArcLengthInterpolation(
         u::AbstractMatrix{U};
@@ -1770,6 +1816,10 @@ Approximate the `shape_itp` with a C¹ unit speed interpolation using line segme
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
 function SmoothArcLengthInterpolation(
         shape_itp::AbstractInterpolation;
@@ -1842,6 +1892,10 @@ segments and circle segments.
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
 function SmoothArcLengthInterpolation(
         u::AbstractMatrix,
