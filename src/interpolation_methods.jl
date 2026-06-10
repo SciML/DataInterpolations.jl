@@ -171,6 +171,10 @@ end
 
 # Linear Interpolation
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
+    return _linear_slope_interpolate(A, t, iguess)
+end
+
+function _linear_slope_interpolate(A::LinearInterpolation, t::Number, iguess)
     if isnan(t)
         # For correct derivative with NaN
         idx = firstindex(A.u)
@@ -231,17 +235,40 @@ function _interpolate(
     # Closed-form index lookup on a uniform grid: `f` is the float position
     # in `[0, length-1]`, `idx0` its floor (zero-based), `α` the fractional
     # part. Clamping into `[0, length-2]` keeps `idx0 + 1` and `idx0 + 2`
-    # in bounds for the two-sample load below.
-    f = (t - A.t_props.first_val) * A.t_props.inv_step
+    # in bounds for the two-sample load below. The clamp happens in the
+    # float domain before truncating: with Extension extrapolation `t` can
+    # be far outside the knot span, where `f` exceeds typemax(Int) and
+    # `unsafe_trunc` is UB.
+    props = A.t_props
+    f = (t - props.first_val) * props.inv_step
     n = length(A.t)
-    idx0 = unsafe_trunc(Int, floor(f))
-    if idx0 < 0
-        idx0 = 0
-    elseif idx0 > n - 2
-        idx0 = n - 2
+    idx0 = if f < 0
+        0
+    elseif f > n - 2
+        n - 2
+    else
+        unsafe_trunc(Int, floor(f))
+    end
+    @inbounds t1 = A.t[idx0 + 1]
+    @inbounds t2 = A.t[idx0 + 2]
+    # Verify the guessed cell against the live knots. `push!`/`append!`
+    # mutate `A.t` while `t_props` (and the `IsUniform` type tag) keep
+    # their construction-time values, so the precomputed `first_val` /
+    # `inv_step` can go stale; a caller-forced `is_uniform = true` on
+    # non-uniform knots is the same hazard. The cell check catches a
+    # wrong segment; the spacing check bounds the α error when the cell
+    # is right but the cached `inv_step` no longer matches the local
+    # spacing. The 1e-6 slack tolerates accumulated float roundoff on
+    # long validated-uniform vectors while rejecting any real spacing
+    # change. On failure, evaluate via the general slope-form path
+    # (slower, always correct).
+    in_cell = (t1 <= t || idx0 == 0) && (t <= t2 || idx0 == n - 2)
+    spacing_ok = abs((t2 - t1) * props.inv_step - 1) <= 1.0e-6
+    if !(in_cell && spacing_ok)
+        return _linear_slope_interpolate(A, t, iguess)
     end
     A.iguesser.idx_prev[] = idx0 + 1
-    α = f - idx0
+    α = (t - t1) * props.inv_step
     @inbounds u1 = A.u[idx0 + 1]
     @inbounds u2 = A.u[idx0 + 2]
     Δu = α * (u2 - u1)
@@ -249,8 +276,6 @@ function _interpolate(
         # When NaN appears in `u` adjacent to the segment, `0 * NaN = NaN`
         # poisons the answer at exact-knot queries. Resolve by comparing
         # the query against the knot values directly.
-        @inbounds t1 = A.t[idx0 + 1]
-        @inbounds t2 = A.t[idx0 + 2]
         if t == t2
             return u2 + zero(Δu)
         elseif t == t1
