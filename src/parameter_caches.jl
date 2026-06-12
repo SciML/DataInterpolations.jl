@@ -146,11 +146,19 @@ function QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
 end
 
 function quadratic_spline_parameters(u, t, k, c, sc, idx)
-    tᵢ₊ = (t[idx] + t[idx + 1]) / 2
-    nonzero_coefficient_idxs = spline_coefficients!(sc, 2, k, tᵢ₊)
-    uᵢ₊ = zero(first(u))
-    for j in nonzero_coefficient_idxs
-        uᵢ₊ += sc[j] * c[j]
+    uᵢ₊ = if length(t) == 2
+        # For 2 data points the knot vector has boundary multiplicity 2 < degree + 1,
+        # so the B-spline basis cannot be evaluated at interior points; the spline
+        # degenerates to the linear interpolant (α = 0, β = u₂ - u₁).
+        (u[1] + u[2]) / 2
+    else
+        tᵢ₊ = (t[idx] + t[idx + 1]) / 2
+        nonzero_coefficient_idxs = spline_coefficients!(sc, 2, k, tᵢ₊)
+        uᵢ₊ = zero(first(u))
+        for j in nonzero_coefficient_idxs
+            uᵢ₊ += sc[j] * c[j]
+        end
+        uᵢ₊
     end
     α = 2 * (u[idx + 1] + u[idx]) - 4uᵢ₊
     β = 4 * (uᵢ₊ - u[idx]) - (u[idx + 1] - u[idx])

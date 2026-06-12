@@ -60,6 +60,14 @@ function spline_coefficients!(N, d, k, u::AbstractVector)
 end
 
 function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
+    # Duplicate time points make the collocation system singular
+    if any(i -> t[i] == t[i + 1], 1:(length(t) - 1))
+        throw(
+            ArgumentError(
+                "The time points `t` must be unique for `QuadraticSpline`, but duplicate values were found."
+            )
+        )
+    end
 
     # Create knot vector
     # Don't use x[end-1] as knot to match number of degrees of freedom with data
@@ -72,7 +80,7 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
     # - A consists of basis function evaluations in t
     # - c are 1D control points
     n = length(t)
-    dtype_sc = typeof(t[1] / t[1])
+    dtype_sc = typeof(one(eltype(t)) / one(eltype(t)))
 
     diag = Vector{dtype_sc}(undef, n)
     diag_hi = Vector{dtype_sc}(undef, n - 1)

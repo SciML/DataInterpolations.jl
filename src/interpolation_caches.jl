@@ -641,7 +641,7 @@ function QuadraticSpline(
     u, t = munge_data(u, t)
 
     n = length(t)
-    dtype_sc = typeof(t[1] / t[1])
+    dtype_sc = typeof(one(eltype(t)) / one(eltype(t)))
     sc = zeros(dtype_sc, n)
     k, A = quadratic_spline_params(t, sc)
     c = A \ u
@@ -671,7 +671,7 @@ function QuadraticSpline(
     u, t = munge_data(u, t)
 
     n = length(t)
-    dtype_sc = typeof(t[1] / t[1])
+    dtype_sc = typeof(one(eltype(t)) / one(eltype(t)))
     sc = zeros(dtype_sc, n)
     k, A = quadratic_spline_params(t, sc)
 

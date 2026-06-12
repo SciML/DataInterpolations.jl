@@ -1029,6 +1029,33 @@ end
     A = @inferred(QuadraticSpline(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(-2.0)
     @test_throws DataInterpolations.RightExtrapolationError A(2.0)
+
+    # Two data points degenerate to the linear interpolant
+    u = [1.0, 3.0]
+    t = [0.0, 1.0]
+    A = @inferred(QuadraticSpline(u, t))
+    @test A(0.0) == 1.0
+    @test A(1.0) == 3.0
+    @test A(0.25) == 1.5
+    @test DataInterpolations.derivative(A, 0.5) == 2.0
+    @test DataInterpolations.integral(A, 0.0, 1.0) == 2.0
+    A = QuadraticSpline(u, t; cache_parameters = true)
+    @test A(0.25) == 1.5
+    A = QuadraticSpline([[1.0, 2.0], [3.0, 6.0]], t)
+    @test A(0.5) == [2.0, 4.0]
+
+    # Rational data with t[1] == 0; u = (t + 1)^2 is reproduced exactly
+    u = [1 // 1, 4 // 1, 9 // 1]
+    t = [0 // 1, 1 // 1, 2 // 1]
+    A = QuadraticSpline(u, t)
+    @test A(1 // 2) == 9 // 4
+    @test A(3 // 2) == 25 // 4
+
+    # Duplicate time points throw an informative error
+    @test_throws ArgumentError QuadraticSpline(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError QuadraticSpline([1.0, 2.0, 3.0], [0.0, 0.0, 1.0])
 end
 
 @testset "CubicSpline Interpolation" begin
