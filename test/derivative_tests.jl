@@ -1,5 +1,5 @@
 using DataInterpolations, Test
-using FindFirstFunctions: BracketGallop
+using FindFirstFunctions: FindFirstFunctions, BracketGallop
 using FiniteDifferences
 using DataInterpolations: derivative, get_transition_ts
 using Symbolics
@@ -52,7 +52,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             if hasproperty(func, :t_props) && !func.t_props.is_uniform
                 @test abs(
                     func.iguesser.idx_prev[] -
-                        searchsortedfirst(
+                        FindFirstFunctions.search_first(
                         BracketGallop(), func.t, _t, func.iguesser(_t)
                     )
                 ) <= 1
