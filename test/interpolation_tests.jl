@@ -1,5 +1,5 @@
 using DataInterpolations
-using FindFirstFunctions: GuesserHint
+using FindFirstFunctions: FindFirstFunctions, GuesserHint
 using StableRNGs
 using Optim, ForwardDiff
 using BenchmarkTools
@@ -23,10 +23,10 @@ end
 function test_cached_index(A)
     for t in range(first(A.t), last(A.t); length = 2 * length(A.t) - 1)
         A(t)
-        idx = searchsortedfirst(GuesserHint(A.iguesser), A.t, t)
+        idx = FindFirstFunctions.search_first(GuesserHint(A.iguesser), A.t, t)
         @test abs(
             A.iguesser.idx_prev[] -
-                searchsortedfirst(GuesserHint(A.iguesser), A.t, t)
+                FindFirstFunctions.search_first(GuesserHint(A.iguesser), A.t, t)
         ) <= 2
     end
     return

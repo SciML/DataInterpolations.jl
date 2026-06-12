@@ -212,7 +212,7 @@ end
 
 # Resolve a concrete `FindFirstFunctions.SearchStrategy` for the given
 # knot vector at construction time. Stored on every interpolation cache
-# as `A.strategy` so that `get_idx`'s `searchsortedlast(A.strategy, …)` is
+# as `A.strategy` so that `get_idx`'s `search_last(A.strategy, …)` is
 # fully static-dispatched — no per-query `_auto_pick` branch.
 #
 # We dispatch to `FindFirstFunctions.Auto(t)`, which:
@@ -262,9 +262,9 @@ function get_idx(
     # its stored kind dispatches without any per-call re-probing.
     strat = A.strategy
     raw = if side == :last
-        searchsortedlast(strat, tvec, t, iguess)
+        FindFirstFunctions.search_last(strat, tvec, t, iguess)
     elseif side == :first
-        searchsortedfirst(strat, tvec, t, iguess)
+        FindFirstFunctions.search_first(strat, tvec, t, iguess)
     else
         error("side must be :first or :last")
     end
@@ -282,9 +282,9 @@ function get_idx(
     # falls back to the cached `idx_prev` otherwise.
     hint = iguess(t)
     raw = if side == :last
-        searchsortedlast(strat, tvec, t, hint)
+        FindFirstFunctions.search_last(strat, tvec, t, hint)
     elseif side == :first
-        searchsortedfirst(strat, tvec, t, hint)
+        FindFirstFunctions.search_first(strat, tvec, t, hint)
     else
         error("side must be :first or :last")
     end
