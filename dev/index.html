@@ -26,9 +26,9 @@ Build Info:
   Official https://julialang.org release
 Platform Info:
   OS: Linux (x86_64-linux-gnu)
-  CPU: 4 × AMD EPYC 7763 64-Core Processor
+  CPU: 4 × AMD EPYC 9V74 80-Core Processor
   WORD_SIZE: 64
-  LLVM: libLLVM-18.1.7 (ORCJIT, znver3)
+  LLVM: libLLVM-18.1.7 (ORCJIT, znver4)
   GC: Built with stock GC
 Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></details><details><summary>A more complete overview of all dependencies and their versions is also provided.</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr32"><span class="sgr1">Status</span></span> `~/work/DataInterpolations.jl/DataInterpolations.jl/docs/Manifest.toml`
   <span class="sgr90">[47edcb42] </span>ADTypes v1.22.0
@@ -37,7 +37,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[6e696c72] </span>AbstractPlutoDingetjes v1.4.0
   <span class="sgr90">[1520ce14] </span>AbstractTrees v0.4.5
   <span class="sgr90">[7d9f7c33] </span>Accessors v0.1.44
-  <span class="sgr90">[79e6a3ab] </span>Adapt v4.6.0
+  <span class="sgr90">[79e6a3ab] </span>Adapt v4.6.1
   <span class="sgr90">[66dad0bd] </span>AliasTables v1.1.3
   <span class="sgr90">[ec485272] </span>ArnoldiMethod v0.4.0
   <span class="sgr90">[4fba245c] </span>ArrayInterface v7.25.0
@@ -72,7 +72,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[e2d170a0] </span>DataValueInterfaces v1.0.0
   <span class="sgr90">[8bb1440f] </span>DelimitedFiles v1.9.1
   <span class="sgr90">[2b5f629d] </span>DiffEqBase v7.5.5
-  <span class="sgr90">[459566f4] </span>DiffEqCallbacks v4.17.0
+  <span class="sgr90">[459566f4] </span>DiffEqCallbacks v4.18.0
   <span class="sgr90">[163ba53b] </span>DiffResults v1.1.0
   <span class="sgr90">[b552c78f] </span>DiffRules v1.16.0
   <span class="sgr90">[a0c0ee7d] </span>DifferentiationInterface v0.7.18
@@ -94,7 +94,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[6a86dc24] </span>FiniteDiff v2.31.0
 <span class="sgr33">⌅</span> <span class="sgr90">[53c48c17] </span>FixedPointNumbers v0.8.6
   <span class="sgr90">[1fa38f19] </span>Format v1.3.7
-  <span class="sgr90">[f6369f11] </span>ForwardDiff v1.4.0
+  <span class="sgr90">[f6369f11] </span>ForwardDiff v1.4.1
   <span class="sgr90">[a85aefff] </span>FunctionMaps v0.1.2
   <span class="sgr90">[069b7b12] </span>FunctionWrappers v1.1.3
   <span class="sgr90">[77dc65aa] </span>FunctionWrappersWrappers v1.9.1
@@ -142,9 +142,9 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[102ac46a] </span>MultivariatePolynomials v0.5.19
   <span class="sgr90">[d8a4904e] </span>MutableArithmetics v1.8.0
   <span class="sgr90">[d41bc354] </span>NLSolversBase v8.0.0
-  <span class="sgr90">[77ba4419] </span>NaNMath v1.1.3
+  <span class="sgr90">[77ba4419] </span>NaNMath v1.1.4
   <span class="sgr90">[8913a72c] </span>NonlinearSolve v4.19.1
-  <span class="sgr90">[be0214bd] </span>NonlinearSolveBase v2.30.3
+  <span class="sgr90">[be0214bd] </span>NonlinearSolveBase v2.31.0
   <span class="sgr90">[5959db7a] </span>NonlinearSolveFirstOrder v2.1.1
   <span class="sgr90">[9a2c21bd] </span>NonlinearSolveQuasiNewton v1.13.1
   <span class="sgr90">[26075421] </span>NonlinearSolveSpectralMethods v1.7.1
@@ -175,7 +175,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[08abe8d2] </span>PrettyTables v3.3.2
   <span class="sgr90">[27ebfcd6] </span>Primes v0.5.7
   <span class="sgr90">[43287f4e] </span>PtrArrays v1.4.0
-  <span class="sgr90">[0c0d3e7f] </span>PureKLU v1.0.0
+  <span class="sgr90">[0c0d3e7f] </span>PureKLU v1.0.1
   <span class="sgr90">[988b38a3] </span>ReadOnlyArrays v0.2.0
   <span class="sgr90">[795d4caa] </span>ReadOnlyDicts v1.0.1
   <span class="sgr90">[3cdcf5f2] </span>RecipesBase v1.3.4
@@ -187,7 +187,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[ae029012] </span>Requires v1.3.1
   <span class="sgr90">[7e49a35a] </span>RuntimeGeneratedFunctions v0.5.19
   <span class="sgr90">[9dfe8606] </span>SCCNonlinearSolve v1.13.0
-  <span class="sgr90">[0bca4576] </span>SciMLBase v3.18.0
+  <span class="sgr90">[0bca4576] </span>SciMLBase v3.20.0
   <span class="sgr90">[19f34311] </span>SciMLJacobianOperators v0.1.13
   <span class="sgr90">[a6db7da4] </span>SciMLLogging v2.0.0
   <span class="sgr90">[c0aeaf25] </span>SciMLOperators v1.22.0
@@ -215,7 +215,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[ec057cc2] </span>StructUtils v2.8.2
   <span class="sgr90">[2efcf032] </span>SymbolicIndexingInterface v0.3.48
   <span class="sgr90">[19f23fe9] </span>SymbolicLimits v1.1.0
-  <span class="sgr90">[d1185830] </span>SymbolicUtils v4.34.3
+  <span class="sgr90">[d1185830] </span>SymbolicUtils v4.35.0
   <span class="sgr90">[0c5d862f] </span>Symbolics v7.26.0
   <span class="sgr90">[3783bdb8] </span>TableTraits v1.0.1
   <span class="sgr90">[bd369af6] </span>Tables v1.12.1
@@ -364,4 +364,4 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[8e850b90] </span>libblastrampoline_jll v5.15.0+0
   <span class="sgr90">[8e850ede] </span>nghttp2_jll v1.64.0+1
   <span class="sgr90">[3f19e933] </span>p7zip_jll v17.7.0+0
-<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr33">⌅</span> have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v9.0.0/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v9.0.0/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 9 June 2026 01:28">Tuesday 9 June 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr33">⌅</span> have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v9.0.0/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v9.0.0/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Saturday 13 June 2026 08:09">Saturday 13 June 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
