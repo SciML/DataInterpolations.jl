@@ -5,7 +5,7 @@ versions = ["lts", "1", "pre"]
 versions = ["lts", "1", "pre"]
 
 [Extensions]
-versions = ["lts", "1", "pre"]
+versions = ["lts", "1"]
 
 [Misc]
 versions = ["lts", "1", "pre"]
