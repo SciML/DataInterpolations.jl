@@ -52,7 +52,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             if hasproperty(func, :t_props) && !func.t_props.is_uniform
                 @test abs(
                     func.iguesser.idx_prev[] -
-                        FindFirstFunctions.search_first(
+                        FindFirstFunctions.searchsorted_first(
                         BracketGallop(), func.t, _t, func.iguesser(_t)
                     )
                 ) <= 1
