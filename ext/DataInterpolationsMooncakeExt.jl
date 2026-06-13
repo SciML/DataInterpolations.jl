@@ -59,16 +59,16 @@ end
 
 # Sorted-search dispatched through `Auto{T}` carries the props' `first_val::T`
 # and `inv_step::T` Float fields, which Mooncake exposes as rdata. The
-# `search_last` / `search_first` calls return integer indices — they are
+# `searchsorted_last` / `searchsorted_first` calls return integer indices — they are
 # positional bookkeeping, not differentiable. Declare them as
 # zero-adjoint so Mooncake doesn't try to recurse into FFF's strategy
 # kernels (which contain `llvmcall` SIMD intrinsics that Mooncake cannot
 # differentiate through). DI's interpolation `_interpolate` always feeds
 # the search results into integer indexing, so the gradient flow is
 # already cut at the index boundary — zero-adjoint here is correct.
-@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.search_last), FindFirstFunctions.Auto, AbstractVector, Any, Integer}
-@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.search_first), FindFirstFunctions.Auto, AbstractVector, Any, Integer}
-@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.search_last), FindFirstFunctions.Auto, AbstractVector, Any}
-@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.search_first), FindFirstFunctions.Auto, AbstractVector, Any}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_last), FindFirstFunctions.Auto, AbstractVector, Any, Integer}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_first), FindFirstFunctions.Auto, AbstractVector, Any, Integer}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_last), FindFirstFunctions.Auto, AbstractVector, Any}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_first), FindFirstFunctions.Auto, AbstractVector, Any}
 
 end
