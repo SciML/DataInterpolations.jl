@@ -33,7 +33,7 @@ Can be easily constructed with `invert_integral(A::LinearInterpolation{<:Abstrac
   - `t` : Given by `A.I` (the cumulative integral of `A`)
   - `A` : The `LinearInterpolation` object
 """
-struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType} <:
+struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType, strategyType} <:
     AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
@@ -41,11 +41,18 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    strategy::strategyType
     itp::itpType
-    function LinearInterpolationIntInv(u, t, A, extrapolation_left, extrapolation_right)
-        t_props = FindFirstFunctions.SearchProperties(t)
-        return new{typeof(u), typeof(t), typeof(A), eltype(u), typeof(t_props)}(
-            u, t, extrapolation_left, extrapolation_right, Guesser(t), t_props, A
+    function LinearInterpolationIntInv(
+            u, t, A, extrapolation_left, extrapolation_right, t_props,
+        )
+        strategy = _resolve_strategy(t, t_props)
+        return new{
+            typeof(u), typeof(t), typeof(A), eltype(u),
+            typeof(t_props), typeof(strategy),
+        }(
+            u, t, extrapolation_left, extrapolation_right,
+            Guesser(t), t_props, strategy, A
         )
     end
 end
@@ -63,12 +70,14 @@ end
 function invert_integral(
         A::LinearInterpolation{<:AbstractVector{<:Number}};
         extrapolation_left::ExtrapolationType.T = A.extrapolation_left,
-        extrapolation_right::ExtrapolationType.T = A.extrapolation_right
+        extrapolation_right::ExtrapolationType.T = A.extrapolation_right,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     !invertible_integral(A) && throw(IntegralNotInvertibleError())
-
+    t_I = get_I(A)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t_I))
     return LinearInterpolationIntInv(
-        A.t, get_I(A), A, extrapolation_left, extrapolation_right
+        A.t, t_I, A, extrapolation_left, extrapolation_right, t_props
     )
 end
 
@@ -95,7 +104,7 @@ Can be easily constructed with `invert_integral(A::ConstantInterpolation{<:Abstr
   - `t` : Given by `A.I` (the cumulative integral of `A`)
   - `A` : The `ConstantInterpolation` object
 """
-struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType} <:
+struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType, strategyType} <:
     AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
@@ -103,13 +112,18 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    strategy::strategyType
     itp::itpType
     function ConstantInterpolationIntInv(
-            u, t, A, extrapolation_left, extrapolation_right
+            u, t, A, extrapolation_left, extrapolation_right, t_props,
         )
-        t_props = FindFirstFunctions.SearchProperties(t)
-        return new{typeof(u), typeof(t), typeof(A), eltype(u), typeof(t_props)}(
-            u, t, extrapolation_left, extrapolation_right, Guesser(t), t_props, A
+        strategy = _resolve_strategy(t, t_props)
+        return new{
+            typeof(u), typeof(t), typeof(A), eltype(u),
+            typeof(t_props), typeof(strategy),
+        }(
+            u, t, extrapolation_left, extrapolation_right,
+            Guesser(t), t_props, strategy, A
         )
     end
 end
@@ -121,11 +135,14 @@ end
 function invert_integral(
         A::ConstantInterpolation{<:AbstractVector{<:Number}};
         extrapolation_left::ExtrapolationType.T = A.extrapolation_left,
-        extrapolation_right::ExtrapolationType.T = A.extrapolation_right
+        extrapolation_right::ExtrapolationType.T = A.extrapolation_right,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     !invertible_integral(A) && throw(IntegralNotInvertibleError())
+    t_I = get_I(A)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t_I))
     return ConstantInterpolationIntInv(
-        A.t, get_I(A), A, extrapolation_left, extrapolation_right
+        A.t, t_I, A, extrapolation_left, extrapolation_right, t_props
     )
 end
 

@@ -30,6 +30,10 @@ function findRequiredIdxs!(A::LagrangeInterpolation, t, idx)
 end
 
 function spline_coefficients!(N, d, k, u::Number)
+    # `N` is zeroed because BSpline derivative paths read the full vector
+    # (see `_derivative(::BSplineInterpolation, …)` in `derivatives.jl`).
+    # Positions outside the body's `(i-d):i` write window must be zero or
+    # stale values from previous calls would leak in.
     N .= zero(u)
     if u == k[1]
         N[1] = one(u)
@@ -38,18 +42,27 @@ function spline_coefficients!(N, d, k, u::Number)
         N[end] = one(u)
         return length(N):length(N)
     else
-        i = findfirst(x -> x > u, k)::Int - 1
-        N[i] = one(u)
-        for deg in 1:d
-            N[i - deg] = (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) * N[i - deg + 1]
-            for j in (i - deg + 1):(i - 1)
-                N[j] = (u - k[j]) / (k[j + deg] - k[j]) * N[j] +
-                    (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) * N[j + 1]
-            end
-            N[i] = (u - k[i]) / (k[i + deg] - k[i]) * N[i]
-        end
-        return (i - d):i
+        # `k` is sorted; the legacy `findfirst(x -> x > u, k) - 1` did an O(n)
+        # linear scan. `searchsortedlast` returns the same index in O(log n).
+        i = searchsortedlast(k, u)
+        return _spline_coefficients_body!(N, d, k, u, i)
     end
+end
+
+# Body of `spline_coefficients!` after the locator index `i` has been
+# determined. Used by `spline_coefficients!` (logarithmic locator) and by
+# `quadratic_spline_params` (O(1) amortised running locator).
+function _spline_coefficients_body!(N, d, k, u, i)
+    N[i] = one(u)
+    for deg in 1:d
+        N[i - deg] = (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) * N[i - deg + 1]
+        for j in (i - deg + 1):(i - 1)
+            N[j] = (u - k[j]) / (k[j + deg] - k[j]) * N[j] +
+                (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) * N[j + 1]
+        end
+        N[i] = (u - k[i]) / (k[i + deg] - k[i]) * N[i]
+    end
+    return (i - d):i
 end
 
 function spline_coefficients!(N, d, k, u::AbstractVector)
@@ -86,11 +99,41 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
     diag_hi = Vector{dtype_sc}(undef, n - 1)
     diag_lo = Vector{dtype_sc}(undef, n - 1)
 
+    # `t` is sorted and `k` is built from `t`, so the locator
+    # `searchsortedlast(k, tᵢ)` is non-decreasing in `i`. Maintain a running
+    # pointer to advance amortised O(1) per knot — total O(n) instead of the
+    # O(n²) `findfirst` scan or O(n log n) per-call `searchsortedlast`.
+    nk = length(k)
+    d = 2
+    fill!(sc, zero(dtype_sc))
+    locator = 1
     for (i, tᵢ) in enumerate(t)
-        spline_coefficients!(sc, 2, k, tᵢ)
+        if tᵢ == k[1] || tᵢ == k[end]
+            # `t[1] == k[1]` and `t[end] == k[end]` by construction, so this
+            # branch only fires for `i == 1` (sc[1] = 1) and `i == n`
+            # (sc[end] = 1). Read directly without touching `sc`.
+            on_first = tᵢ == k[1]
+            diag[i] = (on_first && i == 1) || (!on_first && i == length(sc)) ?
+                one(dtype_sc) : zero(dtype_sc)
+            (i > 1) && (diag_lo[i - 1] = zero(dtype_sc))
+            (i < n) && (diag_hi[i] = zero(dtype_sc))
+            continue
+        end
+        # Advance the running locator until `k[locator+1] > tᵢ` — equivalent
+        # to `searchsortedlast(k, tᵢ)` on monotone-increasing `tᵢ` inputs.
+        while locator < nk && k[locator + 1] <= tᵢ
+            locator += 1
+        end
+        _spline_coefficients_body!(sc, d, k, tᵢ, locator)
         diag[i] = sc[i]
         (i > 1) && (diag_lo[i - 1] = sc[i - 1])
         (i < n) && (diag_hi[i] = sc[i + 1])
+        # The body writes only `sc[locator-d:locator]`; zero those entries
+        # so the next iteration starts with `sc .== 0` again (the body
+        # assumes positions outside its write window are already zero).
+        for j in (locator - d):locator
+            sc[j] = zero(dtype_sc)
+        end
     end
 
     A = Tridiagonal(diag_lo, diag, diag_hi)
@@ -167,28 +210,47 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     return U, t
 end
 
-seems_linear(assume_linear_t::Bool, _) = assume_linear_t
-seems_linear(assume_linear_t::Number, t) = looks_linear(t; threshold = assume_linear_t)
+# Resolve a concrete `FindFirstFunctions.SearchStrategy` for the given
+# knot vector at construction time. Stored on every interpolation cache
+# as `A.strategy` so that `get_idx`'s `searchsorted_last(A.strategy, …)` is
+# fully static-dispatched — no per-query `_auto_pick` branch.
+#
+# We dispatch to `FindFirstFunctions.Auto(t)`, which:
+#
+#   - Resolves a concrete `StrategyKind` from `length(t)` + the
+#     `SearchProperties{T}(t)` probe at construction.
+#   - For uniformly-spaced data (any `AbstractRange` or a `Vector` whose
+#     every element lies within ~1e-12 of the exactly-uniform line),
+#     picks `KIND_UNIFORM_STEP` and bakes the precomputed `inv_step`
+#     into `props`. The hot path is then one subtract, one multiply,
+#     one truncate per query — no division, no logarithmic search.
+#   - For non-uniform data with `length(t) ≤ 16`, picks `KIND_LINEAR_SCAN`.
+#   - Otherwise picks `KIND_BRACKET_GALLOP` (the v2 default).
+#
+# `Auto{T}` is parametric on the data ratio type, so the cache's
+# `strategyType` parameter resolves to a single concrete `Auto{T}` per
+# `t` and dispatch stays type-stable. `Vector{Int}` and `Vector{Float64}`
+# both ratio-promote to `Float64`, so `Auto{Float64}` covers the common
+# Float-knot cases.
+@inline _resolve_strategy(t::AbstractVector) = FindFirstFunctions.Auto(t)
+# Props-aware form: reuses the already-computed (possibly caller-supplied)
+# `SearchProperties` instead of re-probing `t` inside `Auto(t)`, and keeps
+# `A.strategy.props` consistent with `A.t_props`.
+@inline _resolve_strategy(t::AbstractVector, props::FindFirstFunctions.SearchProperties) =
+    FindFirstFunctions.Auto(t, props)
 
-"""
-    looks_linear(t; threshold = 1e-2)
-
-Determine if the abscissae `t` are regularly distributed, taking the standard deviation of
-the difference between the array of abscissae with respect to the straight line linking
-its first and last elements, normalized by the range of `t`. If this standard deviation is
-below the given `threshold`, the vector looks linear (return true). Internal function -
-interface may change.
-"""
-function looks_linear(t; threshold = 1.0e-2)
-    length(t) <= 2 && return true
-    t_0, t_f = first(t), last(t)
-    t_span = t_f - t_0
-    tspan_over_N = t_span * length(t)^(-1)
-    norm_var = sum(
-        (t_i - t_0 - i * tspan_over_N)^2 for (i, t_i) in enumerate(t)
-    ) / (length(t) * t_span^2)
-    return norm_var < threshold^2
-end
+# Static-uniformity tag for caches. `AbstractRange{<:Real}` is uniform at the
+# type level — `Val(true)` is a compile-time constant. For `AbstractVector`
+# we fall through to the runtime `t_props.is_uniform` flag, which makes the
+# constructor's return type a `Union{LinearInterpolation{..., true},
+# LinearInterpolation{..., false}}`. Each concrete instance is fully
+# type-stable per query — only the construction boundary sees the union.
+@inline _static_uniform_tag(
+    ::AbstractRange{<:Real}, ::FindFirstFunctions.SearchProperties
+) = Val(true)
+@inline _static_uniform_tag(
+    ::AbstractVector, props::FindFirstFunctions.SearchProperties
+) = Val(props.is_uniform)
 
 function get_idx(
         A::AbstractInterpolation, t, iguess::Integer; lb = 1,
@@ -196,19 +258,17 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    return if side == :last
-        clamp(
-            searchsortedlast(FindFirstFunctions.BracketGallop(), tvec, t, iguess) +
-                idx_shift, lb, ub
-        )
+    # `A.strategy` is a concrete `Auto{T}` resolved at construction time;
+    # its stored kind dispatches without any per-call re-probing.
+    strategy = A.strategy
+    raw = if side == :last
+        FindFirstFunctions.searchsorted_last(strategy, tvec, t, iguess)
     elseif side == :first
-        clamp(
-            searchsortedfirst(FindFirstFunctions.BracketGallop(), tvec, t, iguess) +
-                idx_shift, lb, ub
-        )
+        FindFirstFunctions.searchsorted_first(strategy, tvec, t, iguess)
     else
         error("side must be :first or :last")
     end
+    return clamp(raw + idx_shift, lb, ub)
 end
 
 function get_idx(
@@ -217,19 +277,20 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    return if side == :last
-        clamp(
-            searchsortedlast(FindFirstFunctions.GuesserHint(iguess), tvec, t) +
-                idx_shift, lb, ub
-        )
+    strategy = A.strategy
+    # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
+    # falls back to the cached `idx_prev` otherwise.
+    hint = iguess(t)
+    raw = if side == :last
+        FindFirstFunctions.searchsorted_last(strategy, tvec, t, hint)
     elseif side == :first
-        clamp(
-            searchsortedfirst(FindFirstFunctions.GuesserHint(iguess), tvec, t) +
-                idx_shift, lb, ub
-        )
+        FindFirstFunctions.searchsorted_first(strategy, tvec, t, hint)
     else
         error("side must be :first or :last")
     end
+    idx = clamp(raw + idx_shift, lb, ub)
+    iguess.idx_prev[] = idx
+    return idx
 end
 
 cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
