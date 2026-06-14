@@ -260,11 +260,11 @@ function get_idx(
     ub = length(tvec) + ub_shift
     # `A.strategy` is a concrete `Auto{T}` resolved at construction time;
     # its stored kind dispatches without any per-call re-probing.
-    strat = A.strategy
+    strategy = A.strategy
     raw = if side == :last
-        FindFirstFunctions.searchsorted_last(strat, tvec, t, iguess)
+        FindFirstFunctions.searchsorted_last(strategy, tvec, t, iguess)
     elseif side == :first
-        FindFirstFunctions.searchsorted_first(strat, tvec, t, iguess)
+        FindFirstFunctions.searchsorted_first(strategy, tvec, t, iguess)
     else
         error("side must be :first or :last")
     end
@@ -277,14 +277,14 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    strat = A.strategy
+    strategy = A.strategy
     # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
     # falls back to the cached `idx_prev` otherwise.
     hint = iguess(t)
     raw = if side == :last
-        FindFirstFunctions.searchsorted_last(strat, tvec, t, hint)
+        FindFirstFunctions.searchsorted_last(strategy, tvec, t, hint)
     elseif side == :first
-        FindFirstFunctions.searchsorted_first(strat, tvec, t, hint)
+        FindFirstFunctions.searchsorted_first(strategy, tvec, t, hint)
     else
         error("side must be :first or :last")
     end
