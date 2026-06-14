@@ -1557,9 +1557,9 @@ version = "0.5.6+0"
 
 [[deps.Optim]]
 deps = ["ADTypes", "EnumX", "FillArrays", "LineSearches", "LinearAlgebra", "NLSolversBase", "NaNMath", "PositiveFactorizations", "Printf", "SparseArrays", "Statistics"]
-git-tree-sha1 = "7ecee58b8bd88cc8bbdb90d056d1c6546322eebd"
+git-tree-sha1 = "effff1451af3c447a8a222e9edc3519ffaac2d7a"
 uuid = "429524aa-4258-5aef-a3af-852621145aeb"
-version = "2.1.0"
+version = "2.2.0"
 
     [deps.Optim.extensions]
     OptimMOIExt = "MathOptInterface"
@@ -1943,9 +1943,9 @@ version = "0.7.0"
 
 [[deps.SciMLBase]]
 deps = ["ADTypes", "Accessors", "Adapt", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "PreallocationTools", "PrecompileTools", "Preferences", "Printf", "Random", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLLogging", "SciMLOperators", "SciMLPublic", "SciMLStructures", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface"]
-git-tree-sha1 = "6f35020fba2d580e324156cbaff4c578afa48940"
+git-tree-sha1 = "f69639db3069d10f9c0d36e895e974564e82f01c"
 uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
-version = "3.20.0"
+version = "3.21.0"
 
     [deps.SciMLBase.extensions]
     SciMLBaseChainRulesCoreExt = "ChainRulesCore"
