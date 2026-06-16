@@ -27,7 +27,7 @@ Extrapolation extends the last linear polynomial on each side.
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct LinearInterpolation{
-        uType, tType, IType, pType, T, propsType, strategyType, IsUniform,
+        uType, tType, IType, pType, T, propsType, IsUniform,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -38,7 +38,7 @@ struct LinearInterpolation{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     # `IsUniform` is a static tag matching `t_props.is_uniform` at construction.
     # Lets `_interpolate` dispatch to a uniform-grid kernel that consumes
@@ -48,13 +48,13 @@ struct LinearInterpolation{
             u, t, I, p, extrapolation_left, extrapolation_right,
             cache_parameters, t_props, ::Val{IsUniform},
         ) where {IsUniform}
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.slope),
-            eltype(u), typeof(t_props), typeof(strategy), IsUniform,
+            eltype(u), typeof(t_props), IsUniform,
         }(
             u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, strategy, cache_parameters,
+            Guesser(t), t_props, kind, cache_parameters,
             Val(IsUniform),
         )
     end
@@ -126,7 +126,7 @@ Extrapolation extends the last quadratic polynomial on each side.
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
-struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType, strategyType} <:
+struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -137,7 +137,7 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType, strategy
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     function QuadraticInterpolation(
             u, t, I, p, mode, extrapolation_left,
@@ -145,13 +145,13 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType, strategy
         )
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.α),
-            eltype(u), typeof(t_props), typeof(strategy),
+            eltype(u), typeof(t_props),
         }(
             u, t, I, p, mode, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, strategy, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -211,7 +211,7 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 
 """
-struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType, strategyType} <:
+struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -222,15 +222,15 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType, strategyTyp
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     function LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right, t_props)
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), eltype(u), typeof(bcache),
-            typeof(t_props), typeof(strategy),
+            typeof(t_props),
         }(
             u,
             t,
@@ -241,7 +241,7 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType, strategyTyp
             extrapolation_right,
             Guesser(t),
             t_props,
-            strategy
+            kind
         )
     end
 end
@@ -297,7 +297,7 @@ Extrapolation extends the last cubic polynomial on each side.
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct AkimaInterpolation{
-        uType, tType, IType, bType, cType, dType, T, propsType, strategyType,
+        uType, tType, IType, bType, cType, dType, T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -310,16 +310,16 @@ struct AkimaInterpolation{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     function AkimaInterpolation(
             u, t, I, b, c, d, extrapolation_left,
             extrapolation_right, cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
-            typeof(d), eltype(u), typeof(t_props), typeof(strategy),
+            typeof(d), eltype(u), typeof(t_props),
         }(
             u,
             t,
@@ -331,7 +331,7 @@ struct AkimaInterpolation{
             extrapolation_right,
             Guesser(t),
             t_props,
-            strategy,
+            kind,
             cache_parameters,
         )
     end
@@ -457,7 +457,7 @@ Extrapolation extends the last constant polynomial at the end points on each sid
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
-struct ConstantInterpolation{uType, tType, IType, T, propsType, strategyType} <:
+struct ConstantInterpolation{uType, tType, IType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -468,19 +468,19 @@ struct ConstantInterpolation{uType, tType, IType, T, propsType, strategyType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     function ConstantInterpolation(
             u, t, I, dir, extrapolation_left, extrapolation_right,
             cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), eltype(u),
-            typeof(t_props), typeof(strategy),
+            typeof(t_props),
         }(
             u, t, I, nothing, dir, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, strategy, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -540,7 +540,7 @@ except when using extrapolation types `Constant` or `Extension`.
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct SmoothedConstantInterpolation{
-        uType, tType, IType, dType, cType, dmaxType, T, propsType, strategyType,
+        uType, tType, IType, dType, cType, dmaxType, T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -552,19 +552,19 @@ struct SmoothedConstantInterpolation{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     function SmoothedConstantInterpolation(
             u, t, I, p, d_max, extrapolation_left,
             extrapolation_right, cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.d),
-            typeof(p.c), typeof(d_max), eltype(u), typeof(t_props), typeof(strategy),
+            typeof(p.c), typeof(d_max), eltype(u), typeof(t_props),
         }(
             u, t, I, p, d_max, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, strategy, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -623,7 +623,7 @@ Extrapolation extends the last quadratic polynomial on each side.
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct QuadraticSpline{
-        uType, tType, IType, pType, kType, cType, scType, T, propsType, strategyType,
+        uType, tType, IType, pType, kType, cType, scType, T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -637,16 +637,16 @@ struct QuadraticSpline{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     function QuadraticSpline(
             u, t, I, p, k, c, sc, extrapolation_left,
             extrapolation_right, cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
-            typeof(c), typeof(sc), eltype(u), typeof(t_props), typeof(strategy),
+            typeof(c), typeof(sc), eltype(u), typeof(t_props),
         }(
             u,
             t,
@@ -659,7 +659,7 @@ struct QuadraticSpline{
             extrapolation_right,
             Guesser(t),
             t_props,
-            strategy,
+            kind,
             cache_parameters,
         )
     end
@@ -765,7 +765,7 @@ Second derivative on both ends are zero, which are also called "natural" boundar
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
-struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType, strategyType} <:
+struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -777,16 +777,16 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType, strat
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     function CubicSpline(
             u, t, I, p, h, z, extrapolation_left,
             extrapolation_right, cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.c₁),
-            typeof(h), typeof(z), eltype(u), typeof(t_props), typeof(strategy),
+            typeof(h), typeof(z), eltype(u), typeof(t_props),
         }(
             u,
             t,
@@ -798,7 +798,7 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType, strat
             extrapolation_right,
             Guesser(t),
             t_props,
-            strategy,
+            kind,
             cache_parameters,
         )
     end
@@ -968,7 +968,7 @@ Extrapolation is a constant polynomial of the end points on each side.
 
 """
 struct BSplineInterpolation{
-        uType, tType, pType, kType, cType, scType, T, propsType, strategyType,
+        uType, tType, pType, kType, cType, scType, T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -984,7 +984,7 @@ struct BSplineInterpolation{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     function BSplineInterpolation(
             u,
             t,
@@ -999,10 +999,10 @@ struct BSplineInterpolation{
             extrapolation_right,
             t_props,
         )
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(p), typeof(k),
-            typeof(c), typeof(sc), eltype(u), typeof(t_props), typeof(strategy),
+            typeof(c), typeof(sc), eltype(u), typeof(t_props),
         }(
             u,
             t,
@@ -1017,7 +1017,7 @@ struct BSplineInterpolation{
             extrapolation_right,
             Guesser(t),
             t_props,
-            strategy
+            kind
         )
     end
 end
@@ -1219,7 +1219,7 @@ Extrapolation is a constant polynomial of the end points on each side.
 
 """
 struct BSplineApprox{
-        uType, tType, pType, kType, cType, scType, T, propsType, strategyType,
+        uType, tType, pType, kType, cType, scType, T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -1236,7 +1236,7 @@ struct BSplineApprox{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     function BSplineApprox(
             u,
             t,
@@ -1252,10 +1252,10 @@ struct BSplineApprox{
             extrapolation_right,
             t_props,
         )
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(p), typeof(k),
-            typeof(c), typeof(sc), eltype(u), typeof(t_props), typeof(strategy),
+            typeof(c), typeof(sc), eltype(u), typeof(t_props),
         }(
             u,
             t,
@@ -1271,7 +1271,7 @@ struct BSplineApprox{
             extrapolation_right,
             Guesser(t),
             t_props,
-            strategy
+            kind
         )
     end
 end
@@ -1514,7 +1514,7 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct CubicHermiteSpline{
-        uType, tType, IType, duType, pType, T, propsType, strategyType,
+        uType, tType, IType, duType, pType, T, propsType,
     } <:
     AbstractInterpolation{T}
     du::duType
@@ -1526,19 +1526,19 @@ struct CubicHermiteSpline{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     function CubicHermiteSpline(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
             cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
-            typeof(p.c₁), eltype(u), typeof(t_props), typeof(strategy),
+            typeof(p.c₁), eltype(u), typeof(t_props),
         }(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, strategy, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -1630,7 +1630,7 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct QuinticHermiteSpline{
-        uType, tType, IType, duType, dduType, pType, T, propsType, strategyType,
+        uType, tType, IType, duType, dduType, pType, T, propsType,
     } <:
     AbstractInterpolation{T}
     ddu::dduType
@@ -1643,19 +1643,19 @@ struct QuinticHermiteSpline{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     function QuinticHermiteSpline(
             ddu, du, u, t, I, p, extrapolation_left,
             extrapolation_right, cache_parameters, t_props
         )
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
-            typeof(ddu), typeof(p.c₁), eltype(u), typeof(t_props), typeof(strategy),
+            typeof(ddu), typeof(p.c₁), eltype(u), typeof(t_props),
         }(
             ddu, du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, strategy, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -1688,7 +1688,7 @@ end
 
 struct SmoothArcLengthInterpolation{
         uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing},
-        T, propsType, strategyType,
+        T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -1709,7 +1709,7 @@ struct SmoothArcLengthInterpolation{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    strategy::strategyType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     out::Vector{P}
     derivative::Vector{P}
@@ -1720,15 +1720,15 @@ struct SmoothArcLengthInterpolation{
             I, extrapolation_left, extrapolation_right,
             out, derivative, in_place, t_props
         )
-        strategy = _resolve_strategy(t, t_props)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), eltype(radius),
-            eltype(d), typeof(shape_itp), eltype(u), typeof(t_props), typeof(strategy),
+            eltype(d), typeof(shape_itp), eltype(u), typeof(t_props),
         }(
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, nothing, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, strategy, false, out, derivative, in_place
+            Guesser(t), t_props, kind, false, out, derivative, in_place
         )
     end
 end

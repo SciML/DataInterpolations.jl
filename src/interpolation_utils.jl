@@ -210,34 +210,31 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     return U, t
 end
 
-# Resolve a concrete `FindFirstFunctions.SearchStrategy` for the given
-# knot vector at construction time. Stored on every interpolation cache
-# as `A.strategy` so that `get_idx`'s `searchsorted_last(A.strategy, …)` is
-# fully static-dispatched — no per-query `_auto_pick` branch.
+# Resolve the concrete `FindFirstFunctions.StrategyKind` for the given knot
+# vector at construction time. Stored on every interpolation cache as the
+# `kind::StrategyKind` field (a `UInt8` enum — not parametric), so
+# `get_idx` dispatches on a fixed kind without re-probing per query.
 #
-# We dispatch to `FindFirstFunctions.Auto(t)`, which:
+# `FindFirstFunctions.Auto(t, props)` does the resolution and we keep its
+# `.kind`:
 #
-#   - Resolves a concrete `StrategyKind` from `length(t)` + the
-#     `SearchProperties{T}(t)` probe at construction.
 #   - For uniformly-spaced data (any `AbstractRange` or a `Vector` whose
 #     every element lies within ~1e-12 of the exactly-uniform line),
-#     picks `KIND_UNIFORM_STEP` and bakes the precomputed `inv_step`
-#     into `props`. The hot path is then one subtract, one multiply,
-#     one truncate per query — no division, no logarithmic search.
+#     picks `KIND_UNIFORM_STEP`.
 #   - For non-uniform data with `length(t) ≤ 16`, picks `KIND_LINEAR_SCAN`.
 #   - Otherwise picks `KIND_BRACKET_GALLOP` (the v2 default).
 #
-# `Auto{T}` is parametric on the data ratio type, so the cache's
-# `strategyType` parameter resolves to a single concrete `Auto{T}` per
-# `t` and dispatch stays type-stable. `Vector{Int}` and `Vector{Float64}`
-# both ratio-promote to `Float64`, so `Auto{Float64}` covers the common
-# Float-knot cases.
-@inline _resolve_strategy(t::AbstractVector) = FindFirstFunctions.Auto(t)
+# The precomputed `inv_step` / `first_val` that `KIND_UNIFORM_STEP`'s
+# closed-form lookup needs live in `A.t_props` (parametric on the ratio
+# type). `get_idx` reconstructs `Auto(A.t_props)` for the uniform case so
+# the closed-form path is taken; for every other kind the props are
+# unused, so the bare `kind` suffices and no parametric strategy field is
+# stored.
+@inline _resolve_strategy_kind(t::AbstractVector) = FindFirstFunctions.Auto(t).kind
 # Props-aware form: reuses the already-computed (possibly caller-supplied)
-# `SearchProperties` instead of re-probing `t` inside `Auto(t)`, and keeps
-# `A.strategy.props` consistent with `A.t_props`.
-@inline _resolve_strategy(t::AbstractVector, props::FindFirstFunctions.SearchProperties) =
-    FindFirstFunctions.Auto(t, props)
+# `SearchProperties` instead of re-probing `t` inside `Auto(t)`.
+@inline _resolve_strategy_kind(t::AbstractVector, props::FindFirstFunctions.SearchProperties) =
+    FindFirstFunctions.Auto(t, props).kind
 
 # Static-uniformity tag for caches. `AbstractRange{<:Real}` is uniform at the
 # type level — `Val(true)` is a compile-time constant. For `AbstractVector`
@@ -258,16 +255,7 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    # `A.strategy` is a concrete `Auto{T}` resolved at construction time;
-    # its stored kind dispatches without any per-call re-probing.
-    strategy = A.strategy
-    raw = if side == :last
-        FindFirstFunctions.searchsorted_last(strategy, tvec, t, iguess)
-    elseif side == :first
-        FindFirstFunctions.searchsorted_first(strategy, tvec, t, iguess)
-    else
-        error("side must be :first or :last")
-    end
+    raw = _dispatch_search(A, tvec, t, iguess, side)
     return clamp(raw + idx_shift, lb, ub)
 end
 
@@ -277,20 +265,37 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    strategy = A.strategy
     # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
     # falls back to the cached `idx_prev` otherwise.
     hint = iguess(t)
-    raw = if side == :last
-        FindFirstFunctions.searchsorted_last(strategy, tvec, t, hint)
-    elseif side == :first
-        FindFirstFunctions.searchsorted_first(strategy, tvec, t, hint)
-    else
-        error("side must be :first or :last")
-    end
+    raw = _dispatch_search(A, tvec, t, hint, side)
     idx = clamp(raw + idx_shift, lb, ub)
     iguess.idx_prev[] = idx
     return idx
+end
+
+# Dispatch the cached `A.kind` into FindFirstFunctions. `KIND_UNIFORM_STEP`'s
+# closed-form lookup needs the precomputed `inv_step` / `first_val`, which
+# live in `A.t_props`; reconstruct the (isbits, stack-allocated) `Auto` from
+# them so that path is taken. Every other kind ignores the props, so the
+# bare enum dispatches directly. The branch must sit at the call — `Auto`
+# and `StrategyKind` are different types, so a hoisted variable would be a
+# `Union` and break type stability; each arm returns a concrete `Int`.
+@inline function _dispatch_search(A, tvec, t, hint, side)
+    if A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
+        auto = FindFirstFunctions.Auto(A.t_props)
+        return side == :last ?
+            FindFirstFunctions.searchsorted_last(auto, tvec, t, hint) :
+            side == :first ?
+            FindFirstFunctions.searchsorted_first(auto, tvec, t, hint) :
+            error("side must be :first or :last")
+    else
+        return side == :last ?
+            FindFirstFunctions.searchsorted_last(A.kind, tvec, t, hint) :
+            side == :first ?
+            FindFirstFunctions.searchsorted_first(A.kind, tvec, t, hint) :
+            error("side must be :first or :last")
+    end
 end
 
 cumulative_integral(::AbstractInterpolation, ::Bool) = nothing

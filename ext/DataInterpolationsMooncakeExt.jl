@@ -57,15 +57,19 @@ end
 @from_chainrules MinimalCtx Tuple{typeof(munge_data), AbstractMatrix, AbstractVector} true
 @from_chainrules MinimalCtx Tuple{typeof(munge_data), AbstractArray, Any} true
 
-# Sorted-search dispatched through `Auto{T}` carries the props' `first_val::T`
-# and `inv_step::T` Float fields, which Mooncake exposes as rdata. The
-# `searchsorted_last` / `searchsorted_first` calls return integer indices — they are
-# positional bookkeeping, not differentiable. Declare them as
-# zero-adjoint so Mooncake doesn't try to recurse into FFF's strategy
-# kernels (which contain `llvmcall` SIMD intrinsics that Mooncake cannot
-# differentiate through). DI's interpolation `_interpolate` always feeds
-# the search results into integer indexing, so the gradient flow is
-# already cut at the index boundary — zero-adjoint here is correct.
+# `get_idx` dispatches the cached `StrategyKind` into FindFirstFunctions:
+# the bare enum for most kinds, and a reconstructed `Auto` (carrying the
+# props' `first_val::T` / `inv_step::T`) for the uniform closed-form path.
+# Both return integer indices — positional bookkeeping, not
+# differentiable. Declare them zero-adjoint so Mooncake doesn't recurse
+# into FFF's strategy kernels (which contain `llvmcall` SIMD intrinsics it
+# cannot differentiate through). DI's `_interpolate` always feeds the
+# search result into integer indexing, so the gradient flow is already cut
+# at the index boundary — zero-adjoint here is correct.
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_last), FindFirstFunctions.StrategyKind, AbstractVector, Any, Integer}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_first), FindFirstFunctions.StrategyKind, AbstractVector, Any, Integer}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_last), FindFirstFunctions.StrategyKind, AbstractVector, Any}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_first), FindFirstFunctions.StrategyKind, AbstractVector, Any}
 @zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_last), FindFirstFunctions.Auto, AbstractVector, Any, Integer}
 @zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_first), FindFirstFunctions.Auto, AbstractVector, Any, Integer}
 @zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_last), FindFirstFunctions.Auto, AbstractVector, Any}

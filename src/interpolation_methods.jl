@@ -217,7 +217,7 @@ end
 function _interpolate(
         A::LinearInterpolation{
             <:AbstractVector{<:AbstractFloat}, <:Any, <:Any, <:Any,
-            <:Any, <:Any, <:Any, true,
+            <:Any, <:Any, true,
         },
         t::Number, iguess,
     )
