@@ -169,7 +169,20 @@ function _extrapolate_right(A::SmoothedConstantInterpolation, t)
     end
 end
 
-# Linear Interpolation
+# Linear Interpolation. Float-valued knots take the uniform-grid closed-form
+# fast path when `kind === KIND_UNIFORM_STEP`. The choice is a runtime branch
+# on the cached enum — not a cache type parameter — so the constructor stays
+# fully type-inferred, and both arms return the same concrete value type so
+# the query stays inferred too. Non-Float `u` always uses the slope form.
+function _interpolate(
+        A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}}, t::Number, iguess,
+    )
+    return if A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
+        _linear_uniform_interpolate(A, t, iguess)
+    else
+        _linear_slope_interpolate(A, t, iguess)
+    end
+end
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     return _linear_slope_interpolate(A, t, iguess)
 end
@@ -202,24 +215,21 @@ function _linear_slope_interpolate(A::LinearInterpolation, t::Number, iguess)
     return val
 end
 
-# Uniform-grid fast path. Statically dispatched on the `IsUniform == true`
-# type parameter — no runtime uniformity branch. Uses the precomputed
-# `inv_step` / `first_val` baked into `t_props` to skip the `A.t[idx]` load
-# and the cached slope lookup. The linear-blend form
-# `u[idx] + α * (u[idx+1] - u[idx])` is mathematically equivalent to the
-# slope form modulo a few ulps of floating-point roundoff.
+# Uniform-grid fast path, reached from the `_interpolate` runtime branch when
+# `kind === KIND_UNIFORM_STEP`. Uses the precomputed `inv_step` / `first_val`
+# baked into `t_props` to skip the `A.t[idx]` load and the cached slope
+# lookup. The linear-blend form `u[idx] + α * (u[idx+1] - u[idx])` is
+# mathematically equivalent to the slope form modulo a few ulps of
+# floating-point roundoff.
 #
 # `inv_step` / `first_val` are always `AbstractFloat` (`_ratio_type` of the
-# knot eltype), so the lerp's intermediate `α` is `AbstractFloat`. The
-# constraint on `eltype(u) <: AbstractFloat` keeps the result type
-# `AbstractFloat` too — for `Rational` / `Integer` `u`, we fall back to the
-# non-uniform method which preserves the more general arithmetic type.
-function _interpolate(
-        A::LinearInterpolation{
-            <:AbstractVector{<:AbstractFloat}, <:Any, <:Any, <:Any,
-            <:Any, <:Any, true,
-        },
-        t::Number, iguess,
+# knot eltype) and the caller restricts `eltype(u) <: AbstractFloat`, so the
+# lerp result type matches the slope form — both branches of `_interpolate`
+# return the same concrete type, keeping the query inferred. On a stale or
+# non-uniform cell (see the verification below) it falls back to the slope
+# form, which is also the same type.
+function _linear_uniform_interpolate(
+        A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}}, t::Number, iguess,
     )
     if isnan(t)
         # Propagate NaN through the partial of `t` so `ForwardDiff.derivative`
@@ -252,8 +262,8 @@ function _interpolate(
     @inbounds t1 = A.t[idx0 + 1]
     @inbounds t2 = A.t[idx0 + 2]
     # Verify the guessed cell against the live knots. `push!`/`append!`
-    # mutate `A.t` while `t_props` (and the `IsUniform` type tag) keep
-    # their construction-time values, so the precomputed `first_val` /
+    # mutate `A.t` while `t_props` (and the cached `kind`) keep their
+    # construction-time values, so the precomputed `first_val` /
     # `inv_step` can go stale; a caller-forced `is_uniform = true` on
     # non-uniform knots is the same hazard. The cell check catches a
     # wrong segment; the spacing check bounds the α error when the cell

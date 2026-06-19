@@ -37,19 +37,16 @@ end
         QuadraticInterpolation, LagrangeInterpolation,
         QuadraticSpline, CubicSpline, AkimaInterpolation,
     ]
+    # Construction must be type-inferred for both Vector and Range knots —
+    # uniformity is a runtime field (`kind`), never a cache type parameter,
+    # so the constructor returns a single concrete type. The query is then
+    # inferred per instance (the uniform fast path is a runtime branch whose
+    # arms share a return type).
     @testset "$method" for method in methods
-        if method === LinearInterpolation
-            # The constructor encodes uniformity in the cache's `IsUniform`
-            # type parameter: `Val(true)` statically for Range knots
-            # (constructor inferred), value-dependent for Vector knots (the
-            # constructor returns a Union over the tag; each concrete
-            # instance is type-stable per query).
-            @inferred method(u, tr)
-            A = method(u, t)
-            @inferred A(2.5)
-        else
-            @inferred method(u, t)
-        end
+        A = @inferred method(u, t)
+        @inferred A(2.5)
+        Ar = @inferred method(u, tr)
+        @inferred Ar(2.5)
     end
     @testset "BSplineInterpolation" begin
         @inferred BSplineInterpolation(u, t, 3, :Uniform, :Uniform)
