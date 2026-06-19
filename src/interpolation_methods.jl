@@ -169,11 +169,26 @@ function _extrapolate_right(A::SmoothedConstantInterpolation, t)
     end
 end
 
-# Linear Interpolation. Float-valued knots take the uniform-grid closed-form
-# fast path when `kind === KIND_UNIFORM_STEP`. The choice is a runtime branch
-# on the cached enum — not a cache type parameter — so the constructor stays
-# fully type-inferred, and both arms return the same concrete value type so
-# the query stays inferred too. Non-Float `u` always uses the slope form.
+# Linear Interpolation — two uniform fast paths, both inference-safe:
+#
+#   1. STATIC, for `AbstractRange` knots. A range is uniform at the *type*
+#      level (no value-dependent tag, so the constructor stays inferred) and
+#      is immutable + exactly spaced, so the lean closed form needs neither
+#      the runtime `kind` branch nor the cell/spacing verification, and it
+#      gets `α` straight from the float position without loading `A.t[idx]`.
+#   2. RUNTIME, for `Vector{<:AbstractFloat}` knots. Uniformity here is a
+#      value property, carried by the `kind` enum; the branch picks the
+#      verified closed form (a `Vector` can be `push!`-mutated or
+#      caller-forced-uniform on jittered data, so it must check the live
+#      knots and fall back). Both arms return the same concrete type.
+#
+# Non-Float `u`, and non-uniform knots, use the slope form.
+function _interpolate(
+        A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}, <:AbstractRange},
+        t::Number, iguess,
+    )
+    return _linear_uniform_range_interpolate(A, t, iguess)
+end
 function _interpolate(
         A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}}, t::Number, iguess,
     )
@@ -185,6 +200,49 @@ function _interpolate(
 end
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     return _linear_slope_interpolate(A, t, iguess)
+end
+
+# Lean uniform kernel for `AbstractRange` knots. No verification (a range is
+# immutable and exactly uniform) and no `A.t[idx]` load (`α` is the
+# fractional part of the float position `f`). NaN handling matches the other
+# methods: a NaN query propagates through the partial of `t` for correct
+# derivatives, and a NaN-adjacent `u` is resolved by exact-knot comparison.
+@inline function _linear_uniform_range_interpolate(
+        A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}}, t::Number, iguess,
+    )
+    if isnan(t)
+        idx = firstindex(A.u)
+        u1 = oneunit(eltype(A.u))
+        slope = t / t * get_parameters(A, idx)
+        Δu = slope * (t - oneunit(eltype(A.t)))
+        return oftype(Δu, u1) + Δu
+    end
+    props = A.t_props
+    f = (t - props.first_val) * props.inv_step
+    n = length(A.t)
+    idx0 = if f < 0
+        0
+    elseif f > n - 2
+        n - 2
+    else
+        unsafe_trunc(Int, floor(f))
+    end
+    α = f - idx0
+    @inbounds u1 = A.u[idx0 + 1]
+    @inbounds u2 = A.u[idx0 + 2]
+    Δu = α * (u2 - u1)
+    if any(isnan.(Δu))
+        # `0 * NaN = NaN` poisons exact-knot queries when a neighbour is NaN;
+        # resolve by comparing the query to the bracketing knots directly.
+        @inbounds t1 = A.t[idx0 + 1]
+        @inbounds t2 = A.t[idx0 + 2]
+        if t == t2
+            return u2 + zero(Δu)
+        elseif t == t1
+            return u1 + zero(Δu)
+        end
+    end
+    return u1 + Δu
 end
 
 function _linear_slope_interpolate(A::LinearInterpolation, t::Number, iguess)
