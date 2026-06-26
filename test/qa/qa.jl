@@ -9,12 +9,12 @@ run_qa(
         # rather than failing the import-graph checks.
         no_implicit_imports = (; allow_unanalyzable = (DataInterpolations.ExtrapolationType,)),
         no_stale_explicit_imports = (; allow_unanalyzable = (DataInterpolations.ExtrapolationType,)),
-        # Non-public names accessed by qualified-access that vary by package version:
+        # Non-public qualified accesses we cannot annotate ourselves:
         #   * ForwardDiff.{Dual,derivative,value} are not marked public in ForwardDiff.
-        #   * Base.{front,require_one_based_indexing} are Base internals flagged as
-        #     non-public on Julia 1.10 (the LTS lane); newer Julia marks them public.
+        #   * Base.require_one_based_indexing is a Base internal still flagged as
+        #     non-public on Julia 1.11; newer Julia (>= 1.12) marks it public.
         all_qualified_accesses_are_public = (;
-            ignore = (:Dual, :derivative, :value, :front, :require_one_based_indexing),
+            ignore = (:Dual, :derivative, :value, :require_one_based_indexing),
         ),
     ),
 )
