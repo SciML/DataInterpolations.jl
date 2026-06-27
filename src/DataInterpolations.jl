@@ -4,10 +4,11 @@ module DataInterpolations
 
 abstract type AbstractInterpolation{T} end
 
-using LinearAlgebra, RecipesBase
-using PrettyTables
-using ForwardDiff
-using EnumX
+using LinearAlgebra: LinearAlgebra, Tridiagonal, dot, norm, normalize!
+using RecipesBase: RecipesBase, @recipe, @series
+using PrettyTables: PrettyTables, pretty_table
+using ForwardDiff: ForwardDiff
+using EnumX: EnumX, @enumx
 import FindFirstFunctions
 import FindFirstFunctions: Guesser
 
