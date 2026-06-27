@@ -380,10 +380,8 @@ FastInterpolations-style bench: `bench/fast_interpolations_bench.jl`
 
 Bench Project.toml: `bench/Project.toml` (devs DI from `..`).
 
-To rerun:
+To rerun (from the repo root):
 ```bash
-cd /home/crackauc/sandbox/tmp_20260515_091703_4914/DataInterpolations.jl
-git checkout fff-v2-cleanup-quadraticspline
 julia +1.11 --project=bench bench/cross_library_comparison.jl
 julia +1.11 --project=bench bench/fast_interpolations_bench.jl --cubic --default
 julia +1.11 --project=bench bench/fast_interpolations_bench.jl --linear --default

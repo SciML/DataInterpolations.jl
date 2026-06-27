@@ -656,10 +656,8 @@ function write_report(path::String; total_seconds = 0.0)
         println(
             io,
             """
-            To rerun:
+            To rerun (from the repo root):
             ```bash
-            cd /home/crackauc/sandbox/tmp_20260515_091703_4914/DataInterpolations.jl
-            git checkout fff-strategy-batched-evals
             julia +1.11 --project=bench bench/cross_library_comparison.jl
             ```
             """,
