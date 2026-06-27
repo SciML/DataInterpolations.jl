@@ -30,6 +30,8 @@ function findRequiredIdxs!(A::LagrangeInterpolation, t, idx)
 end
 
 function spline_coefficients!(N, d, k, u::Number)
+    # Zero the whole vector: the body only writes `(i-d):i`, but callers read
+    # all of `N`, so stale entries outside that window must not leak.
     N .= zero(u)
     if u == k[1]
         N[1] = one(u)
@@ -38,18 +40,24 @@ function spline_coefficients!(N, d, k, u::Number)
         N[end] = one(u)
         return length(N):length(N)
     else
-        i = findfirst(x -> x > u, k)::Int - 1
-        N[i] = one(u)
-        for deg in 1:d
-            N[i - deg] = (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) * N[i - deg + 1]
-            for j in (i - deg + 1):(i - 1)
-                N[j] = (u - k[j]) / (k[j + deg] - k[j]) * N[j] +
-                    (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) * N[j + 1]
-            end
-            N[i] = (u - k[i]) / (k[i + deg] - k[i]) * N[i]
-        end
-        return (i - d):i
+        # `k` is sorted, so the locator is an O(log n) search.
+        i = searchsortedlast(k, u)
+        return _spline_coefficients_body!(N, d, k, u, i)
     end
+end
+
+# B-spline basis recurrence given the located knot index `i`.
+function _spline_coefficients_body!(N, d, k, u, i)
+    N[i] = one(u)
+    for deg in 1:d
+        N[i - deg] = (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) * N[i - deg + 1]
+        for j in (i - deg + 1):(i - 1)
+            N[j] = (u - k[j]) / (k[j + deg] - k[j]) * N[j] +
+                (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) * N[j + 1]
+        end
+        N[i] = (u - k[i]) / (k[i + deg] - k[i]) * N[i]
+    end
+    return (i - d):i
 end
 
 function spline_coefficients!(N, d, k, u::AbstractVector)
@@ -86,11 +94,33 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
     diag_hi = Vector{dtype_sc}(undef, n - 1)
     diag_lo = Vector{dtype_sc}(undef, n - 1)
 
+    # The locator is non-decreasing in `i` (both `t` and `k` sorted), so a
+    # running pointer gives the index in amortised O(1) — O(n) overall.
+    nk = length(k)
+    d = 2
+    fill!(sc, zero(dtype_sc))
+    locator = 1
     for (i, tᵢ) in enumerate(t)
-        spline_coefficients!(sc, 2, k, tᵢ)
+        if tᵢ == k[1] || tᵢ == k[end]
+            # Only fires at the endpoints (i == 1 and i == n) by construction.
+            on_first = tᵢ == k[1]
+            diag[i] = (on_first && i == 1) || (!on_first && i == length(sc)) ?
+                one(dtype_sc) : zero(dtype_sc)
+            (i > 1) && (diag_lo[i - 1] = zero(dtype_sc))
+            (i < n) && (diag_hi[i] = zero(dtype_sc))
+            continue
+        end
+        while locator < nk && k[locator + 1] <= tᵢ
+            locator += 1
+        end
+        _spline_coefficients_body!(sc, d, k, tᵢ, locator)
         diag[i] = sc[i]
         (i > 1) && (diag_lo[i - 1] = sc[i - 1])
         (i < n) && (diag_hi[i] = sc[i + 1])
+        # Re-zero the body's write window for the next iteration.
+        for j in (locator - d):locator
+            sc[j] = zero(dtype_sc)
+        end
     end
 
     A = Tridiagonal(diag_lo, diag, diag_hi)
@@ -167,28 +197,12 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     return U, t
 end
 
-seems_linear(assume_linear_t::Bool, _) = assume_linear_t
-seems_linear(assume_linear_t::Number, t) = looks_linear(t; threshold = assume_linear_t)
-
-"""
-    looks_linear(t; threshold = 1e-2)
-
-Determine if the abscissae `t` are regularly distributed, taking the standard deviation of
-the difference between the array of abscissae with respect to the straight line linking
-its first and last elements, normalized by the range of `t`. If this standard deviation is
-below the given `threshold`, the vector looks linear (return true). Internal function -
-interface may change.
-"""
-function looks_linear(t; threshold = 1.0e-2)
-    length(t) <= 2 && return true
-    t_0, t_f = first(t), last(t)
-    t_span = t_f - t_0
-    tspan_over_N = t_span * length(t)^(-1)
-    norm_var = sum(
-        (t_i - t_0 - i * tspan_over_N)^2 for (i, t_i) in enumerate(t)
-    ) / (length(t) * t_span^2)
-    return norm_var < threshold^2
-end
+# Resolve the search `StrategyKind` once at construction; stored as the
+# non-parametric `kind::StrategyKind` cache field. The props-aware form
+# reuses an already-computed `SearchProperties` instead of re-probing `t`.
+@inline _resolve_strategy_kind(t::AbstractVector) = FindFirstFunctions.Auto(t).kind
+@inline _resolve_strategy_kind(t::AbstractVector, props::FindFirstFunctions.SearchProperties) =
+    FindFirstFunctions.Auto(t, props).kind
 
 function get_idx(
         A::AbstractInterpolation, t, iguess::Integer; lb = 1,
@@ -196,19 +210,8 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    return if side == :last
-        clamp(
-            searchsortedlast(FindFirstFunctions.BracketGallop(), tvec, t, iguess) +
-                idx_shift, lb, ub
-        )
-    elseif side == :first
-        clamp(
-            searchsortedfirst(FindFirstFunctions.BracketGallop(), tvec, t, iguess) +
-                idx_shift, lb, ub
-        )
-    else
-        error("side must be :first or :last")
-    end
+    raw = _dispatch_search(A, tvec, t, iguess, side)
+    return clamp(raw + idx_shift, lb, ub)
 end
 
 function get_idx(
@@ -217,18 +220,33 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    return if side == :last
-        clamp(
-            searchsortedlast(FindFirstFunctions.GuesserHint(iguess), tvec, t) +
-                idx_shift, lb, ub
-        )
-    elseif side == :first
-        clamp(
-            searchsortedfirst(FindFirstFunctions.GuesserHint(iguess), tvec, t) +
-                idx_shift, lb, ub
-        )
+    # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
+    # falls back to the cached `idx_prev` otherwise.
+    hint = iguess(t)
+    raw = _dispatch_search(A, tvec, t, hint, side)
+    idx = clamp(raw + idx_shift, lb, ub)
+    iguess.idx_prev[] = idx
+    return idx
+end
+
+# `KIND_UNIFORM_STEP` needs the props for its closed form, so reconstruct the
+# (isbits) `Auto` from `A.t_props`; other kinds dispatch on the bare enum. The
+# branch sits at the call so each arm has a concrete first arg (a hoisted
+# `Union{Auto,StrategyKind}` would break inference); both return `Int`.
+@inline function _dispatch_search(A, tvec, t, hint, side)
+    if A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
+        auto = FindFirstFunctions.Auto(A.t_props)
+        return side == :last ?
+            FindFirstFunctions.searchsorted_last(auto, tvec, t, hint) :
+            side == :first ?
+            FindFirstFunctions.searchsorted_first(auto, tvec, t, hint) :
+            error("side must be :first or :last")
     else
-        error("side must be :first or :last")
+        return side == :last ?
+            FindFirstFunctions.searchsorted_last(A.kind, tvec, t, hint) :
+            side == :first ?
+            FindFirstFunctions.searchsorted_first(A.kind, tvec, t, hint) :
+            error("side must be :first or :last")
     end
 end
 

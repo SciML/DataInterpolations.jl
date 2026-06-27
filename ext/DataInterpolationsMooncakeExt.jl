@@ -1,9 +1,9 @@
 module DataInterpolationsMooncakeExt
 
-using DataInterpolations, Mooncake, ChainRulesCore
+using DataInterpolations, Mooncake, ChainRulesCore, FindFirstFunctions
 using DataInterpolations: _interpolate, munge_data, AbstractInterpolation,
     LinearInterpolation, QuadraticInterpolation
-import Mooncake: @from_chainrules, MinimalCtx
+import Mooncake: @from_chainrules, @zero_adjoint, MinimalCtx, DefaultCtx
 
 # When the ChainRules pullback for _interpolate returns a Tangent{AbstractInterpolation},
 # this tells Mooncake how to accumulate the u-component into the interpolation's fdata.
@@ -17,6 +17,21 @@ function Mooncake.increment_and_get_rdata!(
         f.data.u .+= u_tang
     end
     return Mooncake.NoRData()
+end
+
+# Same, when the cache's bitstype `t_props` scalars (`first_val`/`inv_step`)
+# make Mooncake hand back a populated `RData{NamedTuple}`: those fields are
+# construction-time constants, so accumulate `u` and return the rdata unchanged.
+function Mooncake.increment_and_get_rdata!(
+        f::Mooncake.FData{<:NamedTuple},
+        r::Mooncake.RData{<:NamedTuple},
+        t::ChainRulesCore.Tangent{<:AbstractInterpolation}
+    )
+    u_tang = ChainRulesCore.unthunk(t.u)
+    if !(u_tang isa ChainRulesCore.AbstractZero)
+        f.data.u .+= u_tang
+    end
+    return r
 end
 
 # Constructor rules: stop Mooncake recursing into LinearParameterCache and other
@@ -34,5 +49,17 @@ end
 @from_chainrules MinimalCtx Tuple{typeof(munge_data), AbstractVector, AbstractVector} true
 @from_chainrules MinimalCtx Tuple{typeof(munge_data), AbstractMatrix, AbstractVector} true
 @from_chainrules MinimalCtx Tuple{typeof(munge_data), AbstractArray, Any} true
+
+# `get_idx` calls these (bare `StrategyKind`, or `Auto` for the uniform path);
+# they return integer indices, so zero-adjoint cuts the gradient at the index
+# boundary and stops Mooncake recursing into FFF's `llvmcall` SIMD kernels.
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_last), FindFirstFunctions.StrategyKind, AbstractVector, Any, Integer}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_first), FindFirstFunctions.StrategyKind, AbstractVector, Any, Integer}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_last), FindFirstFunctions.StrategyKind, AbstractVector, Any}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_first), FindFirstFunctions.StrategyKind, AbstractVector, Any}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_last), FindFirstFunctions.Auto, AbstractVector, Any, Integer}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_first), FindFirstFunctions.Auto, AbstractVector, Any, Integer}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_last), FindFirstFunctions.Auto, AbstractVector, Any}
+@zero_adjoint DefaultCtx Tuple{typeof(FindFirstFunctions.searchsorted_first), FindFirstFunctions.Auto, AbstractVector, Any}
 
 end

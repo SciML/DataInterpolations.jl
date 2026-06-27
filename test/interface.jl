@@ -31,13 +31,18 @@ end
 @testset "Type Inference" begin
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)
+    tr = 1.0:10.0
     methods = [
         ConstantInterpolation, LinearInterpolation,
         QuadraticInterpolation, LagrangeInterpolation,
         QuadraticSpline, CubicSpline, AkimaInterpolation,
     ]
+    # Construction and query must infer for both Vector and Range knots.
     @testset "$method" for method in methods
-        @inferred method(u, t)
+        A = @inferred method(u, t)
+        @inferred A(2.5)
+        Ar = @inferred method(u, tr)
+        @inferred Ar(2.5)
     end
     @testset "BSplineInterpolation" begin
         @inferred BSplineInterpolation(u, t, 3, :Uniform, :Uniform)

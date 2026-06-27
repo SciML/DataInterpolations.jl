@@ -1,5 +1,5 @@
 using DataInterpolations
-using FindFirstFunctions: GuesserHint
+using FindFirstFunctions: FindFirstFunctions, GuesserHint
 using StableRNGs
 using Optim, ForwardDiff
 using BenchmarkTools
@@ -23,10 +23,10 @@ end
 function test_cached_index(A)
     for t in range(first(A.t), last(A.t); length = 2 * length(A.t) - 1)
         A(t)
-        idx = searchsortedfirst(GuesserHint(A.iguesser), A.t, t)
+        idx = FindFirstFunctions.searchsorted_first(GuesserHint(A.iguesser), A.t, t)
         @test abs(
             A.iguesser.idx_prev[] -
-                searchsortedfirst(GuesserHint(A.iguesser), A.t, t)
+                FindFirstFunctions.searchsorted_first(GuesserHint(A.iguesser), A.t, t)
         ) <= 2
     end
     return
@@ -37,7 +37,6 @@ end
 
     for t in (1.0:10.0, 1.0collect(1:10))
         u = 2.0collect(1:10)
-        #t = 1.0collect(1:10)
         A = @inferred(
             LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
@@ -58,10 +57,7 @@ end
             LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
             )
-        ) isa LinearInterpolation broken = VERSION <
-            v"1.11" &&
-            t isa
-            AbstractRange
+        ) isa LinearInterpolation broken = VERSION < v"1.11" && t isa AbstractRange
         A = LinearInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
@@ -83,10 +79,7 @@ end
             LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
             )
-        ) isa LinearInterpolation broken = VERSION <
-            v"1.11" &&
-            t isa
-            AbstractRange
+        ) isa LinearInterpolation broken = VERSION < v"1.11" && t isa AbstractRange
         A = LinearInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
@@ -351,6 +344,78 @@ end
         @test_throws DimensionMismatch LinearInterpolation(u_b, t_b)(
             zeros(3), [1.0, 2.0]
         )
+    end
+
+    @testset "Uniform-grid fast path parity" begin
+        # The uniform lerp differs from the slope form by a few ulps; the
+        # realistic bound is `length(t) * eps * max(|u|)`.
+        function slope_form_eval(A, q)
+            idx = DataInterpolations.get_idx(A, q, A.iguesser)
+            t1 = A.t[idx]
+            u1 = A.u[idx]
+            slope = DataInterpolations.get_parameters(A, idx)
+            return u1 + slope * (q - t1)
+        end
+
+        rng = StableRNG(0xfacefeed)
+        n = 1001
+        t_r = range(0.0, 10.0; length = n)   # Range knots (static path)
+        t_v = collect(t_r)                   # uniform Vector knots (runtime path)
+        u = randn(rng, n)
+
+        for t in (t_r, t_v)
+            A = LinearInterpolation(u, t)
+            @test A.t_props.is_uniform
+            @test A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
+
+            tol = n * eps(Float64) * maximum(abs, u)
+            qs = sort!(rand(rng, 5000) .* 9.999)
+            for q in qs
+                @test isapprox(A(q), slope_form_eval(A, q); atol = tol, rtol = 0)
+            end
+        end
+
+        # Non-uniform: slope path, exact match.
+        t_nu = sort!(rand(StableRNG(0xcafef00d), n)) .* 10.0
+        A_nu = LinearInterpolation(u, t_nu)
+        @test !A_nu.t_props.is_uniform
+        @test A_nu.kind !== FindFirstFunctions.KIND_UNIFORM_STEP
+        qs_nu = sort!(rand(StableRNG(0x0b0bcafe), 5000)) .* (last(t_nu) - first(t_nu)) .+
+            first(t_nu)
+        for q in qs_nu
+            @test A_nu(q) == slope_form_eval(A_nu, q)
+        end
+
+        # Uniform at the sampled probe points but jittered between them:
+        # must not be classified uniform (a false positive corrupts the lerp).
+        t_trick = collect(1.0:101.0)
+        t_trick[52:60] .= range(54.5, 60.0, length = 9)
+        A_trick = LinearInterpolation(randn(StableRNG(0xdeadbeef), 101), t_trick)
+        @test !A_trick.t_props.is_uniform
+        @test A_trick.kind !== FindFirstFunctions.KIND_UNIFORM_STEP
+
+        # Extension extrapolation: t far outside the span pushes the float
+        # index past typemax(Int); the kernel must clamp before truncating.
+        A_ext = LinearInterpolation(
+            u, t_v; extrapolation = ExtrapolationType.Extension
+        )
+        for q in (1.0e300, -1.0e300)
+            @test isapprox(A_ext(q), slope_form_eval(A_ext, q); rtol = 1.0e-10)
+        end
+
+        # push! leaves t_props/kind stale; the fast path must detect the
+        # changed spacing against the live knots and fall back.
+        t_m = collect(0.0:1.0:10.0)
+        A_m = LinearInterpolation(sin.(t_m), t_m)
+        @test A_m.kind === FindFirstFunctions.KIND_UNIFORM_STEP
+        push!(A_m, -0.3, 10.5)   # breaks the uniform spacing (1.0 → 0.5)
+        # mutated region falls back (exact); untouched region keeps the lerp.
+        for q in (10.1, 10.25, 10.4)
+            @test A_m(q) == slope_form_eval(A_m, q)
+        end
+        for q in (5.5, 0.3)
+            @test isapprox(A_m(q), slope_form_eval(A_m, q); atol = 1.0e-12)
+        end
     end
 end
 
@@ -1566,7 +1631,6 @@ end
     ut1 = Float32[0.1, 0.2, 0.3, 0.4, 0.5]
     ut2 = Float64[0.1, 0.2, 0.3, 0.4, 0.5]
     for u in (ut1, ut2), t in (ut1, ut2)
-
         interp = @inferred(LinearInterpolation(ut1, ut2))
         for xs in (u, t)
             ys = @inferred(interp(xs))

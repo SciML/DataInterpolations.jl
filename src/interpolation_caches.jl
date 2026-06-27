@@ -22,12 +22,13 @@ Extrapolation extends the last linear polynomial on each side.
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation
     computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behavior for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
-struct LinearInterpolation{uType, tType, IType, pType, T, propsType} <:
+struct LinearInterpolation{
+        uType, tType, IType, pType, T, propsType,
+    } <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -37,20 +38,20 @@ struct LinearInterpolation{uType, tType, IType, pType, T, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    # A field, not a type parameter, so the constructor stays inferred.
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    linear_lookup::Bool
-    function LinearInterpolation(
+    @inline function LinearInterpolation(
             u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters, assume_linear_t
+            cache_parameters, t_props,
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.slope),
             eltype(u), typeof(t_props),
         }(
             u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, cache_parameters, linear_lookup
+            Guesser(t), t_props, kind, cache_parameters,
         )
     end
 end
@@ -58,22 +59,25 @@ end
 function LinearInterpolation(
         u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1.0e-2
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = LinearParameterCache(u, t, cache_parameters)
     A = LinearInterpolation(
         u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return LinearInterpolation(
         u, t, I, p, extrapolation_left, extrapolation_right,
-        cache_parameters, assume_linear_t
+        cache_parameters, t_props
     )
 end
 
@@ -101,10 +105,9 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
     AbstractInterpolation{T}
@@ -117,22 +120,21 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    linear_lookup::Bool
     function QuadraticInterpolation(
             u, t, I, p, mode, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t
+            extrapolation_right, cache_parameters, t_props
         )
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.α),
             eltype(u), typeof(t_props),
         }(
             u, t, I, p, mode, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, cache_parameters, linear_lookup
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -140,23 +142,25 @@ end
 function QuadraticInterpolation(
         u, t, mode; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1.0e-2
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    linear_lookup = seems_linear(assume_linear_t, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = QuadraticParameterCache(u, t, cache_parameters, mode)
     A = QuadraticInterpolation(
         u, t, nothing, p, mode, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return QuadraticInterpolation(
         u, t, I, p, mode, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -185,6 +189,10 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
 struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType} <:
     AbstractInterpolation{T}
@@ -197,12 +205,16 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    function LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right)
+    kind::FindFirstFunctions.StrategyKind
+    function LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right, t_props)
         bcache = zeros(eltype(u[1]), n + 1)
         idxs = zeros(Int, n + 1)
         fill!(bcache, NaN)
-        t_props = FindFirstFunctions.SearchProperties(t)
-        return new{typeof(u), typeof(t), eltype(u), typeof(bcache), typeof(t_props)}(
+        kind = _resolve_strategy_kind(t, t_props)
+        return new{
+            typeof(u), typeof(t), eltype(u), typeof(bcache),
+            typeof(t_props),
+        }(
             u,
             t,
             n,
@@ -211,7 +223,8 @@ struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType} <:
             extrapolation_left,
             extrapolation_right,
             Guesser(t),
-            t_props
+            t_props,
+            kind
         )
     end
 end
@@ -220,7 +233,8 @@ function LagrangeInterpolation(
         u, t, n = length(t) - 1;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -230,7 +244,8 @@ function LagrangeInterpolation(
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
     end
-    return LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
+    return LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right, t_props)
 end
 
 """
@@ -260,12 +275,13 @@ Extrapolation extends the last cubic polynomial on each side.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
-struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, propsType} <:
+struct AkimaInterpolation{
+        uType, tType, IType, bType, cType, dType, T, propsType,
+    } <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -277,14 +293,13 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, propsType
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    linear_lookup::Bool
     function AkimaInterpolation(
             u, t, I, b, c, d, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t
+            extrapolation_right, cache_parameters, t_props
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
             typeof(d), eltype(u), typeof(t_props),
@@ -299,8 +314,8 @@ struct AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, propsType
             extrapolation_right,
             Guesser(t),
             t_props,
+            kind,
             cache_parameters,
-            linear_lookup
         )
     end
 end
@@ -369,14 +384,16 @@ function AkimaInterpolation(
         u, t; modified::Bool = false,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1.0e-2
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    linear_lookup = seems_linear(assume_linear_t, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     T = eltype(u)
     b = Vector{T}(undef, n)
@@ -386,12 +403,12 @@ function AkimaInterpolation(
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return AkimaInterpolation(
         u, t, I, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -419,10 +436,9 @@ Extrapolation extends the last constant polynomial at the end points on each sid
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct ConstantInterpolation{uType, tType, IType, T, propsType} <:
     AbstractInterpolation{T}
@@ -435,17 +451,19 @@ struct ConstantInterpolation{uType, tType, IType, T, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    linear_lookup::Bool
     function ConstantInterpolation(
             u, t, I, dir, extrapolation_left, extrapolation_right,
-            cache_parameters, assume_linear_t
+            cache_parameters, t_props
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
-        return new{typeof(u), typeof(t), typeof(I), eltype(u), typeof(t_props)}(
+        kind = _resolve_strategy_kind(t, t_props)
+        return new{
+            typeof(u), typeof(t), typeof(I), eltype(u),
+            typeof(t_props),
+        }(
             u, t, I, nothing, dir, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, cache_parameters, linear_lookup
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -454,27 +472,29 @@ function ConstantInterpolation(
         u, t; dir = :left, extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false, assume_linear_t = 1.0e-2
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     A = ConstantInterpolation(
         u, t, nothing, dir, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return ConstantInterpolation(
         u, t, I, dir, extrapolation_left, extrapolation_right,
-        cache_parameters, assume_linear_t
+        cache_parameters, t_props
     )
 end
 
 """
     SmoothedConstantInterpolation(u, t; d_max = Inf, extrapolate = false,
-        cache_parameters = false, assume_linear_t = 1e-2)
+        cache_parameters = false)
 
 It is a method for interpolating constantly with forward fill, with smoothing around the
 value transitions to make the curve continuously differentiable while the integral never
@@ -498,10 +518,9 @@ except when using extrapolation types `Constant` or `Extension`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behavior for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct SmoothedConstantInterpolation{
         uType, tType, IType, dType, cType, dmaxType, T, propsType,
@@ -516,20 +535,19 @@ struct SmoothedConstantInterpolation{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    linear_lookup::Bool
     function SmoothedConstantInterpolation(
             u, t, I, p, d_max, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t
+            extrapolation_right, cache_parameters, t_props
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.d),
             typeof(p.c), typeof(d_max), eltype(u), typeof(t_props),
         }(
             u, t, I, p, d_max, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, cache_parameters, linear_lookup
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -538,24 +556,26 @@ function SmoothedConstantInterpolation(
         u, t; d_max = Inf, extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false, assume_linear_t = 1.0e-2
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = SmoothedConstantParameterCache(
         u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right
     )
     A = SmoothedConstantInterpolation(
         u, t, nothing, p, d_max, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return SmoothedConstantInterpolation(
         u, t, I, p, d_max, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -581,12 +601,13 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
-struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, propsType} <:
+struct QuadraticSpline{
+        uType, tType, IType, pType, kType, cType, scType, T, propsType,
+    } <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -599,14 +620,13 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, prop
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    linear_lookup::Bool
     function QuadraticSpline(
             u, t, I, p, k, c, sc, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t
+            extrapolation_right, cache_parameters, t_props
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props),
@@ -622,8 +642,8 @@ struct QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, prop
             extrapolation_right,
             Guesser(t),
             t_props,
+            kind,
             cache_parameters,
-            linear_lookup
         )
     end
 end
@@ -632,13 +652,15 @@ function QuadraticSpline(
         u::AbstractVector{<:Number}, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false, assume_linear_t = 1.0e-2
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
 
     n = length(t)
     dtype_sc = typeof(one(eltype(t)) / one(eltype(t)))
@@ -649,26 +671,28 @@ function QuadraticSpline(
     p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return QuadraticSpline(
         u, t, I, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
 function QuadraticSpline(
         u::AbstractVector, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1.0e-2
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
 
     n = length(t)
     dtype_sc = typeof(one(eltype(t)) / one(eltype(t)))
@@ -689,12 +713,12 @@ function QuadraticSpline(
     p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return QuadraticSpline(
         u, t, I, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -720,10 +744,9 @@ Second derivative on both ends are zero, which are also called "natural" boundar
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
     AbstractInterpolation{T}
@@ -737,14 +760,13 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    linear_lookup::Bool
     function CubicSpline(
             u, t, I, p, h, z, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t
+            extrapolation_right, cache_parameters, t_props
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(p.c₁),
             typeof(h), typeof(z), eltype(u), typeof(t_props),
@@ -759,8 +781,8 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
             extrapolation_right,
             Guesser(t),
             t_props,
+            kind,
             cache_parameters,
-            linear_lookup
         )
     end
 end
@@ -769,14 +791,16 @@ function CubicSpline(
         u::AbstractVector{<:Number},
         t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1.0e-2
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
     dl = vcat(h[2:n], zero(eltype(h)))
@@ -796,31 +820,33 @@ function CubicSpline(
         1:(n + 1)
     )
     z = tA \ d
-    linear_lookup = seems_linear(assume_linear_t, t)
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicSpline(
         u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
 function CubicSpline(
         u::AbstractArray{T, N},
         t;
-        extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1.0e-2
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     ) where {T, N}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
     dl = vcat(h[2:n], zero(eltype(h)))
@@ -843,30 +869,31 @@ function CubicSpline(
     d_reshaped = reshape(d, prod(size(d)[1:(end - 1)]), :)
     z = (tA \ d_reshaped')'
     z = reshape(z, size(u)...)
-    linear_lookup = seems_linear(assume_linear_t, t)
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicSpline(
         u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
 function CubicSpline(
         u::AbstractVector, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false,
-        assume_linear_t = 1.0e-2
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
     dl = vcat(h[2:n], zero(eltype(h)))
@@ -885,12 +912,12 @@ function CubicSpline(
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicSpline(
         u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, assume_linear_t
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -918,12 +945,14 @@ Extrapolation is a constant polynomial of the end points on each side.
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behavior for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
-struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T, propsType} <:
+struct BSplineInterpolation{
+        uType, tType, pType, kType, cType, scType, T, propsType,
+    } <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -938,7 +967,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T, propsT
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    linear_lookup::Bool
+    kind::FindFirstFunctions.StrategyKind
     function BSplineInterpolation(
             u,
             t,
@@ -951,10 +980,9 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T, propsT
             knotVecType,
             extrapolation_left,
             extrapolation_right,
-            assume_linear_t
+            t_props,
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(p), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props),
@@ -972,7 +1000,7 @@ struct BSplineInterpolation{uType, tType, pType, kType, cType, scType, T, propsT
             extrapolation_right,
             Guesser(t),
             t_props,
-            linear_lookup
+            kind
         )
     end
 end
@@ -981,13 +1009,15 @@ function BSplineInterpolation(
         u::AbstractVector, t, d, pVecType, knotVecType;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, assume_linear_t = 1.0e-2
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
     s = zero(eltype(u))
@@ -1052,7 +1082,7 @@ function BSplineInterpolation(
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
         u, t, d, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right, assume_linear_t
+        extrapolation_left, extrapolation_right, t_props
     )
 end
 
@@ -1061,13 +1091,14 @@ function BSplineInterpolation(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        assume_linear_t = 1.0e-2
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
     s = zero(eltype(u))
@@ -1135,7 +1166,7 @@ function BSplineInterpolation(
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
         u, t, d, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right, assume_linear_t
+        extrapolation_left, extrapolation_right, t_props
     )
 end
 
@@ -1165,12 +1196,14 @@ Extrapolation is a constant polynomial of the end points on each side.
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
-struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, propsType} <:
+struct BSplineApprox{
+        uType, tType, pType, kType, cType, scType, T, propsType,
+    } <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -1186,7 +1219,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    linear_lookup::Bool
+    kind::FindFirstFunctions.StrategyKind
     function BSplineApprox(
             u,
             t,
@@ -1200,10 +1233,9 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, propsType} <:
             knotVecType,
             extrapolation_left,
             extrapolation_right,
-            assume_linear_t
+            t_props,
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(p), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props),
@@ -1222,7 +1254,7 @@ struct BSplineApprox{uType, tType, pType, kType, cType, scType, T, propsType} <:
             extrapolation_right,
             Guesser(t),
             t_props,
-            linear_lookup
+            kind
         )
     end
 end
@@ -1231,13 +1263,15 @@ function BSplineApprox(
         u::AbstractVector, t, d, h, pVecType, knotVecType;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, assume_linear_t = 1.0e-2
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
     s = zero(eltype(u))
@@ -1323,7 +1357,7 @@ function BSplineApprox(
     sc = zeros(eltype(t), h)
     return BSplineApprox(
         u, t, d, h, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right, assume_linear_t
+        extrapolation_left, extrapolation_right, t_props
     )
 end
 
@@ -1332,13 +1366,14 @@ function BSplineApprox(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        assume_linear_t = 1.0e-2
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
     ) where {T, N}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
     s = zero(eltype(u))
@@ -1432,7 +1467,7 @@ function BSplineApprox(
     sc = zeros(eltype(t), h)
     return BSplineApprox(
         u, t, d, h, p, k, c, sc, pVecType, knotVecType,
-        extrapolation_left, extrapolation_right, assume_linear_t
+        extrapolation_left, extrapolation_right, t_props
     )
 end
 """
@@ -1457,12 +1492,13 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
-struct CubicHermiteSpline{uType, tType, IType, duType, pType, T, propsType} <:
+struct CubicHermiteSpline{
+        uType, tType, IType, duType, pType, T, propsType,
+    } <:
     AbstractInterpolation{T}
     du::duType
     u::uType
@@ -1473,20 +1509,19 @@ struct CubicHermiteSpline{uType, tType, IType, duType, pType, T, propsType} <:
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    linear_lookup::Bool
     function CubicHermiteSpline(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters, assume_linear_t
+            cache_parameters, t_props
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
             typeof(p.c₁), eltype(u), typeof(t_props),
         }(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, cache_parameters, linear_lookup
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -1494,7 +1529,9 @@ end
 function CubicHermiteSpline(
         du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false, assume_linear_t = 1.0e-2
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     @assert length(u) == length(du) "Length of `u` is not equal to length of `du`."
     extrapolation_left,
@@ -1502,16 +1539,16 @@ function CubicHermiteSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    linear_lookup = seems_linear(assume_linear_t, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = CubicHermiteParameterCache(du, u, t, cache_parameters)
     A = CubicHermiteSpline(
         du, u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicHermiteSpline(
         du, u, t, I, p, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
@@ -1538,10 +1575,9 @@ section 3.4 for more details.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
 function PCHIPInterpolation(u, t; kwargs...)
     u, t = munge_data(u, t)
@@ -1572,12 +1608,13 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 """
-struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T, propsType} <:
+struct QuinticHermiteSpline{
+        uType, tType, IType, duType, dduType, pType, T, propsType,
+    } <:
     AbstractInterpolation{T}
     ddu::dduType
     du::duType
@@ -1589,20 +1626,19 @@ struct QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T, prop
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    linear_lookup::Bool
     function QuinticHermiteSpline(
             ddu, du, u, t, I, p, extrapolation_left,
-            extrapolation_right, cache_parameters, assume_linear_t
+            extrapolation_right, cache_parameters, t_props
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
             typeof(ddu), typeof(p.c₁), eltype(u), typeof(t_props),
         }(
             ddu, du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, cache_parameters, linear_lookup
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -1611,7 +1647,8 @@ function QuinticHermiteSpline(
         ddu, du, u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters = false, assume_linear_t = 1.0e-2
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     @assert length(u) == length(du) == length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     extrapolation_left,
@@ -1619,21 +1656,22 @@ function QuinticHermiteSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    linear_lookup = seems_linear(assume_linear_t, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
     A = QuinticHermiteSpline(
         ddu, du, u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return QuinticHermiteSpline(
         ddu, du, u, t, I, p, extrapolation_left,
-        extrapolation_right, cache_parameters, linear_lookup
+        extrapolation_right, cache_parameters, t_props
     )
 end
 
 struct SmoothArcLengthInterpolation{
-        uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing}, T, propsType,
+        uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing},
+        T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -1654,8 +1692,8 @@ struct SmoothArcLengthInterpolation{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    linear_lookup::Bool
     out::Vector{P}
     derivative::Vector{P}
     in_place::Bool
@@ -1663,10 +1701,9 @@ struct SmoothArcLengthInterpolation{
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, extrapolation_left, extrapolation_right,
-            assume_linear_t, out, derivative, in_place
+            out, derivative, in_place, t_props
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        t_props = FindFirstFunctions.SearchProperties(t)
+        kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), eltype(radius),
             eltype(d), typeof(shape_itp), eltype(u), typeof(t_props),
@@ -1674,7 +1711,7 @@ struct SmoothArcLengthInterpolation{
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, nothing, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, false, linear_lookup, out, derivative, in_place
+            Guesser(t), t_props, kind, false, out, derivative, in_place
         )
     end
 end
@@ -1712,10 +1749,10 @@ If you want to do this, construct the shape interpolation yourself and use the
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
 function SmoothArcLengthInterpolation(
         u::AbstractMatrix{U};
@@ -1762,10 +1799,10 @@ Approximate the `shape_itp` with a C¹ unit speed interpolation using line segme
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
 function SmoothArcLengthInterpolation(
         shape_itp::AbstractInterpolation;
@@ -1814,7 +1851,6 @@ end
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters::Bool = false,
-        assume_linear_t = 1e-2,
         in_place::Bool = true)
 
 Make a C¹ smooth unit speed interpolation through the given data with the given tangents using line
@@ -1839,10 +1875,10 @@ segments and circle segments.
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
     the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
-  - `assume_linear_t`: boolean value to specify a faster index lookup behaviour for
-    evenly-distributed abscissae. Alternatively, a numerical threshold may be specified
-    for a test based on the normalized standard deviation of the difference with respect
-    to the straight line (see [`looks_linear`](@ref)). Defaults to 1e-2.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
 """
 function SmoothArcLengthInterpolation(
         u::AbstractMatrix,
@@ -1931,8 +1967,8 @@ function SmoothArcLengthInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters::Bool = false,
-        assume_linear_t = 1.0e-2,
-        in_place::Bool = true
+        in_place::Bool = true,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     N = size(u, 1)
     n_circle_arcs = size(u, 2) - 1
@@ -1982,14 +2018,15 @@ function SmoothArcLengthInterpolation(
         extrapolation_right = munge_extrapolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
-    linear_lookup = seems_linear(assume_linear_t, t)
 
     out = Vector{P}(undef, N)
     derivative = Vector{P}(undef, N)
 
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     return SmoothArcLengthInterpolation(
         u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
         center, radius, dir_1, dir_2, short_side_left,
-        nothing, extrapolation_left, extrapolation_right, linear_lookup, out, derivative, in_place
+        nothing, extrapolation_left, extrapolation_right,
+        out, derivative, in_place, t_props
     )
 end

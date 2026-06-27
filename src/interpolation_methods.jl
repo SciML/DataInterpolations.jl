@@ -169,10 +169,71 @@ function _extrapolate_right(A::SmoothedConstantInterpolation, t)
     end
 end
 
-# Linear Interpolation
+# `AbstractRange` knots are uniform at the type level: lean closed form, no
+# runtime branch or verification. Float `Vector` knots branch on `kind`
+# (uniformity is a value property and a `Vector` can be mutated, so the
+# uniform arm verifies and falls back). Both arms share a return type.
+function _interpolate(
+        A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}, <:AbstractRange},
+        t::Number, iguess,
+    )
+    return _linear_uniform_range_interpolate(A, t, iguess)
+end
+function _interpolate(
+        A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}}, t::Number, iguess,
+    )
+    return if A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
+        _linear_uniform_interpolate(A, t, iguess)
+    else
+        _linear_slope_interpolate(A, t, iguess)
+    end
+end
 function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
+    return _linear_slope_interpolate(A, t, iguess)
+end
+
+# Range knots are exactly uniform and immutable, so `α` comes straight from
+# the float position with no `A.t[idx]` load and no staleness check.
+@inline function _linear_uniform_range_interpolate(
+        A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}}, t::Number, iguess,
+    )
     if isnan(t)
-        # For correct derivative with NaN
+        idx = firstindex(A.u)
+        u1 = oneunit(eltype(A.u))
+        slope = t / t * get_parameters(A, idx)
+        Δu = slope * (t - oneunit(eltype(A.t)))
+        return oftype(Δu, u1) + Δu
+    end
+    props = A.t_props
+    f = (t - props.first_val) * props.inv_step
+    n = length(A.t)
+    idx0 = if f < 0
+        0
+    elseif f > n - 2
+        n - 2
+    else
+        unsafe_trunc(Int, floor(f))
+    end
+    α = f - idx0
+    @inbounds u1 = A.u[idx0 + 1]
+    @inbounds u2 = A.u[idx0 + 2]
+    Δu = α * (u2 - u1)
+    if any(isnan.(Δu))
+        # `0 * NaN` would poison an exact-knot query next to a NaN; compare knots.
+        @inbounds t1 = A.t[idx0 + 1]
+        @inbounds t2 = A.t[idx0 + 2]
+        if t == t2
+            return u2 + zero(Δu)
+        elseif t == t1
+            return u1 + zero(Δu)
+        end
+    end
+    return u1 + Δu
+end
+
+function _linear_slope_interpolate(A::LinearInterpolation, t::Number, iguess)
+    if isnan(t)
+        # NaN query → NaN derivative
         idx = firstindex(A.u)
         t1 = t2 = oneunit(eltype(A.t))
         u1 = u2 = oneunit(eltype(A.u))
@@ -196,6 +257,58 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
     val = oftype(Δu, val)
 
     return val
+end
+
+# Verified closed form for uniform `Vector` knots: same lerp as the range
+# kernel but checks the live knots, since a `Vector` can be mutated after
+# construction (`push!`) or caller-forced-uniform on jittered data.
+function _linear_uniform_interpolate(
+        A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}}, t::Number, iguess,
+    )
+    if isnan(t)
+        # NaN query → NaN derivative
+        idx = firstindex(A.u)
+        u1 = oneunit(eltype(A.u))
+        slope = t / t * get_parameters(A, idx)
+        Δu = slope * (t - oneunit(eltype(A.t)))
+        return oftype(Δu, u1) + Δu
+    end
+    # Clamp in the float domain before truncating: Extension extrapolation
+    # can push `f` past typemax(Int), where `unsafe_trunc` is UB.
+    props = A.t_props
+    f = (t - props.first_val) * props.inv_step
+    n = length(A.t)
+    idx0 = if f < 0
+        0
+    elseif f > n - 2
+        n - 2
+    else
+        unsafe_trunc(Int, floor(f))
+    end
+    @inbounds t1 = A.t[idx0 + 1]
+    @inbounds t2 = A.t[idx0 + 2]
+    # `f`/`inv_step` may be stale (post-`push!`) or forced-uniform on jittered
+    # data; if the cell or spacing no longer matches the live knots, fall back
+    # (1e-6 absorbs float roundoff on long uniform vectors).
+    in_cell = (t1 <= t || idx0 == 0) && (t <= t2 || idx0 == n - 2)
+    spacing_ok = abs((t2 - t1) * props.inv_step - 1) <= 1.0e-6
+    if !(in_cell && spacing_ok)
+        return _linear_slope_interpolate(A, t, iguess)
+    end
+    A.iguesser.idx_prev[] = idx0 + 1
+    α = (t - t1) * props.inv_step
+    @inbounds u1 = A.u[idx0 + 1]
+    @inbounds u2 = A.u[idx0 + 2]
+    Δu = α * (u2 - u1)
+    if any(isnan.(Δu))
+        # `0 * NaN` would poison an exact-knot query next to a NaN; compare knots.
+        if t == t2
+            return u2 + zero(Δu)
+        elseif t == t1
+            return u1 + zero(Δu)
+        end
+    end
+    return u1 + Δu
 end
 
 function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess)
