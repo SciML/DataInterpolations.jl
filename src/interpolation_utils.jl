@@ -30,10 +30,8 @@ function findRequiredIdxs!(A::LagrangeInterpolation, t, idx)
 end
 
 function spline_coefficients!(N, d, k, u::Number)
-    # `N` is zeroed because BSpline derivative paths read the full vector
-    # (see `_derivative(::BSplineInterpolation, …)` in `derivatives.jl`).
-    # Positions outside the body's `(i-d):i` write window must be zero or
-    # stale values from previous calls would leak in.
+    # Zero the whole vector: the body only writes `(i-d):i`, but callers read
+    # all of `N`, so stale entries outside that window must not leak.
     N .= zero(u)
     if u == k[1]
         N[1] = one(u)
@@ -42,16 +40,13 @@ function spline_coefficients!(N, d, k, u::Number)
         N[end] = one(u)
         return length(N):length(N)
     else
-        # `k` is sorted; the legacy `findfirst(x -> x > u, k) - 1` did an O(n)
-        # linear scan. `searchsortedlast` returns the same index in O(log n).
+        # `k` is sorted, so the locator is an O(log n) search.
         i = searchsortedlast(k, u)
         return _spline_coefficients_body!(N, d, k, u, i)
     end
 end
 
-# Body of `spline_coefficients!` after the locator index `i` has been
-# determined. Used by `spline_coefficients!` (logarithmic locator) and by
-# `quadratic_spline_params` (O(1) amortised running locator).
+# B-spline basis recurrence given the located knot index `i`.
 function _spline_coefficients_body!(N, d, k, u, i)
     N[i] = one(u)
     for deg in 1:d
@@ -99,19 +94,15 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
     diag_hi = Vector{dtype_sc}(undef, n - 1)
     diag_lo = Vector{dtype_sc}(undef, n - 1)
 
-    # `t` is sorted and `k` is built from `t`, so the locator
-    # `searchsortedlast(k, tᵢ)` is non-decreasing in `i`. Maintain a running
-    # pointer to advance amortised O(1) per knot — total O(n) instead of the
-    # O(n²) `findfirst` scan or O(n log n) per-call `searchsortedlast`.
+    # The locator is non-decreasing in `i` (both `t` and `k` sorted), so a
+    # running pointer gives the index in amortised O(1) — O(n) overall.
     nk = length(k)
     d = 2
     fill!(sc, zero(dtype_sc))
     locator = 1
     for (i, tᵢ) in enumerate(t)
         if tᵢ == k[1] || tᵢ == k[end]
-            # `t[1] == k[1]` and `t[end] == k[end]` by construction, so this
-            # branch only fires for `i == 1` (sc[1] = 1) and `i == n`
-            # (sc[end] = 1). Read directly without touching `sc`.
+            # Only fires at the endpoints (i == 1 and i == n) by construction.
             on_first = tᵢ == k[1]
             diag[i] = (on_first && i == 1) || (!on_first && i == length(sc)) ?
                 one(dtype_sc) : zero(dtype_sc)
@@ -119,8 +110,6 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
             (i < n) && (diag_hi[i] = zero(dtype_sc))
             continue
         end
-        # Advance the running locator until `k[locator+1] > tᵢ` — equivalent
-        # to `searchsortedlast(k, tᵢ)` on monotone-increasing `tᵢ` inputs.
         while locator < nk && k[locator + 1] <= tᵢ
             locator += 1
         end
@@ -128,9 +117,7 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
         diag[i] = sc[i]
         (i > 1) && (diag_lo[i - 1] = sc[i - 1])
         (i < n) && (diag_hi[i] = sc[i + 1])
-        # The body writes only `sc[locator-d:locator]`; zero those entries
-        # so the next iteration starts with `sc .== 0` again (the body
-        # assumes positions outside its write window are already zero).
+        # Re-zero the body's write window for the next iteration.
         for j in (locator - d):locator
             sc[j] = zero(dtype_sc)
         end
@@ -210,29 +197,10 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     return U, t
 end
 
-# Resolve the concrete `FindFirstFunctions.StrategyKind` for the given knot
-# vector at construction time. Stored on every interpolation cache as the
-# `kind::StrategyKind` field (a `UInt8` enum — not parametric), so
-# `get_idx` dispatches on a fixed kind without re-probing per query.
-#
-# `FindFirstFunctions.Auto(t, props)` does the resolution and we keep its
-# `.kind`:
-#
-#   - For uniformly-spaced data (any `AbstractRange` or a `Vector` whose
-#     every element lies within ~1e-12 of the exactly-uniform line),
-#     picks `KIND_UNIFORM_STEP`.
-#   - For non-uniform data with `length(t) ≤ 16`, picks `KIND_LINEAR_SCAN`.
-#   - Otherwise picks `KIND_BRACKET_GALLOP` (the v2 default).
-#
-# The precomputed `inv_step` / `first_val` that `KIND_UNIFORM_STEP`'s
-# closed-form lookup needs live in `A.t_props` (parametric on the ratio
-# type). `get_idx` reconstructs `Auto(A.t_props)` for the uniform case so
-# the closed-form path is taken; for every other kind the props are
-# unused, so the bare `kind` suffices and no parametric strategy field is
-# stored.
+# Resolve the search `StrategyKind` once at construction; stored as the
+# non-parametric `kind::StrategyKind` cache field. The props-aware form
+# reuses an already-computed `SearchProperties` instead of re-probing `t`.
 @inline _resolve_strategy_kind(t::AbstractVector) = FindFirstFunctions.Auto(t).kind
-# Props-aware form: reuses the already-computed (possibly caller-supplied)
-# `SearchProperties` instead of re-probing `t` inside `Auto(t)`.
 @inline _resolve_strategy_kind(t::AbstractVector, props::FindFirstFunctions.SearchProperties) =
     FindFirstFunctions.Auto(t, props).kind
 
@@ -261,13 +229,10 @@ function get_idx(
     return idx
 end
 
-# Dispatch the cached `A.kind` into FindFirstFunctions. `KIND_UNIFORM_STEP`'s
-# closed-form lookup needs the precomputed `inv_step` / `first_val`, which
-# live in `A.t_props`; reconstruct the (isbits, stack-allocated) `Auto` from
-# them so that path is taken. Every other kind ignores the props, so the
-# bare enum dispatches directly. The branch must sit at the call — `Auto`
-# and `StrategyKind` are different types, so a hoisted variable would be a
-# `Union` and break type stability; each arm returns a concrete `Int`.
+# `KIND_UNIFORM_STEP` needs the props for its closed form, so reconstruct the
+# (isbits) `Auto` from `A.t_props`; other kinds dispatch on the bare enum. The
+# branch sits at the call so each arm has a concrete first arg (a hoisted
+# `Union{Auto,StrategyKind}` would break inference); both return `Int`.
 @inline function _dispatch_search(A, tvec, t, hint, side)
     if A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
         auto = FindFirstFunctions.Auto(A.t_props)

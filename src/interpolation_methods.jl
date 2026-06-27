@@ -169,20 +169,10 @@ function _extrapolate_right(A::SmoothedConstantInterpolation, t)
     end
 end
 
-# Linear Interpolation — two uniform fast paths, both inference-safe:
-#
-#   1. STATIC, for `AbstractRange` knots. A range is uniform at the *type*
-#      level (no value-dependent tag, so the constructor stays inferred) and
-#      is immutable + exactly spaced, so the lean closed form needs neither
-#      the runtime `kind` branch nor the cell/spacing verification, and it
-#      gets `α` straight from the float position without loading `A.t[idx]`.
-#   2. RUNTIME, for `Vector{<:AbstractFloat}` knots. Uniformity here is a
-#      value property, carried by the `kind` enum; the branch picks the
-#      verified closed form (a `Vector` can be `push!`-mutated or
-#      caller-forced-uniform on jittered data, so it must check the live
-#      knots and fall back). Both arms return the same concrete type.
-#
-# Non-Float `u`, and non-uniform knots, use the slope form.
+# `AbstractRange` knots are uniform at the type level: lean closed form, no
+# runtime branch or verification. Float `Vector` knots branch on `kind`
+# (uniformity is a value property and a `Vector` can be mutated, so the
+# uniform arm verifies and falls back). Both arms share a return type.
 function _interpolate(
         A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}, <:AbstractRange},
         t::Number, iguess,
@@ -202,11 +192,8 @@ function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, igues
     return _linear_slope_interpolate(A, t, iguess)
 end
 
-# Lean uniform kernel for `AbstractRange` knots. No verification (a range is
-# immutable and exactly uniform) and no `A.t[idx]` load (`α` is the
-# fractional part of the float position `f`). NaN handling matches the other
-# methods: a NaN query propagates through the partial of `t` for correct
-# derivatives, and a NaN-adjacent `u` is resolved by exact-knot comparison.
+# Range knots are exactly uniform and immutable, so `α` comes straight from
+# the float position with no `A.t[idx]` load and no staleness check.
 @inline function _linear_uniform_range_interpolate(
         A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}}, t::Number, iguess,
     )
@@ -232,8 +219,7 @@ end
     @inbounds u2 = A.u[idx0 + 2]
     Δu = α * (u2 - u1)
     if any(isnan.(Δu))
-        # `0 * NaN = NaN` poisons exact-knot queries when a neighbour is NaN;
-        # resolve by comparing the query to the bracketing knots directly.
+        # `0 * NaN` would poison an exact-knot query next to a NaN; compare knots.
         @inbounds t1 = A.t[idx0 + 1]
         @inbounds t2 = A.t[idx0 + 2]
         if t == t2
@@ -247,7 +233,7 @@ end
 
 function _linear_slope_interpolate(A::LinearInterpolation, t::Number, iguess)
     if isnan(t)
-        # For correct derivative with NaN
+        # NaN query → NaN derivative
         idx = firstindex(A.u)
         t1 = t2 = oneunit(eltype(A.t))
         u1 = u2 = oneunit(eltype(A.u))
@@ -273,40 +259,22 @@ function _linear_slope_interpolate(A::LinearInterpolation, t::Number, iguess)
     return val
 end
 
-# Uniform-grid fast path, reached from the `_interpolate` runtime branch when
-# `kind === KIND_UNIFORM_STEP`. Uses the precomputed `inv_step` / `first_val`
-# baked into `t_props` to skip the `A.t[idx]` load and the cached slope
-# lookup. The linear-blend form `u[idx] + α * (u[idx+1] - u[idx])` is
-# mathematically equivalent to the slope form modulo a few ulps of
-# floating-point roundoff.
-#
-# `inv_step` / `first_val` are always `AbstractFloat` (`_ratio_type` of the
-# knot eltype) and the caller restricts `eltype(u) <: AbstractFloat`, so the
-# lerp result type matches the slope form — both branches of `_interpolate`
-# return the same concrete type, keeping the query inferred. On a stale or
-# non-uniform cell (see the verification below) it falls back to the slope
-# form, which is also the same type.
+# Verified closed form for uniform `Vector` knots: same lerp as the range
+# kernel but checks the live knots, since a `Vector` can be mutated after
+# construction (`push!`) or caller-forced-uniform on jittered data.
 function _linear_uniform_interpolate(
         A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}}, t::Number, iguess,
     )
     if isnan(t)
-        # Propagate NaN through the partial of `t` so `ForwardDiff.derivative`
-        # at a NaN query returns NaN. The non-uniform method does this by
-        # computing `u1 + slope * (t - t1)` with `t - t1 = NaN`; replicate the
-        # `slope * (t - t1)` poisoning here.
+        # NaN query → NaN derivative
         idx = firstindex(A.u)
         u1 = oneunit(eltype(A.u))
         slope = t / t * get_parameters(A, idx)
         Δu = slope * (t - oneunit(eltype(A.t)))
         return oftype(Δu, u1) + Δu
     end
-    # Closed-form index lookup on a uniform grid: `f` is the float position
-    # in `[0, length-1]`, `idx0` its floor (zero-based), `α` the fractional
-    # part. Clamping into `[0, length-2]` keeps `idx0 + 1` and `idx0 + 2`
-    # in bounds for the two-sample load below. The clamp happens in the
-    # float domain before truncating: with Extension extrapolation `t` can
-    # be far outside the knot span, where `f` exceeds typemax(Int) and
-    # `unsafe_trunc` is UB.
+    # Clamp in the float domain before truncating: Extension extrapolation
+    # can push `f` past typemax(Int), where `unsafe_trunc` is UB.
     props = A.t_props
     f = (t - props.first_val) * props.inv_step
     n = length(A.t)
@@ -319,17 +287,9 @@ function _linear_uniform_interpolate(
     end
     @inbounds t1 = A.t[idx0 + 1]
     @inbounds t2 = A.t[idx0 + 2]
-    # Verify the guessed cell against the live knots. `push!`/`append!`
-    # mutate `A.t` while `t_props` (and the cached `kind`) keep their
-    # construction-time values, so the precomputed `first_val` /
-    # `inv_step` can go stale; a caller-forced `is_uniform = true` on
-    # non-uniform knots is the same hazard. The cell check catches a
-    # wrong segment; the spacing check bounds the α error when the cell
-    # is right but the cached `inv_step` no longer matches the local
-    # spacing. The 1e-6 slack tolerates accumulated float roundoff on
-    # long validated-uniform vectors while rejecting any real spacing
-    # change. On failure, evaluate via the general slope-form path
-    # (slower, always correct).
+    # `f`/`inv_step` may be stale (post-`push!`) or forced-uniform on jittered
+    # data; if the cell or spacing no longer matches the live knots, fall back
+    # (1e-6 absorbs float roundoff on long uniform vectors).
     in_cell = (t1 <= t || idx0 == 0) && (t <= t2 || idx0 == n - 2)
     spacing_ok = abs((t2 - t1) * props.inv_step - 1) <= 1.0e-6
     if !(in_cell && spacing_ok)
@@ -341,9 +301,7 @@ function _linear_uniform_interpolate(
     @inbounds u2 = A.u[idx0 + 2]
     Δu = α * (u2 - u1)
     if any(isnan.(Δu))
-        # When NaN appears in `u` adjacent to the segment, `0 * NaN = NaN`
-        # poisons the answer at exact-knot queries. Resolve by comparing
-        # the query against the knot values directly.
+        # `0 * NaN` would poison an exact-knot query next to a NaN; compare knots.
         if t == t2
             return u2 + zero(Δu)
         elseif t == t1

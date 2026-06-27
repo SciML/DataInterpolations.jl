@@ -38,9 +38,7 @@ struct LinearInterpolation{
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
-    # Resolved at construction; `KIND_UNIFORM_STEP` enables the closed-form
-    # fast path in `_interpolate` via a runtime branch (not a type tag), so
-    # the constructor returns a single concrete type and stays inferred.
+    # A field, not a type parameter, so the constructor stays inferred.
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
     @inline function LinearInterpolation(

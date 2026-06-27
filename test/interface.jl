@@ -37,11 +37,7 @@ end
         QuadraticInterpolation, LagrangeInterpolation,
         QuadraticSpline, CubicSpline, AkimaInterpolation,
     ]
-    # Construction must be type-inferred for both Vector and Range knots —
-    # uniformity is a runtime field (`kind`), never a cache type parameter,
-    # so the constructor returns a single concrete type. The query is then
-    # inferred per instance (the uniform fast path is a runtime branch whose
-    # arms share a return type).
+    # Construction and query must infer for both Vector and Range knots.
     @testset "$method" for method in methods
         A = @inferred method(u, t)
         @inferred A(2.5)
