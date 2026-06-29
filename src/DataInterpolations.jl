@@ -9,6 +9,7 @@ using RecipesBase: RecipesBase, @recipe, @series
 using PrettyTables: PrettyTables, pretty_table
 using ForwardDiff: ForwardDiff
 using EnumX: EnumX, @enumx
+using StaticArrays: MVector, SVector
 import FindFirstFunctions
 import FindFirstFunctions: Guesser
 
