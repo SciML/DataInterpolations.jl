@@ -668,7 +668,7 @@ function QuadraticSpline(
     k, A = quadratic_spline_params(t, sc)
     c = A \ u
 
-    p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
+    p = QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
         extrapolation_right, cache_parameters, t_props
@@ -710,7 +710,7 @@ function QuadraticSpline(
         end
     end
 
-    p = QuadraticSplineParameterCache(u, t, k, c, sc, cache_parameters)
+    p = QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
         extrapolation_right, cache_parameters, t_props
@@ -1020,6 +1020,8 @@ function BSplineInterpolation(
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
+    d ≥ BSPLINE_STACK_MAXLEN &&
+        error("BSplineInterpolation supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
     s = zero(eltype(u))
     p = zero(t)
     k = zeros(eltype(t), n + d + 1)
@@ -1101,6 +1103,8 @@ function BSplineInterpolation(
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
+    d ≥ BSPLINE_STACK_MAXLEN &&
+        error("BSplineInterpolation supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
     s = zero(eltype(u))
     p = zero(t)
     k = zeros(eltype(t), n + d + 1)
@@ -1274,6 +1278,8 @@ function BSplineApprox(
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
+    d ≥ BSPLINE_STACK_MAXLEN &&
+        error("BSplineApprox supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
     s = zero(eltype(u))
     p = zero(t)
     k = zeros(eltype(t), h + d + 1)
@@ -1376,6 +1382,8 @@ function BSplineApprox(
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
+    d ≥ BSPLINE_STACK_MAXLEN &&
+        error("BSplineApprox supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
     s = zero(eltype(u))
     p = zero(t)
     k = zeros(eltype(t), h + d + 1)

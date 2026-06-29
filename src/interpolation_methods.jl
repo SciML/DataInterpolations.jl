@@ -1264,11 +1264,11 @@ function _interpolate(
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
-    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
+    # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
+    vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, n)
     ucum = zero(eltype(A.u))
-    for i in nonzero_coefficient_idxs
-        ucum += sc[i] * A.c[i]
+    @inbounds for l in 1:m
+        ucum += vals[l] * A.c[offset + l]
     end
     return ucum
 end
@@ -1285,11 +1285,11 @@ function _interpolate(
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
-    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
+    # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
+    vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, n)
     ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)
-    for i in nonzero_coefficient_idxs
-        ucum = ucum + (sc[i] * A.c[ax_u..., i])
+    @inbounds for l in 1:m
+        ucum = ucum + (vals[l] * A.c[ax_u..., offset + l])
     end
     return ucum
 end
@@ -1301,11 +1301,11 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
     # change t into param [0 1]
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
-    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
+    # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
+    vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, A.h)
     ucum = zero(eltype(A.u))
-    for i in nonzero_coefficient_idxs
-        ucum += sc[i] * A.c[i]
+    @inbounds for l in 1:m
+        ucum += vals[l] * A.c[offset + l]
     end
     return ucum
 end
@@ -1319,11 +1319,11 @@ function _interpolate(
     # change t into param [0 1]
     idx = get_idx(A, t, iguess)
     t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
-    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
+    # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
+    vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, A.h)
     ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)
-    for i in nonzero_coefficient_idxs
-        ucum = ucum + (sc[i] * A.c[ax_u..., i])
+    @inbounds for l in 1:m
+        ucum = ucum + (vals[l] * A.c[ax_u..., offset + l])
     end
     return ucum
 end

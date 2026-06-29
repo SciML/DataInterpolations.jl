@@ -1,8 +1,10 @@
 using DataInterpolations
+using DataInterpolations: derivative
 using AllocCheck: @check_allocs
 using StaticArrays: SVector
 
 @check_allocs(test_allocs(itp, x) = itp(x)) # Reuse function definition to save on compilation time
+@check_allocs(test_derivative_allocs(itp, x) = derivative(itp, x))
 
 @testset "Allocation-free interpolation tests" begin
     @testset "LinearInterpolation" begin
@@ -51,6 +53,32 @@ using StaticArrays: SVector
         u_s = [convert(SVector{length(u[1])}, i) for i in u]
         A_s = QuadraticSpline(u_s, t; extrapolation = ExtrapolationType.Extension)
         @test_nowarn test_allocs(A_s, 0.7)
+    end
+
+    # B-spline evaluation must be allocation-free *and* reentrant: it computes the
+    # d+1 nonzero basis functions into a stack buffer instead of a shared scratch
+    # field, which is what makes it thread-safe (#532). Scalar data keeps the return
+    # value itself off the heap.
+    @testset "BSplineInterpolation" begin
+        t = collect(range(0.0, 2π; length = 12))
+        u = sin.(t)
+        for d in (1, 2, 3)
+            A = BSplineInterpolation(
+                u, t, d, :Uniform, :Average; extrapolation = ExtrapolationType.Extension
+            )
+            @test_nowarn test_allocs(A, 3.1)
+            @test_nowarn test_derivative_allocs(A, 3.1)
+        end
+    end
+
+    @testset "BSplineApprox" begin
+        t = collect(range(0.0, 2π; length = 12))
+        u = sin.(t)
+        A = BSplineApprox(
+            u, t, 3, 8, :Uniform, :Average; extrapolation = ExtrapolationType.Extension
+        )
+        @test_nowarn test_allocs(A, 3.1)
+        @test_nowarn test_derivative_allocs(A, 3.1)
     end
 
     @testset "CubicSpline" begin

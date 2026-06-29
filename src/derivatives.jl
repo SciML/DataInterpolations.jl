@@ -256,14 +256,16 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
     n = length(A.t)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
-    spline_coefficients!(sc, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
     else
-        for i in 1:(n - 1)
-            ducum += sc[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+        # Stack-allocated basis window: differentiation must be reentrant (#532)
+        vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t_, n)
+        @inbounds for l in 1:m
+            i = offset + l - 1
+            (1 <= i <= n - 1) || continue
+            ducum += vals[l] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
     return ducum * A.d * scale
@@ -280,15 +282,17 @@ function _derivative(
     n = length(A.t)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
-    spline_coefficients!(sc, A.d - 1, A.k, t_)
     ducum = zeros(size(A.u)[1:(end - 1)]...)
     if t == A.t[1]
         ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / (A.k[A.d + 2])
     else
-        for i in 1:(n - 1)
+        # Stack-allocated basis window: differentiation must be reentrant (#532)
+        vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t_, n)
+        @inbounds for l in 1:m
+            i = offset + l - 1
+            (1 <= i <= n - 1) || continue
             ducum = ducum +
-                sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
+                vals[l] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
                 (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
@@ -302,14 +306,16 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
     idx = get_idx(A, t, iguess)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
-    spline_coefficients!(sc, A.d - 1, A.k, t_)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
     else
-        for i in 1:(A.h - 1)
-            ducum += sc[i + 1] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+        # Stack-allocated basis window: differentiation must be reentrant (#532)
+        vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t_, A.h)
+        @inbounds for l in 1:m
+            i = offset + l - 1
+            (1 <= i <= A.h - 1) || continue
+            ducum += vals[l] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
     return ducum * A.d * scale
@@ -325,14 +331,16 @@ function _derivative(
     idx = get_idx(A, t, iguess)
     scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
     t_ = A.p[idx] + (t - A.t[idx]) * scale
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
-    spline_coefficients!(sc, A.d - 1, A.k, t_)
     ducum = zeros(size(A.u)[1:(end - 1)]...)
     if t == A.t[1]
         ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / (A.k[A.d + 2])
     else
-        for i in 1:(A.h - 1)
-            ducum += sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
+        # Stack-allocated basis window: differentiation must be reentrant (#532)
+        vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t_, A.h)
+        @inbounds for l in 1:m
+            i = offset + l - 1
+            (1 <= i <= A.h - 1) || continue
+            ducum = ducum + vals[l] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
                 (A.k[i + A.d + 1] - A.k[i + 1])
         end
     end
