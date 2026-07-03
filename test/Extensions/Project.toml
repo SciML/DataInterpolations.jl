@@ -1,0 +1,25 @@
+[deps]
+DataInterpolations = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+SciMLTesting = "09d9d899-5365-40a9-917a-5f67fddea283"
+SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
+[sources]
+DataInterpolations = {path = "../.."}
+
+[compat]
+DataInterpolations = "9"
+ForwardDiff = "1"
+LinearAlgebra = "1.10"
+Mooncake = "0.4.175, 0.5"
+SafeTestsets = "0.1"
+SciMLTesting = "1.7"
+SparseConnectivityTracer = "1"
+Test = "1.10"
+Zygote = "0.6.77, 0.7"
+julia = "1.10"
