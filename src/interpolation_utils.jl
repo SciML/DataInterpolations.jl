@@ -106,13 +106,17 @@ end
 # recurrence of `spline_coefficients!`, but writes into a local window indexed `1:m`
 # instead of absolute knot indices.
 @inline function bspline_nonzero_coefficients(d::Integer, k, u::T, ncp::Integer) where {T}
-    N = zero(SVector{BSPLINE_STACK_MAXLEN, T})
+    # The recurrence divides knot differences, which can produce non-integer
+    # values even when `u` and `k` are integer-valued, so the scratch buffer's
+    # element type must be the promotion of `T` and `eltype(k)`, not `T` alone.
+    T2 = promote_type(T, eltype(k))
+    N = zero(MVector{BSPLINE_STACK_MAXLEN, T2})
     if u == k[1]
-        N = _static_setindex(N, one(u), 1)
-        return N, 0, 1
+        @inbounds N[1] = one(T2)
+        return SVector(N), 0, 1
     elseif u == k[end]
-        N = _static_setindex(N, one(u), 1)
-        return N, ncp - 1, 1
+        @inbounds N[1] = one(T2)
+        return SVector(N), ncp - 1, 1
     end
     i = searchsortedlast(k, u)
     # For out-of-range points, extend the boundary polynomial span (mirrors
@@ -127,7 +131,7 @@ end
     # Local index of global knot index `g` is `g + off` (so `i - d → 1`, `i → d + 1`).
     off = d + 1 - i
     @inbounds begin
-        N = _static_setindex(N, one(u), i + off)
+        N[i + off] = one(T2)
         for deg in 1:d
             N = _static_setindex(
                 N,

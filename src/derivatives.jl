@@ -288,17 +288,18 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
         return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : typed_nan(A.u)
     end
     n = length(A.t)
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
-    spline_coefficients!(sc, A.d - 1, A.k, t)
+    # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
+    vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, n)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         denom = A.k[A.d + 2] - A.k[2]
         ducum = denom != 0 ? (A.c[2] - A.c[1]) / denom : zero(eltype(A.u))
     else
-        for i in 1:(n - 1)
+        @inbounds for i in 1:(n - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
-            if denom != 0
-                ducum += sc[i + 1] * (A.c[i + 1] - A.c[i]) / denom
+            l = i + 1 - offset
+            if denom != 0 && 1 <= l <= m
+                ducum += vals[l] * (A.c[i + 1] - A.c[i]) / denom
             end
         end
     end
@@ -314,8 +315,8 @@ function _derivative(
     end
     ax_u = axes(A.u)[1:(end - 1)]
     n = length(A.t)
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), n) : A.sc
-    spline_coefficients!(sc, A.d - 1, A.k, t)
+    # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
+    vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, n)
     ducum = zeros(size(A.u)[1:(end - 1)]...)
     if t == A.t[1]
         denom = A.k[A.d + 2] - A.k[2]
@@ -323,11 +324,12 @@ function _derivative(
             ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / denom
         end
     else
-        for i in 1:(n - 1)
+        @inbounds for i in 1:(n - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
-            if denom != 0
+            l = i + 1 - offset
+            if denom != 0 && 1 <= l <= m
                 ducum = ducum +
-                    sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) / denom
+                    vals[l] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) / denom
             end
         end
     end
@@ -338,17 +340,18 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
     if A.d == 0
         return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : typed_nan(A.u)
     end
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
-    spline_coefficients!(sc, A.d - 1, A.k, t)
+    # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
+    vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, A.h)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         denom = A.k[A.d + 2] - A.k[2]
         ducum = denom != 0 ? (A.c[2] - A.c[1]) / denom : zero(eltype(A.u))
     else
-        for i in 1:(A.h - 1)
+        @inbounds for i in 1:(A.h - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
-            if denom != 0
-                ducum += sc[i + 1] * (A.c[i + 1] - A.c[i]) / denom
+            l = i + 1 - offset
+            if denom != 0 && 1 <= l <= m
+                ducum += vals[l] * (A.c[i + 1] - A.c[i]) / denom
             end
         end
     end
@@ -363,8 +366,8 @@ function _derivative(
             typed_nan(A.u) .* A.u[:, 1]
     end
     ax_u = axes(A.u)[1:(end - 1)]
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
-    spline_coefficients!(sc, A.d - 1, A.k, t)
+    # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
+    vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, A.h)
     ducum = zeros(size(A.u)[1:(end - 1)]...)
     if t == A.t[1]
         denom = A.k[A.d + 2] - A.k[2]
@@ -372,10 +375,11 @@ function _derivative(
             ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / denom
         end
     else
-        for i in 1:(A.h - 1)
+        @inbounds for i in 1:(A.h - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
-            if denom != 0
-                ducum += sc[i + 1] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) / denom
+            l = i + 1 - offset
+            if denom != 0 && 1 <= l <= m
+                ducum += vals[l] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) / denom
             end
         end
     end
