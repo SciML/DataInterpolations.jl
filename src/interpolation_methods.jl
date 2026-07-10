@@ -1286,8 +1286,8 @@ end
 
 # BSpline Curve Approx
 function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
-    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
+    # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
+    vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, A.h)
     ucum = zero(eltype(A.u))
     @inbounds for l in 1:m
         ucum += vals[l] * A.c[offset + l]
@@ -1299,8 +1299,8 @@ function _interpolate(
         A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess
     )
     ax_u = axes(A.u)[1:(end - 1)]
-    sc = t isa ForwardDiff.Dual ? zeros(eltype(t), A.h) : A.sc
-    nonzero_coefficient_idxs = spline_coefficients!(sc, A.d, A.k, t)
+    # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
+    vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, A.h)
     ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)
     @inbounds for l in 1:m
         ucum = ucum + (vals[l] * A.c[ax_u..., offset + l])

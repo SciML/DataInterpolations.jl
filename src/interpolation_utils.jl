@@ -52,27 +52,33 @@ function spline_coefficients!(N, d, k, u::Number)
         else
             idx - 1
         end
-        N[i] = one(u)
-        for deg in 1:d
-            ii = i - deg
-            if ii >= 1
-                denom = k[i + 1] - k[ii + 1]
-                N[ii] = denom != 0 ? (k[i + 1] - u) / denom * N[ii + 1] : zero(u)
-            end
-            for j in max(ii + 1, 1):(i - 1)
-                denom1 = k[j + deg] - k[j]
-                denom2 = k[j + deg + 1] - k[j + 1]
-                left = denom1 != 0 ? (u - k[j]) / denom1 * N[j] : zero(u)
-                right = denom2 != 0 ? (k[j + deg + 1] - u) / denom2 * N[j + 1] : zero(u)
-                N[j] = left + right
-            end
-            denom = k[i + deg] - k[i]
-            N[i] = denom != 0 ? (u - k[i]) / denom * N[i] : zero(u)
-        end
-        lo = max(i - d, 1)
-        hi = min(i, n)
-        return lo:hi
+        return _spline_coefficients_body!(N, d, k, u, i)
     end
+end
+
+# B-spline basis recurrence given the located knot index `i`.
+function _spline_coefficients_body!(N, d, k, u, i)
+    n = length(N)
+    N[i] = one(u)
+    for deg in 1:d
+        ii = i - deg
+        if ii >= 1
+            denom = k[i + 1] - k[ii + 1]
+            N[ii] = denom != 0 ? (k[i + 1] - u) / denom * N[ii + 1] : zero(u)
+        end
+        for j in max(ii + 1, 1):(i - 1)
+            denom1 = k[j + deg] - k[j]
+            denom2 = k[j + deg + 1] - k[j + 1]
+            left = denom1 != 0 ? (u - k[j]) / denom1 * N[j] : zero(u)
+            right = denom2 != 0 ? (k[j + deg + 1] - u) / denom2 * N[j + 1] : zero(u)
+            N[j] = left + right
+        end
+        denom = k[i + deg] - k[i]
+        N[i] = denom != 0 ? (u - k[i]) / denom * N[i] : zero(u)
+    end
+    lo = max(i - d, 1)
+    hi = min(i, n)
+    return lo:hi
 end
 
 function spline_coefficients!(N, d, k, u::AbstractVector)
@@ -109,6 +115,15 @@ end
         return N, ncp - 1, 1
     end
     i = searchsortedlast(k, u)
+    # For out-of-range points, extend the boundary polynomial span (mirrors
+    # the locator in `spline_coefficients!`).
+    if i == 0
+        # u < k[1]: use first span
+        i = findfirst(j -> k[j + 1] > k[1], 1:(length(k) - 1))::Int
+    elseif i == length(k)
+        # u > k[end]: use last span
+        i = findlast(j -> k[j] < k[end], 1:length(k))::Int
+    end
     # Local index of global knot index `g` is `g + off` (so `i - d → 1`, `i → d + 1`).
     off = d + 1 - i
     @inbounds begin

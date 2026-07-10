@@ -951,7 +951,7 @@ Extrapolation is a constant polynomial of the end points on each side.
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 
 """
-struct BSplineInterpolation{uType, tType, kType, cType, scType, T} <:
+struct BSplineInterpolation{uType, tType, kType, cType, scType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
@@ -977,8 +977,11 @@ struct BSplineInterpolation{uType, tType, kType, cType, scType, T} <:
             extrapolation_right,
             t_props,
         )
-        linear_lookup = seems_linear(assume_linear_t, t)
-        return new{typeof(u), typeof(t), typeof(k), typeof(c), typeof(sc), eltype(u)}(
+        kind = _resolve_strategy_kind(t, t_props)
+        return new{
+            typeof(u), typeof(t), typeof(k),
+            typeof(c), typeof(sc), eltype(u), typeof(t_props),
+        }(
             u,
             t,
             d,
@@ -1012,8 +1015,6 @@ function BSplineInterpolation(
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
     d ≥ BSPLINE_STACK_MAXLEN &&
         error("BSplineInterpolation supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
-    s = zero(eltype(u))
-    p = zero(t)
     k = zeros(eltype(t), n + d + 1)
     # Clamped knot vector endpoints
     for i in 1:(d + 1)
@@ -1039,7 +1040,7 @@ function BSplineInterpolation(
     c = vec(sc \ u[:, :])
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
-        u, t, d, p, k, c, sc, pVecType, knotVecType,
+        u, t, d, k, c, sc, knotVecType,
         extrapolation_left, extrapolation_right, t_props
     )
 end
@@ -1061,8 +1062,6 @@ function BSplineInterpolation(
     n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
     d ≥ BSPLINE_STACK_MAXLEN &&
         error("BSplineInterpolation supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
-    s = zero(eltype(u))
-    p = zero(t)
     k = zeros(eltype(t), n + d + 1)
     # Clamped knot vector endpoints
     for i in 1:(d + 1)
@@ -1088,7 +1087,7 @@ function BSplineInterpolation(
     c = reshape(c, size(u)...)
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
-        u, t, d, p, k, c, sc, pVecType, knotVecType,
+        u, t, d, k, c, sc, knotVecType,
         extrapolation_left, extrapolation_right, t_props
     )
 end
@@ -1123,7 +1122,7 @@ Extrapolation is a constant polynomial of the end points on each side.
 
 """
 struct BSplineApprox{
-        uType, tType, pType, kType, cType, scType, T, propsType,
+        uType, tType, kType, cType, scType, T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -1154,7 +1153,7 @@ struct BSplineApprox{
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
-            typeof(u), typeof(t), typeof(p), typeof(k),
+            typeof(u), typeof(t), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props),
         }(
             u,
@@ -1191,8 +1190,6 @@ function BSplineApprox(
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
     d ≥ BSPLINE_STACK_MAXLEN &&
         error("BSplineApprox supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
-    s = zero(eltype(u))
-    p = zero(t)
     k = zeros(eltype(t), h + d + 1)
     # Clamped knot vector endpoints
     for i in 1:(d + 1)
@@ -1241,7 +1238,7 @@ function BSplineApprox(
     c[2:(end - 1)] .= vec(P)
     sc = zeros(eltype(t), h)
     return BSplineApprox(
-        u, t, d, h, p, k, c, sc, pVecType, knotVecType,
+        u, t, d, h, k, c, sc, knotVecType,
         extrapolation_left, extrapolation_right, t_props
     )
 end
@@ -1263,15 +1260,8 @@ function BSplineApprox(
     h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
     d ≥ BSPLINE_STACK_MAXLEN &&
         error("BSplineApprox supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
-    s = zero(eltype(u))
-    p = zero(t)
     k = zeros(eltype(t), h + d + 1)
-    l = zeros(eltype(u), n - 1)
-    p[1] = zero(eltype(t))
-    p[end] = one(eltype(t))
-
     ax_u = axes(u)[1:(end - 1)]
-    k = zeros(eltype(t), h + d + 1)
     # Clamped knot vector endpoints
     for i in 1:(d + 1)
         k[i] = t[1]
@@ -1325,7 +1315,7 @@ function BSplineApprox(
     c[ax_u..., 2:(end - 1)] = P
     sc = zeros(eltype(t), h)
     return BSplineApprox(
-        u, t, d, h, p, k, c, sc, pVecType, knotVecType,
+        u, t, d, h, k, c, sc, knotVecType,
         extrapolation_left, extrapolation_right, t_props
     )
 end
