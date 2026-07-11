@@ -9,16 +9,13 @@ SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
-[sources]
-DataInterpolations = {path = "../.."}
-
 [compat]
 DataInterpolations = "9"
 ForwardDiff = "1"
 LinearAlgebra = "1.10"
 Mooncake = "0.4.175, 0.5"
 SafeTestsets = "0.1"
-SciMLTesting = "1.7"
+SciMLTesting = "2.1"
 SparseConnectivityTracer = "1"
 Test = "1.10"
 Zygote = "0.6.77, 0.7"

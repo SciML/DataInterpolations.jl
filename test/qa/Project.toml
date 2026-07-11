@@ -7,9 +7,6 @@ SciMLTesting = "09d9d899-5365-40a9-917a-5f67fddea283"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
-[sources]
-DataInterpolations = {path = "../.."}
-
 [compat]
 AllocCheck = "0.2"
 Aqua = "0.8"
