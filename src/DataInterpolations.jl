@@ -9,10 +9,38 @@ using RecipesBase: RecipesBase, @recipe, @series
 using PrettyTables: PrettyTables, pretty_table
 using ForwardDiff: ForwardDiff
 using EnumX: EnumX, @enumx
-using StaticArrays: MVector, SVector
+using StaticArrays: SVector
 import FindFirstFunctions
 import FindFirstFunctions: Guesser
 
+"""
+    ExtrapolationType
+
+Enumeration of extrapolation modes used by interpolation constructors through
+the `extrapolation`, `extrapolation_left`, and `extrapolation_right` keyword
+arguments.
+
+## Values
+
+  - `ExtrapolationType.None`: throw an error outside the interpolation interval.
+  - `ExtrapolationType.Constant`: use the nearest endpoint value.
+  - `ExtrapolationType.Linear`: extend the interpolation linearly from the nearest interval.
+  - `ExtrapolationType.Extension`: evaluate the interpolation formula outside the data range.
+  - `ExtrapolationType.Periodic`: wrap the query point periodically onto the data range.
+  - `ExtrapolationType.Reflective`: reflect the query point back onto the data range.
+
+## Examples
+
+```julia
+using DataInterpolations
+
+t = [0.0, 1.0]
+u = [1.0, 3.0]
+A = LinearInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
+
+A(1.5)
+```
+"""
 @enumx ExtrapolationType None Constant Linear Extension Periodic Reflective
 
 include("parameter_caches.jl")
@@ -168,7 +196,13 @@ struct CurvefitCache{
     end
 end
 
-# Define an empty function, so that it can be extended via `DataInterpolationsOptimExt`
+"""
+    Curvefit(u, t, m, p0, alg; extrapolate = false, ub = nothing, lb = nothing)
+
+Construct an interpolation by fitting the model `m(t, p)` to data values `u` at
+timepoints `t`, using `p0` as the initial parameter guess and `alg` as the
+optimization algorithm.
+"""
 function Curvefit()
     error("CurveFit requires loading Optim and ForwardDiff, e.g. `using Optim, ForwardDiff`")
 end

@@ -1,10 +1,9 @@
 using DataInterpolations
-using DataInterpolations: derivative
 using AllocCheck: @check_allocs
 using StaticArrays: SVector
 
 @check_allocs(test_allocs(itp, x) = itp(x)) # Reuse function definition to save on compilation time
-@check_allocs(test_derivative_allocs(itp, x) = derivative(itp, x))
+@check_allocs(test_derivative_allocs(itp, x) = DataInterpolations.derivative(itp, x))
 
 @testset "Allocation-free interpolation tests" begin
     @testset "LinearInterpolation" begin

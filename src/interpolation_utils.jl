@@ -70,10 +70,14 @@ end
 # A degree-`d` B-spline has only `d + 1` nonzero basis functions at any point, so
 # evaluation needs a scratch buffer of just `d + 1` entries — not one sized to the
 # full knot/control-point vector. `bspline_nonzero_coefficients` computes those
-# values into a stack-allocated `MVector` (no heap allocation, hence reentrant /
-# thread-safe, #532) for degrees up to `BSPLINE_STACK_MAXLEN - 1`; callers fall back
-# to the heap `spline_coefficients!` for larger degrees, which essentially never occur.
+# values into an immutable static vector for degrees up to `BSPLINE_STACK_MAXLEN - 1`;
+# callers fall back to the heap `spline_coefficients!` for larger degrees, which
+# essentially never occur.
 const BSPLINE_STACK_MAXLEN = 16
+
+@inline function _static_setindex(N::SVector{L, T}, x, idx) where {L, T}
+    return SVector{L, T}(ntuple(j -> ifelse(j == idx, convert(T, x), N[j]), Val(L)))
+end
 
 # Returns `(vals, offset, m)`: `vals[l]` is the basis weight of control point
 # `offset + l` for `l in 1:m`. `ncp` is the number of control points (needed only to
@@ -81,30 +85,39 @@ const BSPLINE_STACK_MAXLEN = 16
 # recurrence of `spline_coefficients!`, but writes into a local window indexed `1:m`
 # instead of absolute knot indices.
 @inline function bspline_nonzero_coefficients(d::Integer, k, u::T, ncp::Integer) where {T}
-    N = zero(MVector{BSPLINE_STACK_MAXLEN, T})
+    N = zero(SVector{BSPLINE_STACK_MAXLEN, T})
     if u == k[1]
-        @inbounds N[1] = one(u)
-        return SVector(N), 0, 1
+        N = _static_setindex(N, one(u), 1)
+        return N, 0, 1
     elseif u == k[end]
-        @inbounds N[1] = one(u)
-        return SVector(N), ncp - 1, 1
+        N = _static_setindex(N, one(u), 1)
+        return N, ncp - 1, 1
     end
     i = searchsortedlast(k, u)
     # Local index of global knot index `g` is `g + off` (so `i - d → 1`, `i → d + 1`).
     off = d + 1 - i
     @inbounds begin
-        N[i + off] = one(u)
+        N = _static_setindex(N, one(u), i + off)
         for deg in 1:d
-            N[i - deg + off] = (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) *
-                N[i - deg + 1 + off]
+            N = _static_setindex(
+                N,
+                (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) *
+                    N[i - deg + 1 + off],
+                i - deg + off,
+            )
             for j in (i - deg + 1):(i - 1)
-                N[j + off] = (u - k[j]) / (k[j + deg] - k[j]) * N[j + off] +
-                    (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) * N[j + 1 + off]
+                N = _static_setindex(
+                    N,
+                    (u - k[j]) / (k[j + deg] - k[j]) * N[j + off] +
+                        (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) *
+                        N[j + 1 + off],
+                    j + off,
+                )
             end
-            N[i + off] = (u - k[i]) / (k[i + deg] - k[i]) * N[i + off]
+            N = _static_setindex(N, (u - k[i]) / (k[i + deg] - k[i]) * N[i + off], i + off)
         end
     end
-    return SVector(N), i - d - 1, d + 1
+    return N, i - d - 1, d + 1
 end
 
 function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
