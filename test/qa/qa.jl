@@ -14,4 +14,5 @@ run_qa(
         # declares them public.
         all_qualified_accesses_are_public = (; ignore = (:Dual, :derivative, :value)),
     ),
+    api_docs_kwargs = (; rendered = true),
 )

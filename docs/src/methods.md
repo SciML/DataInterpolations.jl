@@ -228,3 +228,7 @@ And the parameters show the issue:
 ```@example tutorial
 A.pmin
 ```
+
+```@docs
+Curvefit
+```

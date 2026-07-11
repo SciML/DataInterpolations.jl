@@ -168,7 +168,13 @@ struct CurvefitCache{
     end
 end
 
-# Define an empty function, so that it can be extended via `DataInterpolationsOptimExt`
+"""
+    Curvefit(u, t, m, p0, alg; extrapolate = false, ub = nothing, lb = nothing)
+
+Construct an interpolation by fitting the model `m(t, p)` to data values `u` at
+timepoints `t`, using `p0` as the initial parameter guess and `alg` as the
+optimization algorithm.
+"""
 function Curvefit()
     error("CurveFit requires loading Optim and ForwardDiff, e.g. `using Optim, ForwardDiff`")
 end
