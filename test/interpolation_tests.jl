@@ -268,6 +268,23 @@ end
     f(tvals) = LinearInterpolation(test_uvals, tvals)(3.5)
     @test_nowarn ForwardDiff.gradient(f, test_tvals)
 
+    # Differentiate through both values and knots simultaneously with 15+ knots,
+    # which promotes the knot vector to ForwardDiff.Dual and exercises the
+    # SearchProperties linearity probe (regression for the v9.0.0 breakage;
+    # fixed upstream in FindFirstFunctions 3.2).
+    test_tvals = collect(0.0:14.0)
+    test_uvals = test_tvals .+ 1.0
+    parameters = vcat(test_uvals, test_tvals)
+    function f_all(parameters)
+        uvals = parameters[1:15]
+        tvals = parameters[16:30]
+        return LinearInterpolation(uvals, tvals)(2.5)
+    end
+    expected_gradient = zeros(30)
+    expected_gradient[3:4] .= 0.5
+    expected_gradient[18:19] .= -0.5
+    @test ForwardDiff.gradient(f_all, parameters) == expected_gradient
+
     @testset "Sorted-batch evaluator" begin
         u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
         t_b = collect(0.0:10.0)
