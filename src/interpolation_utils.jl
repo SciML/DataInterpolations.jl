@@ -110,13 +110,13 @@ end
     # values even when `u` and `k` are integer-valued, so the scratch buffer's
     # element type must be the promotion of `T` and `eltype(k)`, not `T` alone.
     T2 = promote_type(T, eltype(k))
-    N = zero(MVector{BSPLINE_STACK_MAXLEN, T2})
+    N = zero(SVector{BSPLINE_STACK_MAXLEN, T2})
     if u == k[1]
-        @inbounds N[1] = one(T2)
-        return SVector(N), 0, 1
+        N = _static_setindex(N, one(T2), 1)
+        return N, 0, 1
     elseif u == k[end]
-        @inbounds N[1] = one(T2)
-        return SVector(N), ncp - 1, 1
+        N = _static_setindex(N, one(T2), 1)
+        return N, ncp - 1, 1
     end
     i = searchsortedlast(k, u)
     # For out-of-range points, extend the boundary polynomial span (mirrors
@@ -130,8 +130,8 @@ end
     end
     # Local index of global knot index `g` is `g + off` (so `i - d → 1`, `i → d + 1`).
     off = d + 1 - i
+    N = _static_setindex(N, one(T2), i + off)
     @inbounds begin
-        N[i + off] = one(T2)
         for deg in 1:d
             N = _static_setindex(
                 N,
