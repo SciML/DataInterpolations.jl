@@ -197,11 +197,46 @@ struct CurvefitCache{
 end
 
 """
-    Curvefit(u, t, m, p0, alg; extrapolate = false, ub = nothing, lb = nothing)
+    Curvefit(
+            u, t, model, p0, alg, box = false, lb = nothing, ub = nothing;
+            extrapolate = false
+        ) -> CurvefitCache
 
-Construct an interpolation by fitting the model `m(t, p)` to data values `u` at
-timepoints `t`, using `p0` as the initial parameter guess and `alg` as the
-optimization algorithm.
+Fit `model(t, p)` to data values `u` at sample locations `t` with Optim.jl and return the
+resulting callable interpolation. The returned interpolation evaluates `model` with the
+optimized parameters available as its `pmin` field.
+
+# Arguments
+
+- `u`: observed scalar data values.
+- `t`: sample locations corresponding to `u`.
+- `model`: callable with signature `model(t, p)`, where `p` is a parameter vector.
+- `p0`: initial parameter vector supplied to Optim.jl.
+- `alg`: Optim.jl optimization algorithm, such as `LBFGS()`.
+- `box::Bool = false`: use boxed optimization when `true`; both bounds must then be given.
+- `lb = nothing`: lower parameter bounds used when `box` is `true`.
+- `ub = nothing`: upper parameter bounds used when `box` is `true`.
+
+# Keywords
+
+- `extrapolate::Bool = false`: permit evaluation outside the range of `t`. When `false`,
+  out-of-range evaluation throws `ExtrapolationError`.
+
+# Returns
+
+- `CurvefitCache`: a callable fitted interpolation. Its `pmin` field contains the optimized
+  parameter vector.
+
+# Examples
+
+```julia
+using DataInterpolations, Optim
+
+model(t, p) = p[1] .* t .+ p[2]
+A = Curvefit([1.0, 3.0, 5.0], [0.0, 1.0, 2.0], model, [0.0, 0.0], LBFGS())
+
+A(1.5)
+```
 """
 function Curvefit()
     error("CurveFit requires loading Optim and ForwardDiff, e.g. `using Optim, ForwardDiff`")
