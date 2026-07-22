@@ -23,6 +23,8 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [extensions]
 DataInterpolationsChainRulesCoreExt = "ChainRulesCore"
+DataInterpolationsMakieExt = "Makie"
+DataInterpolationsMooncakeExt = ["Mooncake", "ChainRulesCore"]
 DataInterpolationsOptimExt = "Optim"
 DataInterpolationsSparseConnectivityTracerExt = "SparseConnectivityTracer"
 DataInterpolationsSymbolicsExt = "Symbolics"
@@ -35,6 +37,7 @@ Aqua = "0.8"
 BenchmarkTools = "1"
 ChainRulesCore = "1.26.1"
 EnumX = "1.0.5"
+FillArrays = "=1.16.0"
 FindFirstFunctions = "3.2"
 FiniteDifferences = "0.12.31"
 ForwardDiff = "1"
