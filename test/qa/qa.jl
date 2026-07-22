@@ -2,7 +2,6 @@ using SciMLTesting, DataInterpolations, Test
 
 run_qa(
     DataInterpolations;
-    explicit_imports = true,
     ei_kwargs = (;
         # `@enumx ExtrapolationType ...` generates a submodule with dynamic includes
         # that ExplicitImports cannot statically analyze; allow it to be unanalyzable
@@ -14,5 +13,4 @@ run_qa(
         # declares them public.
         all_qualified_accesses_are_public = (; ignore = (:Dual, :derivative, :value)),
     ),
-    api_docs_kwargs = (; rendered = true),
 )
