@@ -57,8 +57,8 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     # the index less than t2
     idx2 = get_idx(A, t2, 0; idx_shift = -1, side = :first)
 
-    total = zero(eltype(A.I))
-
+    total = isa(A.u, AbstractVector) ? zero(eltype(A.I)) : zero(A.u[:, 1])
+    
     # Lower potentially incomplete interval
     if t1 < first(A.t)
         if t2 < first(A.t)
@@ -111,11 +111,11 @@ function _extrapolate_integral_left(A, t)
     return if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
-        first(A.u) * (first(A.t) - t)
+        _first(A.u) * (first(A.t) - t)
     elseif extrapolation_left == ExtrapolationType.Linear
         slope = derivative(A, first(A.t))
         Δt = first(A.t) - t
-        (first(A.u) - slope * Δt / 2) * Δt
+        (_first(A.u) - slope * Δt / 2) * Δt
     elseif extrapolation_left == ExtrapolationType.Extension
         _integral(A, 1, t, first(A.t))
     elseif extrapolation_left == ExtrapolationType.Periodic
@@ -145,11 +145,11 @@ function _extrapolate_integral_right(A, t)
     return if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
-        last(A.u) * (t - last(A.t))
+        _last(A.u) * (t - last(A.t))
     elseif extrapolation_right == ExtrapolationType.Linear
         slope = derivative(A, last(A.t))
         Δt = t - last(A.t)
-        (last(A.u) + slope * Δt / 2) * Δt
+        (_last(A.u) + slope * Δt / 2) * Δt
     elseif extrapolation_right == ExtrapolationType.Extension
         _integral(A, length(A.t) - 1, last(A.t), t)
     elseif extrapolation_right == ExtrapolationType.Periodic
@@ -199,7 +199,7 @@ function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
     elseif extrapolation_right == ExtrapolationType.Linear
         slope = derivative(A, last(A.t))
         Δt = t - last(A.t)
-        (last(A.u) + slope * Δt / 2) * Δt
+        (_last(A.u) + slope * Δt / 2) * Δt
         _extrapolate_other(A, t, A.extrapolation_right)
     elseif extrapolation_right == ExtrapolationType.Periodic
         t_, n = transformation_periodic(A, t)
@@ -233,6 +233,15 @@ function _integral(
 end
 
 function _integral(
+        A::LinearInterpolation{<:AbstractMatrix{<:Number}},
+        idx::Number, t1::Number, t2::Number
+    )
+    slope = get_parameters(A, idx)
+    u_mean = A.u[:, idx] + slope * ((t1 + t2) / 2 - A.t[idx])
+    return u_mean * (t2 - t1)
+end
+
+function _integral(
         A::ConstantInterpolation{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
     )
     Δt = t2 - t1
@@ -242,6 +251,19 @@ function _integral(
     else
         # :right means that value to the right is used for interpolation
         return A.u[idx + 1] * Δt
+    end
+end
+
+function _integral(
+        A::ConstantInterpolation{<:AbstractMatrix{<:Number}}, idx::Number, t1::Number, t2::Number
+    )
+    Δt = t2 - t1
+    if A.dir === :left
+        # :left means that value to the left is used for interpolation
+        return A.u[:, idx] * Δt
+    else
+        # :right means that value to the right is used for interpolation
+        return A.u[:, idx + 1] * Δt
     end
 end
 
@@ -287,6 +309,19 @@ function _integral(
     )
     α, β = get_parameters(A, idx)
     uᵢ = A.u[idx]
+    tᵢ = A.t[idx]
+    t1_rel = t1 - tᵢ
+    t2_rel = t2 - tᵢ
+    Δt = t2 - t1
+    return Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
+end
+
+function _integral(
+        A::QuadraticInterpolation{<:AbstractMatrix{<:Number}},
+        idx::Number, t1::Number, t2::Number
+    )
+    α, β = get_parameters(A, idx)
+    uᵢ = A.u[:, idx]
     tᵢ = A.t[idx]
     t1_rel = t1 - tᵢ
     t2_rel = t2 - tᵢ
