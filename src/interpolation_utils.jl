@@ -538,3 +538,20 @@ function get_transition_ts(A::SmoothedConstantInterpolation)
 end
 
 get_transition_ts(A::AbstractInterpolation) = A.t
+
+#get first and last data point from both vector and matrix u
+function _first(u::AbstractVector)
+    first(u)
+end
+
+function _first(u::AbstractMatrix)
+    u[:, 1]
+end
+
+function _last(u::AbstractVector)
+    last(u)
+end
+
+function _last(u::AbstractMatrix)
+    u[:, end]
+end
