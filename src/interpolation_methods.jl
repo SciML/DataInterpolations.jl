@@ -1674,7 +1674,7 @@ function _first(u::AbstractVector)
 end
 
 function _first(u::AbstractMatrix)
-    u[:,1]
+    u[:, 1]
 end
 
 function _last(u::AbstractVector)
@@ -1682,5 +1682,5 @@ function _last(u::AbstractVector)
 end
 
 function _last(u::AbstractMatrix)
-    u[:,end]
+    u[:, end]
 end
