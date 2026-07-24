@@ -14,10 +14,10 @@ function _extrapolate_left(A, t)
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
         slope = _derivative(A, first(A.t), 1)
-        first(A.u) + zero(slope * t)
+        _first(A.u) + zero(slope * t)
     elseif extrapolation_left == ExtrapolationType.Linear
         slope = _derivative(A, first(A.t), 1)
-        first(A.u) + slope * (t - first(A.t))
+        _first(A.u) + slope * (t - first(A.t))
     else
         _extrapolate_other(A, t, extrapolation_left)
     end
@@ -29,10 +29,10 @@ function _extrapolate_right(A, t)
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
         slope = _derivative(A, last(A.t), length(A.t))
-        last(A.u) + zero(slope * t)
+        _last(A.u) + zero(slope * t)
     elseif extrapolation_right == ExtrapolationType.Linear
         slope = _derivative(A, last(A.t), length(A.t))
-        last(A.u) + slope * (t - last(A.t))
+        _last(A.u) + slope * (t - last(A.t))
     else
         _extrapolate_other(A, t, extrapolation_right)
     end
@@ -133,7 +133,7 @@ function _extrapolate_left(A::ConstantInterpolation, t)
     return if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left in (ExtrapolationType.Constant, ExtrapolationType.Linear)
-        first(A.u)
+        _first(A.u)
     else
         _extrapolate_other(A, t, extrapolation_left)
     end
@@ -144,7 +144,7 @@ function _extrapolate_right(A::ConstantInterpolation, t)
     return if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right in (ExtrapolationType.Constant, ExtrapolationType.Linear)
-        last(A.u)
+        _last(A.u)
     else
         _extrapolate_other(A, t, extrapolation_right)
     end
@@ -1686,4 +1686,21 @@ function _interpolate(A::SmoothArcLengthInterpolation, t::Number, iguess)
     end
 
     return out
+end
+
+#get first and last data point from both vector and matrix u
+function _first(u::AbstractVector)
+    first(u)
+end
+
+function _first(u::AbstractMatrix)
+    u[:,1]
+end
+
+function _last(u::AbstractVector)
+    last(u)
+end
+
+function _last(u::AbstractMatrix)
+    u[:,end]
 end
