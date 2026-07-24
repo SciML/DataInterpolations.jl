@@ -22,9 +22,9 @@ function _extrapolate_derivative_left(A, t, order)
     return if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
-        zero(first(A.u) / one(A.t[1]))
+        zero(_first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.Linear
-        (order == 1) ? _derivative(A, first(A.t), 1) : zero(first(A.u) / one(A.t[1]))
+        (order == 1) ? _derivative(A, first(A.t), 1) : zero(_first(A.u) / one(A.t[1]))
     elseif extrapolation_left == ExtrapolationType.Extension
         (order == 1) ? _derivative(A, t, length(A.t)) :
             ForwardDiff.derivative(
@@ -58,10 +58,10 @@ function _extrapolate_derivative_right(A, t, order)
     return if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
-        zero(first(A.u) / one(A.t[1]))
+        zero(_first(A.u) / one(A.t[1]))
     elseif extrapolation_right == ExtrapolationType.Linear
         (order == 1) ? _derivative(A, last(A.t), length(A.t)) :
-            zero(first(A.u) / one(A.t[1]))
+            zero(_first(A.u) / one(A.t[1]))
     elseif extrapolation_right == ExtrapolationType.Extension
         (order == 1) ? _derivative(A, t, length(A.t)) :
             ForwardDiff.derivative(
@@ -216,7 +216,7 @@ function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
 end
 
 function _derivative(A::ConstantInterpolation, t::Number, iguess)
-    return zero(first(A.u))
+    return zero(_first(A.u))
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
