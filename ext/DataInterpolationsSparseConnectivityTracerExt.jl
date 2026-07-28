@@ -18,6 +18,8 @@ using DataInterpolations:
     CubicHermiteSpline,
     # PCHIPInterpolation,
     QuinticHermiteSpline,
+    ConstantInterpolationIntInv,
+    LinearInterpolationIntInv,
     output_size #===========# #===========#
 
 # Utilities #
@@ -84,6 +86,8 @@ for (I, is_der1_zero, is_der2_zero) in (
         (:BSplineApprox, false, false),
         (:CubicHermiteSpline, false, false),
         (:QuinticHermiteSpline, false, false),
+        (:ConstantInterpolationIntInv, false, true),
+        (:LinearInterpolationIntInv, false, false),
     )
     @eval function (interp::$(I){uType})(
             t::AbstractTracer
