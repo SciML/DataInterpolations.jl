@@ -69,6 +69,6 @@ end
     A = Curvefit(u, t, model, p0)
     @test startswith(
         sprint(io -> show(io, MIME"text/plain"(), A)),
-        "Curvefit with 40 points, using LBFGS\n"
+        "Curvefit with 40 points.\n"
     )
 end
