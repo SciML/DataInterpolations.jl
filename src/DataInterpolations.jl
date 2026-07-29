@@ -229,7 +229,6 @@ struct CurvefitCache{
     end
 end
 
-# Define an empty function, so that it can be extended via `DataInterpolationsCurveFitExt`
 """
     Curvefit(
             u, t, model, p0, alg, box = false, lb = nothing, ub = nothing;
@@ -273,7 +272,7 @@ A(1.5)
 ```
 """
 function Curvefit()
-    error("CurveFit requires loading CurveFit, e.g. `using CurveFit`")
+    error("CurveFit requires loading Optim and ForwardDiff, e.g. `using Optim, ForwardDiff`")
 end
 
 export Curvefit

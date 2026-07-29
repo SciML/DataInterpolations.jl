@@ -4,7 +4,6 @@ using FiniteDifferences
 using DataInterpolations: derivative, get_transition_ts
 using Symbolics
 using StableRNGs
-using RegularizationTools
 using CurveFit
 import ForwardDiff
 using LinearAlgebra

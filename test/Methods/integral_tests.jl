@@ -2,7 +2,6 @@ using DataInterpolations, Test
 using QuadGK
 using DataInterpolations: integral
 using CurveFit, ForwardDiff
-using RegularizationTools
 using StableRNGs
 using Unitful
 
