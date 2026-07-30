@@ -3,7 +3,6 @@ module DataInterpolationsSparseConnectivityTracerExt
 using SparseConnectivityTracer: AbstractTracer, Dual, primal, tracer
 using SparseConnectivityTracer: GradientTracer, gradient_tracer_1_to_1
 using SparseConnectivityTracer: HessianTracer, hessian_tracer_1_to_1
-using FillArrays: Fill # from FillArrays.jl
 using DataInterpolations:
     AbstractInterpolation,
     LinearInterpolation,
@@ -53,7 +52,7 @@ function _sct_interpolate(
     )
     t = gradient_tracer_1_to_1(t, is_der_1_zero)
     N = only(output_size(interp))
-    return Fill(t, N)
+    return fill(t, N)
 end
 function _sct_interpolate(
         interp::AbstractInterpolation,
@@ -64,7 +63,7 @@ function _sct_interpolate(
     )
     t = hessian_tracer_1_to_1(t, is_der_1_zero, is_der_2_zero)
     N = only(output_size(interp))
-    return Fill(t, N)
+    return fill(t, N)
 end #===========# #===========#
 
 # Overloads #
