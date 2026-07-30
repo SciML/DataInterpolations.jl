@@ -71,8 +71,9 @@ end #===========# #===========#
 
 # Overloads #
 
-# We assume that with the exception of ConstantInterpolation and LinearInterpolation,
-# all interpolations have a non-zero second derivative at some point in the input domain.
+# We assume that with the exception of ConstantInterpolation, LinearInterpolation, and
+# ConstantInterpolationIntInv, all interpolations have a non-zero second derivative
+# at some point in the input domain.
 
 for (I, is_der1_zero, is_der2_zero) in (
         (:ConstantInterpolation, true, true),
