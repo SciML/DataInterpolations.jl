@@ -10,7 +10,9 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [weakdeps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -18,17 +20,16 @@ FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
-SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [extensions]
 DataInterpolationsChainRulesCoreExt = "ChainRulesCore"
+DataInterpolationsMakieExt = "Makie"
+DataInterpolationsMooncakeExt = ["Mooncake", "ChainRulesCore"]
 DataInterpolationsOptimExt = "Optim"
 DataInterpolationsSparseConnectivityTracerExt = ["SparseConnectivityTracer", "FillArrays"]
 DataInterpolationsSymbolicsExt = "Symbolics"
-DataInterpolationsMakieExt = "Makie"
-DataInterpolationsMooncakeExt = ["Mooncake", "ChainRulesCore"]
 
 [compat]
 AllocCheck = "0.2"
