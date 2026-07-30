@@ -9,7 +9,6 @@ makedocs(
     modules = [DataInterpolations],
     sitename = "DataInterpolations.jl",
     clean = true,
-    doctest = false,
     linkcheck = true,
     format = Documenter.HTML(
         assets = ["assets/favicon.ico"],
