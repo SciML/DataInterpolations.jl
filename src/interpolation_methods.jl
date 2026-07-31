@@ -1252,6 +1252,29 @@ function _cubicspline_eval_sorted!(
     return nothing
 end
 
+# Query time to spline parameter. When the parameters are affine in `t` the linear
+# estimate is exact; otherwise it only seeds an exact inversion of the `p -> t` spline,
+# since using it directly would cap accuracy at O(h^2) for every degree (#567).
+@inline function bspline_param(A, t, idx)
+    p0 = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
+    A.affine_param && return p0
+    t == A.t[idx] && return A.p[idx]
+    t == A.t[idx + 1] && return A.p[idx + 1]
+    return bspline_invert_param(
+        A.d, A.k, A.ct, t, p0, A.p[idx], A.p[idx + 1], length(A.ct)
+    )
+end
+
+# `(p, dp/dt)`, the second factor being the chain-rule scale for derivatives.
+@inline function bspline_param_and_scale(A, t, idx)
+    if A.affine_param
+        scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
+        return A.p[idx] + (t - A.t[idx]) * scale, scale
+    end
+    p = bspline_param(A, t, idx)
+    return p, inv(bspline_curve_slope(A.d, A.k, A.ct, p, length(A.ct)))
+end
+
 # BSpline Curve Interpolation
 function _interpolate(
         A::BSplineInterpolation{<:AbstractVector{<:Number}},
@@ -1262,7 +1285,7 @@ function _interpolate(
     t > A.t[end] && return A.u[end]
     # change t into param [0 1]
     idx = get_idx(A, t, iguess)
-    t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
+    t = bspline_param(A, t, idx)
     n = length(A.t)
     # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
     vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, n)
@@ -1283,7 +1306,7 @@ function _interpolate(
     t > A.t[end] && return A.u[ax_u..., end]
     # change t into param [0 1]
     idx = get_idx(A, t, iguess)
-    t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
+    t = bspline_param(A, t, idx)
     n = length(A.t)
     # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
     vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, n)

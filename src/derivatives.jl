@@ -254,8 +254,7 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
     t > A.t[end] && return zero(A.u[end])
     idx = get_idx(A, t, iguess)
     n = length(A.t)
-    scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
-    t_ = A.p[idx] + (t - A.t[idx]) * scale
+    t_, scale = bspline_param_and_scale(A, t, idx)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
         ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
@@ -280,8 +279,7 @@ function _derivative(
     t > A.t[end] && return zeros(size(A.u)[1:(end - 1)]...)
     idx = get_idx(A, t, iguess)
     n = length(A.t)
-    scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
-    t_ = A.p[idx] + (t - A.t[idx]) * scale
+    t_, scale = bspline_param_and_scale(A, t, idx)
     ducum = zeros(size(A.u)[1:(end - 1)]...)
     if t == A.t[1]
         ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / (A.k[A.d + 2])

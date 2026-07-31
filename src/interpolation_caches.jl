@@ -928,6 +928,11 @@ end
 It is a curve defined by the linear combination of `n` basis functions of degree `d` where `n` is the number of data points. For more information, refer [https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html](https://pages.mtu.edu/%7Eshene/COURSES/cs3621/NOTES/spline/B-spline/bspline-curve.html).
 Extrapolation is a constant polynomial of the end points on each side.
 
+The curve is parameterized by `p ∈ [0, 1]` rather than by `t`, so both `u` and `t` are
+fitted against `p` and evaluating at a time inverts the `p ↦ t` spline. When `p` is
+affine in `t` — `:Uniform` parameters on uniformly spaced `t` — that inversion is
+closed-form; otherwise it costs a few Newton steps per evaluation.
+
 ## Arguments
 
   - `u`: data points.
@@ -951,7 +956,7 @@ Extrapolation is a constant polynomial of the end points on each side.
 
 """
 struct BSplineInterpolation{
-        uType, tType, pType, kType, cType, scType, T, propsType,
+        uType, tType, pType, kType, cType, ctType, scType, T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
@@ -960,6 +965,8 @@ struct BSplineInterpolation{
     p::pType  # params vector
     k::kType  # knot vector
     c::cType  # control points
+    ct::ctType  # control points of the p -> t map, used to invert it
+    affine_param::Bool  # whether p is affine in t, making that inversion trivial
     sc::scType  # Spline coefficients (preallocated memory)
     pVecType::Symbol
     knotVecType::Symbol
@@ -975,6 +982,8 @@ struct BSplineInterpolation{
             p,
             k,
             c,
+            ct,
+            affine_param,
             sc,
             pVecType,
             knotVecType,
@@ -985,7 +994,7 @@ struct BSplineInterpolation{
         kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(p), typeof(k),
-            typeof(c), typeof(sc), eltype(u), typeof(t_props),
+            typeof(c), typeof(ct), typeof(sc), eltype(u), typeof(t_props),
         }(
             u,
             t,
@@ -993,6 +1002,8 @@ struct BSplineInterpolation{
             p,
             k,
             c,
+            ct,
+            affine_param,
             sc,
             pVecType,
             knotVecType,
@@ -1080,10 +1091,12 @@ function BSplineInterpolation(
     # control points
     sc = zeros(eltype(t), n, n)
     spline_coefficients!(sc, d, k, p)
-    c = vec(sc \ u[:, :])
+    F = lu(sc)
+    c = vec(F \ u[:, :])
+    ct = F \ collect(t)
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
-        u, t, d, p, k, c, sc, pVecType, knotVecType,
+        u, t, d, p, k, c, ct, bspline_affine_param(p, t), sc, pVecType, knotVecType,
         extrapolation_left, extrapolation_right, t_props
     )
 end
@@ -1165,11 +1178,13 @@ function BSplineInterpolation(
     # control points
     sc = zeros(eltype(t), n, n)
     spline_coefficients!(sc, d, k, p)
-    c = (sc \ reshape(u, prod(size(u)[1:(end - 1)]), :)')'
+    F = lu(sc)
+    c = (F \ reshape(u, prod(size(u)[1:(end - 1)]), :)')'
     c = reshape(c, size(u)...)
+    ct = F \ collect(t)
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
-        u, t, d, p, k, c, sc, pVecType, knotVecType,
+        u, t, d, p, k, c, ct, bspline_affine_param(p, t), sc, pVecType, knotVecType,
         extrapolation_left, extrapolation_right, t_props
     )
 end

@@ -1327,8 +1327,8 @@ end
         test_interpolation_type(BSplineInterpolation)
         A = @inferred(BSplineInterpolation(u, t, 2, :Uniform, :Uniform))
 
-        @test [A(25.0), A(80.0)] == [13.454197730061425, 10.305633616059845]
-        @test [A(190.0), A(225.0)] == [14.07428439395079, 11.057784141519251]
+        @test [A(25.0), A(80.0)] == [13.595900807689079, 10.28208957935061]
+        @test [A(190.0), A(225.0)] == [14.193576669619798, 11.018696916649047]
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 0
@@ -1348,8 +1348,8 @@ end
 
         A = @inferred(BSplineInterpolation(u, t, 2, :ArcLen, :Average))
 
-        @test [A(25.0), A(80.0)] ≈ [13.363814458968484, 10.685201117692609]
-        @test [A(190.0), A(225.0)] ≈ [13.437481084762863, 11.367034741256461]
+        @test [A(25.0), A(80.0)] ≈ [13.362987841699956, 10.685461155425084]
+        @test [A(190.0), A(225.0)] ≈ [13.43660111457438, 11.366765953659648]
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
 
         @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
@@ -1412,6 +1412,53 @@ end
             @test @inferred(output_dim(A)) == 2
             @test @inferred(output_size(A)) == (2, 2)
         end
+    end
+
+    # The spline is fitted against a parameter `p`, so evaluating at a time requires
+    # inverting `p -> t`. Doing that by linear interpolation of `(t[i], p[i])` limits
+    # the interpolant to 2nd order whatever the degree, whenever `p` is not affine in
+    # `t` — i.e. for `:ArcLen` parameters, or `:Uniform` ones on non-uniform `t` (#567).
+    @testset "Parameterization inversion accuracy" begin
+        f(x) = sin(x)
+        xq = range(0, 2π, length = 2001)
+        ytrue = f.(xq)
+        maxerr(A) = maximum(abs.([A(x) for x in xq] .- ytrue))
+
+        uniform_t(n) = collect(range(0, 2π, length = n))
+        # Smoothly graded, so `:Uniform` parameters are not affine in `t`.
+        graded_t(n) = π .* (1 .- cos.(range(0, π, length = n)))
+
+        @testset "$pVecType/$knotVecType, $tgen" for (pVecType, knotVecType, tgen) in (
+                (:ArcLen, :Average, uniform_t), (:Uniform, :Average, graded_t),
+            )
+            # 2nd order would give ~1.2e-4 at n = 100 for both degrees.
+            for (d, tol) in ((3, 1.0e-5), (5, 1.0e-7))
+                t = tgen(100)
+                A = BSplineInterpolation(f.(t), t, d, pVecType, knotVecType)
+                @test !A.affine_param
+                @test maxerr(A) < tol
+            end
+
+            # Convergence order grows with the degree instead of sticking at 2.
+            for (d, min_order) in ((3, 3.5), (5, 5.0))
+                t1, t2 = tgen(100), tgen(200)
+                e1 = maxerr(BSplineInterpolation(f.(t1), t1, d, pVecType, knotVecType))
+                e2 = maxerr(BSplineInterpolation(f.(t2), t2, d, pVecType, knotVecType))
+                @test log2(e1 / e2) > min_order
+            end
+
+            # Inverting the map must not disturb interpolation at the data points.
+            t = tgen(60)
+            A = BSplineInterpolation(f.(t), t, 3, pVecType, knotVecType)
+            @test maximum(abs(A(tᵢ) - f(tᵢ)) for tᵢ in t) < 1.0e-13
+        end
+
+        # `:Uniform` parameters on uniform `t` are affine, so the closed-form map is
+        # exact and the inversion is skipped.
+        t = uniform_t(100)
+        A = BSplineInterpolation(f.(t), t, 3, :Uniform, :Average)
+        @test A.affine_param
+        @test maxerr(A) < 1.0e-5
     end
 
     @testset "BSplineApprox" begin

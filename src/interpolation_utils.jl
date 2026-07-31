@@ -120,6 +120,83 @@ end
     return N, i - d - 1, d + 1
 end
 
+# The B-spline caches fit `u` against a parameter `p ∈ [0, 1]`, not against `t`, so
+# evaluating at a query time needs the inverse of the map `p ↦ t`. That map is the
+# degree-`d` spline through `(p[i], t[i])`, whose control points are stored as `ct`.
+# Approximating the inverse by linear interpolation of `(t[i], p[i])` instead caps the
+# achievable accuracy at O(h²) whatever the degree (#567).
+
+# Value of the degree-`d` spline with control points `c` at parameter `p`.
+@inline function bspline_curve_value(d, k, c, p, ncp)
+    vals, offset, m = bspline_nonzero_coefficients(d, k, p, ncp)
+    out = zero(eltype(c)) * zero(p)
+    @inbounds for l in 1:m
+        out += vals[l] * c[offset + l]
+    end
+    return out
+end
+
+# Derivative of that spline with respect to `p`.
+@inline function bspline_curve_slope(d, k, c, p, ncp)
+    if p == k[1]
+        # `bspline_nonzero_coefficients` collapses to a single weight at the left
+        # clamp, which the difference loop below would index out of range.
+        return d * (c[2] - c[1]) / (k[d + 2] - k[2])
+    end
+    vals, offset, m = bspline_nonzero_coefficients(d - 1, k, p, ncp)
+    out = zero(eltype(c)) * zero(p)
+    @inbounds for l in 1:m
+        i = offset + l - 1
+        (1 <= i <= ncp - 1) || continue
+        out += vals[l] * (c[i + 1] - c[i]) / (k[i + d + 1] - k[i + 1])
+    end
+    return out * d
+end
+
+const BSPLINE_INVERT_MAXITER = 64
+
+# Solve `T(p) = t` for `p` in the bracket `[lo, hi]`, where `T` is the spline with
+# control points `ct`. `T` matches the strictly increasing `t` at the bracket ends but
+# need not be monotone in between, so the bracket is maintained and Newton falls back
+# to bisection whenever it would step outside it.
+function bspline_invert_param(d, k, ct, t, p₀, lo, hi, ncp)
+    p = min(max(p₀, lo), hi)
+    for _ in 1:BSPLINE_INVERT_MAXITER
+        r = bspline_curve_value(d, k, ct, p, ncp) - t
+        if r > zero(r)
+            hi = p
+        elseif r < zero(r)
+            lo = p
+        else
+            break
+        end
+        pnew = p - r / bspline_curve_slope(d, k, ct, p, ncp)
+        if !(isfinite(pnew) && lo < pnew < hi)
+            pnew = (lo + hi) / 2
+        end
+        pnew == p && break
+        p = pnew
+    end
+    # One unguarded Newton step on top of the converged value. Its derivative is
+    # `1/T′(p)` up to the residual, which is at roundoff by now, so differentiating
+    # through this function recovers the implicit-function derivative rather than the
+    # derivative of the iteration itself.
+    return p - (bspline_curve_value(d, k, ct, p, ncp) - t) /
+        bspline_curve_slope(d, k, ct, p, ncp)
+end
+
+# Is `p` affine in `t`? Then the linear estimate of the inverse map is already exact
+# and evaluation can skip the inversion. Holds for `:Uniform` parameters on uniformly
+# spaced `t`, which is the common case.
+function bspline_affine_param(p, t)
+    Δp = p[end] - p[1]
+    Δt = t[end] - t[1]
+    dev = maximum(
+        abs(p[i] - (p[1] + (t[i] - t[1]) / Δt * Δp)) for i in eachindex(p)
+    )
+    return dev <= 8 * eps(float(one(dev))) * abs(Δp)
+end
+
 function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
     # Duplicate time points make the collocation system singular
     if any(i -> t[i] == t[i + 1], 1:(length(t) - 1))
