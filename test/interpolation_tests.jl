@@ -1461,6 +1461,53 @@ end
         @test maxerr(A) < 1.0e-5
     end
 
+    # `:Uniform` knots space the interior knots by `1/(n - d)` against a parameter
+    # spacing of `1/(n - 1)`, so the collocation system becomes exponentially
+    # ill-conditioned in `n` for degree 3 and up. The fit still passes through the data,
+    # so the only signal the caller gets is the warning (#567).
+    @testset "Ill-conditioned collocation systems are reported" begin
+        f(x) = sin(x)
+        build(n, d, pVecType, knotVecType) = BSplineInterpolation(
+            f.(range(0, 2π, length = n)), collect(range(0, 2π, length = n)),
+            d, pVecType, knotVecType
+        )
+
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(
+            160, 3, :Uniform, :Uniform
+        )
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(
+            80, 5, :Uniform, :Uniform
+        )
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(
+            80, 3, :ArcLen, :Uniform
+        )
+        # The message has to point somewhere useful.
+        @test_logs (:warn, r"knotVecType = :Average") match_mode = :any build(
+            160, 3, :Uniform, :Uniform
+        )
+
+        # `:Average` knots are well conditioned at any degree or size, and small
+        # problems with `:Uniform` knots are still fine, so neither may warn.
+        @test_nowarn build(160, 3, :Uniform, :Average)
+        @test_nowarn build(160, 5, :ArcLen, :Average)
+        @test_nowarn build(20, 3, :Uniform, :Uniform)
+        @test_nowarn build(6, 3, :Uniform, :Uniform)
+
+        # Whether the factorization hits an exact zero pivot at large `n` is
+        # BLAS-dependent, so drive the singular branch with repeated data instead:
+        # zero chord length gives `:ArcLen` two identical parameters, hence two
+        # identical collocation rows.
+        u_dup = [1.0, 2.0, 2.0, 3.0, 5.0, 8.0]
+        t_dup = [0.0, 1.0, 1.0, 2.0, 3.0, 4.0]
+        @test_throws "numerically singular" BSplineInterpolation(
+            u_dup, t_dup, 2, :ArcLen, :Average
+        )
+        # And the singular error carries the same advice as the warning.
+        @test_throws "knotVecType = :Average" BSplineInterpolation(
+            u_dup, t_dup, 2, :ArcLen, :Uniform
+        )
+    end
+
     @testset "BSplineApprox" begin
         test_interpolation_type(BSplineApprox)
         t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]

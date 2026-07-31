@@ -185,6 +185,60 @@ function bspline_invert_param(d, k, ct, t, p₀, lo, hi, ncp)
         bspline_curve_slope(d, k, ct, p, ncp)
 end
 
+# Hager's estimate of `‖inv(A)‖₁` from an existing factorization: a handful of solves
+# against `F` and `F'`, so O(n²) on top of the factorization rather than the O(n³) an
+# explicit inverse would cost. This is what LAPACK's `gecon` does internally.
+function norm_inv_1_estimate(F, n)
+    x = fill(one(eltype(F)) / n, n)
+    est = zero(real(eltype(F)))
+    for _ in 1:5
+        y = F \ x
+        est = norm(y, 1)
+        z = F' \ map(yᵢ -> yᵢ < zero(yᵢ) ? -one(yᵢ) : one(yᵢ), y)
+        j = argmax(abs.(z))
+        abs(z[j]) <= dot(z, x) && break
+        fill!(x, zero(eltype(x)))
+        x[j] = one(eltype(x))
+    end
+    return est
+end
+
+# A `:Uniform` knot vector spaces the interior knots by `1/(n - d)` while the
+# parameters are spaced `1/(n - 1)`, so the collocation points drift away from the
+# Greville abscissae of the basis functions they are paired with — by up to `(d - 1)/2`
+# knot spans, independent of `n`. Past half a span the collocation system's condition
+# number grows exponentially in `n`, and the interpolant diverges between the data
+# points while still passing through them, so nothing about the fit looks wrong (#567).
+# `:Average` knots are the standard pairing for interpolation and stay well conditioned.
+function bspline_collocation_factorization(sc, n, d, pVecType, knotVecType)
+    F = lu(sc; check = false)
+    LinearAlgebra.issuccess(F) || error(
+        "BSplineInterpolation: the collocation system for degree $d with " *
+            "`pVecType = :$pVecType`, `knotVecType = :$knotVecType` and $n points is " *
+            "numerically singular." * ill_conditioned_advice(d, knotVecType)
+    )
+    warn_if_ill_conditioned(F, sc, n, d, pVecType, knotVecType)
+    return F
+end
+
+function ill_conditioned_advice(d, knotVecType)
+    knotVecType == :Uniform || return ""
+    return " A `:Uniform` knot vector is unsuitable for interpolation at degree $d; " *
+        "use `knotVecType = :Average` instead."
+end
+
+function warn_if_ill_conditioned(F, sc, n, d, pVecType, knotVecType)
+    κ = opnorm(sc, 1) * norm_inv_1_estimate(F, n)
+    κ <= 1 / sqrt(eps(float(real(eltype(sc))))) && return nothing
+    @warn "BSplineInterpolation: the collocation system for degree $d with " *
+        "`pVecType = :$pVecType`, `knotVecType = :$knotVecType` and $n points is " *
+        "ill-conditioned (estimated 1-norm condition number $(round(κ, sigdigits = 3))). " *
+        "The interpolant still passes through the data but may deviate from it by " *
+        "orders of magnitude in between, most visibly near the ends of the domain." *
+        ill_conditioned_advice(d, knotVecType)
+    return nothing
+end
+
 # Is `p` affine in `t`? Then the linear estimate of the inverse map is already exact
 # and evaluation can skip the inversion. Holds for `:Uniform` parameters on uniformly
 # spaced `t`, which is the common case.
