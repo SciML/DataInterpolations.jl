@@ -1,3 +1,42 @@
+"""
+    integral(A::AbstractInterpolation, t::Number)
+    integral(A::AbstractInterpolation, t1::Number, t2::Number)
+
+Evaluate the integral of the interpolation `A` over `[first(A.t), t]`, or over `[t1, t2]`
+when both bounds are given. The integral is computed analytically per interval, so it is
+exact for the interpolation. `integral(A, t2, t1) == -integral(A, t1, t2)`.
+
+Parts of the integration interval outside the range of `A.t` are integrated over the
+extrapolation, as determined by the `extrapolation_left` and `extrapolation_right`
+settings of `A`.
+
+Interpolation types with no analytical antiderivative — `LagrangeInterpolation`,
+`BSplineInterpolation`, `BSplineApprox` and `Curvefit` — throw an
+`IntegralNotFoundError`; use a numerical integrator such as
+[Integrals.jl](https://docs.sciml.ai/Integrals/stable/) for those.
+
+## Arguments
+
+  - `A`: the interpolation object.
+  - `t`: the upper bound, with `first(A.t)` used as the lower bound.
+  - `t1`, `t2`: the lower and upper bounds.
+
+## Examples
+
+```jldoctest
+using DataInterpolations
+
+u = [1.0, 2.0, 3.0]
+t = [1.0, 2.0, 3.0]
+A = LinearInterpolation(u, t)
+
+DataInterpolations.integral(A, 1.0, 3.0)
+
+# output
+
+4.0
+```
+"""
 function integral(A::AbstractInterpolation, t::Number)
     return integral(A, first(A.t), t)
 end

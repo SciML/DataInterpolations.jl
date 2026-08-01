@@ -2,6 +2,30 @@ module DataInterpolations
 
 ### Interface Functionality
 
+"""
+    AbstractInterpolation{T}
+
+Supertype of all interpolation objects in DataInterpolations.jl, where `T` is the element
+type of the interpolated values.
+
+Every subtype is callable as `A(t)` to evaluate the interpolation at `t`, and supports
+[`DataInterpolations.derivative`](@ref) and [`DataInterpolations.integral`](@ref). Use it
+to dispatch on interpolations of any method.
+
+## Examples
+
+```jldoctest
+using DataInterpolations
+
+A = LinearInterpolation([1.0, 2.0], [0.0, 1.0])
+
+A isa DataInterpolations.AbstractInterpolation
+
+# output
+
+true
+```
+"""
 abstract type AbstractInterpolation{T} end
 
 using LinearAlgebra: LinearAlgebra, Tridiagonal, dot, norm, normalize!
@@ -155,6 +179,15 @@ export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     SmoothArcLengthInterpolation, LinearInterpolationIntInv,
     ConstantInterpolationIntInv, ExtrapolationType
 export output_dim, output_size
+
+# These names are part of the documented API but are deliberately not exported, since the
+# bare names would clash in user code. `public` is only parseable on Julia 1.11+, hence the
+# string.
+@static if VERSION >= v"1.11"
+    include_string(
+        @__MODULE__, "public AbstractInterpolation, derivative, integral, invert_integral"
+    )
+end
 
 # CurveFit
 struct CurvefitCache{
