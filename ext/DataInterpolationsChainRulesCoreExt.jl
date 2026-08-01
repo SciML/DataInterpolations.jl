@@ -3,9 +3,9 @@ module DataInterpolationsChainRulesCoreExt
 using DataInterpolations: _interpolate, derivative, AbstractInterpolation,
     LinearInterpolation, QuadraticInterpolation,
     LagrangeInterpolation, AkimaInterpolation,
-    BSplineInterpolation, BSplineApprox, get_idx, get_parameters,
+    BSplineInterpolation, BSplineApprox, get_idx,
     munge_data
-using ChainRulesCore
+using ChainRulesCore: ChainRulesCore, NoTangent, Tangent
 
 function ChainRulesCore.rrule(::typeof(munge_data), u, t)
     u_out, t_out = munge_data(u, t)

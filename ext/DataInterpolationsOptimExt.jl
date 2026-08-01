@@ -1,12 +1,12 @@
 module DataInterpolationsOptimExt
 
-using DataInterpolations
 import DataInterpolations: munge_data,
     Curvefit, CurvefitCache, _interpolate, get_show, derivative,
     ExtrapolationError,
     integral, IntegralNotFoundError, DerivativeNotFoundError
 
-using Optim, ForwardDiff
+using ForwardDiff: ForwardDiff
+using Optim: Optim, Fminbox, OnceDifferentiable, optimize
 
 ### Curvefit
 function Curvefit(

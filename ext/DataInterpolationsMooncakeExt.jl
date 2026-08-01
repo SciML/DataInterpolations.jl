@@ -1,9 +1,10 @@
 module DataInterpolationsMooncakeExt
 
-using DataInterpolations, Mooncake, ChainRulesCore, FindFirstFunctions
 using DataInterpolations: _interpolate, munge_data, AbstractInterpolation,
     LinearInterpolation, QuadraticInterpolation
-import Mooncake: @from_chainrules, @zero_adjoint, MinimalCtx, DefaultCtx
+using ChainRulesCore: ChainRulesCore
+using FindFirstFunctions: FindFirstFunctions
+using Mooncake: Mooncake, @from_chainrules, @zero_adjoint, MinimalCtx, DefaultCtx
 
 # When the ChainRules pullback for _interpolate returns a Tangent{AbstractInterpolation},
 # this tells Mooncake how to accumulate the u-component into the interpolation's fdata.
