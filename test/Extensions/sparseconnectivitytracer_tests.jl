@@ -2,7 +2,7 @@ using SparseConnectivityTracer
 using SparseConnectivityTracer: DEFAULT_GRADIENT_TRACER, DEFAULT_HESSIAN_TRACER
 using SparseConnectivityTracer: trace_input, Dual, primal
 using DataInterpolations
-using DataInterpolations: AbstractInterpolation
+using DataInterpolations: AbstractInterpolation, invert_integral
 
 using LinearAlgebra: I
 using Test
@@ -250,6 +250,26 @@ end
         test_jacobian(t)
         test_hessian(t)
         test_output(t)
+        yield()
+    end
+end
+
+# Integral inverse interpolations require strictly-positive u data
+u_pos = [1.0, 2.0, 3.0, 4.0, 5.0]
+
+@testset "Integral Inverse Interpolations" begin
+    @testset "$(testname(it))" for it in (
+            InterpolationTest(
+                invert_integral(ConstantInterpolation(u_pos, t));
+                is_der2_zero = true
+            ),
+            InterpolationTest(
+                invert_integral(LinearInterpolation(u_pos, t))
+            ),
+        )
+        test_jacobian(it)
+        test_hessian(it)
+        test_output(it)
         yield()
     end
 end
