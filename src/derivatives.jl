@@ -1,3 +1,38 @@
+"""
+    derivative(A::AbstractInterpolation, t::Number, order = 1)
+
+Evaluate the `order`-th derivative of the interpolation `A` at `t`.
+
+First order derivatives are computed analytically; second order derivatives are computed
+from the analytical first order derivative with ForwardDiff.jl. The derivative is taken as
+a left derivative, so at a data point where the derivative jumps the value from the
+interval to the left of the point is returned.
+
+Outside of the range of `A.t` the derivative of the extrapolation is returned, as
+determined by the `extrapolation_left` and `extrapolation_right` settings of `A`.
+
+## Arguments
+
+  - `A`: the interpolation object.
+  - `t`: the point at which to evaluate the derivative.
+  - `order`: the order of the derivative, either `1` or `2`. Defaults to `1`.
+
+## Examples
+
+```jldoctest
+using DataInterpolations
+
+u = [1.0, 4.0, 9.0]
+t = [1.0, 2.0, 3.0]
+A = QuadraticInterpolation(u, t)
+
+DataInterpolations.derivative(A, 2.5)
+
+# output
+
+5.0
+```
+"""
 function derivative(A, t, order = 1)
     (order ∉ (1, 2)) && throw(DerivativeNotFoundError())
     if t < first(A.t)
