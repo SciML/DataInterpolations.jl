@@ -215,9 +215,6 @@ function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
         end
         out
     elseif extrapolation_right == ExtrapolationType.Linear
-        slope = derivative(A, last(A.t))
-        Δt = t - last(A.t)
-        (_last(A.u) + slope * Δt / 2) * Δt
         _extrapolate_other(A, t, A.extrapolation_right)
     elseif extrapolation_right == ExtrapolationType.Periodic
         t_, n = transformation_periodic(A, t)
