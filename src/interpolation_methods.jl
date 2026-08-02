@@ -1258,11 +1258,6 @@ function _interpolate(
         t::Number,
         iguess
     )
-    t < A.t[1] && return A.u[1]
-    t > A.t[end] && return A.u[end]
-    # change t into param [0 1]
-    idx = get_idx(A, t, iguess)
-    t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
     # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
     vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, n)
@@ -1279,11 +1274,6 @@ function _interpolate(
         iguess
     )
     ax_u = axes(A.u)[1:(end - 1)]
-    t < A.t[1] && return A.u[ax_u..., 1]
-    t > A.t[end] && return A.u[ax_u..., end]
-    # change t into param [0 1]
-    idx = get_idx(A, t, iguess)
-    t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     n = length(A.t)
     # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
     vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, n)
@@ -1296,11 +1286,6 @@ end
 
 # BSpline Curve Approx
 function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
-    t < A.t[1] && return A.u[1]
-    t > A.t[end] && return A.u[end]
-    # change t into param [0 1]
-    idx = get_idx(A, t, iguess)
-    t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
     vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, A.h)
     ucum = zero(eltype(A.u))
@@ -1314,11 +1299,6 @@ function _interpolate(
         A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess
     )
     ax_u = axes(A.u)[1:(end - 1)]
-    t < A.t[1] && return A.u[ax_u..., 1]
-    t > A.t[end] && return A.u[ax_u..., end]
-    # change t into param [0 1]
-    idx = get_idx(A, t, iguess)
-    t = A.p[idx] + (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx]) * (A.p[idx + 1] - A.p[idx])
     # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
     vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, A.h)
     ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)

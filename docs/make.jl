@@ -27,7 +27,6 @@ makedocs(
         "Manual" => "manual.md",
         "Smooth arc length interpolation" => "arclength_interpolation.md",
         "Inverting Integrals" => "inverting_integrals.md",
-        "clarification.md",
     ]
 )
 
