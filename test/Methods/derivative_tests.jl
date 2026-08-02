@@ -4,7 +4,7 @@ using FiniteDifferences
 using DataInterpolations: derivative, get_transition_ts
 using Symbolics
 using StableRNGs
-using Optim
+using CurveFit
 import ForwardDiff
 using LinearAlgebra
 
@@ -365,7 +365,7 @@ end
     t = range(-10, stop = 10, length = 40)
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
-    test_derivatives(Curvefit; args = [u, t, model, p0, LBFGS()], name = "Curvefit")
+    test_derivatives(Curvefit; args = [u, t, model, p0], name = "Curvefit")
 end
 
 @testset "Symbolic derivatives" begin

@@ -202,8 +202,8 @@ match our data. Let's start with the guess of every `p` being zero, that is
 `p=ones(4)`. Then we would fit this curve using:
 
 ```@example tutorial
-using Optim
-A = Curvefit(u, t, m, ones(4), LBFGS())
+using CurveFit
+A = Curvefit(u, t, m, ones(4))
 plot(A)
 ```
 
@@ -219,7 +219,7 @@ parameters. For example, with `p=zeros(4)` as the initial parameters, the fit
 is not good:
 
 ```@example tutorial
-A = Curvefit(u, t, m, zeros(4), LBFGS())
+A = Curvefit(u, t, m, zeros(4))
 plot(A)
 ```
 
