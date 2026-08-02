@@ -28,8 +28,6 @@ DataInterpolationsMooncakeExt = ["Mooncake", "ChainRulesCore"]
 DataInterpolationsOptimExt = "Optim"
 DataInterpolationsSparseConnectivityTracerExt = "SparseConnectivityTracer"
 DataInterpolationsSymbolicsExt = "Symbolics"
-DataInterpolationsMakieExt = "Makie"
-DataInterpolationsMooncakeExt = ["Mooncake", "ChainRulesCore"]
 
 [compat]
 AllocCheck = "0.2"
