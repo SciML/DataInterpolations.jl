@@ -18,19 +18,23 @@ function safe_diff(b, a::T) where {T}
     return isequal(b, a) ? zero(T) : b - a
 end
 
-function linear_interpolation_parameters(u::AbstractArray{T, N}, t, idx) where {T, N}
-    Δu = if N > 1
-        ax = axes(u)
-        safe_diff.(
-            u[ax[1:(end - 1)]..., (idx + 1)], u[ax[1:(end - 1)]..., idx]
-        )
-    else
-        safe_diff(u[idx + 1], u[idx])
-    end
+function linear_interpolation_parameters(u::AbstractVector, t, idx)
+    Δu = safe_diff(u[idx + 1], u[idx])
     Δt = t[idx + 1] - t[idx]
     slope = Δu / Δt
     slope = iszero(Δt) ? zero(slope) : slope
     return slope
+end
+
+function linear_interpolation_parameters(u::AbstractArray, t, idx)
+    u₀ = _u_view(u, idx)
+    u₁ = _u_view(u, idx + 1)
+    Δt = t[idx + 1] - t[idx]
+    return if iszero(Δt)
+        @. zero(safe_diff(u₁, u₀) / oneunit(Δt))
+    else
+        @. safe_diff(u₁, u₀) / Δt
+    end
 end
 
 struct SmoothedConstantParameterCache{dType, cType}
@@ -104,24 +108,24 @@ function quadratic_interpolation_parameters(u, t, idx, mode)
     end
 
     t₀ = t[idx]
-    u₀ = u isa AbstractMatrix ? view(u, :, idx) : u[idx]
+    u₀ = _u_view(u, idx)
 
     t₁ = t[idx + 1]
-    u₁ = u isa AbstractMatrix ? view(u, :, idx + 1) : u[idx + 1]
+    u₁ = _u_view(u, idx + 1)
 
     t₂, u₂ = if mode == :Backward
-        t[idx - 1], u isa AbstractMatrix ? view(u, :, idx - 1) : u[idx - 1]
+        t[idx - 1], _u_view(u, idx - 1)
     else
-        t[idx + 2], u isa AbstractMatrix ? view(u, :, idx + 2) : u[idx + 2]
+        t[idx + 2], _u_view(u, idx + 2)
     end
 
     Δt₁ = t₁ - t₀
     Δt₂ = t₂ - t₀
     Δt = t₂ - t₁
-    s₁ = (u₁ - u₀) / Δt₁
-    s₂ = (u₂ - u₀) / Δt₂
-    α = (s₂ - s₁) / Δt
-    β = s₁ - α * Δt₁
+    s₁ = @. (u₁ - u₀) / Δt₁
+    s₂ = @. (u₂ - u₀) / Δt₂
+    α = @. (s₂ - s₁) / Δt
+    β = @. s₁ - α * Δt₁
 
     return α, β
 end

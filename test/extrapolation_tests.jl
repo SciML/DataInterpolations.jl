@@ -109,8 +109,6 @@ end
     u = [1.0, 2.0]
     t = [1.0, 2.0]
 
-    #test_extrapolation(ConstantInterpolation, u, t)
-
     extrapolation_type = ExtrapolationType.Constant
     # Left extrapolation
     A = ConstantInterpolation(u, t; extrapolation_left = extrapolation_type)
@@ -119,7 +117,6 @@ end
     @test DataInterpolations.derivative(A, t_eval) == 0.0
     @test DataInterpolations.derivative(A, t_eval, 2) == 0.0
     @test DataInterpolations.integral(A, t_eval) == -1.0
-    t_eval = 3.0
 
     # Right extrapolation
     A = ConstantInterpolation(u, t; extrapolation_right = extrapolation_type)
@@ -140,6 +137,7 @@ end
     @test DataInterpolations.derivative(A, t_eval) == [0.0, 0.0]
     @test DataInterpolations.derivative(A, t_eval, 2) == [0.0, 0.0]
     @test DataInterpolations.integral(A, t_eval) == [-1.0, -1.0]
+    @test DataInterpolations.integral(A, t_eval, t_eval) == [0.0, 0.0]
 
     # Right extrapolation
     A = ConstantInterpolation(u, t; extrapolation_right = extrapolation_type)
@@ -148,7 +146,11 @@ end
     @test DataInterpolations.derivative(A, t_eval) == [0.0, 0.0]
     @test DataInterpolations.derivative(A, t_eval, 2) == [0.0, 0.0]
     @test DataInterpolations.integral(A, t_eval) == [3.0, 3.0]
-        
+    @test DataInterpolations.integral(A, t_eval, t_eval) == [0.0, 0.0]
+
+    # The extrapolated value must not alias `u`
+    A(t_eval) .= 0.0
+    @test A.u == [1.0 2.0; 1.0 2.0]
 end
 
 @testset "Linear Interpolation" begin
@@ -196,7 +198,7 @@ end
     @test DataInterpolations.derivative(A, t_eval) == [0.0, 0.0]
     @test DataInterpolations.derivative(A, t_eval, 2) == [0.0, 0.0]
     @test DataInterpolations.integral(A, t_eval) == [3.5, 8.5]
-    
+
     for extrapolation_type in [ExtrapolationType.Linear, ExtrapolationType.Extension]
         # Left extrapolation
         A = LinearInterpolation(u, t; extrapolation_left = extrapolation_type)
@@ -205,7 +207,8 @@ end
         @test DataInterpolations.derivative(A, t_eval) == [1.0, 3.0]
         @test DataInterpolations.derivative(A, t_eval, 2) == [0.0, 0.0]
         @test DataInterpolations.integral(A, t_eval) == [-0.5, -0.5]
-        
+        @test DataInterpolations.integral(A, t_eval, t_eval) == [0.0, 0.0]
+
         # Right extrapolation
         A = LinearInterpolation(u, t; extrapolation_right = extrapolation_type)
         t_eval = 3.0
@@ -213,8 +216,8 @@ end
         @test DataInterpolations.derivative(A, t_eval) == [1.0, 3.0]
         @test DataInterpolations.derivative(A, t_eval, 2) == [0.0, 0.0]
         @test DataInterpolations.integral(A, t_eval) == [4.0, 10.0]
+        @test DataInterpolations.integral(A, t_eval, t_eval) == [0.0, 0.0]
     end
-        
 end
 
 @testset "Quadratic Interpolation" begin
@@ -282,7 +285,7 @@ end
     # Linear left extrapolation
     A = QuadraticInterpolation(u, t; extrapolation_left = ExtrapolationType.Linear)
     t_eval = 0.0
-    @test A(t_eval) ≈ [-2.5,-2.5]
+    @test A(t_eval) ≈ [-2.5, -2.5]
     @test DataInterpolations.derivative(A, t_eval) == [3.5, 3.5]
     @test DataInterpolations.derivative(A, t_eval, 2) == [0.0, 0.0]
     @test DataInterpolations.integral(A, t_eval) ≈ [0.75, 0.75]
@@ -312,4 +315,47 @@ end
     @test DataInterpolations.derivative(A, t_eval) == df(t_eval) * ones(2)
     @test DataInterpolations.derivative(A, t_eval, 2) == [-3, -3]
     @test DataInterpolations.integral(A, t_eval) ≈ [5.25, 5.25]
+end
+
+# The number of allocations one array costs is a Julia version detail, so the
+# budgets below are expressed in bytes relative to one result array. The counting
+# sits behind a function barrier to keep the test scope's boxing out of it.
+function result_bytes(u)
+    uᵢ = @view u[:, 1]
+    uᵢ .+ 1.0
+    return @allocated(uᵢ .+ 1.0)
+end
+
+function extrapolation_allocations(A, t_eval)
+    A(t_eval)
+    DataInterpolations.derivative(A, t_eval)
+    DataInterpolations.integral(A, t_eval)
+    return (
+        @allocated(A(t_eval)),
+        @allocated(DataInterpolations.derivative(A, t_eval)),
+        @allocated(DataInterpolations.integral(A, t_eval)),
+    )
+end
+
+# Extrapolating matrix `u` builds one array per value it computes; a slice or an
+# unfused broadcast creeping back in shows up as several arrays per value.
+@testset "Matrix u extrapolation allocations" begin
+    u = [1.0 3.0 2.0; 2.0 5.0 7.0]
+    t = [1.0, 2.0, 3.0]
+    result = result_bytes(u)
+
+    for method in (ConstantInterpolation, LinearInterpolation, QuadraticInterpolation),
+            extrapolation_type in (
+                ExtrapolationType.Constant, ExtrapolationType.Linear,
+                ExtrapolationType.Extension,
+            )
+
+        A = method(u, t; extrapolation = extrapolation_type, cache_parameters = true)
+        for t_eval in (0.0, 4.0)
+            n_eval, n_derivative, n_integral = extrapolation_allocations(A, t_eval)
+            @test n_eval <= 2result
+            @test n_derivative <= 2result
+            @test n_integral <= 6result
+        end
+    end
 end

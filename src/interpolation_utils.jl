@@ -573,19 +573,18 @@ end
 
 get_transition_ts(A::AbstractInterpolation) = A.t
 
-#get first and last data point from both vector and matrix u
-function _first(u::AbstractVector)
-    first(u)
-end
+# Data points sit in the last dimension of `u`, unless `u` holds one value per
+# data point. `_u_view` aliases `u` and is meant for expressions that build a new
+# result from it; `_u_point` returns what `_interpolate` would, so it is safe to
+# hand back to the caller.
+_u_view(u::AbstractVector, idx) = u[idx]
+_u_view(u::AbstractArray, idx) = selectdim(u, ndims(u), idx)
 
-function _first(u::AbstractMatrix)
-    u[:, 1]
-end
+_u_point(u::AbstractVector, idx) = u[idx]
+_u_point(u::AbstractArray, idx) = copy(_u_view(u, idx))
 
-function _last(u::AbstractVector)
-    last(u)
-end
+_first(u::AbstractVector) = first(u)
+_first(u::AbstractArray) = _u_view(u, firstindex(u, ndims(u)))
 
-function _last(u::AbstractMatrix)
-    u[:, end]
-end
+_last(u::AbstractVector) = last(u)
+_last(u::AbstractArray) = _u_view(u, lastindex(u, ndims(u)))

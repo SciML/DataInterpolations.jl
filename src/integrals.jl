@@ -41,12 +41,28 @@ function integral(A::AbstractInterpolation, t::Number)
     return integral(A, first(A.t), t)
 end
 
+# For array valued `u` each entry of `A.I` is itself an array, which has no
+# `zero`, so build the accumulator from the shape of a data point instead.
+_integral_zero(A) = _integral_zero(A.u, eltype(A.I))
+_integral_zero(::Any, ::Type{T}) where {T} = zero(T)
+function _integral_zero(u::AbstractArray{<:Number}, ::Type{T}) where {T <: AbstractArray}
+    return zeros(eltype(T), size(_first(u)))
+end
+
+# `total` is allocated by `_integral_zero` for this call, so array valued
+# integrals accumulate into it rather than allocating once per interval.
+_add_integral(total::Number, Δ) = total + Δ
+_add_integral(total::AbstractArray, Δ) = (total .+= Δ)
+
+_sub_integral(total::Number, Δ) = total - Δ
+_sub_integral(total::AbstractArray, Δ) = (total .-= Δ)
+
 function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     !hasfield(typeof(A), :I) && throw(IntegralNotFoundError())
 
     if t1 == t2
         # If the integration interval is trivial then the result is 0
-        return zero(eltype(A.I))
+        return _integral_zero(A)
     elseif t1 > t2
         # Make sure that t1 < t2
         return -integral(A, t2, t1)
@@ -57,8 +73,8 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     # the index less than t2
     idx2 = get_idx(A, t2, 0; idx_shift = -1, side = :first)
 
-    total = isa(A.u, AbstractVector) ? zero(eltype(A.I)) : zero(A.u[:, 1])
-    
+    total = _integral_zero(A)
+
     # Lower potentially incomplete interval
     if t1 < first(A.t)
         if t2 < first(A.t)
@@ -67,9 +83,9 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
         end
 
         idx1 -= 1 # Make sure lowest complete interval is included
-        total += _extrapolate_integral_left(A, t1)
+        total = _add_integral(total, _extrapolate_integral_left(A, t1))
     else
-        total += _integral(A, idx1, t1, A.t[idx1 + 1])
+        total = _add_integral(total, _integral(A, idx1, t1, A.t[idx1 + 1]))
     end
 
     # Upper potentially incomplete interval
@@ -80,9 +96,9 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
         end
 
         idx2 += 1 # Make sure highest complete interval is included
-        total += _extrapolate_integral_right(A, t2)
+        total = _add_integral(total, _extrapolate_integral_right(A, t2))
     else
-        total += _integral(A, idx2, A.t[idx2], t2)
+        total = _add_integral(total, _integral(A, idx2, A.t[idx2], t2))
     end
 
     if idx1 == idx2
@@ -92,14 +108,14 @@ function integral(A::AbstractInterpolation, t1::Number, t2::Number)
     # Complete intervals
     if A.cache_parameters
         if idx2 > 1
-            total += A.I[idx2 - 1]
+            total = _add_integral(total, A.I[idx2 - 1])
         end
         if idx1 > 0
-            total -= A.I[idx1]
+            total = _sub_integral(total, A.I[idx1])
         end
     else
         for idx in (idx1 + 1):(idx2 - 1)
-            total += _integral(A, idx, A.t[idx], A.t[idx + 1])
+            total = _add_integral(total, _integral(A, idx, A.t[idx], A.t[idx + 1]))
         end
     end
 
@@ -115,7 +131,8 @@ function _extrapolate_integral_left(A, t)
     elseif extrapolation_left == ExtrapolationType.Linear
         slope = derivative(A, first(A.t))
         Δt = first(A.t) - t
-        (_first(A.u) - slope * Δt / 2) * Δt
+        u₁ = _first(A.u)
+        @. (u₁ - slope * Δt / 2) * Δt
     elseif extrapolation_left == ExtrapolationType.Extension
         _integral(A, 1, t, first(A.t))
     elseif extrapolation_left == ExtrapolationType.Periodic
@@ -149,7 +166,8 @@ function _extrapolate_integral_right(A, t)
     elseif extrapolation_right == ExtrapolationType.Linear
         slope = derivative(A, last(A.t))
         Δt = t - last(A.t)
-        (_last(A.u) + slope * Δt / 2) * Δt
+        uₙ = _last(A.u)
+        @. (uₙ + slope * Δt / 2) * Δt
     elseif extrapolation_right == ExtrapolationType.Extension
         _integral(A, length(A.t) - 1, last(A.t), t)
     elseif extrapolation_right == ExtrapolationType.Periodic
@@ -224,47 +242,22 @@ function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
 end
 
 function _integral(
-        A::LinearInterpolation{<:AbstractVector{<:Number}},
+        A::LinearInterpolation{<:AbstractArray{<:Number}},
         idx::Number, t1::Number, t2::Number
     )
     slope = get_parameters(A, idx)
-    u_mean = A.u[idx] + slope * ((t1 + t2) / 2 - A.t[idx])
-    return u_mean * (t2 - t1)
-end
-
-function _integral(
-        A::LinearInterpolation{<:AbstractMatrix{<:Number}},
-        idx::Number, t1::Number, t2::Number
-    )
-    slope = get_parameters(A, idx)
-    u_mean = A.u[:, idx] + slope * ((t1 + t2) / 2 - A.t[idx])
-    return u_mean * (t2 - t1)
-end
-
-function _integral(
-        A::ConstantInterpolation{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
-    )
+    uᵢ = _u_view(A.u, idx)
+    Δt_mean = (t1 + t2) / 2 - A.t[idx]
     Δt = t2 - t1
-    if A.dir === :left
-        # :left means that value to the left is used for interpolation
-        return A.u[idx] * Δt
-    else
-        # :right means that value to the right is used for interpolation
-        return A.u[idx + 1] * Δt
-    end
+    return @. (uᵢ + slope * Δt_mean) * Δt
 end
 
 function _integral(
-        A::ConstantInterpolation{<:AbstractMatrix{<:Number}}, idx::Number, t1::Number, t2::Number
+        A::ConstantInterpolation{<:AbstractArray{<:Number}}, idx::Number, t1::Number, t2::Number
     )
-    Δt = t2 - t1
-    if A.dir === :left
-        # :left means that value to the left is used for interpolation
-        return A.u[:, idx] * Δt
-    else
-        # :right means that value to the right is used for interpolation
-        return A.u[:, idx + 1] * Δt
-    end
+    # :left/:right means that the value to the left/right is used for interpolation
+    uᵢ = _u_view(A.u, A.dir === :left ? idx : idx + 1)
+    return uᵢ * (t2 - t1)
 end
 
 function _integral(
@@ -304,29 +297,17 @@ function _integral(
 end
 
 function _integral(
-        A::QuadraticInterpolation{<:AbstractVector{<:Number}},
+        A::QuadraticInterpolation{<:AbstractArray{<:Number}},
         idx::Number, t1::Number, t2::Number
     )
     α, β = get_parameters(A, idx)
-    uᵢ = A.u[idx]
+    uᵢ = _u_view(A.u, idx)
     tᵢ = A.t[idx]
     t1_rel = t1 - tᵢ
     t2_rel = t2 - tᵢ
     Δt = t2 - t1
-    return Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
-end
-
-function _integral(
-        A::QuadraticInterpolation{<:AbstractMatrix{<:Number}},
-        idx::Number, t1::Number, t2::Number
-    )
-    α, β = get_parameters(A, idx)
-    uᵢ = A.u[:, idx]
-    tᵢ = A.t[idx]
-    t1_rel = t1 - tᵢ
-    t2_rel = t2 - tᵢ
-    Δt = t2 - t1
-    return Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
+    return @. Δt *
+        (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
 end
 
 function _integral(

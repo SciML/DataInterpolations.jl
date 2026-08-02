@@ -52,14 +52,21 @@ function derivative(A, t, order = 1)
     end
 end
 
+# Zero of the derivative's value type, shaped like one data point.
+function _zero_derivative(A)
+    u₁ = _first(A.u)
+    t₁ = one(A.t[1])
+    return @. zero(u₁ / t₁)
+end
+
 function _extrapolate_derivative_left(A, t, order)
     (; extrapolation_left) = A
     return if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
-        zero(_first(A.u) / one(A.t[1]))
+        _zero_derivative(A)
     elseif extrapolation_left == ExtrapolationType.Linear
-        (order == 1) ? _derivative(A, first(A.t), 1) : zero(_first(A.u) / one(A.t[1]))
+        (order == 1) ? _derivative(A, first(A.t), 1) : _zero_derivative(A)
     elseif extrapolation_left == ExtrapolationType.Extension
         (order == 1) ? _derivative(A, t, length(A.t)) :
             ForwardDiff.derivative(
@@ -93,10 +100,9 @@ function _extrapolate_derivative_right(A, t, order)
     return if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
-        zero(_first(A.u) / one(A.t[1]))
+        _zero_derivative(A)
     elseif extrapolation_right == ExtrapolationType.Linear
-        (order == 1) ? _derivative(A, last(A.t), length(A.t)) :
-            zero(_first(A.u) / one(A.t[1]))
+        (order == 1) ? _derivative(A, last(A.t), length(A.t)) : _zero_derivative(A)
     elseif extrapolation_right == ExtrapolationType.Extension
         (order == 1) ? _derivative(A, t, length(A.t)) :
             ForwardDiff.derivative(
@@ -167,7 +173,7 @@ function _derivative(A::QuadraticInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]
     α, β = get_parameters(A, idx)
-    return 2α * Δt + β
+    return @. 2α * Δt + β
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
@@ -259,7 +265,8 @@ function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, igue
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : typed_nan(A.u) .* A.u[:, 1]
+    u₁ = _first(A.u)
+    return isempty(searchsorted(A.t, t)) ? zero(u₁) : fill(typed_nan(A.u), size(u₁))
 end
 
 # QuadraticSpline Interpolation
