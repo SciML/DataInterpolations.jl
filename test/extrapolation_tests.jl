@@ -151,6 +151,33 @@ end
     # The extrapolated value must not alias `u`
     A(t_eval) .= 0.0
     @test A.u == [1.0 2.0; 1.0 2.0]
+
+    # issue #572: outside the data `Constant`, `Linear` and `Extension` all evaluate to
+    # the boundary value, so the integral must too — `Linear` used to pick up the `NaN`
+    # slope at a knot and `Extension` used to integrate a `dir`-dependent interval.
+    u = [1.0, 2.0, 5.0]
+    t = [1.0, 2.0, 3.0]
+    u_mat = [1.0 2.0 5.0; 2.0 3.0 1.0]
+
+    for dir in (:left, :right),
+            extrapolation_type in instances(ExtrapolationType.T)
+
+        (extrapolation_type == ExtrapolationType.None) && continue
+        @testset "extrapolation type $extrapolation_type, dir = $dir" begin
+            A = ConstantInterpolation(u, t; extrapolation = extrapolation_type, dir)
+            A_mat = ConstantInterpolation(
+                u_mat, t; extrapolation = extrapolation_type, dir
+            )
+
+            # Left of the data, right of the data, and spanning the whole range.
+            for (t1, t2) in ((-1.0, 1.0), (3.0, 5.0), (-4.0, 8.0))
+                @test DataInterpolations.integral(A, t1, t2) ≈
+                    quadgk(A, t1, t2; atol = 1.0e-12, rtol = 1.0e-12)[1]
+                @test DataInterpolations.integral(A_mat, t1, t2) ≈
+                    quadgk(τ -> A_mat(τ), t1, t2; atol = 1.0e-12, rtol = 1.0e-12)[1]
+            end
+        end
+    end
 end
 
 @testset "Linear Interpolation" begin

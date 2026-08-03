@@ -135,15 +135,20 @@ function _extrapolate_integral_left(A, t)
         @. (u₁ - slope * Δt / 2) * Δt
     elseif extrapolation_left == ExtrapolationType.Extension
         _integral(A, 1, t, first(A.t))
-    elseif extrapolation_left == ExtrapolationType.Periodic
+    else
+        _extrapolate_integral_other_left(A, t, extrapolation_left)
+    end
+end
+
+function _extrapolate_integral_other_left(A, t, extrapolation_left)
+    return if extrapolation_left == ExtrapolationType.Periodic
         t_, n = transformation_periodic(A, t)
         out = -integral(A, t_)
         if !iszero(n)
             out -= n * integral(A, first(A.t), last(A.t))
         end
         out
-    else
-        # extrapolation_left == ExtrapolationType.Reflective
+    elseif extrapolation_left == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         out = if isodd(n)
             -integral(A, t_, last(A.t))
@@ -154,6 +159,8 @@ function _extrapolate_integral_left(A, t)
             out -= n * integral(A, first(A.t), last(A.t))
         end
         out
+    else
+        throw(ExtrapolationNotImplementedError())
     end
 end
 
@@ -170,15 +177,20 @@ function _extrapolate_integral_right(A, t)
         @. (uₙ + slope * Δt / 2) * Δt
     elseif extrapolation_right == ExtrapolationType.Extension
         _integral(A, length(A.t) - 1, last(A.t), t)
-    elseif extrapolation_right == ExtrapolationType.Periodic
+    else
+        _extrapolate_integral_other_right(A, t, extrapolation_right)
+    end
+end
+
+function _extrapolate_integral_other_right(A, t, extrapolation_right)
+    return if extrapolation_right == ExtrapolationType.Periodic
         t_, n = transformation_periodic(A, t)
         out = integral(A, first(A.t), t_)
         if !iszero(n)
             out += n * integral(A, first(A.t), last(A.t))
         end
         out
-    else
-        # extrapolation_right == ExtrapolationType.Reflective
+    elseif extrapolation_right == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         out = if iseven(n)
             integral(A, t_, last(A.t))
@@ -189,6 +201,40 @@ function _extrapolate_integral_right(A, t)
             out += n * integral(A, first(A.t), last(A.t))
         end
         out
+    else
+        throw(ExtrapolationNotImplementedError())
+    end
+end
+
+# `ConstantInterpolation` extrapolates with the boundary value for `Constant`, `Linear`
+# and `Extension` alike (see `_extrapolate_left`/`_extrapolate_right`), so neither the
+# generic slope-based `Linear` branch nor the boundary-interval `Extension` branch (which
+# picks a `dir`-dependent index) describes what is actually being integrated.
+function _extrapolate_integral_left(A::ConstantInterpolation, t)
+    (; extrapolation_left) = A
+    return if extrapolation_left == ExtrapolationType.None
+        throw(LeftExtrapolationError())
+    elseif extrapolation_left in (
+            ExtrapolationType.Constant, ExtrapolationType.Linear,
+            ExtrapolationType.Extension,
+        )
+        _first(A.u) * (first(A.t) - t)
+    else
+        _extrapolate_integral_other_left(A, t, extrapolation_left)
+    end
+end
+
+function _extrapolate_integral_right(A::ConstantInterpolation, t)
+    (; extrapolation_right) = A
+    return if extrapolation_right == ExtrapolationType.None
+        throw(RightExtrapolationError())
+    elseif extrapolation_right in (
+            ExtrapolationType.Constant, ExtrapolationType.Linear,
+            ExtrapolationType.Extension,
+        )
+        _last(A.u) * (t - last(A.t))
+    else
+        _extrapolate_integral_other_right(A, t, extrapolation_right)
     end
 end
 
