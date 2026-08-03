@@ -320,10 +320,12 @@ end
 # The number of allocations one array costs is a Julia version detail, so the
 # budgets below are expressed in bytes relative to one result array. The counting
 # sits behind a function barrier to keep the test scope's boxing out of it.
+# `broadcast` rather than `.+`: `@allocated` on a dot-call throws `UndefVarError: .+`
+# on Julia 1.12.0-1.12.4.
 function result_bytes(u)
     uᵢ = @view u[:, 1]
-    uᵢ .+ 1.0
-    return @allocated(uᵢ .+ 1.0)
+    broadcast(+, uᵢ, 1.0)
+    return @allocated(broadcast(+, uᵢ, 1.0))
 end
 
 function extrapolation_allocations(A, t_eval)
