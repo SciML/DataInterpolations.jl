@@ -14,10 +14,13 @@ function _extrapolate_left(A, t)
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
         slope = _derivative(A, first(A.t), 1)
-        first(A.u) + zero(slope * t)
+        u₁ = _first(A.u)
+        @. u₁ + zero(slope * t)
     elseif extrapolation_left == ExtrapolationType.Linear
         slope = _derivative(A, first(A.t), 1)
-        first(A.u) + slope * (t - first(A.t))
+        u₁ = _first(A.u)
+        Δt = t - first(A.t)
+        @. u₁ + slope * Δt
     else
         _extrapolate_other(A, t, extrapolation_left)
     end
@@ -29,10 +32,13 @@ function _extrapolate_right(A, t)
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
         slope = _derivative(A, last(A.t), length(A.t))
-        last(A.u) + zero(slope * t)
+        uₙ = _last(A.u)
+        @. uₙ + zero(slope * t)
     elseif extrapolation_right == ExtrapolationType.Linear
         slope = _derivative(A, last(A.t), length(A.t))
-        last(A.u) + slope * (t - last(A.t))
+        uₙ = _last(A.u)
+        Δt = t - last(A.t)
+        @. uₙ + slope * Δt
     else
         _extrapolate_other(A, t, extrapolation_right)
     end
@@ -133,7 +139,7 @@ function _extrapolate_left(A::ConstantInterpolation, t)
     return if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left in (ExtrapolationType.Constant, ExtrapolationType.Linear)
-        first(A.u)
+        _u_point(A.u, firstindex(A.t))
     else
         _extrapolate_other(A, t, extrapolation_left)
     end
@@ -144,7 +150,7 @@ function _extrapolate_right(A::ConstantInterpolation, t)
     return if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right in (ExtrapolationType.Constant, ExtrapolationType.Linear)
-        last(A.u)
+        _u_point(A.u, lastindex(A.t))
     else
         _extrapolate_other(A, t, extrapolation_right)
     end
@@ -315,8 +321,8 @@ function _interpolate(A::LinearInterpolation{<:AbstractArray}, t::Number, iguess
     idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]
     slope = get_parameters(A, idx)
-    ax = axes(A.u)[1:(end - 1)]
-    return A.u[ax..., idx] + slope * Δt
+    uᵢ = _u_view(A.u, idx)
+    return @. uᵢ + slope * Δt
 end
 
 function (A::LinearInterpolation{<:AbstractVector{<:Number}})(
@@ -437,9 +443,8 @@ function _interpolate(A::QuadraticInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]
     α, β = get_parameters(A, idx)
-    out = A.u isa AbstractMatrix ? A.u[:, idx] : A.u[idx]
-    out += @. Δt * (α * Δt + β)
-    return out
+    uᵢ = _u_view(A.u, idx)
+    return @. uᵢ + Δt * (α * Δt + β)
 end
 
 function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(
