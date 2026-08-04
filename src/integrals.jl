@@ -48,6 +48,11 @@ _integral_zero(::Any, ::Type{T}) where {T} = zero(T)
 function _integral_zero(u::AbstractArray{<:Number}, ::Type{T}) where {T <: AbstractArray}
     return zeros(eltype(T), size(_first(u)))
 end
+function _integral_zero(
+        u::AbstractVector{<:AbstractVector}, ::Type{T}
+    ) where {T <: AbstractArray}
+    return zeros(eltype(T), size(_first(u)))
+end
 
 # `total` is allocated by `_integral_zero` for this call, so array valued
 # integrals accumulate into it rather than allocating once per interval.
@@ -245,14 +250,15 @@ function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
     elseif A.extrapolation_right in (
             ExtrapolationType.Constant, ExtrapolationType.Extension,
         )
+        n = length(A.t)
         d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
         Δt_constant = max(0, t - A.t[end] - d)
-        out = Δt_constant * A.u[end]
+        out = Δt_constant * _u_view(A.u, n)
 
         if !iszero(d)
-            c = (A.u[end] - A.u[end - 1]) / 2
+            c = (_u_view(A.u, n) - _u_view(A.u, n - 1)) / 2
             Δt_transition = min(t - A.t[end], d)
-            out += Δt_transition * A.u[end - 1] -
+            out = out + Δt_transition * _u_view(A.u, n - 1) -
                 c *
                 (
                 ((Δt_transition / d)^3) / (3 / d) - ((Δt_transition^2) / d) -
@@ -285,7 +291,9 @@ function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
 end
 
 function _integral(
-        A::LinearInterpolation{<:AbstractArray{<:Number}},
+        A::LinearInterpolation{
+            <:Union{AbstractArray{<:Number}, AbstractVector{<:AbstractVector}},
+        },
         idx::Number, t1::Number, t2::Number
     )
     slope = get_parameters(A, idx)
@@ -296,7 +304,10 @@ function _integral(
 end
 
 function _integral(
-        A::ConstantInterpolation{<:AbstractArray{<:Number}}, idx::Number, t1::Number, t2::Number
+        A::ConstantInterpolation{
+            <:Union{AbstractArray{<:Number}, AbstractVector{<:AbstractVector}},
+        },
+        idx::Number, t1::Number, t2::Number
     )
     # :left/:right means that the value to the left/right is used for interpolation
     uᵢ = _u_view(A.u, A.dir === :left ? idx : idx + 1)
@@ -304,7 +315,7 @@ function _integral(
 end
 
 function _integral(
-        A::SmoothedConstantInterpolation{<:AbstractVector},
+        A::SmoothedConstantInterpolation,
         idx::Number, t1::Number, t2::Number
     )
     d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
@@ -312,7 +323,7 @@ function _integral(
     bound_lower = A.t[idx] + d_lower
     bound_upper = A.t[idx + 1] - d_upper
 
-    out = A.u[idx] * (t2 - t1)
+    out = _u_view(A.u, idx) * (t2 - t1)
 
     # Fix extrapolation behavior as constant for now
     if t1 <= first(A.t)
@@ -340,7 +351,9 @@ function _integral(
 end
 
 function _integral(
-        A::QuadraticInterpolation{<:AbstractArray{<:Number}},
+        A::QuadraticInterpolation{
+            <:Union{AbstractArray{<:Number}, AbstractVector{<:AbstractVector}},
+        },
         idx::Number, t1::Number, t2::Number
     )
     α, β = get_parameters(A, idx)
@@ -354,25 +367,45 @@ function _integral(
 end
 
 function _integral(
-        A::QuadraticSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
+        A::QuadraticSpline, idx::Number, t1::Number, t2::Number
     )
     α, β = get_parameters(A, idx)
-    uᵢ = A.u[idx]
+    uᵢ = _u_view(A.u, idx)
     tᵢ = A.t[idx]
     t1_rel = t1 - tᵢ
     t2_rel = t2 - tᵢ
     Δt = t2 - t1
-    return Δt * (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
+    return @. Δt *
+        (α * (t2_rel^2 + t1_rel * t2_rel + t1_rel^2) / 3 + β * (t2_rel + t1_rel) / 2 + uᵢ)
 end
 
 function _integral(
-        A::CubicSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
+        A::CubicSpline{<:AbstractVector}, idx::Number, t1::Number, t2::Number
     )
     tᵢ = A.t[idx]
     tᵢ₊₁ = A.t[idx + 1]
     c₁, c₂ = get_parameters(A, idx)
-    return integrate_cubic_polynomial(t1, t2, tᵢ, 0, c₁, 0, A.z[idx + 1] / (6A.h[idx + 1])) +
-        integrate_cubic_polynomial(t1, t2, tᵢ₊₁, 0, -c₂, 0, -A.z[idx] / (6A.h[idx + 1]))
+    zero_ = zero(c₁)
+    return integrate_cubic_polynomial(
+        t1, t2, tᵢ, zero_, c₁, zero_, A.z[idx + 1] / (6A.h[idx + 1])) +
+        integrate_cubic_polynomial(
+        t1, t2, tᵢ₊₁, zero_, -c₂, zero_, -A.z[idx] / (6A.h[idx + 1]))
+end
+
+function _integral(
+        A::CubicSpline{<:AbstractArray}, idx::Number, t1::Number, t2::Number
+    )
+    tᵢ = A.t[idx]
+    tᵢ₊₁ = A.t[idx + 1]
+    c₁, c₂ = get_parameters(A, idx)
+    ax = axes(A.z)[1:(end - 1)]
+    zᵢ = A.z[ax..., idx]
+    zᵢ₊₁ = A.z[ax..., idx + 1]
+    zero_ = zero(c₁)
+    return integrate_cubic_polynomial(
+        t1, t2, tᵢ, zero_, c₁, zero_, zᵢ₊₁ / (6A.h[idx + 1])) +
+        integrate_cubic_polynomial(
+        t1, t2, tᵢ₊₁, zero_, -c₂, zero_, -zᵢ / (6A.h[idx + 1]))
 end
 
 function _integral(
@@ -380,6 +413,17 @@ function _integral(
         idx::Number, t1::Number, t2::Number
     )
     return integrate_cubic_polynomial(t1, t2, A.t[idx], A.u[idx], A.b[idx], A.c[idx], A.d[idx])
+end
+
+function _integral(
+        A::AkimaInterpolation{<:AbstractArray},
+        idx::Number, t1::Number, t2::Number
+    )
+    uᵢ = _u_view(A.u, idx)
+    bᵢ = _u_view(A.b, idx)
+    cᵢ = _u_view(A.c, idx)
+    dᵢ = _u_view(A.d, idx)
+    return integrate_cubic_polynomial(t1, t2, A.t[idx], uᵢ, bᵢ, cᵢ, dᵢ)
 end
 
 function _integral(A::LagrangeInterpolation, idx::Number, t1::Number, t2::Number)
@@ -426,11 +470,56 @@ function _integral(A::BSplineApprox{<:AbstractVector{<:Number}}, idx::Number, t1
         _bspline_antiderivative_val(A.c, A.d, A.k, t1)
 end
 
+# Same antiderivative recursion as the scalar `_bspline_antiderivative_val` above, but
+# accumulating array/vector-of-vector-valued control points instead of `Number`s.
+function _bspline_antiderivative_val(c::AbstractArray, d, k, t_eval)
+    nc = size(c)[end]
+    dp1 = d + 1
+    c₁ = _u_view(c, 1)
+    C = [zero(c₁) for _ in 1:(nc + 1)]
+    for i in 1:nc
+        C[i + 1] = C[i] + _u_view(c, i) * (k[i + dp1] - k[i]) / dp1
+    end
+    nk = length(k)
+    k_ext = zeros(eltype(k), nk + 2)
+    k_ext[1] = k[1]
+    for i in 1:nk
+        k_ext[i + 1] = k[i]
+    end
+    k_ext[end] = k[end]
+    sc = zeros(eltype(k), nc + 1)
+    nonzero = spline_coefficients!(sc, dp1, k_ext, t_eval)
+    result = zero(c₁)
+    for i in nonzero
+        result = result + sc[i] * C[i]
+    end
+    return result
+end
+
+function _integral(
+        A::BSplineInterpolation{
+            <:Union{AbstractArray{<:Number}, AbstractVector{<:AbstractVector}},
+        },
+        idx::Number, t1::Number, t2::Number
+    )
+    return _bspline_antiderivative_val(A.c, A.d, A.k, t2) -
+        _bspline_antiderivative_val(A.c, A.d, A.k, t1)
+end
+function _integral(
+        A::BSplineApprox{
+            <:Union{AbstractArray{<:Number}, AbstractVector{<:AbstractVector}},
+        },
+        idx::Number, t1::Number, t2::Number
+    )
+    return _bspline_antiderivative_val(A.c, A.d, A.k, t2) -
+        _bspline_antiderivative_val(A.c, A.d, A.k, t1)
+end
+
 # Override integral to bypass the hasfield(:I) check in the generic method.
 # The antiderivative is computed on the fly, so no cached I field is needed.
 const _BSplineTypes = Union{
-    BSplineInterpolation{<:AbstractVector{<:Number}},
-    BSplineApprox{<:AbstractVector{<:Number}},
+    BSplineInterpolation{<:Union{AbstractArray{<:Number}, AbstractVector{<:AbstractVector}}},
+    BSplineApprox{<:Union{AbstractArray{<:Number}, AbstractVector{<:AbstractVector}}},
 }
 
 function integral(A::_BSplineTypes, t::Number)
@@ -438,10 +527,10 @@ function integral(A::_BSplineTypes, t::Number)
 end
 
 function integral(A::_BSplineTypes, t1::Number, t2::Number)
-    t1 == t2 && return zero(eltype(A.u))
+    t1 == t2 && return zero(_first(A.u))
     t1 > t2 && return -integral(A, t2, t1)
 
-    total = zero(eltype(A.u))
+    total = zero(_first(A.u))
     lo = t1
     hi = t2
 
@@ -449,7 +538,7 @@ function integral(A::_BSplineTypes, t1::Number, t2::Number)
         if hi <= first(A.t)
             return _extrapolate_integral_left(A, lo) - _extrapolate_integral_left(A, hi)
         end
-        total += _extrapolate_integral_left(A, lo)
+        total = total + _extrapolate_integral_left(A, lo)
         lo = first(A.t)
     end
 
@@ -457,11 +546,11 @@ function integral(A::_BSplineTypes, t1::Number, t2::Number)
         if lo >= last(A.t)
             return _extrapolate_integral_right(A, hi) - _extrapolate_integral_right(A, lo)
         end
-        total += _extrapolate_integral_right(A, hi)
+        total = total + _extrapolate_integral_right(A, hi)
         hi = last(A.t)
     end
 
-    total += _bspline_antiderivative_val(A.c, A.d, A.k, hi) -
+    total = total + _bspline_antiderivative_val(A.c, A.d, A.k, hi) -
         _bspline_antiderivative_val(A.c, A.d, A.k, lo)
 
     return total
@@ -478,6 +567,18 @@ function _integral(
     return integrate_cubic_polynomial(t1, t2, tᵢ, A.u[idx], A.du[idx], c, c₂)
 end
 
+function _integral(
+        A::CubicHermiteSpline{<:AbstractArray}, idx::Number, t1::Number, t2::Number
+    )
+    c₁, c₂ = get_parameters(A, idx)
+    tᵢ = A.t[idx]
+    tᵢ₊₁ = A.t[idx + 1]
+    c = c₁ - c₂ * (tᵢ₊₁ - tᵢ)
+    uᵢ = _u_view(A.u, idx)
+    duᵢ = _u_view(A.du, idx)
+    return integrate_cubic_polynomial(t1, t2, tᵢ, uᵢ, duᵢ, c, c₂)
+end
+
 # Quintic Hermite Spline
 function _integral(
         A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, idx::Number, t1::Number, t2::Number
@@ -488,6 +589,22 @@ function _integral(
     c₁, c₂, c₃ = get_parameters(A, idx)
     return integrate_quintic_polynomial(
         t1, t2, tᵢ, A.u[idx], A.du[idx], A.ddu[idx] / 2,
+        c₁ + Δt * (-c₂ + c₃ * Δt), c₂ - 2c₃ * Δt, c₃
+    )
+end
+
+function _integral(
+        A::QuinticHermiteSpline{<:AbstractArray}, idx::Number, t1::Number, t2::Number
+    )
+    tᵢ = A.t[idx]
+    tᵢ₊₁ = A.t[idx + 1]
+    Δt = tᵢ₊₁ - tᵢ
+    c₁, c₂, c₃ = get_parameters(A, idx)
+    uᵢ = _u_view(A.u, idx)
+    duᵢ = _u_view(A.du, idx)
+    dduᵢ = _u_view(A.ddu, idx)
+    return integrate_quintic_polynomial(
+        t1, t2, tᵢ, uᵢ, duᵢ, dduᵢ / 2,
         c₁ + Δt * (-c₂ + c₃ * Δt), c₂ - 2c₃ * Δt, c₃
     )
 end

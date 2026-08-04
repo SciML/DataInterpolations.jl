@@ -59,23 +59,26 @@ end
 function smoothed_constant_interpolation_parameters(
         u, t, d_max, idx, extrapolation_left, extrapolation_right
     )
-    return if isone(idx) || (idx == length(t))
+    n = length(t)
+    return if isone(idx) || (idx == n)
         # If extrapolation is periodic, make the transition differentiable
         if extrapolation_left == extrapolation_right == ExtrapolationType.Periodic
-            min(t[end] - t[end - 1], t[2] - t[1], 2d_max) / 2, (u[1] - u[end - 1]) / 2
-        elseif (idx == length(t)) && (
+            min(t[end] - t[end - 1], t[2] - t[1], 2d_max) / 2,
+            (_u_view(u, 1) - _u_view(u, n - 1)) / 2
+        elseif (idx == n) && (
                 extrapolation_right in (
                     ExtrapolationType.Constant, ExtrapolationType.Extension,
                 )
             )
-            min(t[end] - t[end - 1], 2d_max) / 2, (u[end] - u[end - 1]) / 2
+            min(t[end] - t[end - 1], 2d_max) / 2, (_u_view(u, n) - _u_view(u, n - 1)) / 2
         else
             d = isone(idx) ? min(t[2] - t[1], 2d_max) / 2 :
                 min(t[end] - t[end - 1], 2d_max) / 2
-            d, zero(first(u) / 2)
+            d, zero(_u_view(u, 1) / 2)
         end
     else
-        min(t[idx] - t[idx - 1], t[idx + 1] - t[idx], 2d_max) / 2, (u[idx] - u[idx - 1]) / 2
+        min(t[idx] - t[idx - 1], t[idx + 1] - t[idx], 2d_max) / 2,
+        (_u_view(u, idx) - _u_view(u, idx - 1)) / 2
     end
 end
 
@@ -154,7 +157,7 @@ function quadratic_spline_parameters(u, t, k, c, idx)
         # For 2 data points the knot vector has boundary multiplicity 2 < degree + 1,
         # so the B-spline basis cannot be evaluated at interior points; the spline
         # degenerates to the linear interpolant (α = 0, β = u₂ - u₁).
-        (u[1] + u[2]) / 2
+        (_u_view(u, 1) + _u_view(u, 2)) / 2
     else
         tᵢ₊ = (t[idx] + t[idx + 1]) / 2
         # Value of the spline at the segment midpoint via the (degree 2) B-spline basis.
@@ -169,16 +172,16 @@ function quadratic_spline_parameters(u, t, k, c, idx)
         N₂ = (tᵢ₊ - k[i - 1]) / (k[i + 1] - k[i - 1]) * w₁ +
             (k[i + 2] - tᵢ₊) / (k[i + 2] - k[i]) * w₂
         N₃ = (tᵢ₊ - k[i]) / (k[i + 2] - k[i]) * w₂
-        # Seed the accumulator with `zero(first(u))` (as the buffer-based version did) so
-        # `uᵢ₊` keeps the element type of `u` for vector-valued data.
-        uᵢ₊ = zero(first(u))
-        uᵢ₊ += N₁ * c[i - 2]
-        uᵢ₊ += N₂ * c[i - 1]
-        uᵢ₊ += N₃ * c[i]
+        # Seed the accumulator with `zero(_u_view(u, 1))` (as the buffer-based version did)
+        # so `uᵢ₊` keeps the element type of `u` for vector/array-valued data.
+        uᵢ₊ = zero(_u_view(u, 1))
+        uᵢ₊ += N₁ * _u_view(c, i - 2)
+        uᵢ₊ += N₂ * _u_view(c, i - 1)
+        uᵢ₊ += N₃ * _u_view(c, i)
         uᵢ₊
     end
-    α = 2 * (u[idx + 1] + u[idx]) - 4uᵢ₊
-    β = 4 * (uᵢ₊ - u[idx]) - (u[idx + 1] - u[idx])
+    α = 2 * (_u_view(u, idx + 1) + _u_view(u, idx)) - 4uᵢ₊
+    β = 4 * (uᵢ₊ - _u_view(u, idx)) - (_u_view(u, idx + 1) - _u_view(u, idx))
     return α, β
 end
 
@@ -237,10 +240,10 @@ end
 
 function cubic_hermite_spline_parameters(du, u, t, idx)
     Δt = t[idx + 1] - t[idx]
-    u₀ = u[idx]
-    u₁ = u[idx + 1]
-    du₀ = du[idx]
-    du₁ = du[idx + 1]
+    u₀ = _u_view(u, idx)
+    u₁ = _u_view(u, idx + 1)
+    du₀ = _u_view(du, idx)
+    du₁ = _u_view(du, idx + 1)
     c₁ = (u₁ - u₀ - du₀ * Δt) / Δt^2
     c₂ = (du₁ - du₀ - 2c₁ * Δt) / Δt^2
     return c₁, c₂
@@ -269,12 +272,12 @@ end
 
 function quintic_hermite_spline_parameters(ddu, du, u, t, idx)
     Δt = t[idx + 1] - t[idx]
-    u₀ = u[idx]
-    u₁ = u[idx + 1]
-    du₀ = du[idx]
-    du₁ = du[idx + 1]
-    ddu₀ = ddu[idx]
-    ddu₁ = ddu[idx + 1]
+    u₀ = _u_view(u, idx)
+    u₁ = _u_view(u, idx + 1)
+    du₀ = _u_view(du, idx)
+    du₁ = _u_view(du, idx + 1)
+    ddu₀ = _u_view(ddu, idx)
+    ddu₁ = _u_view(ddu, idx + 1)
     c₁ = (u₁ - u₀ - du₀ * Δt - ddu₀ * Δt^2 / 2) / Δt^3
     c₂ = (3u₀ - 3u₁ + 2(du₀ + du₁ / 2)Δt + ddu₀ * Δt^2 / 2) / Δt^4
     c₃ = (6u₁ - 6u₀ - 3(du₀ + du₁)Δt + (ddu₁ - ddu₀)Δt^2 / 2) / Δt^5

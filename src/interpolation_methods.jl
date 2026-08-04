@@ -162,12 +162,13 @@ function _extrapolate_right(A::SmoothedConstantInterpolation, t)
     elseif A.extrapolation_right in (
             ExtrapolationType.Constant, ExtrapolationType.Extension,
         )
+        n = length(A.t)
         d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
         if A.t[end] + d < t
-            A.u[end]
+            _u_view(A.u, n)
         else
-            c = (A.u[end] - A.u[end - 1]) / 2
-            A.u[end - 1] - c * (((t - A.t[end]) / d)^2 - 2 * ((t - A.t[end]) / d) - 1)
+            c = (_u_view(A.u, n) - _u_view(A.u, n - 1)) / 2
+            _u_view(A.u, n - 1) - c * (((t - A.t[end]) / d)^2 - 2 * ((t - A.t[end]) / d) - 1)
         end
 
     else
@@ -639,10 +640,20 @@ function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, igu
     return N / D
 end
 
-function _interpolate(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
+function _interpolate(A::AkimaInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     wj = t - A.t[idx]
     return @evalpoly wj A.u[idx] A.b[idx] A.c[idx] A.d[idx]
+end
+
+function _interpolate(A::AkimaInterpolation{<:AbstractArray}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    wj = t - A.t[idx]
+    uᵢ = _u_view(A.u, idx)
+    bᵢ = _u_view(A.b, idx)
+    cᵢ = _u_view(A.c, idx)
+    dᵢ = _u_view(A.d, idx)
+    return @. @evalpoly wj uᵢ bᵢ cᵢ dᵢ
 end
 
 struct _AkimaEvaluator{Tu, Tt, Tb, Tc, Td}
@@ -657,7 +668,7 @@ end
     return @inbounds @evalpoly wj e.u[idx] e.bv[idx] e.cv[idx] e.dv[idx]
 end
 
-function (A::AkimaInterpolation{<:AbstractVector})(
+function (A::AkimaInterpolation{<:AbstractVector{<:Number}})(
         out::AbstractVector, tt::AbstractVector
     )
     if length(out) != length(tt)
@@ -676,7 +687,7 @@ function (A::AkimaInterpolation{<:AbstractVector})(
 end
 
 function _akima_eval_sorted!(
-        out::AbstractVector, A::AkimaInterpolation{<:AbstractVector}, tt::AbstractVector
+        out::AbstractVector, A::AkimaInterpolation{<:AbstractVector{<:Number}}, tt::AbstractVector
     )
     u = A.u
     t = A.t
@@ -914,26 +925,26 @@ function _constant_eval_sorted!(
 end
 
 # Smoothed constant Interpolation
-function _interpolate(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Number, iguess)
+function _interpolate(A::SmoothedConstantInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
 
-    out = A.u[idx]
+    out = _u_view(A.u, idx)
 
     if (t - A.t[idx]) < d_lower
-        out -= c_lower * ((t - A.t[idx]) / d_lower - 1)^2
+        out = out - c_lower * ((t - A.t[idx]) / d_lower - 1)^2
     elseif (A.t[idx + 1] - t) < d_upper
-        out += c_upper * (1 - (A.t[idx + 1] - t) / d_upper)^2
+        out = out + c_upper * (1 - (A.t[idx + 1] - t) / d_upper)^2
     end
 
     return out
 end
 
 # QuadraticSpline Interpolation
-function _interpolate(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
+function _interpolate(A::QuadraticSpline, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     α, β = get_parameters(A, idx)
-    uᵢ = A.u[idx]
+    uᵢ = _u_view(A.u, idx)
     Δt_scaled = (t - A.t[idx]) / (A.t[idx + 1] - A.t[idx])
     return Δt_scaled * (α * Δt_scaled + β) + uᵢ
 end
@@ -1274,6 +1285,21 @@ function _interpolate(
 end
 
 function _interpolate(
+        A::BSplineInterpolation{<:AbstractVector{<:AbstractVector}},
+        t::Number,
+        iguess
+    )
+    n = length(A.t)
+    # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
+    vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, n)
+    ucum = zeros(eltype(eltype(A.u)), size(A.u[1]))
+    @inbounds for l in 1:m
+        ucum = ucum + vals[l] * A.c[offset + l]
+    end
+    return ucum
+end
+
+function _interpolate(
         A::BSplineInterpolation{<:AbstractArray{<:Number}},
         t::Number,
         iguess
@@ -1301,6 +1327,18 @@ function _interpolate(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, i
 end
 
 function _interpolate(
+        A::BSplineApprox{<:AbstractVector{<:AbstractVector}}, t::Number, iguess
+    )
+    # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
+    vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, A.h)
+    ucum = zeros(eltype(eltype(A.u)), size(A.u[1]))
+    @inbounds for l in 1:m
+        ucum = ucum + vals[l] * A.c[offset + l]
+    end
+    return ucum
+end
+
+function _interpolate(
         A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess
     )
     ax_u = axes(A.u)[1:(end - 1)]
@@ -1315,12 +1353,12 @@ end
 
 # Cubic Hermite Spline
 function _interpolate(
-        A::CubicHermiteSpline{<:AbstractVector}, t::Number, iguess
+        A::CubicHermiteSpline{<:AbstractArray}, t::Number, iguess
     )
     idx = get_idx(A, t, iguess)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
-    out = A.u[idx] + Δt₀ * A.du[idx]
+    out = _u_view(A.u, idx) + Δt₀ * _u_view(A.du, idx)
     c₁, c₂ = get_parameters(A, idx)
     out += Δt₀^2 * (c₁ + Δt₁ * c₂)
     return out
@@ -1471,12 +1509,12 @@ end
 
 # Quintic Hermite Spline
 function _interpolate(
-        A::QuinticHermiteSpline{<:AbstractVector}, t::Number, iguess
+        A::QuinticHermiteSpline{<:AbstractArray}, t::Number, iguess
     )
     idx = get_idx(A, t, iguess)
     Δt₀ = t - A.t[idx]
     Δt₁ = t - A.t[idx + 1]
-    out = A.u[idx] + Δt₀ * (A.du[idx] + A.ddu[idx] * Δt₀ / 2)
+    out = _u_view(A.u, idx) + Δt₀ * (_u_view(A.du, idx) + _u_view(A.ddu, idx) * Δt₀ / 2)
     c₁, c₂, c₃ = get_parameters(A, idx)
     out += Δt₀^3 * (c₁ + Δt₁ * (c₂ + c₃ * Δt₁))
     return out
