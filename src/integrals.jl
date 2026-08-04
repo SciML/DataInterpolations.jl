@@ -387,9 +387,11 @@ function _integral(
     c₁, c₂ = get_parameters(A, idx)
     zero_ = zero(c₁)
     return integrate_cubic_polynomial(
-        t1, t2, tᵢ, zero_, c₁, zero_, A.z[idx + 1] / (6A.h[idx + 1])) +
+        t1, t2, tᵢ, zero_, c₁, zero_, A.z[idx + 1] / (6A.h[idx + 1])
+    ) +
         integrate_cubic_polynomial(
-        t1, t2, tᵢ₊₁, zero_, -c₂, zero_, -A.z[idx] / (6A.h[idx + 1]))
+        t1, t2, tᵢ₊₁, zero_, -c₂, zero_, -A.z[idx] / (6A.h[idx + 1])
+    )
 end
 
 function _integral(
@@ -403,9 +405,11 @@ function _integral(
     zᵢ₊₁ = A.z[ax..., idx + 1]
     zero_ = zero(c₁)
     return integrate_cubic_polynomial(
-        t1, t2, tᵢ, zero_, c₁, zero_, zᵢ₊₁ / (6A.h[idx + 1])) +
+        t1, t2, tᵢ, zero_, c₁, zero_, zᵢ₊₁ / (6A.h[idx + 1])
+    ) +
         integrate_cubic_polynomial(
-        t1, t2, tᵢ₊₁, zero_, -c₂, zero_, -zᵢ / (6A.h[idx + 1]))
+        t1, t2, tᵢ₊₁, zero_, -c₂, zero_, -zᵢ / (6A.h[idx + 1])
+    )
 end
 
 function _integral(

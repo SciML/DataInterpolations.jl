@@ -19,9 +19,9 @@ function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name
         end
     end
     return if method ∉ [
-        LagrangeInterpolation, BSplineInterpolation, BSplineApprox, QuadraticSpline,
-        AkimaInterpolation,
-    ]
+            LagrangeInterpolation, BSplineInterpolation, BSplineApprox, QuadraticSpline,
+            AkimaInterpolation,
+        ]
         @testset "$name, derivatives w.r.t. u" begin
             function f(u)
                 A = method(

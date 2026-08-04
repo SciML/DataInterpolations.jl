@@ -346,9 +346,9 @@ function _cumulative_integral(A, cache_parameters::Bool)
             _integral(A, idx, t1, t2)
                 for (idx, t1, t2) in
                 zip(
-                1:(length(A.t) - 1), @view(A.t[begin:(end - 1)]),
-                @view(A.t[(begin + 1):end])
-            )
+                    1:(length(A.t) - 1), @view(A.t[begin:(end - 1)]),
+                    @view(A.t[(begin + 1):end])
+                )
         )
     end
     length(A.t) < 2 && return cumsum(
@@ -363,7 +363,7 @@ function _cumulative_integral(A, cache_parameters::Bool)
 end
 
 function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameters::Bool)
-    _cumulative_integral(A, cache_parameters)
+    return _cumulative_integral(A, cache_parameters)
 end
 
 # Not every interpolation type defines `_integral` for `u::AbstractVector{<:AbstractVector}`
@@ -377,7 +377,7 @@ function cumulative_integral(
         A::AbstractInterpolation{<:AbstractVector{<:Number}}, cache_parameters::Bool
     )
     Tt = eltype(A.t)
-    if hasmethod(_integral, Tuple{typeof(A), Int, Tt, Tt})
+    return if hasmethod(_integral, Tuple{typeof(A), Int, Tt, Tt})
         _cumulative_integral(A, cache_parameters)
     else
         nothing

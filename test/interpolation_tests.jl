@@ -532,12 +532,12 @@ end
     # Vector{Vector} integral
     A_scalar = QuadraticInterpolation(u_[1, :], t; extrapolation = ExtrapolationType.Extension)
     @test DataInterpolations.integral(A, t[1], t[end])[1] ≈
-          DataInterpolations.integral(A_scalar, t[1], t[end])
+        DataInterpolations.integral(A_scalar, t[1], t[end])
     A_cached = QuadraticInterpolation(
         u, t; extrapolation = ExtrapolationType.Extension, cache_parameters = true
     )
     @test DataInterpolations.integral(A_cached, t[1], t[end]) ≈
-          DataInterpolations.integral(A, t[1], t[end])
+        DataInterpolations.integral(A, t[1], t[end])
     # Test allocation-free interpolation with Vector{StaticArrays.SVector}
     u_s = [convert(SVector{length(u[1])}, i) for i in u]
     @test @inferred(
@@ -770,7 +770,8 @@ end
         @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
         # derivative and integral share the same code path across shapes
         @test isapprox(
-            DataInterpolations.derivative(A, 0.5)[1], cos(0.5), atol = 1.0e-2)
+            DataInterpolations.derivative(A, 0.5)[1], cos(0.5), atol = 1.0e-2
+        )
         @test isapprox(
             DataInterpolations.integral(A, t[1], t[end])[1],
             DataInterpolations.integral(AkimaInterpolation([u_[1] for u_ in u_vec], t), t[1], t[end]),
@@ -994,10 +995,10 @@ end
         u_scalar = [u_[1] for u_ in u]
         A_scalar = ConstantInterpolation(u_scalar, t)
         @test DataInterpolations.integral(A, t[1], t[end])[1] ≈
-              DataInterpolations.integral(A_scalar, t[1], t[end])
+            DataInterpolations.integral(A_scalar, t[1], t[end])
         A_cached = ConstantInterpolation(u, t; cache_parameters = true)
         @test DataInterpolations.integral(A_cached, t[1], t[end]) ≈
-              DataInterpolations.integral(A, t[1], t[end])
+            DataInterpolations.integral(A, t[1], t[end])
     end
 
     @testset "Vector of Matrices case" for u in [

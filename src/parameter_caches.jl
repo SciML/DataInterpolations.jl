@@ -64,7 +64,7 @@ function smoothed_constant_interpolation_parameters(
         # If extrapolation is periodic, make the transition differentiable
         if extrapolation_left == extrapolation_right == ExtrapolationType.Periodic
             min(t[end] - t[end - 1], t[2] - t[1], 2d_max) / 2,
-            (_u_view(u, 1) - _u_view(u, n - 1)) / 2
+                (_u_view(u, 1) - _u_view(u, n - 1)) / 2
         elseif (idx == n) && (
                 extrapolation_right in (
                     ExtrapolationType.Constant, ExtrapolationType.Extension,
@@ -78,7 +78,7 @@ function smoothed_constant_interpolation_parameters(
         end
     else
         min(t[idx] - t[idx - 1], t[idx + 1] - t[idx], 2d_max) / 2,
-        (_u_view(u, idx) - _u_view(u, idx - 1)) / 2
+            (_u_view(u, idx) - _u_view(u, idx - 1)) / 2
     end
 end
 
