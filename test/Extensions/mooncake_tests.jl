@@ -94,6 +94,33 @@ end
     test_mooncake_ugrad(CubicSpline, u, t; name = "Cubic Spline")
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     test_mooncake_tgrad(A, t; name = "Cubic Spline")
+    u_mat = Matrix(hcat(u, u)')
+    test_mooncake_ugrad(CubicSpline, u_mat, t; name = "Cubic Spline (matrix u)")
+end
+
+@testset "QuadraticSpline" begin
+    u = [1.0, 4.0, 9.0, 16.0]
+    t = [1.0, 2.0, 3.0, 4.0]
+    test_mooncake_ugrad(QuadraticSpline, u, t; name = "QuadraticSpline")
+    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
+    test_mooncake_tgrad(A, t; name = "QuadraticSpline")
+    u_mat = Matrix(hcat(u, u)')
+    test_mooncake_ugrad(QuadraticSpline, u_mat, t; name = "QuadraticSpline (matrix u)")
+end
+
+@testset "SmoothedConstantInterpolation" begin
+    u = [1.0, 2.0, 3.0, 4.0, 5.0]
+    t = [0.0, 1.0, 2.0, 3.0, 4.0]
+    test_mooncake_ugrad(
+        SmoothedConstantInterpolation, u, t; name = "SmoothedConstantInterpolation"
+    )
+    A = SmoothedConstantInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
+    test_mooncake_tgrad(A, t; name = "SmoothedConstantInterpolation")
+    u_mat = Matrix(hcat(u, u)')
+    test_mooncake_ugrad(
+        SmoothedConstantInterpolation, u_mat, t;
+        name = "SmoothedConstantInterpolation (matrix u)"
+    )
 end
 
 @testset "AkimaInterpolation" begin
@@ -111,6 +138,12 @@ end
     test_mooncake_ugrad(CubicHermiteSpline, u, t; args = [du], name = "Cubic Hermite Spline")
     A = CubicHermiteSpline(du, u, t; extrapolation = ExtrapolationType.Extension)
     test_mooncake_tgrad(A, t; name = "Cubic Hermite Spline")
+    du_mat = Matrix(hcat(du, du)')
+    u_mat = Matrix(hcat(u, u)')
+    test_mooncake_ugrad(
+        CubicHermiteSpline, u_mat, t; args = [du_mat],
+        name = "Cubic Hermite Spline (matrix u)"
+    )
 end
 
 @testset "QuinticHermiteSpline" begin
@@ -123,6 +156,13 @@ end
     )
     A = QuinticHermiteSpline(ddu, du, u, t; extrapolation = ExtrapolationType.Extension)
     test_mooncake_tgrad(A, t; name = "Quintic Hermite Spline")
+    ddu_mat = Matrix(hcat(ddu, ddu)')
+    du_mat = Matrix(hcat(du, du)')
+    u_mat = Matrix(hcat(u, u)')
+    test_mooncake_ugrad(
+        QuinticHermiteSpline, u_mat, t; args = [ddu_mat, du_mat],
+        name = "Quintic Hermite Spline (matrix u)"
+    )
 end
 
 @testset "BSplineInterpolation" begin
