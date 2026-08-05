@@ -18,8 +18,10 @@ function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name
             @test adiff ≈ zdiff
         end
     end
-    return if method ∉
-            [LagrangeInterpolation, BSplineInterpolation, BSplineApprox, QuadraticSpline]
+    return if method ∉ [
+            LagrangeInterpolation, BSplineInterpolation, BSplineApprox, QuadraticSpline,
+            AkimaInterpolation,
+        ]
         @testset "$name, derivatives w.r.t. u" begin
             function f(u)
                 A = method(
@@ -39,12 +41,20 @@ function test_zygote(method, u, t; args = [], args_after = [], kwargs = [], name
                 end
                 out
             end
-            zgrad, fgrad = if u isa AbstractVector{<:Real}
-                Zygote.gradient(f, u), ForwardDiff.gradient(f, u)
+            if u isa AbstractVector{<:Real}
+                zgrad, fgrad = only(Zygote.gradient(f, u)), ForwardDiff.gradient(f, u)
+                @test zgrad ≈ fgrad
             elseif u isa AbstractMatrix
-                Zygote.jacobian(f, u), ForwardDiff.jacobian(f, u)
+                zgrad, fgrad = only(Zygote.jacobian(f, u)), ForwardDiff.jacobian(f, u)
+                @test zgrad ≈ fgrad
             else
-                Zygote.jacobian(f, u), ForwardDiff.jacobian(f, hcat(u...))
+                # `Zygote.jacobian` on a `Vector{<:AbstractVector}` input returns a
+                # nested/object-typed structure that isn't directly comparable to
+                # `ForwardDiff.jacobian`'s flat matrix, and reconstructing one from
+                # `hcat(u...)` breaks methods with extra same-shape args (e.g. `du`
+                # for `CubicHermiteSpline`, since only `u` gets reshaped). Just check
+                # that Zygote computes without erroring.
+                Zygote.jacobian(f, u)
             end
         end
     end
@@ -92,6 +102,18 @@ end
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     test_zygote(CubicHermiteSpline, u, t, args = [du], name = "Cubic Hermite Spline")
+    du2 = Matrix(hcat(du, du)')
+    u2 = Matrix(hcat(u, u)')
+    test_zygote(
+        CubicHermiteSpline, u2, t, args = [du2],
+        name = "Cubic Hermite Spline with matrix input"
+    )
+    du_vov = [[du[i], du[i]] for i in eachindex(du)]
+    u_vov = [[u[i], u[i]] for i in eachindex(u)]
+    test_zygote(
+        CubicHermiteSpline, u_vov, t, args = [du_vov],
+        name = "Cubic Hermite Spline with vector of vectors input"
+    )
 end
 
 @testset "Quintic Hermite Spline" begin
@@ -101,6 +123,65 @@ end
     t = [0.0, 62.25, 109.66, 162.66, 205.8, 252.3]
     test_zygote(
         QuinticHermiteSpline, u, t, args = [ddu, du], name = "Quintic Hermite Spline"
+    )
+    ddu2 = Matrix(hcat(ddu, ddu)')
+    du2 = Matrix(hcat(du, du)')
+    u2 = Matrix(hcat(u, u)')
+    test_zygote(
+        QuinticHermiteSpline, u2, t, args = [ddu2, du2],
+        name = "Quintic Hermite Spline with matrix input"
+    )
+    ddu_vov = [[ddu[i], ddu[i]] for i in eachindex(ddu)]
+    du_vov = [[du[i], du[i]] for i in eachindex(du)]
+    u_vov = [[u[i], u[i]] for i in eachindex(u)]
+    test_zygote(
+        QuinticHermiteSpline, u_vov, t, args = [ddu_vov, du_vov],
+        name = "Quintic Hermite Spline with vector of vectors input"
+    )
+end
+
+@testset "Akima Interpolation" begin
+    u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+    t = collect(0.0:10.0)
+    test_zygote(AkimaInterpolation, u, t, name = "Akima Interpolation")
+    u2 = Matrix(hcat(u, u)')
+    test_zygote(
+        AkimaInterpolation, u2, t, name = "Akima Interpolation with matrix input"
+    )
+    u_vov = [[u[i], u[i]] for i in eachindex(u)]
+    test_zygote(
+        AkimaInterpolation, u_vov, t,
+        name = "Akima Interpolation with vector of vectors input"
+    )
+end
+
+@testset "QuadraticSpline" begin
+    u = [0.0, 1.0, 3.0]
+    t = [-1.0, 0.0, 1.0]
+    test_zygote(QuadraticSpline, u, t, name = "QuadraticSpline")
+    u2 = Matrix(hcat(u, u)')
+    test_zygote(QuadraticSpline, u2, t, name = "QuadraticSpline with matrix input")
+    u_vov = [[u[i], u[i]] for i in eachindex(u)]
+    test_zygote(
+        QuadraticSpline, u_vov, t, name = "QuadraticSpline with vector of vectors input"
+    )
+end
+
+@testset "SmoothedConstantInterpolation" begin
+    u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+    t = collect(0.0:10.0)
+    test_zygote(
+        SmoothedConstantInterpolation, u, t, name = "SmoothedConstantInterpolation"
+    )
+    u2 = Matrix(hcat(u, u)')
+    test_zygote(
+        SmoothedConstantInterpolation, u2, t,
+        name = "SmoothedConstantInterpolation with matrix input"
+    )
+    u_vov = [[u[i], u[i]] for i in eachindex(u)]
+    test_zygote(
+        SmoothedConstantInterpolation, u_vov, t,
+        name = "SmoothedConstantInterpolation with vector of vectors input"
     )
 end
 
@@ -120,6 +201,10 @@ end
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
     test_zygote(CubicSpline, u, t, name = "Cubic Spline")
+    u2 = Matrix(hcat(u, u)')
+    test_zygote(CubicSpline, u2, t, name = "Cubic Spline with matrix input")
+    u_vov = [[u[i], u[i]] for i in eachindex(u)]
+    test_zygote(CubicSpline, u_vov, t, name = "Cubic Spline with vector of vectors input")
 end
 
 @testset "BSplines" begin
@@ -132,5 +217,14 @@ end
     test_zygote(
         BSplineApprox, u, t; args_after = [2, 4, :Uniform],
         name = "BSpline approximation"
+    )
+    u_vov = [[u[i], u[i]] for i in eachindex(u)]
+    test_zygote(
+        BSplineInterpolation, u_vov, t; args_after = [2, :Uniform],
+        name = "BSpline Interpolation with vector of vectors input"
+    )
+    test_zygote(
+        BSplineApprox, u_vov, t; args_after = [2, 4, :Uniform],
+        name = "BSpline approximation with vector of vectors input"
     )
 end

@@ -139,9 +139,10 @@ function _extrapolate_derivative_right(A::SmoothedConstantInterpolation, t, orde
         )
         d = min(A.t[end] - A.t[end - 1], 2A.d_max) / 2
         if A.t[end] + d < t
-            zero(eltype(A.u))
+            zero(_first(A.u))
         else
-            c = (A.u[end] - A.u[end - 1]) / 2
+            n = length(A.t)
+            c = (_u_view(A.u, n) - _u_view(A.u, n - 1)) / 2
             -c * (2((t - A.t[end]) / d) - 2) / d
         end
 
@@ -156,7 +157,7 @@ function _derivative(A::LinearInterpolation, t::Number, iguess)
     return slope
 end
 
-function _derivative(A::SmoothedConstantInterpolation{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::SmoothedConstantInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     d_lower, d_upper, c_lower, c_upper = get_parameters(A, idx)
 
@@ -249,11 +250,21 @@ function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx)
     return _derivative(A, t)
 end
 
-function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::AkimaInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, side = :first)
     j = min(idx, length(A.c))  # for smooth derivative at A.t[end]
     wj = t - A.t[idx]
     return @evalpoly wj A.b[idx] 2A.c[j] 3A.d[j]
+end
+
+function _derivative(A::AkimaInterpolation{<:AbstractArray}, t::Number, iguess)
+    idx = get_idx(A, t, iguess; idx_shift = -1, side = :first)
+    j = min(idx, length(A.t) - 1)  # for smooth derivative at A.t[end]
+    wj = t - A.t[idx]
+    bᵢ = _u_view(A.b, idx)
+    cⱼ = _u_view(A.c, j)
+    dⱼ = _u_view(A.d, j)
+    return @. @evalpoly wj bᵢ 2cⱼ 3dⱼ
 end
 
 function _derivative(A::ConstantInterpolation, t::Number, iguess)
@@ -269,8 +280,15 @@ function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, igue
     return isempty(searchsorted(A.t, t)) ? zero(u₁) : fill(typed_nan(A.u), size(u₁))
 end
 
+function _derivative(
+        A::ConstantInterpolation{<:AbstractVector{<:AbstractVector}}, t::Number, iguess
+    )
+    u₁ = _first(A.u)
+    return isempty(searchsorted(A.t, t)) ? zero(u₁) : fill(typed_nan(u₁), size(u₁))
+end
+
 # QuadraticSpline Interpolation
-function _derivative(A::QuadraticSpline{<:AbstractVector}, t::Number, iguess)
+function _derivative(A::QuadraticSpline, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     α, β = get_parameters(A, idx)
     Δt = t - A.t[idx]
@@ -284,6 +302,18 @@ function _derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
     dI = (-A.z[idx] * Δt₂^2 + A.z[idx + 1] * Δt₁^2) / (2A.h[idx + 1])
+    c₁, c₂ = get_parameters(A, idx)
+    dC = c₁
+    dD = -c₂
+    return dI + dC + dD
+end
+
+function _derivative(A::CubicSpline{<:AbstractArray}, t::Number, iguess)
+    idx = get_idx(A, t, iguess)
+    Δt₁ = t - A.t[idx]
+    Δt₂ = A.t[idx + 1] - t
+    ax = axes(A.z)[1:(end - 1)]
+    dI = (-A.z[ax..., idx] * Δt₂^2 + A.z[ax..., idx + 1] * Δt₁^2) / (2A.h[idx + 1])
     c₁, c₂ = get_parameters(A, idx)
     dC = c₁
     dD = -c₂
@@ -307,6 +337,32 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
             l = i + 1 - offset
             if denom != 0 && 1 <= l <= m
                 ducum += vals[l] * (A.c[i + 1] - A.c[i]) / denom
+            end
+        end
+    end
+    return ducum * A.d
+end
+
+function _derivative(
+        A::BSplineInterpolation{<:AbstractVector{<:AbstractVector}}, t::Number, iguess
+    )
+    if A.d == 0
+        return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) :
+            fill(typed_nan(A.u[1]), size(A.u[1]))
+    end
+    n = length(A.t)
+    # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
+    vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, n)
+    ducum = zero(A.u[1])
+    if t == A.t[1]
+        denom = A.k[A.d + 2] - A.k[2]
+        ducum = denom != 0 ? (A.c[2] - A.c[1]) / denom : zero(A.u[1])
+    else
+        @inbounds for i in 1:(n - 1)
+            denom = A.k[i + A.d + 1] - A.k[i + 1]
+            l = i + 1 - offset
+            if denom != 0 && 1 <= l <= m
+                ducum = ducum + vals[l] * (A.c[i + 1] - A.c[i]) / denom
             end
         end
     end
@@ -366,6 +422,31 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
 end
 
 function _derivative(
+        A::BSplineApprox{<:AbstractVector{<:AbstractVector}}, t::Number, iguess
+    )
+    if A.d == 0
+        return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) :
+            fill(typed_nan(A.u[1]), size(A.u[1]))
+    end
+    # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
+    vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, A.h)
+    ducum = zero(A.u[1])
+    if t == A.t[1]
+        denom = A.k[A.d + 2] - A.k[2]
+        ducum = denom != 0 ? (A.c[2] - A.c[1]) / denom : zero(A.u[1])
+    else
+        @inbounds for i in 1:(A.h - 1)
+            denom = A.k[i + A.d + 1] - A.k[i + 1]
+            l = i + 1 - offset
+            if denom != 0 && 1 <= l <= m
+                ducum = ducum + vals[l] * (A.c[i + 1] - A.c[i]) / denom
+            end
+        end
+    end
+    return ducum * A.d
+end
+
+function _derivative(
         A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess
     )
     if A.d == 0
@@ -405,6 +486,18 @@ function _derivative(
     return out
 end
 
+function _derivative(
+        A::CubicHermiteSpline{<:AbstractArray}, t::Number, iguess
+    )
+    idx = get_idx(A, t, iguess)
+    Δt₀ = t - A.t[idx]
+    Δt₁ = t - A.t[idx + 1]
+    out = _u_view(A.du, idx)
+    c₁, c₂ = get_parameters(A, idx)
+    out = out + Δt₀ * (Δt₀ * c₂ + 2(c₁ + Δt₁ * c₂))
+    return out
+end
+
 # Quintic Hermite Spline
 function _derivative(
         A::QuinticHermiteSpline{<:AbstractVector{<:Number}}, t::Number, iguess
@@ -415,6 +508,19 @@ function _derivative(
     out = A.du[idx] + A.ddu[idx] * Δt₀
     c₁, c₂, c₃ = get_parameters(A, idx)
     out += Δt₀^2 *
+        (3c₁ + (3Δt₁ + Δt₀) * c₂ + (3Δt₁^2 + Δt₀ * 2Δt₁) * c₃)
+    return out
+end
+
+function _derivative(
+        A::QuinticHermiteSpline{<:AbstractArray}, t::Number, iguess
+    )
+    idx = get_idx(A, t, iguess)
+    Δt₀ = t - A.t[idx]
+    Δt₁ = t - A.t[idx + 1]
+    out = _u_view(A.du, idx) + _u_view(A.ddu, idx) * Δt₀
+    c₁, c₂, c₃ = get_parameters(A, idx)
+    out = out + Δt₀^2 *
         (3c₁ + (3Δt₁ + Δt₀) * c₂ + (3Δt₁^2 + Δt₀ * 2Δt₁) * c₃)
     return out
 end

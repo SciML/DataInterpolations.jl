@@ -338,14 +338,50 @@ end
 end
 
 cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
-function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameters::Bool)
+
+function _cumulative_integral(A, cache_parameters::Bool)
     Base.require_one_based_indexing(A.u)
-    idxs = cache_parameters ? (1:(length(A.t) - 1)) : (1:0)
-    return cumsum(
-        _integral(A, idx, t1, t2)
-            for (idx, t1, t2) in
-            zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end]))
+    if cache_parameters
+        return cumsum(
+            _integral(A, idx, t1, t2)
+                for (idx, t1, t2) in
+                zip(
+                    1:(length(A.t) - 1), @view(A.t[begin:(end - 1)]),
+                    @view(A.t[(begin + 1):end])
+                )
+        )
+    end
+    length(A.t) < 2 && return cumsum(
+        _integral(A, idx, t1, t2) for (idx, t1, t2) in zip(1:0, A.t, A.t)
     )
+    # `cumsum` over an empty generator isn't guaranteed to infer a concrete element
+    # type without evaluating the body (it doesn't for e.g. `CubicSpline`, giving
+    # `Vector{Union{}}`), so compute one sample to fix the type instead, mirroring
+    # the "compute once to infer types" pattern used by the parameter caches below.
+    sample = _integral(A, 1, A.t[1], A.t[2])
+    return typeof(sample)[]
+end
+
+function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameters::Bool)
+    return _cumulative_integral(A, cache_parameters)
+end
+
+# Not every interpolation type defines `_integral` for `u::AbstractVector{<:AbstractVector}`
+# (e.g. `LagrangeInterpolation` doesn't, since it has no analytic antiderivative at all).
+# Rather than hardcoding the list of
+# types that do, check whether a matching `_integral` method actually exists, so that
+# construction only builds the cache (and gives `A.I` a concrete, non-`Nothing` element
+# type) for interpolations that genuinely support it — and so this keeps working as-is
+# for any future type that gains `_integral` support for this `u` shape.
+function cumulative_integral(
+        A::AbstractInterpolation{<:AbstractVector{<:Number}}, cache_parameters::Bool
+    )
+    Tt = eltype(A.t)
+    return if hasmethod(_integral, Tuple{typeof(A), Int, Tt, Tt})
+        _cumulative_integral(A, cache_parameters)
+    else
+        nothing
+    end
 end
 
 function get_parameters(A::LinearInterpolation, idx)
