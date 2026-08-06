@@ -1414,6 +1414,58 @@ end
         end
     end
 
+    # `:Uniform` knots space the interior knots by `1/(n - d)` against a data site
+    # spacing of `1/(n - 1)`, so the collocation system becomes exponentially
+    # ill-conditioned in `n` for degree 3 and up. The fit still passes through the data,
+    # so the only signal the caller gets is the warning (#567).
+    @testset "Ill-conditioned collocation systems are reported" begin
+        f(x) = sin(x)
+        build(n, d, knotVecType) = BSplineInterpolation(
+            f.(range(0, 2π, length = n)), collect(range(0, 2π, length = n)),
+            d, knotVecType
+        )
+
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(160, 3, :Uniform)
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(320, 3, :Uniform)
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(80, 5, :Uniform)
+        # The message has to point somewhere useful.
+        @test_logs (:warn, r"knotVecType = :Average") match_mode = :any build(160, 3, :Uniform)
+
+        # `:Average` knots are well conditioned at any degree or size, and small
+        # problems with `:Uniform` knots are still fine, so neither may warn.
+        @test_nowarn build(160, 3, :Average)
+        @test_nowarn build(640, 5, :Average)
+        @test_nowarn build(20, 3, :Uniform)
+        @test_nowarn build(6, 3, :Uniform)
+        # Degrees 1 and 2 never drift past half a knot span, so they stay sound.
+        @test_nowarn build(320, 1, :Uniform)
+        @test_nowarn build(320, 2, :Uniform)
+
+        # Whether the factorization hits an exact zero pivot at large `n` is
+        # BLAS-dependent, so drive the singular branch with duplicate data sites, which
+        # give the collocation matrix two identical rows.
+        u_dup = [1.0, 2.0, 2.0, 3.0, 5.0, 8.0]
+        t_dup = [0.0, 1.0, 1.0, 2.0, 3.0, 4.0]
+        @test_throws "numerically singular" BSplineInterpolation(u_dup, t_dup, 2, :Average)
+        # Degree 2 is not a knot-vector problem, so it must not be blamed on one.
+        err = try
+            BSplineInterpolation(u_dup, t_dup, 2, :Uniform)
+        catch e
+            sprint(showerror, e)
+        end
+        @test !occursin("knotVecType = :Average", err)
+
+        # `:Average` knots keep the interpolant convergent at the requested order over
+        # the range where `:Uniform` diverges, which is the property being protected.
+        xq = range(0, 2π, length = 2001)
+        maxerr(A) = maximum(abs(A(x) - f(x)) for x in xq)
+        errs = map((160, 320)) do n
+            maxerr(build(n, 3, :Average))
+        end
+        @test log2(errs[1] / errs[2]) > 3.5
+        @test errs[2] < 1.0e-9
+    end
+
     @testset "BSplineApprox" begin
         test_interpolation_type(BSplineApprox)
         t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
