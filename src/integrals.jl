@@ -10,9 +10,8 @@ Parts of the integration interval outside the range of `A.t` are integrated over
 extrapolation, as determined by the `extrapolation_left` and `extrapolation_right`
 settings of `A`.
 
-Interpolation types with no analytical antiderivative — `LagrangeInterpolation`,
-`BSplineInterpolation`, `BSplineApprox` and `Curvefit` — throw an
-`IntegralNotFoundError`; use a numerical integrator such as
+Interpolation types with no analytical antiderivative — `LagrangeInterpolation` and
+`Curvefit` — throw an `IntegralNotFoundError`; use a numerical integrator such as
 [Integrals.jl](https://docs.sciml.ai/Integrals/stable/) for those.
 
 ## Arguments
@@ -611,4 +610,64 @@ function _integral(
         t1, t2, tᵢ, uᵢ, duᵢ, dduᵢ / 2,
         c₁ + Δt * (-c₂ + c₃ * Δt), c₂ - 2c₃ * Δt, c₃
     )
+end
+
+# Each `A.t` interval of a `SmoothArcLengthInterpolation` is a circle segment followed by
+# a line segment (or vice versa, per `short_side_left[idx]`); both are analytically
+# integrable in the arc-length parameter. `_interpolate`/`_derivative` for this type pick
+# a branch via a single threshold `τ_break` with no clamp on the other side (so extrapolation
+# beyond `[0, total]` continues whichever branch governs at the boundary, e.g. the circle
+# keeps rotating rather than the piece vanishing) — mirror that here: split `[τ1, τ2]` at
+# `τ_break` only, without an extra clamp to `[0, total]`, so `Extension` extrapolation
+# (which reuses this same `_integral` outside the segment's natural range) matches.
+function _integral(A::SmoothArcLengthInterpolation, idx::Number, t1::Number, t2::Number)
+    Δt_circle_seg = A.Δt_circle_segment[idx]
+    Δt_line_seg = A.Δt_line_segment[idx]
+    short_side_left = A.short_side_left[idx]
+    t0 = A.t[idx]
+    τ1 = t1 - t0
+    τ2 = t2 - t0
+
+    Rⱼ = A.radius[idx]
+    c = view(A.center, :, idx)
+    v₁ = view(A.dir_1, :, idx)
+    v₂ = view(A.dir_2, :, idx)
+
+    τ_break = short_side_left ? Δt_circle_seg : Δt_line_seg
+
+    if short_side_left
+        circle_offset = zero(τ1)
+        line_offset = Δt_circle_seg + Δt_line_seg
+        u_line = view(A.u, :, idx + 1)
+        d_line = view(A.d, :, idx + 1)
+        # circle governs τ < τ_break, line governs τ >= τ_break
+        circ_a, circ_b = τ1, min(τ2, τ_break)
+        line_a, line_b = max(τ1, τ_break), τ2
+    else
+        circle_offset = Δt_line_seg
+        line_offset = zero(τ1)
+        u_line = view(A.u, :, idx)
+        d_line = view(A.d, :, idx)
+        # line governs τ < τ_break, circle governs τ >= τ_break
+        line_a, line_b = τ1, min(τ2, τ_break)
+        circ_a, circ_b = max(τ1, τ_break), τ2
+    end
+
+    # Clamp each piece's own bounds so it contributes zero when it doesn't overlap [τ1, τ2].
+    line_b = max(line_a, line_b)
+    circ_b = max(circ_a, circ_b)
+
+    # Line piece: out(τ) = u_line + (τ - line_offset) * d_line
+    Δt_line = line_b - line_a
+    Δt_mean_line = (line_a + line_b) / 2 - line_offset
+    line_contribution = @. (u_line + d_line * Δt_mean_line) * Δt_line
+
+    # Circle piece: out(τ) = c + cos((τ - circle_offset) / Rⱼ) * v₁ + sin((τ - circle_offset) / Rⱼ) * v₂
+    τ_a = circ_a - circle_offset
+    τ_b = circ_b - circle_offset
+    Sa, Ca = sincos(τ_a / Rⱼ)
+    Sb, Cb = sincos(τ_b / Rⱼ)
+    circle_contribution = @. c * (τ_b - τ_a) + Rⱼ * (Sb - Sa) * v₁ - Rⱼ * (Cb - Ca) * v₂
+
+    return line_contribution .+ circle_contribution
 end

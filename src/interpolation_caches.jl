@@ -1822,7 +1822,8 @@ an interpolation (the shape interpolation) with line segments and circle segment
 
 ## Arguments
 
-  - `u`: The data to be interpolated in matrix form; (ndim, ndata).
+  - `u`: The data to be interpolated in matrix form; (ndim, ndata). A `Vector` of
+    equal-length `Vector`s (one per data point) is also accepted.
 
 NOTE: With this method it is not possible to pass keyword arguments to the constructor of the shape interpolation.
 If you want to do this, construct the shape interpolation yourself and use the
@@ -1867,6 +1868,10 @@ function SmoothArcLengthInterpolation(
     end
     shape_itp = interpolation_type(collect.(eachcol(u)), t)
     return SmoothArcLengthInterpolation(shape_itp; kwargs...)
+end
+
+function SmoothArcLengthInterpolation(u::AbstractVector{<:AbstractVector}; kwargs...)
+    return SmoothArcLengthInterpolation(reduce(hcat, u); kwargs...)
 end
 
 """
@@ -1952,8 +1957,10 @@ segments and circle segments.
 
 ## Arguments
 
-  - `u`: The data to be interpolated in matrix form; (ndim, ndata).
-  - `d`: The tangents to the curve in the points `u`.
+  - `u`: The data to be interpolated in matrix form; (ndim, ndata). A `Vector` of
+    equal-length `Vector`s (one per data point) is also accepted.
+  - `d`: The tangents to the curve in the points `u`. Accepts the same `AbstractMatrix` or
+    `Vector` of `Vector`s forms as `u`.
   - `make_intersections`: Whether additional (point, tangent) pairs have to be added in between the provided
     data to ensure that the consecutive (tangent) lines intersect. Defaults to `Val(true)`.
 
@@ -1980,6 +1987,14 @@ function SmoothArcLengthInterpolation(
         kwargs...
     )
     return SmoothArcLengthInterpolation(u, d, Val{true}(); kwargs...)
+end
+
+function SmoothArcLengthInterpolation(
+        u::AbstractVector{<:AbstractVector},
+        d::AbstractVector{<:AbstractVector};
+        kwargs...
+    )
+    return SmoothArcLengthInterpolation(reduce(hcat, u), reduce(hcat, d); kwargs...)
 end
 
 function SmoothArcLengthInterpolation(
@@ -2117,10 +2132,17 @@ function SmoothArcLengthInterpolation(
     derivative = Vector{P}(undef, N)
 
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
-    return SmoothArcLengthInterpolation(
+    A = SmoothArcLengthInterpolation(
         u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
         center, radius, dir_1, dir_2, short_side_left,
         nothing, extrapolation_left, extrapolation_right,
+        out, derivative, in_place, t_props
+    )
+    I = cumulative_integral(A, cache_parameters)
+    return SmoothArcLengthInterpolation(
+        u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
+        center, radius, dir_1, dir_2, short_side_left,
+        I, extrapolation_left, extrapolation_right,
         out, derivative, in_place, t_props
     )
 end
