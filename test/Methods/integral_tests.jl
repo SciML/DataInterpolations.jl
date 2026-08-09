@@ -389,13 +389,13 @@ end
     u = [0.3 -1.5 3.1; -0.2 0.2 -1.5; 10.4 -37.2 -5.8]
     test_integral(
         SmoothArcLengthInterpolation;
-        args = [u], kwargs = Pair[:m => 5, :in_place => false],
+        args = [u], kwargs = Pair[:m => 5],
         name = "Smooth Arc Length Interpolation"
     )
     u_vov = [u[:, i] for i in 1:size(u, 2)]
     test_integral(
         SmoothArcLengthInterpolation;
-        args = [u_vov], kwargs = Pair[:m => 5, :in_place => false],
+        args = [u_vov], kwargs = Pair[:m => 5],
         name = "Smooth Arc Length Interpolation (Vector of Vectors)"
     )
 end
