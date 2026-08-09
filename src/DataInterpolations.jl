@@ -28,7 +28,7 @@ true
 """
 abstract type AbstractInterpolation{T} end
 
-using LinearAlgebra: LinearAlgebra, Tridiagonal, dot, norm, normalize!
+using LinearAlgebra: LinearAlgebra, Tridiagonal, dot, lu, norm, normalize!, opnorm
 using RecipesBase: RecipesBase, @recipe, @series
 using PrettyTables: PrettyTables, pretty_table
 using ForwardDiff: ForwardDiff

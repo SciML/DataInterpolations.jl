@@ -28,7 +28,7 @@ corresponding to `(u,t)` pairs.
   - `BSplineInterpolation(u,t,d,knotVec)` - An interpolation B-spline. This is a B-spline that hits each of the data points. The argument choices are:
     
       + `d` - degree of B-spline
-      + `knotVec` - Symbol to Knot Vector, `knotVec = :Uniform` for uniform knot vector, `knotVec = :Average` for average spaced knot vector.
+      + `knotVec` - Symbol to Knot Vector, `knotVec = :Uniform` for uniform knot vector, `knotVec = :Average` for average spaced knot vector. Use `:Average` for interpolation: `:Uniform` spaces the interior knots inconsistently with the data sites, which makes the collocation system exponentially ill-conditioned in the number of data points for `d >= 3`, and constructing one warns.
   - `BSplineApprox(u,t,d,h,knotVec)` - A regression B-spline which smooths the fitting curve. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h<length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing.
   - `CubicHermiteSpline(du, u, t)` - A third order Hermite interpolation, which matches the values and first (`du`) order derivatives in the data points exactly.
   - `PCHIPInterpolation(u, t)` - a type of `CubicHermiteSpline` where the derivative values `du` are derived from the input data in such a way that the interpolation never overshoots the data.

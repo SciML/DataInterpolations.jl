@@ -936,6 +936,10 @@ Extrapolation is a constant polynomial of the end points on each side.
   - `t`: time points.
   - `d`: degree of the piecewise polynomial.
   - `knotVecType`: symbol to knot vector, `:Uniform` for uniform knot vector, `:Average` for average spaced knot vector.
+    `:Average` is the appropriate choice for interpolation. `:Uniform` spaces the interior knots inconsistently with
+    the data sites, which makes the collocation system exponentially ill-conditioned in the number of points for
+    `d >= 3`; constructing such an interpolation warns, and the result may deviate from the data by orders of
+    magnitude between the data points even though it still passes through them.
 
 ## Keyword Arguments
 
@@ -1022,7 +1026,10 @@ function BSplineInterpolation(
         k[n + i] = t[end]
     end
     if knotVecType == :Uniform
-        # Uniformly spaced interior knots
+        # Uniformly spaced interior knots. Spacing is `1/(n - d)` against a data site
+        # spacing of `1/(n - 1)`, so the collocation pairing drifts by up to `(d - 1)/2`
+        # knot spans; past half a span the system is exponentially ill-conditioned in
+        # `n`, which rules this choice out for interpolation at `d >= 3` (#567).
         for i in (d + 2):n
             k[i] = t[1] + (i - d - 1) // (n - d) * (t[end] - t[1])
         end
@@ -1037,7 +1044,8 @@ function BSplineInterpolation(
     # control points
     sc = zeros(eltype(t), n, n)
     spline_coefficients!(sc, d, k, t)
-    c = vec(sc \ u[:, :])
+    F = bspline_collocation_factorization(sc, n, d, knotVecType)
+    c = vec(F \ u[:, :])
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
         u, t, d, k, c, sc, knotVecType,
@@ -1069,7 +1077,10 @@ function BSplineInterpolation(
         k[n + i] = t[end]
     end
     if knotVecType == :Uniform
-        # Uniformly spaced interior knots
+        # Uniformly spaced interior knots. Spacing is `1/(n - d)` against a data site
+        # spacing of `1/(n - 1)`, so the collocation pairing drifts by up to `(d - 1)/2`
+        # knot spans; past half a span the system is exponentially ill-conditioned in
+        # `n`, which rules this choice out for interpolation at `d >= 3` (#567).
         for i in (d + 2):n
             k[i] = t[1] + (i - d - 1) // (n - d) * (t[end] - t[1])
         end
@@ -1083,7 +1094,8 @@ function BSplineInterpolation(
     # control points
     sc = zeros(eltype(t), n, n)
     spline_coefficients!(sc, d, k, t)
-    c = (sc \ reshape(u, prod(size(u)[1:(end - 1)]), :)')'
+    F = bspline_collocation_factorization(sc, n, d, knotVecType)
+    c = (F \ reshape(u, prod(size(u)[1:(end - 1)]), :)')'
     c = reshape(c, size(u)...)
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
