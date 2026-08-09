@@ -228,3 +228,22 @@ end
         name = "BSpline approximation with vector of vectors input"
     )
 end
+
+@testset "SmoothArcLengthInterpolation" begin
+    # Doesn't fit `test_zygote`'s `method(u, t, ...)` calling convention: `t` is derived
+    # from `u` (arc length), not a separate user-supplied argument.
+    u = [0.3 -1.5 3.1; -0.2 0.2 -1.5; 10.4 -37.2 -5.8]
+    A = SmoothArcLengthInterpolation(u; m = 5)
+    trange = range(minimum(A.t), maximum(A.t); length = 25)
+    @testset "SmoothArcLengthInterpolation, derivatives w.r.t. t" begin
+        for _t in trange
+            adiff = DataInterpolations.derivative(A, _t)
+            zdiff = only(Zygote.jacobian(t -> A(t), _t))
+            @test adiff ≈ zdiff
+        end
+    end
+    # `derivatives w.r.t. u` is not supported: the geometry-fitting constructor mutates
+    # several `Matrix`/`Vector` buffers in place (`@.` assignments while building `center`,
+    # `dir_1`, `dir_2`, the augmented tangent curve, ...), which Zygote's reverse-mode AD
+    # cannot trace through ("Mutating arrays is not supported").
+end

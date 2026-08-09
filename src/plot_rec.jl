@@ -42,8 +42,11 @@ end
         seriestype := :scatter
         seriescolor --> seriescolor
         label --> label_data
-        # Evaluate at the knots rather than using `A.u` directly, so the same
-        # `_plot_reshape` orientation logic applies regardless of how `A.u` is stored.
-        A.t, _plot_reshape(A.(A.t))
+        # `get_data` (from show.jl) reshapes `A.u` — whatever its native container — into
+        # the same `(npoints, ndim)` orientation Plots needs. Using it here (rather than
+        # re-evaluating `A.(A.t)`) matters for approximating types like `BSplineApprox`,
+        # whose curve doesn't pass through the raw data: re-evaluating would silently plot
+        # the smoothed curve's values as if they were the data points.
+        A.t, get_data(A.u)
     end
 end

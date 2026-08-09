@@ -19,8 +19,8 @@ function get_data(u::AbstractVector)
     return u
 end
 
-function get_data(u::AbstractVector{<:AbstractVector})
-    return reduce(hcat, u)'
+function get_data(u::AbstractVector{<:AbstractArray})
+    return reduce(hcat, vec.(u))'
 end
 
 function get_data(u::AbstractMatrix)
@@ -40,7 +40,7 @@ function get_names(u::AbstractVector)
     return ["u"]
 end
 
-function get_names(u::AbstractVector{<:AbstractVector})
+function get_names(u::AbstractVector{<:AbstractArray})
     return ["u$i" for i in eachindex(first(u))]
 end
 

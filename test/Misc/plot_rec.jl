@@ -1,5 +1,5 @@
 using DataInterpolations
-using DataInterpolations: to_plottable, _plot_reshape
+using DataInterpolations: to_plottable, _plot_reshape, get_data
 
 # `Plots` is deliberately not a test dependency (heavy, slow to precompile), and
 # `RecipesBase.apply_recipe` requires a registered backend to run at all (it calls
@@ -64,7 +64,7 @@ using DataInterpolations: to_plottable, _plot_reshape
     end
 end
 
-@testset "_plot_reshape for raw data points (scatter series)" begin
+@testset "_plot_reshape for interpolated curve points (path series)" begin
     t = [0.0, 1.0, 2.0, 3.0]
 
     A = LinearInterpolation([1.0 3.0 2.0 5.0; 2.0 1.0 4.0 3.0], t)
@@ -75,4 +75,25 @@ end
     u_vov = [[1.0, 2.0], [3.0, 1.0], [2.0, 4.0], [5.0, 3.0]]
     A_vov = LinearInterpolation(u_vov, t)
     @test _plot_reshape(A_vov.(A_vov.t)) ≈ reshaped
+end
+
+@testset "get_data for raw data points (scatter series)" begin
+    t = [0.0, 1.0, 2.0, 3.0]
+
+    # `get_data(A.u)` must return the true raw data — not a re-evaluation of the
+    # interpolated curve — since approximating types like `BSplineApprox` don't pass
+    # through their data points, and the "Data points" scatter series should show what
+    # was actually given, not the smoothed fit evaluated at the same times.
+    u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
+    t_bspline = Float64[0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    A_approx = BSplineApprox(u, t_bspline, 2, 4, :Uniform)
+    @test get_data(A_approx.u) == u
+    @test !(collect(A_approx.(t_bspline)) ≈ u)
+
+    A = LinearInterpolation([1.0 3.0 2.0 5.0; 2.0 1.0 4.0 3.0], t)
+    @test get_data(A.u) ≈ [1.0 2.0; 3.0 1.0; 2.0 4.0; 5.0 3.0]
+
+    u_vov = [[1.0, 2.0], [3.0, 1.0], [2.0, 4.0], [5.0, 3.0]]
+    A_vov = LinearInterpolation(u_vov, t)
+    @test get_data(A_vov.u) ≈ get_data(A.u)
 end

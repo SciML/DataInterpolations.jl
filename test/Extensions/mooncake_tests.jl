@@ -186,3 +186,24 @@ end
     A = BSplineApprox(u, t, 2, 4, :Uniform; extrapolation = ExtrapolationType.Extension)
     test_mooncake_tgrad(A, t; name = "BSpline Approximation")
 end
+
+@testset "SmoothArcLengthInterpolation" begin
+    # Doesn't fit `test_mooncake_tgrad`'s scalar-output assumption (`A(t)` is always a
+    # vector for this type), so this sum-reduces first, mirroring `test_mooncake_ugrad`'s
+    # existing pattern for vector-valued interpolations.
+    u = [0.3 -1.5 3.1; -0.2 0.2 -1.5; 10.4 -37.2 -5.8]
+    A = SmoothArcLengthInterpolation(u; m = 5)
+    trange = range(minimum(A.t), maximum(A.t); length = 25)
+    @testset "SmoothArcLengthInterpolation, derivatives w.r.t. t" begin
+        f_t = _t -> sum(A(_t))
+        cache = Mooncake.prepare_gradient_cache(f_t, first(trange))
+        for _t in trange
+            _, (_, mgrad) = Mooncake.value_and_gradient!!(cache, f_t, _t)
+            @test mgrad ≈ sum(DataInterpolations.derivative(A, _t)) atol = 1.0e-10
+        end
+    end
+    # `derivatives w.r.t. u` is not supported: the same in-place geometry-fitting
+    # constructor that blocks Zygote also fails here with an
+    # `increment_and_get_rdata!`/tangent-type error on the `Vector{Vector}` intermediates
+    # it builds while fitting circle/line segments.
+end

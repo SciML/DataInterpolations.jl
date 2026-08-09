@@ -526,7 +526,6 @@ function _derivative(
 end
 
 function _derivative(A::SmoothArcLengthInterpolation, t::Number, iguess)
-    derivative = Vector{typeof(t)}(undef, size(A.u, 1))
     idx = get_idx(A, t, iguess)
     Δt_circ_seg = A.Δt_circle_segment[idx]
     Δt_line_seg = A.Δt_line_segment[idx]
@@ -539,22 +538,23 @@ function _derivative(A::SmoothArcLengthInterpolation, t::Number, iguess)
         Δt > Δt_line_seg
     end
 
-    if in_circle_arc
+    # See `_interpolate` above: return per branch rather than mutate a shared buffer, so
+    # this stays differentiable with reverse-mode AD. `+ zero(Δt)` on the two constant
+    # branches (which don't otherwise involve `t`) keeps the element type consistent with
+    # `typeof(t)` across all three branches, matching what the old `Vector{typeof(t)}`
+    # buffer + broadcast-assignment did for e.g. ForwardDiff `Dual` inputs.
+    return if in_circle_arc
         t_circle_seg = short_side_left ? Δt : Δt - Δt_line_seg
         Rⱼ = A.radius[idx]
         S, C = sincos(t_circle_seg / Rⱼ)
         v₁ = view(A.dir_1, :, idx)
         v₂ = view(A.dir_2, :, idx)
-        @. derivative = (-S * v₁ + C * v₂) / Rⱼ
+        @. (-S * v₁ + C * v₂) / Rⱼ
+    elseif short_side_left
+        d₁ = view(A.d, :, idx + 1)
+        @. d₁ + zero(Δt)
     else
-        if short_side_left
-            d₁ = view(A.d, :, idx + 1)
-            @. derivative = d₁
-        else
-            d₀ = view(A.d, :, idx)
-            @. derivative = d₀
-        end
+        d₀ = view(A.d, :, idx)
+        @. d₀ + zero(Δt)
     end
-
-    return derivative
 end

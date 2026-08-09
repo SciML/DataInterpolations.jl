@@ -1673,7 +1673,6 @@ function _quintic_hermite_eval_sorted!(
 end
 
 function _interpolate(A::SmoothArcLengthInterpolation, t::Number, iguess)
-    out = Vector{typeof(t)}(undef, size(A.u, 1))
     idx = get_idx(A, t, iguess)
     Δt_circ_seg = A.Δt_circle_segment[idx]
     Δt_line_seg = A.Δt_line_segment[idx]
@@ -1686,26 +1685,25 @@ function _interpolate(A::SmoothArcLengthInterpolation, t::Number, iguess)
         Δt > Δt_line_seg
     end
 
-    if in_circle_arc
+    # Each branch returns (rather than mutates into a shared buffer) so this stays
+    # differentiable with reverse-mode AD (e.g. Zygote), which cannot trace through
+    # in-place broadcast assignment (`out .= ...`) even into a freshly-allocated array.
+    return if in_circle_arc
         t_circle_seg = short_side_left ? Δt : Δt - Δt_line_seg
         Rⱼ = A.radius[idx]
         S, C = sincos(t_circle_seg / Rⱼ)
         c = view(A.center, :, idx)
         v₁ = view(A.dir_1, :, idx)
         v₂ = view(A.dir_2, :, idx)
-        @. out = c + C * v₁ + S * v₂
+        @. c + C * v₁ + S * v₂
+    elseif short_side_left
+        u₁ = view(A.u, :, idx + 1)
+        d₁ = view(A.d, :, idx + 1)
+        t_line_seg = A.t[idx + 1] - t
+        @. u₁ - t_line_seg * d₁
     else
-        if short_side_left
-            u₁ = view(A.u, :, idx + 1)
-            d₁ = view(A.d, :, idx + 1)
-            t_line_seg = A.t[idx + 1] - t
-            @. out = u₁ - t_line_seg * d₁
-        else
-            u₀ = view(A.u, :, idx)
-            d₀ = view(A.d, :, idx)
-            @. out = u₀ + Δt * d₀
-        end
+        u₀ = view(A.u, :, idx)
+        d₀ = view(A.d, :, idx)
+        @. u₀ + Δt * d₀
     end
-
-    return out
 end
