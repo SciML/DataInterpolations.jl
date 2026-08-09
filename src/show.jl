@@ -27,6 +27,15 @@ function get_data(u::AbstractMatrix)
     return u'
 end
 
+# Higher-rank stacked arrays (e.g. `AbstractArray{T, 3}`, one matrix per point): flatten
+# the leading (per-point) dimensions into columns, keeping the last dimension as points —
+# same `(npoints, nfeatures)` orientation as the `AbstractMatrix` case above, of which this
+# is a generalization (kept separate since the transpose alone is cheaper for the common
+# 2D case).
+function get_data(u::AbstractArray)
+    return reshape(u, :, size(u, ndims(u)))'
+end
+
 function get_names(u::AbstractVector)
     return ["u"]
 end
@@ -37,6 +46,10 @@ end
 
 function get_names(u::AbstractMatrix)
     return ["u$i" for i in axes(u, 1)]
+end
+
+function get_names(u::AbstractArray)
+    return ["u$i" for i in 1:(length(u) ÷ size(u, ndims(u)))]
 end
 
 ###################### Specific Dispatches ######################

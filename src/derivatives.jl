@@ -526,8 +526,7 @@ function _derivative(
 end
 
 function _derivative(A::SmoothArcLengthInterpolation, t::Number, iguess)
-    (; derivative, in_place) = A
-    derivative = in_place ? derivative : similar(derivative, typeof(t))
+    derivative = Vector{typeof(t)}(undef, size(A.u, 1))
     idx = get_idx(A, t, iguess)
     Δt_circ_seg = A.Δt_circle_segment[idx]
     Δt_line_seg = A.Δt_line_segment[idx]

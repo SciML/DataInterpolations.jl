@@ -1788,14 +1788,11 @@ struct SmoothArcLengthInterpolation{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    out::Vector{P}
-    derivative::Vector{P}
-    in_place::Bool
     function SmoothArcLengthInterpolation(
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, extrapolation_left, extrapolation_right,
-            out, derivative, in_place, t_props
+            cache_parameters, t_props
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -1805,7 +1802,7 @@ struct SmoothArcLengthInterpolation{
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, nothing, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, false, out, derivative, in_place
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -1949,8 +1946,7 @@ end
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters::Bool = false,
-        in_place::Bool = true)
+        cache_parameters::Bool = false)
 
 Make a C¹ smooth unit speed interpolation through the given data with the given tangents using line
 segments and circle segments.
@@ -2076,7 +2072,6 @@ function SmoothArcLengthInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters::Bool = false,
-        in_place::Bool = true,
         search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     N = size(u, 1)
@@ -2128,21 +2123,18 @@ function SmoothArcLengthInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
 
-    out = Vector{P}(undef, N)
-    derivative = Vector{P}(undef, N)
-
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     A = SmoothArcLengthInterpolation(
         u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
         center, radius, dir_1, dir_2, short_side_left,
         nothing, extrapolation_left, extrapolation_right,
-        out, derivative, in_place, t_props
+        cache_parameters, t_props
     )
     I = cumulative_integral(A, cache_parameters)
     return SmoothArcLengthInterpolation(
         u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
         center, radius, dir_1, dir_2, short_side_left,
         I, extrapolation_left, extrapolation_right,
-        out, derivative, in_place, t_props
+        cache_parameters, t_props
     )
 end

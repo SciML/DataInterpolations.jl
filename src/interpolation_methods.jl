@@ -1673,8 +1673,7 @@ function _quintic_hermite_eval_sorted!(
 end
 
 function _interpolate(A::SmoothArcLengthInterpolation, t::Number, iguess)
-    (; out, in_place) = A
-    out = in_place ? out : similar(out, typeof(t))
+    out = Vector{typeof(t)}(undef, size(A.u, 1))
     idx = get_idx(A, t, iguess)
     Δt_circ_seg = A.Δt_circle_segment[idx]
     Δt_line_seg = A.Δt_line_segment[idx]
