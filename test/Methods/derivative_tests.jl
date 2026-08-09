@@ -113,6 +113,11 @@ end
     test_derivatives(
         LinearInterpolation; args = [u, t], name = "Linear Interpolation (Matrix)"
     )
+    u = [[2.0i, 3.0i] for i in 1:10]
+    test_derivatives(
+        LinearInterpolation; args = [u, t],
+        name = "Linear Interpolation (Vector of Vectors)"
+    )
 
     # Issue: https://github.com/SciML/DataInterpolations.jl/issues/303
     u = [3.0, 3.0]
@@ -139,6 +144,12 @@ end
         QuadraticInterpolation;
         args = [u, t],
         name = "Quadratic Interpolation (Matrix)"
+    )
+    u = [[1.0, 1.0], [4.0, 4.0], [9.0, 9.0], [16.0, 16.0]]
+    test_derivatives(
+        QuadraticInterpolation;
+        args = [u, t],
+        name = "Quadratic Interpolation (Vector of Vectors)"
     )
 end
 
@@ -173,6 +184,15 @@ end
         @test derivative(A, t[1]) ≈ derivative(A, nextfloat(t[1]))
         @test derivative(A, t[end]) ≈ derivative(A, prevfloat(t[end]))
     end
+    u2 = vcat(u', u')
+    test_derivatives(
+        AkimaInterpolation; args = [u2, t], name = "Akima Interpolation (Matrix)"
+    )
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        AkimaInterpolation; args = [u_vov, t],
+        name = "Akima Interpolation (Vector of Vectors)"
+    )
 end
 
 @testset "Constant Interpolation" begin
@@ -182,6 +202,16 @@ end
     t2 = collect(0.0:9.0)
     @test all(isnan, derivative.(Ref(A), t))
     @test all(derivative.(Ref(A), t2 .+ 0.1) .== 0.0)
+
+    u_mat = vcat(u', u')
+    A_mat = ConstantInterpolation(u_mat, t)
+    @test all(t_ -> all(isnan, derivative(A_mat, t_)), t)
+    @test all(t_ -> all(iszero, derivative(A_mat, t_)), t2 .+ 0.1)
+
+    u_vov = [[u_, u_] for u_ in u]
+    A_vov = ConstantInterpolation(u_vov, t)
+    @test all(t_ -> all(isnan, derivative(A_vov, t_)), t)
+    @test all(t_ -> all(iszero, derivative(A_vov, t_)), t2 .+ 0.1)
 end
 
 @testset "SmoothedConstantInterpolation" begin
@@ -196,6 +226,17 @@ end
         u, t; extrapolation = ExtrapolationType.Extension
     )
     @test all(_t -> abs(derivative(A, _t)) < 1.0e-10, setdiff(get_transition_ts(A), t))
+
+    u_mat = vcat(u', u')
+    test_derivatives(
+        SmoothedConstantInterpolation; args = [u_mat, t],
+        name = "Smoothed constant interpolation (Matrix)"
+    )
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        SmoothedConstantInterpolation; args = [u_vov, t],
+        name = "Smoothed constant interpolation (Vector of Vectors)"
+    )
 end
 
 @testset "Quadratic Spline" begin
@@ -203,6 +244,10 @@ end
     t = [-1.0, 0.0, 1.0]
     test_derivatives(
         QuadraticSpline; args = [u, t], name = "Quadratic Interpolation (Vector)"
+    )
+    u_mat = [0.0 1.0 3.0; 0.0 1.0 3.0]
+    test_derivatives(
+        QuadraticSpline; args = [u_mat, t], name = "Quadratic Interpolation (Matrix)"
     )
     u = [[1.0, 2.0, 9.0], [3.0, 7.0, 5.0], [5.0, 4.0, 1.0]]
     test_derivatives(
@@ -221,6 +266,10 @@ end
     t = [-1.0, 0.0, 1.0]
     test_derivatives(
         CubicSpline; args = [u, t], name = "Cubic Spline Interpolation (Vector)"
+    )
+    u_mat = [0.0 1.0 3.0; 0.0 1.0 3.0]
+    test_derivatives(
+        CubicSpline; args = [u_mat, t], name = "Cubic Spline Interpolation (Matrix)"
     )
     u = [[1.0, 2.0, 9.0], [3.0, 7.0, 5.0], [5.0, 4.0, 1.0]]
     test_derivatives(
@@ -262,6 +311,23 @@ end
             :Uniform,
         ],
         name = "BSpline Approx (Uniform, Uniform)"
+    )
+
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        BSplineInterpolation;
+        args = [u_vov, t, 2, :Uniform],
+        name = "BSpline Interpolation (Uniform, Uniform): Vector{Vector}"
+    )
+    test_derivatives(
+        BSplineInterpolation;
+        args = [u_vov, t, 2, :Average],
+        name = "BSpline Interpolation (Arclen, Average): Vector{Vector}"
+    )
+    test_derivatives(
+        BSplineApprox;
+        args = [u_vov, t, 3, 4, :Uniform],
+        name = "BSpline Approx (Uniform, Uniform): Vector{Vector}"
     )
 
     f3d(t) = [
@@ -326,6 +392,19 @@ end
     @test derivative.(Ref(A), t) ≈ du
     @test derivative(A, 100.0) ≈ 0.0105409 rtol = 1.0e-5
     @test derivative(A, 300.0) ≈ -0.0806717 rtol = 1.0e-5
+
+    du2 = vcat(du', du')
+    u2 = vcat(u', u')
+    test_derivatives(
+        CubicHermiteSpline; args = [du2, u2, t],
+        name = "Cubic Hermite Spline (Matrix)"
+    )
+    du_vov = [[du_, du_] for du_ in du]
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        CubicHermiteSpline; args = [du_vov, u_vov, t],
+        name = "Cubic Hermite Spline (Vector of Vectors)"
+    )
 end
 
 @testset "Quintic Hermite Spline" begin
@@ -342,6 +421,21 @@ end
     @test derivative.(Ref(A), t, 2) ≈ ddu
     @test derivative(A, 100.0) ≈ 0.0103916 rtol = 1.0e-5
     @test derivative(A, 300.0) ≈ 0.0331361 rtol = 1.0e-5
+
+    ddu2 = vcat(ddu', ddu')
+    du2 = vcat(du', du')
+    u2 = vcat(u', u')
+    test_derivatives(
+        QuinticHermiteSpline; args = [ddu2, du2, u2, t],
+        name = "Quintic Hermite Spline (Matrix)"
+    )
+    ddu_vov = [[ddu_, ddu_] for ddu_ in ddu]
+    du_vov = [[du_, du_] for du_ in du]
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        QuinticHermiteSpline; args = [ddu_vov, du_vov, u_vov, t],
+        name = "Quintic Hermite Spline (Vector of Vectors)"
+    )
 end
 
 @testset "Smooth Arc Length Interpolation" begin
@@ -356,6 +450,14 @@ end
     @test all(t -> norm(derivative(A, t)) ≈ 1, range(0, A.t[end]; length = 100))
     @test all(
         t_ -> derivative(A, prevfloat(t_)) ≈ derivative(A, nextfloat(t_)), A.t[2:(end - 1)]
+    )
+
+    u_vov = [u[:, i] for i in 1:size(u, 2)]
+    test_derivatives(
+        SmoothArcLengthInterpolation, args = [u_vov], kwargs = Pair[
+            :m => 5, :in_place => false,
+        ],
+        name = "Smooth Arc Length Interpolation (Vector of Vectors)"
     )
 end
 
