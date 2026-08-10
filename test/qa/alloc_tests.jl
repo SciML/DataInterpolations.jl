@@ -63,7 +63,7 @@ using StaticArrays: SVector
         u = sin.(t)
         for d in (1, 2, 3)
             A = BSplineInterpolation(
-                u, t, d, :Uniform, :Average; extrapolation = ExtrapolationType.Extension
+                u, t, d, :Average; extrapolation = ExtrapolationType.Extension
             )
             @test_nowarn test_allocs(A, 3.1)
             @test_nowarn test_derivative_allocs(A, 3.1)
@@ -74,7 +74,7 @@ using StaticArrays: SVector
         t = collect(range(0.0, 2π; length = 12))
         u = sin.(t)
         A = BSplineApprox(
-            u, t, 3, 8, :Uniform, :Average; extrapolation = ExtrapolationType.Extension
+            u, t, 3, 8, :Average; extrapolation = ExtrapolationType.Extension
         )
         @test_nowarn test_allocs(A, 3.1)
         @test_nowarn test_derivative_allocs(A, 3.1)

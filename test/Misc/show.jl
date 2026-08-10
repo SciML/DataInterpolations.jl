@@ -1,5 +1,5 @@
 using DataInterpolations
-using Optim, StableRNGs
+using CurveFit, StableRNGs
 
 t = [1.0, 2.0, 3.0, 4.0, 5.0]
 x = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -45,14 +45,14 @@ end
         )
     end
     @testset "BSplineInterpolation" begin
-        A = BSplineInterpolation(x, t, 3, :Uniform, :Uniform)
+        A = BSplineInterpolation(x, t, 3, :Uniform)
         @test startswith(
             sprint(io -> show(io, MIME"text/plain"(), A)),
             "BSplineInterpolation with 5 points, with degree 3\n"
         )
     end
     @testset "BSplineApprox" begin
-        A = BSplineApprox(x, t, 2, 4, :Uniform, :Uniform)
+        A = BSplineApprox(x, t, 2, 4, :Uniform)
         @test startswith(
             sprint(io -> show(io, MIME"text/plain"(), A)),
             "BSplineApprox with 5 points, with degree 2, number of control points 4\n"
@@ -66,9 +66,9 @@ end
     t = range(-10, stop = 10, length = 40)
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0)
     @test startswith(
         sprint(io -> show(io, MIME"text/plain"(), A)),
-        "Curvefit with 40 points, using LBFGS\n"
+        "Curvefit with 40 points.\n"
     )
 end

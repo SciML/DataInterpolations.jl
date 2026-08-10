@@ -33,31 +33,52 @@ function spline_coefficients!(N, d, k, u::Number)
     # Zero the whole vector: the body only writes `(i-d):i`, but callers read
     # all of `N`, so stale entries outside that window must not leak.
     N .= zero(u)
+    n = length(N)
     if u == k[1]
         N[1] = one(u)
         return 1:1
     elseif u == k[end]
         N[end] = one(u)
-        return length(N):length(N)
+        return n:n
     else
-        # `k` is sorted, so the locator is an O(log n) search.
-        i = searchsortedlast(k, u)
+        idx = findfirst(x -> x > u, k)
+        # For out-of-range points, extend the boundary polynomial span
+        i = if idx === nothing
+            # u > k[end]: use last span
+            findlast(j -> k[j] < k[end], 1:length(k))::Int
+        elseif idx == 1
+            # u < k[1]: use first span
+            findfirst(j -> k[j + 1] > k[1], 1:(length(k) - 1))::Int
+        else
+            idx - 1
+        end
         return _spline_coefficients_body!(N, d, k, u, i)
     end
 end
 
 # B-spline basis recurrence given the located knot index `i`.
 function _spline_coefficients_body!(N, d, k, u, i)
+    n = length(N)
     N[i] = one(u)
     for deg in 1:d
-        N[i - deg] = (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) * N[i - deg + 1]
-        for j in (i - deg + 1):(i - 1)
-            N[j] = (u - k[j]) / (k[j + deg] - k[j]) * N[j] +
-                (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) * N[j + 1]
+        ii = i - deg
+        if ii >= 1
+            denom = k[i + 1] - k[ii + 1]
+            N[ii] = denom != 0 ? (k[i + 1] - u) / denom * N[ii + 1] : zero(u)
         end
-        N[i] = (u - k[i]) / (k[i + deg] - k[i]) * N[i]
+        for j in max(ii + 1, 1):(i - 1)
+            denom1 = k[j + deg] - k[j]
+            denom2 = k[j + deg + 1] - k[j + 1]
+            left = denom1 != 0 ? (u - k[j]) / denom1 * N[j] : zero(u)
+            right = denom2 != 0 ? (k[j + deg + 1] - u) / denom2 * N[j + 1] : zero(u)
+            N[j] = left + right
+        end
+        denom = k[i + deg] - k[i]
+        N[i] = denom != 0 ? (u - k[i]) / denom * N[i] : zero(u)
     end
-    return (i - d):i
+    lo = max(i - d, 1)
+    hi = min(i, n)
+    return lo:hi
 end
 
 function spline_coefficients!(N, d, k, u::AbstractVector)
@@ -85,19 +106,32 @@ end
 # recurrence of `spline_coefficients!`, but writes into a local window indexed `1:m`
 # instead of absolute knot indices.
 @inline function bspline_nonzero_coefficients(d::Integer, k, u::T, ncp::Integer) where {T}
-    N = zero(SVector{BSPLINE_STACK_MAXLEN, T})
+    # The recurrence divides knot differences, which can produce non-integer
+    # values even when `u` and `k` are integer-valued, so the scratch buffer's
+    # element type must be the promotion of `T` and `eltype(k)`, not `T` alone.
+    T2 = promote_type(T, eltype(k))
+    N = zero(SVector{BSPLINE_STACK_MAXLEN, T2})
     if u == k[1]
-        N = _static_setindex(N, one(u), 1)
+        N = _static_setindex(N, one(T2), 1)
         return N, 0, 1
     elseif u == k[end]
-        N = _static_setindex(N, one(u), 1)
+        N = _static_setindex(N, one(T2), 1)
         return N, ncp - 1, 1
     end
     i = searchsortedlast(k, u)
+    # For out-of-range points, extend the boundary polynomial span (mirrors
+    # the locator in `spline_coefficients!`).
+    if i == 0
+        # u < k[1]: use first span
+        i = findfirst(j -> k[j + 1] > k[1], 1:(length(k) - 1))::Int
+    elseif i == length(k)
+        # u > k[end]: use last span
+        i = findlast(j -> k[j] < k[end], 1:length(k))::Int
+    end
     # Local index of global knot index `g` is `g + off` (so `i - d → 1`, `i → d + 1`).
     off = d + 1 - i
+    N = _static_setindex(N, one(T2), i + off)
     @inbounds begin
-        N = _static_setindex(N, one(u), i + off)
         for deg in 1:d
             N = _static_setindex(
                 N,
@@ -118,6 +152,64 @@ end
         end
     end
     return N, i - d - 1, d + 1
+end
+
+# Hager's estimate of `‖inv(A)‖₁` from an existing factorization: a handful of solves
+# against `F` and `F'`, so O(n²) on top of the factorization rather than the O(n³) an
+# explicit inverse would cost. This is what LAPACK's `gecon` does internally.
+function norm_inv_1_estimate(F, n)
+    x = fill(one(eltype(F)) / n, n)
+    est = zero(real(eltype(F)))
+    for _ in 1:5
+        y = F \ x
+        est = norm(y, 1)
+        z = F' \ map(yᵢ -> yᵢ < zero(yᵢ) ? -one(yᵢ) : one(yᵢ), y)
+        j = argmax(abs.(z))
+        abs(z[j]) <= dot(z, x) && break
+        fill!(x, zero(eltype(x)))
+        x[j] = one(eltype(x))
+    end
+    return est
+end
+
+# A `:Uniform` knot vector spaces the interior knots by `1/(n - d)` while the data
+# sites are spaced `1/(n - 1)`, so the collocation points drift away from the Greville
+# abscissae of the basis functions they are paired with — by up to `(d - 1)/2` knot
+# spans, independent of `n`. Past half a span the collocation system's condition number
+# grows exponentially in `n`, and the interpolant diverges between the data points
+# while still passing through them, so nothing about the fit looks wrong (#567).
+# `:Average` knots are the standard pairing for interpolation and stay well conditioned.
+function bspline_collocation_factorization(sc, n, d, knotVecType)
+    F = lu(sc; check = false)
+    LinearAlgebra.issuccess(F) || error(
+        "BSplineInterpolation: the collocation system for degree $d with " *
+            "`knotVecType = :$knotVecType` and $n points is numerically singular." *
+            ill_conditioned_advice(d, knotVecType)
+    )
+    warn_if_ill_conditioned(F, sc, n, d, knotVecType)
+    return F
+end
+
+# Only degree 3 and up: the drift peaks at `(d - 1)/2` knot spans, so it first crosses
+# the half-span stability threshold at `d = 3`. Degrees 1 and 2 are sound with
+# `:Uniform` knots, and a failure there is caused by something else — duplicate data
+# sites, say — which this advice would misattribute.
+function ill_conditioned_advice(d, knotVecType)
+    (knotVecType == :Uniform && d >= 3) || return ""
+    return " A `:Uniform` knot vector is unsuitable for interpolation at degree $d; " *
+        "use `knotVecType = :Average` instead."
+end
+
+function warn_if_ill_conditioned(F, sc, n, d, knotVecType)
+    κ = opnorm(sc, 1) * norm_inv_1_estimate(F, n)
+    κ <= 1 / sqrt(eps(float(real(eltype(sc))))) && return nothing
+    @warn "BSplineInterpolation: the collocation system for degree $d with " *
+        "`knotVecType = :$knotVecType` and $n points is ill-conditioned (estimated " *
+        "1-norm condition number $(round(κ, sigdigits = 3))). The interpolant still " *
+        "passes through the data but may deviate from it by orders of magnitude in " *
+        "between, most visibly near the ends of the domain." *
+        ill_conditioned_advice(d, knotVecType)
+    return nothing
 end
 
 function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
@@ -538,3 +630,19 @@ function get_transition_ts(A::SmoothedConstantInterpolation)
 end
 
 get_transition_ts(A::AbstractInterpolation) = A.t
+
+# Data points sit in the last dimension of `u`, unless `u` holds one value per
+# data point. `_u_view` aliases `u` and is meant for expressions that build a new
+# result from it; `_u_point` returns what `_interpolate` would, so it is safe to
+# hand back to the caller.
+_u_view(u::AbstractVector, idx) = u[idx]
+_u_view(u::AbstractArray, idx) = selectdim(u, ndims(u), idx)
+
+_u_point(u::AbstractVector, idx) = u[idx]
+_u_point(u::AbstractArray, idx) = copy(_u_view(u, idx))
+
+_first(u::AbstractVector) = first(u)
+_first(u::AbstractArray) = _u_view(u, firstindex(u, ndims(u)))
+
+_last(u::AbstractVector) = last(u)
+_last(u::AbstractArray) = _u_view(u, lastindex(u, ndims(u)))

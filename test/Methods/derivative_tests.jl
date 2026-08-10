@@ -4,7 +4,7 @@ using FiniteDifferences
 using DataInterpolations: derivative, get_transition_ts
 using Symbolics
 using StableRNGs
-using Optim
+using CurveFit
 import ForwardDiff
 using LinearAlgebra
 
@@ -242,7 +242,6 @@ end
         args = [
             u, t, 2,
             :Uniform,
-            :Uniform,
         ],
         name = "BSpline Interpolation (Uniform, Uniform)"
     )
@@ -250,7 +249,6 @@ end
         BSplineInterpolation;
         args = [
             u, t, 2,
-            :ArcLen,
             :Average,
         ],
         name = "BSpline Interpolation (Arclen, Average)"
@@ -261,7 +259,6 @@ end
             u, t,
             3,
             4,
-            :Uniform,
             :Uniform,
         ],
         name = "BSpline Approx (Uniform, Uniform)"
@@ -280,7 +277,6 @@ end
             u3d, t3d,
             2,
             :Uniform,
-            :Uniform,
         ],
         name = "BSpline Interpolation (Uniform, Uniform): AbstractArray"
     )
@@ -290,7 +286,6 @@ end
         args = [
             u3d, t3d,
             2,
-            :ArcLen,
             :Average,
         ],
         name = "BSpline Interpolation (Arclen, Average): AbstractArray"
@@ -303,7 +298,6 @@ end
             3,
             4,
             :Uniform,
-            :Uniform,
         ],
         name = "BSpline Approx (Uniform, Uniform): AbstractArray"
     )
@@ -314,7 +308,6 @@ end
             u3d, t3d,
             3,
             4,
-            :ArcLen,
             :Average,
         ],
         name = "BSpline Approx (Arclen, Average): AbstractArray"
@@ -372,7 +365,7 @@ end
     t = range(-10, stop = 10, length = 40)
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
-    test_derivatives(Curvefit; args = [u, t, model, p0, LBFGS()], name = "Curvefit")
+    test_derivatives(Curvefit; args = [u, t, model, p0], name = "Curvefit")
 end
 
 @testset "Symbolic derivatives" begin

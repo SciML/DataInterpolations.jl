@@ -1,11 +1,14 @@
 using DataInterpolations, Test
 using QuadGK
 using DataInterpolations: integral
-using Optim, ForwardDiff
+using CurveFit, ForwardDiff
 using StableRNGs
 using Unitful
 
-function test_integral(method; args = [], kwargs = [], name::String)
+function test_integral(
+        method; args = [], kwargs = [], name::String,
+        test_cache_parameters::Bool = true
+    )
     func = method(args...; kwargs..., extrapolation = ExtrapolationType.Extension)
     (; t) = func
     t1 = minimum(t)
@@ -64,14 +67,16 @@ function test_integral(method; args = [], kwargs = [], name::String)
         func, t[1], t[end] + 1.0
     )
 
-    # Test integration with cached parameters
-    func = method(
-        args...; kwargs..., cache_parameters = true,
-        extrapolation = ExtrapolationType.Extension
-    )
-    qint, err = quadgk(func, t1 - 1, t1; atol = 1.0e-12, rtol = 1.0e-12)
-    aint = integral(func, t1 - 1, t1)
-    return @test isapprox(qint, aint, atol = 1.0e-6, rtol = 1.0e-8)
+    return if test_cache_parameters
+        # Test integration with cached parameters
+        func = method(
+            args...; kwargs..., cache_parameters = true,
+            extrapolation = ExtrapolationType.Extension
+        )
+        qint, err = quadgk(func, t1 - 1, t1; atol = 1.0e-12, rtol = 1.0e-12)
+        aint = integral(func, t1 - 1, t1)
+        @test isapprox(qint, aint, atol = 1.0e-6, rtol = 1.0e-8)
+    end
 end
 
 @testset "LinearInterpolation" begin
@@ -220,25 +225,43 @@ end
     t = range(-10, stop = 10, length = 40)
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 0.0, 1.0)
     @test_throws DataInterpolations.IntegralNotFoundError integral(A, 5.0)
 end
 
 @testset "BSplineInterpolation" begin
-    t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    t = Float64[0, 62.25, 109.66, 162.66, 205.8, 252.3]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
-    A = BSplineInterpolation(u, t, 2, :Uniform, :Uniform)
-    @test_throws DataInterpolations.IntegralNotFoundError integral(A, 1.0, 100.0)
-    @test_throws DataInterpolations.IntegralNotFoundError integral(A, 50.0)
+    test_integral(
+        BSplineInterpolation;
+        args = [u, t, 2, :Uniform],
+        name = "BSpline Interpolation (d=2, Uniform)",
+        test_cache_parameters = false
+    )
+    test_integral(
+        BSplineInterpolation;
+        args = [u, t, 3, :Average],
+        name = "BSpline Interpolation (d=3, Average)",
+        test_cache_parameters = false
+    )
 end
 
 @testset "BSplineApprox" begin
-    t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
+    t = Float64[0, 62.25, 109.66, 162.66, 205.8, 252.3]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
-    A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
-    @test_throws DataInterpolations.IntegralNotFoundError integral(A, 1.0, 100.0)
-    @test_throws DataInterpolations.IntegralNotFoundError integral(A, 50.0)
+    test_integral(
+        BSplineApprox;
+        args = [u, t, 2, 4, :Uniform],
+        name = "BSpline Approx (d=2, Uniform)",
+        test_cache_parameters = false
+    )
+    test_integral(
+        BSplineApprox;
+        args = [u, t, 3, 4, :Average],
+        name = "BSpline Approx (d=3, Average)",
+        test_cache_parameters = false
+    )
 end
 
 # issue #385

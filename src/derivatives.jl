@@ -1,3 +1,38 @@
+"""
+    derivative(A::AbstractInterpolation, t::Number, order = 1)
+
+Evaluate the `order`-th derivative of the interpolation `A` at `t`.
+
+First order derivatives are computed analytically; second order derivatives are computed
+from the analytical first order derivative with ForwardDiff.jl. The derivative is taken as
+a left derivative, so at a data point where the derivative jumps the value from the
+interval to the left of the point is returned.
+
+Outside of the range of `A.t` the derivative of the extrapolation is returned, as
+determined by the `extrapolation_left` and `extrapolation_right` settings of `A`.
+
+## Arguments
+
+  - `A`: the interpolation object.
+  - `t`: the point at which to evaluate the derivative.
+  - `order`: the order of the derivative, either `1` or `2`. Defaults to `1`.
+
+## Examples
+
+```jldoctest
+using DataInterpolations
+
+u = [1.0, 4.0, 9.0]
+t = [1.0, 2.0, 3.0]
+A = QuadraticInterpolation(u, t)
+
+DataInterpolations.derivative(A, 2.5)
+
+# output
+
+5.0
+```
+"""
 function derivative(A, t, order = 1)
     (order ∉ (1, 2)) && throw(DerivativeNotFoundError())
     if t < first(A.t)
@@ -17,14 +52,21 @@ function derivative(A, t, order = 1)
     end
 end
 
+# Zero of the derivative's value type, shaped like one data point.
+function _zero_derivative(A)
+    u₁ = _first(A.u)
+    t₁ = one(A.t[1])
+    return @. zero(u₁ / t₁)
+end
+
 function _extrapolate_derivative_left(A, t, order)
     (; extrapolation_left) = A
     return if extrapolation_left == ExtrapolationType.None
         throw(LeftExtrapolationError())
     elseif extrapolation_left == ExtrapolationType.Constant
-        zero(first(A.u) / one(A.t[1]))
+        _zero_derivative(A)
     elseif extrapolation_left == ExtrapolationType.Linear
-        (order == 1) ? _derivative(A, first(A.t), 1) : zero(first(A.u) / one(A.t[1]))
+        (order == 1) ? _derivative(A, first(A.t), 1) : _zero_derivative(A)
     elseif extrapolation_left == ExtrapolationType.Extension
         (order == 1) ? _derivative(A, t, length(A.t)) :
             ForwardDiff.derivative(
@@ -58,10 +100,9 @@ function _extrapolate_derivative_right(A, t, order)
     return if extrapolation_right == ExtrapolationType.None
         throw(RightExtrapolationError())
     elseif extrapolation_right == ExtrapolationType.Constant
-        zero(first(A.u) / one(A.t[1]))
+        _zero_derivative(A)
     elseif extrapolation_right == ExtrapolationType.Linear
-        (order == 1) ? _derivative(A, last(A.t), length(A.t)) :
-            zero(first(A.u) / one(A.t[1]))
+        (order == 1) ? _derivative(A, last(A.t), length(A.t)) : _zero_derivative(A)
     elseif extrapolation_right == ExtrapolationType.Extension
         (order == 1) ? _derivative(A, t, length(A.t)) :
             ForwardDiff.derivative(
@@ -132,7 +173,7 @@ function _derivative(A::QuadraticInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt = t - A.t[idx]
     α, β = get_parameters(A, idx)
-    return 2α * Δt + β
+    return @. 2α * Δt + β
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
@@ -216,7 +257,7 @@ function _derivative(A::AkimaInterpolation{<:AbstractVector}, t::Number, iguess)
 end
 
 function _derivative(A::ConstantInterpolation, t::Number, iguess)
-    return zero(first(A.u))
+    return zero(_first(A.u))
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, iguess)
@@ -224,7 +265,8 @@ function _derivative(A::ConstantInterpolation{<:AbstractVector}, t::Number, igue
 end
 
 function _derivative(A::ConstantInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) : typed_nan(A.u) .* A.u[:, 1]
+    u₁ = _first(A.u)
+    return isempty(searchsorted(A.t, t)) ? zero(u₁) : fill(typed_nan(A.u), size(u₁))
 end
 
 # QuadraticSpline Interpolation
@@ -249,102 +291,106 @@ function _derivative(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
 end
 
 function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
-    # change t into param [0 1]
-    t < A.t[1] && return zero(A.u[1])
-    t > A.t[end] && return zero(A.u[end])
-    idx = get_idx(A, t, iguess)
+    if A.d == 0
+        return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : typed_nan(A.u)
+    end
     n = length(A.t)
-    scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
-    t_ = A.p[idx] + (t - A.t[idx]) * scale
+    # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
+    vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, n)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
-        ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
+        denom = A.k[A.d + 2] - A.k[2]
+        ducum = denom != 0 ? (A.c[2] - A.c[1]) / denom : zero(eltype(A.u))
     else
-        # Stack-allocated basis window: differentiation must be reentrant (#532)
-        vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t_, n)
-        @inbounds for l in 1:m
-            i = offset + l - 1
-            (1 <= i <= n - 1) || continue
-            ducum += vals[l] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+        @inbounds for i in 1:(n - 1)
+            denom = A.k[i + A.d + 1] - A.k[i + 1]
+            l = i + 1 - offset
+            if denom != 0 && 1 <= l <= m
+                ducum += vals[l] * (A.c[i + 1] - A.c[i]) / denom
+            end
         end
     end
-    return ducum * A.d * scale
+    return ducum * A.d
 end
 
 function _derivative(
         A::BSplineInterpolation{<:AbstractArray{<:Number}}, t::Number, iguess
     )
-    # change t into param [0 1]
+    if A.d == 0
+        return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) :
+            typed_nan(A.u) .* A.u[:, 1]
+    end
     ax_u = axes(A.u)[1:(end - 1)]
-    t < A.t[1] && return zeros(size(A.u)[1:(end - 1)]...)
-    t > A.t[end] && return zeros(size(A.u)[1:(end - 1)]...)
-    idx = get_idx(A, t, iguess)
     n = length(A.t)
-    scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
-    t_ = A.p[idx] + (t - A.t[idx]) * scale
+    # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
+    vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, n)
     ducum = zeros(size(A.u)[1:(end - 1)]...)
     if t == A.t[1]
-        ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / (A.k[A.d + 2])
+        denom = A.k[A.d + 2] - A.k[2]
+        if denom != 0
+            ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / denom
+        end
     else
-        # Stack-allocated basis window: differentiation must be reentrant (#532)
-        vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t_, n)
-        @inbounds for l in 1:m
-            i = offset + l - 1
-            (1 <= i <= n - 1) || continue
-            ducum = ducum +
-                vals[l] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
-                (A.k[i + A.d + 1] - A.k[i + 1])
+        @inbounds for i in 1:(n - 1)
+            denom = A.k[i + A.d + 1] - A.k[i + 1]
+            l = i + 1 - offset
+            if denom != 0 && 1 <= l <= m
+                ducum = ducum +
+                    vals[l] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) / denom
+            end
         end
     end
-    return ducum * A.d * scale
+    return ducum * A.d
 end
 # BSpline Curve Approx
 function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, iguess)
-    # change t into param [0 1]
-    t < A.t[1] && return zero(A.u[1])
-    t > A.t[end] && return zero(A.u[end])
-    idx = get_idx(A, t, iguess)
-    scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
-    t_ = A.p[idx] + (t - A.t[idx]) * scale
+    if A.d == 0
+        return isempty(searchsorted(A.t, t)) ? zero(A.u[1]) : typed_nan(A.u)
+    end
+    # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
+    vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, A.h)
     ducum = zero(eltype(A.u))
     if t == A.t[1]
-        ducum = (A.c[2] - A.c[1]) / (A.k[A.d + 2])
+        denom = A.k[A.d + 2] - A.k[2]
+        ducum = denom != 0 ? (A.c[2] - A.c[1]) / denom : zero(eltype(A.u))
     else
-        # Stack-allocated basis window: differentiation must be reentrant (#532)
-        vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t_, A.h)
-        @inbounds for l in 1:m
-            i = offset + l - 1
-            (1 <= i <= A.h - 1) || continue
-            ducum += vals[l] * (A.c[i + 1] - A.c[i]) / (A.k[i + A.d + 1] - A.k[i + 1])
+        @inbounds for i in 1:(A.h - 1)
+            denom = A.k[i + A.d + 1] - A.k[i + 1]
+            l = i + 1 - offset
+            if denom != 0 && 1 <= l <= m
+                ducum += vals[l] * (A.c[i + 1] - A.c[i]) / denom
+            end
         end
     end
-    return ducum * A.d * scale
+    return ducum * A.d
 end
 
 function _derivative(
         A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess
     )
-    # change t into param [0 1]
+    if A.d == 0
+        return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) :
+            typed_nan(A.u) .* A.u[:, 1]
+    end
     ax_u = axes(A.u)[1:(end - 1)]
-    t < A.t[1] && return zeros(size(A.u)[1:(end - 1)]...)
-    t > A.t[end] && return zeros(size(A.u)[1:(end - 1)]...)
-    idx = get_idx(A, t, iguess)
-    scale = (A.p[idx + 1] - A.p[idx]) / (A.t[idx + 1] - A.t[idx])
-    t_ = A.p[idx] + (t - A.t[idx]) * scale
+    # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
+    vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, A.h)
     ducum = zeros(size(A.u)[1:(end - 1)]...)
     if t == A.t[1]
-        ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / (A.k[A.d + 2])
+        denom = A.k[A.d + 2] - A.k[2]
+        if denom != 0
+            ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / denom
+        end
     else
-        # Stack-allocated basis window: differentiation must be reentrant (#532)
-        vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t_, A.h)
-        @inbounds for l in 1:m
-            i = offset + l - 1
-            (1 <= i <= A.h - 1) || continue
-            ducum = ducum + vals[l] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) /
-                (A.k[i + A.d + 1] - A.k[i + 1])
+        @inbounds for i in 1:(A.h - 1)
+            denom = A.k[i + A.d + 1] - A.k[i + 1]
+            l = i + 1 - offset
+            if denom != 0 && 1 <= l <= m
+                ducum += vals[l] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) / denom
+            end
         end
     end
-    return ducum * A.d * scale
+    return ducum * A.d
 end
 # Cubic Hermite Spline
 function _derivative(

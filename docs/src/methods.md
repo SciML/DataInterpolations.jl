@@ -124,10 +124,10 @@ that every data point is taken into account for each point of the curve.
 The interpolating B-spline is the version which hits each of the points. This
 method is described in more detail [here](https://pages.mtu.edu/%7Eshene/COURSES/cs3621/NOTES/INT-APP/CURVE-INT-global.html).
 Let's plot a cubic B-spline (3rd order). Since the data points are not close to
-uniformly spaced, we will use the `:ArcLen` and `:Average` choices:
+uniformly spaced, we will use the `:Average` knot vector:
 
 ```@example tutorial
-A = BSplineInterpolation(u, t, 3, :ArcLen, :Average)
+A = BSplineInterpolation(u, t, 3, :Average)
 plot(A)
 ```
 
@@ -138,7 +138,7 @@ is a least square approximation. This has a natural effect of smoothing the
 data. For example, if we use 4 control points, we get the result:
 
 ```@example tutorial
-A = BSplineApprox(u, t, 3, 4, :ArcLen, :Average)
+A = BSplineApprox(u, t, 3, 4, :Average)
 plot(A)
 ```
 
@@ -202,8 +202,8 @@ match our data. Let's start with the guess of every `p` being zero, that is
 `p=ones(4)`. Then we would fit this curve using:
 
 ```@example tutorial
-using Optim
-A = Curvefit(u, t, m, ones(4), LBFGS())
+using CurveFit
+A = Curvefit(u, t, m, ones(4))
 plot(A)
 ```
 
@@ -219,7 +219,7 @@ parameters. For example, with `p=zeros(4)` as the initial parameters, the fit
 is not good:
 
 ```@example tutorial
-A = Curvefit(u, t, m, zeros(4), LBFGS())
+A = Curvefit(u, t, m, zeros(4))
 plot(A)
 ```
 

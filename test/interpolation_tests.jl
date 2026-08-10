@@ -1,7 +1,7 @@
 using DataInterpolations
 using FindFirstFunctions: FindFirstFunctions, GuesserHint
 using StableRNGs
-using Optim, ForwardDiff
+using CurveFit, NonlinearSolve, ForwardDiff
 using BenchmarkTools
 using Unitful
 using LinearAlgebra
@@ -1325,10 +1325,10 @@ end
         t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
         u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
         test_interpolation_type(BSplineInterpolation)
-        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform, :Uniform))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform))
 
-        @test [A(25.0), A(80.0)] == [13.454197730061425, 10.305633616059845]
-        @test [A(190.0), A(225.0)] == [14.07428439395079, 11.057784141519251]
+        @test [A(25.0), A(80.0)] == [14.411908462307684, 9.99346697254525]
+        @test [A(190.0), A(225.0)] == [13.56561617594697, 11.297503333875742]
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 0
@@ -1337,45 +1337,45 @@ end
         # Test extrapolation
         A = @inferred(
             BSplineInterpolation(
-                u, t, 2, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension
+                u, t, 2, :Uniform; extrapolation = ExtrapolationType.Constant
             )
         )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform, :Uniform))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform))
         @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
         @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
-        A = @inferred(BSplineInterpolation(u, t, 2, :ArcLen, :Average))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Average))
 
-        @test [A(25.0), A(80.0)] ≈ [13.363814458968484, 10.685201117692609]
-        @test [A(190.0), A(225.0)] ≈ [13.437481084762863, 11.367034741256461]
+        @test [A(25.0), A(80.0)] ≈ [13.364285794535945, 10.683641750973738]
+        @test [A(190.0), A(225.0)] ≈ [13.438136405352909, 11.365386175733823]
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
 
         @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
-            u[1:3], t[1:3], 3, :Uniform, :Uniform
+            u[1:3], t[1:3], 3, :Uniform
         )
         @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 5 points.") BSplineInterpolation(
-            u[1:4], t[1:4], 4, :ArcLen, :Average
+            u[1:4], t[1:4], 4, :Average
         )
-        @test_nowarn BSplineInterpolation(u[1:3], t[1:3], 2, :Uniform, :Uniform)
+        @test_nowarn BSplineInterpolation(u[1:3], t[1:3], 2, :Uniform)
 
         # Test extrapolation
         A = @inferred(
             BSplineInterpolation(
-                u, t, 2, :ArcLen, :Average; extrapolation = ExtrapolationType.Extension
+                u, t, 2, :Average; extrapolation = ExtrapolationType.Constant
             )
         )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = @inferred(BSplineInterpolation(u, t, 2, :ArcLen, :Average))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Average))
         @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
         @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
         @testset "AbstractMatrix" begin
             t = 0.1:0.1:1.0
             u2d = [sin.(t) cos.(t)]' |> collect
-            A = @inferred(BSplineInterpolation(u2d, t, 2, :Uniform, :Uniform))
+            A = @inferred(BSplineInterpolation(u2d, t, 2, :Uniform))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
@@ -1383,7 +1383,7 @@ end
             @test @inferred(output_dim(A)) == 1
             @test @inferred(output_size(A)) == (2,)
 
-            A = @inferred(BSplineInterpolation(u2d, t, 2, :ArcLen, :Average))
+            A = @inferred(BSplineInterpolation(u2d, t, 2, :Average))
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
@@ -1397,7 +1397,7 @@ end
             ]
             t = 0.1:0.1:1.0
             u3d = cat(f3d.(t)..., dims = 3)
-            A = @inferred(BSplineInterpolation(u3d, t, 2, :Uniform, :Uniform))
+            A = @inferred(BSplineInterpolation(u3d, t, 2, :Uniform))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             f_test = reduce(hcat, f3d.(t_test))
@@ -1405,7 +1405,7 @@ end
             @test @inferred(output_dim(A)) == 2
             @test @inferred(output_size(A)) == (2, 2)
 
-            A = @inferred(BSplineInterpolation(u3d, t, 2, :ArcLen, :Average))
+            A = @inferred(BSplineInterpolation(u3d, t, 2, :Average))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test, f_test, atol = 1.0e-2)
@@ -1414,45 +1414,97 @@ end
         end
     end
 
+    # `:Uniform` knots space the interior knots by `1/(n - d)` against a data site
+    # spacing of `1/(n - 1)`, so the collocation system becomes exponentially
+    # ill-conditioned in `n` for degree 3 and up. The fit still passes through the data,
+    # so the only signal the caller gets is the warning (#567).
+    @testset "Ill-conditioned collocation systems are reported" begin
+        f(x) = sin(x)
+        build(n, d, knotVecType) = BSplineInterpolation(
+            f.(range(0, 2π, length = n)), collect(range(0, 2π, length = n)),
+            d, knotVecType
+        )
+
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(160, 3, :Uniform)
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(320, 3, :Uniform)
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(80, 5, :Uniform)
+        # The message has to point somewhere useful.
+        @test_logs (:warn, r"knotVecType = :Average") match_mode = :any build(160, 3, :Uniform)
+
+        # `:Average` knots are well conditioned at any degree or size, and small
+        # problems with `:Uniform` knots are still fine, so neither may warn.
+        @test_nowarn build(160, 3, :Average)
+        @test_nowarn build(640, 5, :Average)
+        @test_nowarn build(20, 3, :Uniform)
+        @test_nowarn build(6, 3, :Uniform)
+        # Degrees 1 and 2 never drift past half a knot span, so they stay sound.
+        @test_nowarn build(320, 1, :Uniform)
+        @test_nowarn build(320, 2, :Uniform)
+
+        # Whether the factorization hits an exact zero pivot at large `n` is
+        # BLAS-dependent, so drive the singular branch with duplicate data sites, which
+        # give the collocation matrix two identical rows.
+        u_dup = [1.0, 2.0, 2.0, 3.0, 5.0, 8.0]
+        t_dup = [0.0, 1.0, 1.0, 2.0, 3.0, 4.0]
+        @test_throws "numerically singular" BSplineInterpolation(u_dup, t_dup, 2, :Average)
+        # Degree 2 is not a knot-vector problem, so it must not be blamed on one.
+        err = try
+            BSplineInterpolation(u_dup, t_dup, 2, :Uniform)
+        catch e
+            sprint(showerror, e)
+        end
+        @test !occursin("knotVecType = :Average", err)
+
+        # `:Average` knots keep the interpolant convergent at the requested order over
+        # the range where `:Uniform` diverges, which is the property being protected.
+        xq = range(0, 2π, length = 2001)
+        maxerr(A) = maximum(abs(A(x) - f(x)) for x in xq)
+        errs = map((160, 320)) do n
+            maxerr(build(n, 3, :Average))
+        end
+        @test log2(errs[1] / errs[2]) > 3.5
+        @test errs[2] < 1.0e-9
+    end
+
     @testset "BSplineApprox" begin
         test_interpolation_type(BSplineApprox)
         t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
         u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
-        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
+        A = BSplineApprox(u, t, 2, 4, :Uniform)
 
-        @test [A(25.0), A(80.0)] ≈ [12.979802931218234, 10.914310609953178]
-        @test [A(190.0), A(225.0)] ≈ [13.851245975109263, 12.963685868886575]
+        @test [A(25.0), A(80.0)] ≈ [12.653438633006644, 10.829963801404205]
+        @test [A(190.0), A(225.0)] ≈ [13.688412211160633, 12.785204994978452]
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
         test_cached_index(A)
 
         @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 3 control points.") BSplineApprox(
-            u, t, 2, 2, :Uniform, :Uniform
+            u, t, 2, 2, :Uniform
         )
         @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 4 control points.") BSplineApprox(
-            u, t, 3, 3, :ArcLen, :Average
+            u, t, 3, 3, :Average
         )
-        @test_nowarn BSplineApprox(u, t, 2, 3, :Uniform, :Uniform)
+        @test_nowarn BSplineApprox(u, t, 2, 3, :Uniform)
 
         # Test extrapolation
         A = BSplineApprox(
-            u, t, 2, 4, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension
+            u, t, 2, 4, :Uniform; extrapolation = ExtrapolationType.Constant
         )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
+        A = BSplineApprox(u, t, 2, 4, :Uniform)
         @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
         @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
         @testset "AbstractMatrix" begin
             t = 0.1:0.1:1.0
             u2d = [sin.(t) cos.(t)]' |> collect
-            A = BSplineApprox(u2d, t, 2, 5, :Uniform, :Uniform)
+            A = BSplineApprox(u2d, t, 2, 5, :Uniform)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
 
-            A = BSplineApprox(u2d, t, 2, 5, :ArcLen, :Average)
+            A = BSplineApprox(u2d, t, 2, 5, :Average)
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-2)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-2)
@@ -1464,13 +1516,13 @@ end
             ]
             t = 0.1:0.1:1.0
             u3d = cat(f3d.(t)..., dims = 3)
-            A = BSplineApprox(u3d, t, 2, 6, :Uniform, :Uniform)
+            A = BSplineApprox(u3d, t, 2, 6, :Uniform)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             f_test = reduce(hcat, f3d.(t_test))
             @test isapprox(u_test, f_test, atol = 1.0e-2)
 
-            A = BSplineApprox(u3d, t, 2, 7, :ArcLen, :Average)
+            A = BSplineApprox(u3d, t, 2, 7, :Average)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test, f_test, atol = 1.0e-2)
@@ -1621,7 +1673,7 @@ end
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
 
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt())
 
     ts = [-7.0, -2.0, 0.0, 2.5, 5.0]
     vs = [
@@ -1637,10 +1689,14 @@ end
     @test @inferred(output_size(A)) == ()
 
     # Test extrapolation
-    A = Curvefit(u, t, model, p0, LBFGS(); extrapolate = true)
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt(); extrapolate = true)
     @test A(15.0) == model(15.0, A.pmin)
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt())
     @test_throws DataInterpolations.ExtrapolationError A(15.0)
+
+    # With lb, ub
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt(), false, [0.0, 0.0], [1.0, 1.0])
+    @test all(0.0 .<= A.pmin .<= 1.0)
 end
 
 @testset "Type of vector returned" begin
@@ -1774,6 +1830,6 @@ end
     @test_nowarn cs = CubicSpline(x, t)
 
     @test_throws Exception ai = AkimaInterpolation(x, t)
-    @test_throws Exception bsi = BSplineInterpolation(x, t, 3, :ArcLen, :Average)
+    @test_throws Exception bsi = BSplineInterpolation(x, t, 3, :Average)
     @test_throws Exception pc = PCHIPInterpolation(x, t)
 end
