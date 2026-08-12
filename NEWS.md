@@ -10,7 +10,7 @@
 
   - Every interpolation constructor accepts a `search_properties::Union{Nothing, FindFirstFunctions.SearchProperties}` keyword. The default `nothing` probes `t` at construction; passing a pre-built `SearchProperties` skips the probe (useful when constructing many interpolations over the same knot vector).
 
-  - Knot search is dispatched through `FindFirstFunctions.Auto(t)` resolved at construction: uniformly-spaced knots (any `AbstractRange`, or vectors detected as exactly uniform) use a closed-form O(1) lookup; short non-uniform knot vectors use a linear scan; everything else keeps the previous bracketed gallop.
+  - Knot search is dispatched through `FindFirstFunctions.Auto(t)` resolved at construction: uniformly-spaced knots (any `AbstractRange`, or vectors detected as exactly uniform) use a closed-form O(1) lookup; non-uniform knot vectors use the previous bracketed gallop. `KIND_LINEAR_SCAN` (Auto's pick for `length(t) ≤ 16`) is remapped to `KIND_BRACKET_GALLOP` because the linear-scan kernel crashes on Windows (`RtlVirtualUnwind2`) when evaluated from an OrdinaryDiffEq Dual RHS ([#580](https://github.com/SciML/DataInterpolations.jl/issues/580)).
 
   - `LinearInterpolation` with uniformly-spaced knots and floating-point values takes a statically-dispatched fast path (closed-form index + lerp, verified against the live knots) — 5-10x faster per query on uniform grids.
 

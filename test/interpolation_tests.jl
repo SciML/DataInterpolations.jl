@@ -436,6 +436,22 @@ end
     end
 end
 
+@testset "Short non-uniform knots do not use LINEAR_SCAN" begin
+    t = [0.0, 0.3, 1.1, 2.0, 3.5, 5.0, 6.2, 8.0]
+    u = [1.0, 1.2, 2.0, 2.5, 3.1, 3.0, 4.2, 5.0]
+    for A in (
+            LinearInterpolation(u, t),
+            ConstantInterpolation(u, t),
+            PCHIPInterpolation(u, t),
+        )
+        @test A.kind === FindFirstFunctions.KIND_BRACKET_GALLOP
+        @test A(3.5) isa Number
+    end
+    Ainv = DataInterpolations.invert_integral(LinearInterpolation(u .+ 1, t))
+    @test Ainv.kind === FindFirstFunctions.KIND_BRACKET_GALLOP
+    @test Ainv(Ainv.t[end] / 2) isa Number
+end
+
 @testset "Quadratic Interpolation" begin
     test_interpolation_type(QuadraticInterpolation)
 

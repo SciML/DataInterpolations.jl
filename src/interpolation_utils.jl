@@ -345,9 +345,17 @@ end
 # Resolve the search `StrategyKind` once at construction; stored as the
 # non-parametric `kind::StrategyKind` cache field. The props-aware form
 # reuses an already-computed `SearchProperties` instead of re-probing `t`.
-@inline _resolve_strategy_kind(t::AbstractVector) = FindFirstFunctions.Auto(t).kind
-@inline _resolve_strategy_kind(t::AbstractVector, props::FindFirstFunctions.SearchProperties) =
-    FindFirstFunctions.Auto(t, props).kind
+# LINEAR_SCAN (Auto's pick for non-uniform length(t) ≤ 16) AVs on Windows
+# inside RtlVirtualUnwind2 from Dual ODE RHS calls; BracketGallop does not.
+@inline function _resolve_strategy_kind(
+        t::AbstractVector, props::FindFirstFunctions.SearchProperties
+    )
+    kind = FindFirstFunctions.Auto(t, props).kind
+    return kind === FindFirstFunctions.KIND_LINEAR_SCAN ?
+        FindFirstFunctions.KIND_BRACKET_GALLOP : kind
+end
+@inline _resolve_strategy_kind(t::AbstractVector) =
+    _resolve_strategy_kind(t, FindFirstFunctions.SearchProperties(t))
 
 function get_idx(
         A::AbstractInterpolation, t, iguess::Integer; lb = 1,
