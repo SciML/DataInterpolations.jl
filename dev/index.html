@@ -15,9 +15,9 @@ Pkg.add(&quot;DataInterpolations&quot;)</code></pre><h2 id="Available-Interpolat
   <span class="sgr90">[5a033b19] </span>CurveFit v1.11.3
   <span class="sgr90">[82cc6244] </span>DataInterpolations v9.2.1 `~/_work/DataInterpolations.jl/DataInterpolations.jl`
   <span class="sgr90">[e30172f5] </span>Documenter v1.17.0
-  <span class="sgr90">[961ee093] </span>ModelingToolkit v11.38.2
+  <span class="sgr90">[961ee093] </span>ModelingToolkit v11.39.0
   <span class="sgr90">[16a59e39] </span>ModelingToolkitStandardLibrary v2.29.6
-  <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v7.3.0
+  <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v7.6.0
   <span class="sgr90">[91a5bcdd] </span>Plots v1.41.6
   <span class="sgr90">[860ef19b] </span>StableRNGs v1.0.4
   <span class="sgr90">[0c5d862f] </span>Symbolics v7.36.0</code></pre></details><details><summary>and using this machine and Julia version.</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.12.6
@@ -26,7 +26,7 @@ Build Info:
   Official https://julialang.org release
 Platform Info:
   OS: Linux (x86_64-linux-gnu)
-  CPU: 112 × AMD EPYC 7663 56-Core Processor
+  CPU: 128 × AMD EPYC 7513 32-Core Processor
   WORD_SIZE: 64
   LLVM: libLLVM-18.1.7 (ORCJIT, znver3)
   GC: Built with stock GC
@@ -43,7 +43,7 @@ Environment:
   <span class="sgr90">[79e6a3ab] </span>Adapt v4.7.0
   <span class="sgr90">[66dad0bd] </span>AliasTables v1.1.3
   <span class="sgr90">[ec485272] </span>ArnoldiMethod v0.4.0
-  <span class="sgr90">[4fba245c] </span>ArrayInterface v7.28.1
+  <span class="sgr90">[4fba245c] </span>ArrayInterface v7.29.0
   <span class="sgr90">[4c555306] </span>ArrayLayouts v1.12.2
   <span class="sgr90">[aae01518] </span>BandedMatrices v1.11.0
   <span class="sgr90">[e2ed5e7c] </span>Bijections v0.2.2
@@ -51,9 +51,9 @@ Environment:
   <span class="sgr90">[caf10ac8] </span>BipartiteGraphs v0.1.11
   <span class="sgr90">[d1d4a3ce] </span>BitFlags v0.1.10
   <span class="sgr90">[8e7c35d0] </span>BlockArrays v1.10.0
-  <span class="sgr90">[70df07ce] </span>BracketingNonlinearSolve v1.12.4
+  <span class="sgr90">[70df07ce] </span>BracketingNonlinearSolve v1.12.5
   <span class="sgr90">[d360d2e6] </span>ChainRulesCore v1.26.1
-  <span class="sgr90">[944b1d66] </span>CodecZlib v0.7.8
+  <span class="sgr90">[944b1d66] </span>CodecZlib v0.7.9
   <span class="sgr90">[35d6a980] </span>ColorSchemes v3.31.0
   <span class="sgr90">[3da002f7] </span>ColorTypes v0.12.1
   <span class="sgr90">[c3611d14] </span>ColorVectorSpace v0.11.0
@@ -76,8 +76,8 @@ Environment:
   <span class="sgr90">[864edb3b] </span>DataStructures v0.19.6
   <span class="sgr90">[e2d170a0] </span>DataValueInterfaces v1.0.0
   <span class="sgr90">[8bb1440f] </span>DelimitedFiles v1.9.1
-  <span class="sgr90">[2b5f629d] </span>DiffEqBase v7.13.0
-  <span class="sgr90">[459566f4] </span>DiffEqCallbacks v4.19.1
+  <span class="sgr90">[2b5f629d] </span>DiffEqBase v7.15.0
+  <span class="sgr90">[459566f4] </span>DiffEqCallbacks v4.19.2
   <span class="sgr90">[163ba53b] </span>DiffResults v1.1.0
   <span class="sgr90">[b552c78f] </span>DiffRules v1.16.0
   <span class="sgr90">[a0c0ee7d] </span>DifferentiationInterface v0.7.20
@@ -107,7 +107,7 @@ Environment:
   <span class="sgr90">[77dc65aa] </span>FunctionWrappersWrappers v1.12.1
   <span class="sgr90">[46192b85] </span>GPUArraysCore v0.2.0
   <span class="sgr90">[28b8d3ca] </span>GR v0.73.26
-  <span class="sgr90">[a0844989] </span>Gamma v1.1.0
+  <span class="sgr90">[a0844989] </span>Gamma v1.2.0
   <span class="sgr90">[d7ba0133] </span>Git v1.5.0
   <span class="sgr90">[86223c79] </span>Graphs v1.14.0
   <span class="sgr90">[42e2da0e] </span>Grisu v1.0.2
@@ -130,8 +130,8 @@ Environment:
   <span class="sgr90">[b964fa9f] </span>LaTeXStrings v1.4.0
   <span class="sgr90">[23fbe1c1] </span>Latexify v0.16.11
   <span class="sgr90">[0e77f7df] </span>LazilyInitializedFields v1.3.0
-  <span class="sgr90">[87fe0de2] </span>LineSearch v0.1.13
-  <span class="sgr90">[7ed4a6bd] </span>LinearSolve v5.9.0
+  <span class="sgr90">[87fe0de2] </span>LineSearch v0.1.14
+  <span class="sgr90">[7ed4a6bd] </span>LinearSolve v5.10.0
   <span class="sgr90">[2ab3a3ac] </span>LogExpFunctions v1.0.1
   <span class="sgr90">[e6f89c97] </span>LoggingExtras v1.2.0
   <span class="sgr90">[1914dd2f] </span>MacroTools v0.5.16
@@ -140,8 +140,8 @@ Environment:
   <span class="sgr90">[739be429] </span>MbedTLS v1.1.10
   <span class="sgr90">[442fdcdd] </span>Measures v0.3.3
   <span class="sgr90">[e1d29d7a] </span>Missings v1.2.0
-  <span class="sgr90">[961ee093] </span>ModelingToolkit v11.38.2
-  <span class="sgr90">[7771a370] </span>ModelingToolkitBase v1.63.0
+  <span class="sgr90">[961ee093] </span>ModelingToolkit v11.39.0
+  <span class="sgr90">[7771a370] </span>ModelingToolkitBase v1.65.0
   <span class="sgr90">[16a59e39] </span>ModelingToolkitStandardLibrary v2.29.6
   <span class="sgr90">[6bb917b9] </span>ModelingToolkitTearing v1.20.5
   <span class="sgr90">[2e0e35c7] </span>Moshi v0.3.12
@@ -149,24 +149,24 @@ Environment:
   <span class="sgr90">[102ac46a] </span>MultivariatePolynomials v0.5.19
   <span class="sgr90">[d8a4904e] </span>MutableArithmetics v1.8.0
   <span class="sgr90">[77ba4419] </span>NaNMath v1.1.4
-  <span class="sgr90">[8913a72c] </span>NonlinearSolve v4.26.0
-  <span class="sgr90">[be0214bd] </span>NonlinearSolveBase v2.42.0
-  <span class="sgr90">[5959db7a] </span>NonlinearSolveFirstOrder v2.3.1
-  <span class="sgr90">[9a2c21bd] </span>NonlinearSolveQuasiNewton v1.15.0
+  <span class="sgr90">[8913a72c] </span>NonlinearSolve v4.27.0
+  <span class="sgr90">[be0214bd] </span>NonlinearSolveBase v2.45.0
+  <span class="sgr90">[5959db7a] </span>NonlinearSolveFirstOrder v2.3.2
+  <span class="sgr90">[9a2c21bd] </span>NonlinearSolveQuasiNewton v1.15.1
   <span class="sgr90">[26075421] </span>NonlinearSolveSpectralMethods v1.8.0
   <span class="sgr90">[6fe1bfb0] </span>OffsetArrays v1.17.0
   <span class="sgr90">[4d8831e6] </span>OpenSSL v1.6.1
 <span class="sgr33">⌅</span> <span class="sgr90">[bac558e1] </span>OrderedCollections v1.8.2
-  <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v7.3.0
-  <span class="sgr90">[6ad6398a] </span>OrdinaryDiffEqBDF v2.4.1
-  <span class="sgr90">[bbf590c4] </span>OrdinaryDiffEqCore v4.13.0
-  <span class="sgr90">[50262376] </span>OrdinaryDiffEqDefault v2.4.3
+  <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v7.6.0
+  <span class="sgr90">[6ad6398a] </span>OrdinaryDiffEqBDF v2.4.2
+  <span class="sgr90">[bbf590c4] </span>OrdinaryDiffEqCore v4.14.3
+  <span class="sgr90">[50262376] </span>OrdinaryDiffEqDefault v2.4.4
   <span class="sgr90">[4302a76b] </span>OrdinaryDiffEqDifferentiation v3.7.0
-  <span class="sgr90">[127b3ac7] </span>OrdinaryDiffEqNonlinearSolve v2.7.0
-  <span class="sgr90">[43230ef6] </span>OrdinaryDiffEqRosenbrock v2.6.3
+  <span class="sgr90">[127b3ac7] </span>OrdinaryDiffEqNonlinearSolve v2.8.0
+  <span class="sgr90">[43230ef6] </span>OrdinaryDiffEqRosenbrock v2.6.5
   <span class="sgr90">[b4bd8bb3] </span>OrdinaryDiffEqRosenbrockTableaus v2.4.1
   <span class="sgr90">[2d112036] </span>OrdinaryDiffEqSDIRK v2.8.2
-  <span class="sgr90">[b1df2697] </span>OrdinaryDiffEqTsit5 v2.1.2
+  <span class="sgr90">[b1df2697] </span>OrdinaryDiffEqTsit5 v2.1.3
   <span class="sgr90">[79d7bb75] </span>OrdinaryDiffEqVerner v2.2.2
   <span class="sgr90">[90014a1f] </span>PDMats v0.11.41
   <span class="sgr90">[69de0a69] </span>Parsers v2.8.7
@@ -174,19 +174,19 @@ Environment:
   <span class="sgr90">[995b91a9] </span>PlotUtils v1.4.4
   <span class="sgr90">[91a5bcdd] </span>Plots v1.41.6
   <span class="sgr90">[e409e4f3] </span>PoissonRandom v0.4.13
-  <span class="sgr90">[d236fae5] </span>PreallocationTools v1.4.1
+  <span class="sgr90">[d236fae5] </span>PreallocationTools v1.5.0
   <span class="sgr90">[aea7be01] </span>PrecompileTools v1.3.4
   <span class="sgr90">[21216c6a] </span>Preferences v1.5.2
   <span class="sgr90">[08abe8d2] </span>PrettyTables v3.4.6
   <span class="sgr90">[27ebfcd6] </span>Primes v0.5.7
   <span class="sgr90">[43287f4e] </span>PtrArrays v1.4.0
-  <span class="sgr90">[0c0d3e7f] </span>PureKLU v1.4.0
+  <span class="sgr90">[0c0d3e7f] </span>PureKLU v1.4.1
   <span class="sgr90">[1fd47b50] </span>QuadGK v2.11.3
   <span class="sgr90">[988b38a3] </span>ReadOnlyArrays v0.2.0
   <span class="sgr90">[795d4caa] </span>ReadOnlyDicts v1.0.1
   <span class="sgr90">[3cdcf5f2] </span>RecipesBase v1.3.4
   <span class="sgr90">[01d81517] </span>RecipesPipeline v0.6.12
-  <span class="sgr90">[731186ca] </span>RecursiveArrayTools v4.3.6
+  <span class="sgr90">[731186ca] </span>RecursiveArrayTools v4.4.0
   <span class="sgr90">[189a3867] </span>Reexport v1.2.2
   <span class="sgr90">[2792f1a3] </span>RegistryInstances v0.1.0
   <span class="sgr90">[05181044] </span>RelocatableFolders v1.0.1
@@ -195,11 +195,11 @@ Environment:
   <span class="sgr90">[79098fc4] </span>Rmath v0.9.0
   <span class="sgr90">[f2b01f46] </span>Roots v3.0.6
   <span class="sgr90">[7e49a35a] </span>RuntimeGeneratedFunctions v0.5.24
-  <span class="sgr90">[9dfe8606] </span>SCCNonlinearSolve v1.14.1
-  <span class="sgr90">[0bca4576] </span>SciMLBase v3.45.0
+  <span class="sgr90">[9dfe8606] </span>SCCNonlinearSolve v1.15.0
+  <span class="sgr90">[0bca4576] </span>SciMLBase v3.47.0
   <span class="sgr90">[19f34311] </span>SciMLJacobianOperators v0.1.17
   <span class="sgr90">[a6db7da4] </span>SciMLLogging v2.0.4
-  <span class="sgr90">[c0aeaf25] </span>SciMLOperators v1.26.1
+  <span class="sgr90">[c0aeaf25] </span>SciMLOperators v1.27.0
   <span class="sgr90">[431bcebd] </span>SciMLPublic v1.2.4
   <span class="sgr90">[53ae85a6] </span>SciMLStructures v1.10.4
   <span class="sgr90">[6c6a2e73] </span>Scratch v1.3.0
@@ -215,7 +215,7 @@ Environment:
   <span class="sgr90">[860ef19b] </span>StableRNGs v1.0.4
   <span class="sgr90">[0c0c59c1] </span>StarAlgebras v0.3.0
   <span class="sgr90">[64909d44] </span>StateSelection v1.11.0
-  <span class="sgr90">[90137ffa] </span>StaticArrays v1.9.18
+  <span class="sgr90">[90137ffa] </span>StaticArrays v1.9.19
   <span class="sgr90">[1e83bf80] </span>StaticArraysCore v1.4.4
   <span class="sgr90">[10745b16] </span>Statistics v1.11.1
   <span class="sgr90">[82ae8749] </span>StatsAPI v1.8.0
@@ -232,10 +232,10 @@ Environment:
   <span class="sgr90">[ed4db957] </span>TaskLocalValues v0.1.3
   <span class="sgr90">[62fd8b95] </span>TensorCore v0.1.1
   <span class="sgr90">[8ea1fca8] </span>TermInterface v2.0.0
-  <span class="sgr90">[a759f4b9] </span>TimerOutputs v1.1.1
+  <span class="sgr90">[a759f4b9] </span>TimerOutputs v1.2.0
   <span class="sgr90">[3bb67fe8] </span>TranscodingStreams v0.11.3
   <span class="sgr90">[781d530d] </span>TruncatedStacktraces v1.4.0
-  <span class="sgr90">[5c2747f8] </span>URIs v1.6.3
+  <span class="sgr90">[5c2747f8] </span>URIs v1.7.0
   <span class="sgr90">[3a884ed6] </span>UnPack v1.0.2
   <span class="sgr90">[1cfade01] </span>UnicodeFun v0.4.1
   <span class="sgr90">[41fe7b60] </span>Unzip v0.2.0
@@ -272,7 +272,7 @@ Environment:
   <span class="sgr90">[856f044c] </span>MKL_jll v2025.2.0+0
   <span class="sgr90">[c8ffd9c3] </span>MbedTLS_jll v2.28.1010+0
   <span class="sgr90">[e7412a2a] </span>Ogg_jll v1.3.6+0
-  <span class="sgr90">[9bd350c2] </span>OpenSSH_jll v10.4.1+0
+  <span class="sgr90">[9bd350c2] </span>OpenSSH_jll v10.5.1+0
   <span class="sgr90">[efe28fd5] </span>OpenSpecFun_jll v0.5.6+0
   <span class="sgr90">[91d4177d] </span>Opus_jll v1.6.1+0
   <span class="sgr90">[36c8627f] </span>Pango_jll v1.58.0+0
@@ -312,8 +312,8 @@ Environment:
   <span class="sgr90">[c5fb5394] </span>Xorg_xtrans_jll v1.6.0+0
   <span class="sgr90">[3161d3a3] </span>Zstd_jll v1.5.7+1
   <span class="sgr90">[35ca27e7] </span>eudev_jll v3.2.14+0
-  <span class="sgr90">[214eeab7] </span>fzf_jll v0.61.1+0
-  <span class="sgr90">[a4ae2306] </span>libaom_jll v3.13.3+1
+<span class="sgr33">⌅</span> <span class="sgr90">[214eeab7] </span>fzf_jll v0.61.1+0
+  <span class="sgr90">[a4ae2306] </span>libaom_jll v3.14.1+0
   <span class="sgr90">[0ac62f75] </span>libass_jll v0.17.4+0
   <span class="sgr90">[1183f4f0] </span>libdecor_jll v0.2.2+0
   <span class="sgr90">[8e53e030] </span>libdrm_jll v2.4.134+0
@@ -376,4 +376,4 @@ Environment:
   <span class="sgr90">[8e850b90] </span>libblastrampoline_jll v5.15.0+0
   <span class="sgr90">[8e850ede] </span>nghttp2_jll v1.64.0+1
   <span class="sgr90">[3f19e933] </span>p7zip_jll v17.7.0+0
-<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr33">⌅</span> have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v9.2.1/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v9.2.1/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 11 August 2026 10:57">Tuesday 11 August 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr33">⌅</span> have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v9.2.1/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v9.2.1/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Saturday 15 August 2026 10:05">Saturday 15 August 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
