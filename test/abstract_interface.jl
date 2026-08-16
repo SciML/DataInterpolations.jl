@@ -1,4 +1,5 @@
 using DataInterpolations, Test
+using FindFirstFunctions
 
 struct GenericTestInterpolation <: DataInterpolations.AbstractInterpolation{Float64}
     u::Vector{Float64}
@@ -7,8 +8,8 @@ struct GenericTestInterpolation <: DataInterpolations.AbstractInterpolation{Floa
     iguesser
     extrapolation_left::DataInterpolations.ExtrapolationType.T
     extrapolation_right::DataInterpolations.ExtrapolationType.T
-    kind
-    t_props
+    kind::FindFirstFunctions.StrategyKind
+    t_props::FindFirstFunctions.SearchProperties
     cache_parameters::Bool
 end
 
@@ -33,10 +34,13 @@ function DataInterpolations._integral(
 end
 
 @testset "AbstractInterpolation contract" begin
-    seed = LinearInterpolation([0.0, 2.0, 4.0], [0.0, 1.0, 2.0])
+    t = [0.0, 1.0, 2.0]
+    t_props = FindFirstFunctions.SearchProperties(t)
     A = GenericTestInterpolation(
-        [0.0, 2.0, 4.0], [0.0, 1.0, 2.0], Float64[], seed.iguesser,
-        seed.extrapolation_left, seed.extrapolation_right, seed.kind, seed.t_props, false,
+        [0.0, 2.0, 4.0], t, Float64[], FindFirstFunctions.Guesser(t),
+        DataInterpolations.ExtrapolationType.None,
+        DataInterpolations.ExtrapolationType.None,
+        FindFirstFunctions.Auto(t, t_props).kind, t_props, false,
     )
 
     @test A isa DataInterpolations.AbstractInterpolation

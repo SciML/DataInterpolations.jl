@@ -5,6 +5,10 @@ public evaluation, differentiation, and integration functions are generic over t
 so downstream code should use those functions rather than dispatching on a concrete
 interpolation implementation.
 
+```@docs
+DataInterpolations.AbstractInterpolation
+```
+
 ## Required data
 
 A concrete subtype must provide the following fields:
@@ -16,9 +20,17 @@ A concrete subtype must provide the following fields:
 - `extrapolation_left` and `extrapolation_right`: values from
   [`ExtrapolationType`](@ref) controlling out-of-range evaluation.
 
-The generic integration method also uses `I` when it is present. This field stores cumulative
-integrals for a cached implementation. A method without an analytic integral should omit
-`I`; `integral` then reports `IntegralNotFoundError`.
+For the generic integral interface, the subtype also provides:
+
+- `I`: cumulative integrals for the intervals, or an empty cache when
+  `cache_parameters` is `false`. A method without an analytic integral should omit this
+  field; `integral` then reports `IntegralNotFoundError`.
+- `cache_parameters::Bool`: whether the generic integral method reads the cached `I` values.
+- `kind` and `t_props`: interval-search state, normally constructed from
+  `FindFirstFunctions.SearchProperties(t)` and `FindFirstFunctions.Auto(t, t_props)`.
+
+Construct `iguesser` with `FindFirstFunctions.Guesser(t)`. The `t` values must remain ordered,
+and `u` must store one sample per `t` entry along its last dimension.
 
 ## Developer hooks
 
@@ -51,14 +63,23 @@ The following sketch shows the required dispatch. A production implementation sh
 validate its data and provide the fields needed by any optional features it supports.
 
 ```julia
+using FindFirstFunctions
+
 struct MyInterpolation <: DataInterpolations.AbstractInterpolation{Float64}
     u::Vector{Float64}
     t::Vector{Float64}
+    I::Vector{Float64}
     iguesser
     extrapolation_left::DataInterpolations.ExtrapolationType.T
     extrapolation_right::DataInterpolations.ExtrapolationType.T
+    kind::FindFirstFunctions.StrategyKind
+    t_props::FindFirstFunctions.SearchProperties
+    cache_parameters::Bool
 end
 
 DataInterpolations._interpolate(A::MyInterpolation, t::Number, iguess) = 2t
 DataInterpolations._derivative(A::MyInterpolation, t::Number, iguess) = 2.0
+DataInterpolations._integral(
+    A::MyInterpolation, idx::Integer, t1::Number, t2::Number
+) = 2 * (t2 - t1)
 ```

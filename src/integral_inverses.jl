@@ -17,6 +17,9 @@ the source interpolation's reciprocal value from `_derivative`.
 - `u`: the original interpolation's sample locations.
 - `t`: cumulative integral values used as inverse-interpolation locations.
 - `itp`: the source interpolation used to evaluate the inverse derivative.
+
+Implementations also provide the interval-search fields described for
+[`AbstractInterpolation`](@ref), including `iguesser`, `kind`, and `t_props`.
 """
 abstract type AbstractIntegralInverseInterpolation{T} <: AbstractInterpolation{T} end
 

@@ -6,8 +6,9 @@ using DataInterpolations, Test
 @testset "Public API" begin
     @testset "$name" for name in
         (
-            :AbstractInterpolation, :derivative, :integral, :invert_integral,
-            :_interpolate, :_derivative, :_integral,
+            :AbstractInterpolation, :AbstractIntegralInverseInterpolation,
+            :derivative, :integral, :invert_integral, :_interpolate, :_derivative,
+            :_integral,
         )
         @test isdefined(DataInterpolations, name)
         if VERSION >= v"1.11"

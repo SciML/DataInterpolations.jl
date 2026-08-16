@@ -21,8 +21,20 @@ provide `iguesser`, `extrapolation_left`, and `extrapolation_right` fields.
 
 - `u`: data values, with samples indexed along the last dimension.
 - `t`: ordered sample locations corresponding to the samples in `u`.
-- `iguesser`: reusable interval-search state.
+- `iguesser`: reusable interval-search state, normally constructed with
+  `FindFirstFunctions.Guesser(t)`.
 - `extrapolation_left`, `extrapolation_right`: out-of-range evaluation modes.
+
+The generic integral interface additionally requires the following fields:
+
+- `I`: cumulative integrals for the intervals. Use an empty cache when
+  `cache_parameters` is `false`; omit this field when analytic integration is not
+  supported.
+- `cache_parameters::Bool`: whether the generic integral method reads the cached `I`
+  values.
+- `kind` and `t_props`: the interval-search strategy and its properties. Construct these
+  with `FindFirstFunctions.SearchProperties(t)` and
+  `FindFirstFunctions.Auto(t, t_props)`.
 
 The following developer hooks define the behavior of a new interpolation method:
 
@@ -246,7 +258,8 @@ export output_dim, output_size
 @static if VERSION >= v"1.11"
     include_string(
         @__MODULE__,
-        "public AbstractInterpolation, derivative, integral, invert_integral, " *
+        "public AbstractInterpolation, AbstractIntegralInverseInterpolation, " *
+            "derivative, integral, invert_integral, " *
             "_interpolate, _derivative, _integral",
     )
 end
