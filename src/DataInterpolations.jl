@@ -5,14 +5,40 @@ module DataInterpolations
 """
     AbstractInterpolation{T}
 
-Supertype of all interpolation objects in DataInterpolations.jl, where `T` is the element
-type of the interpolated values.
+Supertype of interpolation objects in DataInterpolations.jl, where `T` is the element type
+of the interpolated values. Use this type to dispatch on interpolations independently of
+the interpolation method.
 
-Every subtype is callable as `A(t)` to evaluate the interpolation at `t`, and supports
-[`DataInterpolations.derivative`](@ref) and [`DataInterpolations.integral`](@ref). Use it
-to dispatch on interpolations of any method.
+## Interface rules
 
-## Examples
+A concrete subtype must provide `u` and `t` fields. The entries of `t` are the ordered
+sample locations and the samples in `u` correspond to those locations along its last
+dimension. For scalar-valued data, `u` is a vector; for array-valued data, the last
+dimension of `u` indexes the samples. The generic methods also expect the subtype to
+provide `iguesser`, `extrapolation_left`, and `extrapolation_right` fields.
+
+# Fields
+
+- `u`: data values, with samples indexed along the last dimension.
+- `t`: ordered sample locations corresponding to the samples in `u`.
+- `iguesser`: reusable interval-search state.
+- `extrapolation_left`, `extrapolation_right`: out-of-range evaluation modes.
+
+The following developer hooks define the behavior of a new interpolation method:
+
+- [`DataInterpolations._interpolate`](@ref): evaluate one sample at a scalar location.
+- [`DataInterpolations._derivative`](@ref): evaluate the first derivative at a scalar
+  location. At a knot, return the left derivative, matching [`derivative`](@ref).
+- [`DataInterpolations._integral`](@ref): integrate one interval when analytic integration
+  is supported. A subtype that does not have an `I` field automatically reports
+  `IntegralNotFoundError` from [`integral`](@ref).
+
+These hooks are developer API: implement them when adding a new interpolation method, but
+call the generic `A(t)`, [`derivative`](@ref), and [`integral`](@ref) interfaces from user
+code. Implementations should preserve the shape of one data point in all three operations
+and should honor the extrapolation fields for out-of-range locations.
+
+# Examples
 
 ```jldoctest
 using DataInterpolations
@@ -44,7 +70,7 @@ Enumeration of extrapolation modes used by interpolation constructors through
 the `extrapolation`, `extrapolation_left`, and `extrapolation_right` keyword
 arguments.
 
-## Values
+# Values
 
   - `ExtrapolationType.None`: throw an error outside the interpolation interval.
   - `ExtrapolationType.Constant`: use the nearest endpoint value.
@@ -53,7 +79,7 @@ arguments.
   - `ExtrapolationType.Periodic`: wrap the query point periodically onto the data range.
   - `ExtrapolationType.Reflective`: reflect the query point back onto the data range.
 
-## Examples
+# Examples
 
 ```julia
 using DataInterpolations
@@ -156,6 +182,23 @@ end
     output_dim(x::AbstractInterpolation)
 
 Return the number of dimensions `ndims(x(t))` of interpolation `x` for a scalar `t`.
+
+# Arguments
+
+- `x`: the interpolation to inspect.
+
+# Returns
+
+- `Int`: the number of dimensions of one interpolated data point.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = LinearInterpolation([1.0, 2.0], [0.0, 1.0])
+output_dim(A)
+```
 """
 output_dim(x::AbstractInterpolation) = _output_dim(x.u)
 _output_dim(::AbstractVector) = 0 # each value is a scalar
@@ -166,6 +209,23 @@ _output_dim(::AbstractArray{<:Any, N}) where {N} = N - 1 # each value is an arra
     output_size(x::AbstractInterpolation)
 
 Return the size `size(x(t))` of interpolation `x` for a scalar `t`.
+
+# Arguments
+
+- `x`: the interpolation to inspect.
+
+# Returns
+
+- `Tuple`: the size of one interpolated data point.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = LinearInterpolation([1.0, 2.0], [0.0, 1.0])
+output_size(A)
+```
 """
 output_size(x::AbstractInterpolation) = _output_size(x.u)
 _output_size(::AbstractVector{<:Number}) = ()
@@ -185,7 +245,9 @@ export output_dim, output_size
 # string.
 @static if VERSION >= v"1.11"
     include_string(
-        @__MODULE__, "public AbstractInterpolation, derivative, integral, invert_integral"
+        @__MODULE__,
+        "public AbstractInterpolation, derivative, integral, invert_integral, " *
+            "_interpolate, _derivative, _integral",
     )
 end
 

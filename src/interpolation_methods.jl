@@ -1,3 +1,38 @@
+"""
+    _interpolate(A::AbstractInterpolation, t::Number)
+    _interpolate(A::AbstractInterpolation, t::Number, iguess)
+
+Developer hook used by the generic call interface `A(t)`. The two-argument method handles
+the configured extrapolation behavior and delegates an in-range scalar evaluation to the
+three-argument method. New interpolation subtypes should implement
+`_interpolate(A, t, iguess)`, where `iguess` is a reusable search hint supplied by the
+interpolation object.
+
+The implementation must return one interpolated data point with the same shape as a single
+sample in `A.u`. It must not mutate `A.u` or `A.t` while evaluating. User code should call
+`A(t)` instead of this developer hook.
+
+# Arguments
+
+- `A`: an [`AbstractInterpolation`](@ref) subtype.
+- `t`: the scalar evaluation point.
+- `iguess`: the reusable interval-search state from `A.iguesser` for the three-argument
+  method.
+
+# Examples
+
+```julia
+struct MyInterpolation <: DataInterpolations.AbstractInterpolation{Float64}
+    u::Vector{Float64}
+    t::Vector{Float64}
+    iguesser
+    extrapolation_left::DataInterpolations.ExtrapolationType.T
+    extrapolation_right::DataInterpolations.ExtrapolationType.T
+end
+
+DataInterpolations._interpolate(A::MyInterpolation, t::Number, iguess) = 2t
+```
+"""
 function _interpolate(A, t)
     return if t < first(A.t)
         _extrapolate_left(A, t)

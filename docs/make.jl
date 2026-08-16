@@ -23,6 +23,7 @@ makedocs(
         "Interpolation methods" => "methods.md",
         "Extrapolation methods" => "extrapolation_methods.md",
         "Interface" => "interface.md",
+        "Abstract interpolation interface" => "abstract_interpolation.md",
         "Using with Symbolics/ModelingToolkit" => "symbolics.md",
         "Manual" => "manual.md",
         "Smooth arc length interpolation" => "arclength_interpolation.md",
