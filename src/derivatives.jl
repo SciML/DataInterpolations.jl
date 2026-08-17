@@ -11,13 +11,13 @@ interval to the left of the point is returned.
 Outside of the range of `A.t` the derivative of the extrapolation is returned, as
 determined by the `extrapolation_left` and `extrapolation_right` settings of `A`.
 
-## Arguments
+# Arguments
 
   - `A`: the interpolation object.
   - `t`: the point at which to evaluate the derivative.
   - `order`: the order of the derivative, either `1` or `2`. Defaults to `1`.
 
-## Examples
+# Examples
 
 ```jldoctest
 using DataInterpolations
@@ -150,6 +150,32 @@ function _extrapolate_derivative_right(A::SmoothedConstantInterpolation, t, orde
     end
 end
 
+"""
+    _derivative(A::AbstractInterpolation, t::Number, iguess)
+
+Developer hook used by [`derivative`](@ref) for an in-range scalar evaluation. Implement
+this method for a new [`AbstractInterpolation`](@ref) subtype. The returned value must
+have the same shape as one interpolated data point, and the value at a knot must be the
+left derivative because the public derivative interface is left-continuous at knots.
+
+`iguess` is the reusable search hint stored by the interpolation. Implementations should
+use it when locating the interval and must not replace it with a new mutable search state
+for every call.
+
+User code should call [`derivative`](@ref) rather than this developer hook.
+
+# Arguments
+
+- `A`: an [`AbstractInterpolation`](@ref) subtype.
+- `t`: an in-range scalar evaluation point.
+- `iguess`: the reusable interval-search state from `A.iguesser`.
+
+# Examples
+
+```julia
+DataInterpolations._derivative(A::MyInterpolation, t::Number, iguess) = 2.0
+```
+"""
 function _derivative(A::LinearInterpolation, t::Number, iguess)
     idx = get_idx(A, t, iguess; idx_shift = -1, ub_shift = -1, side = :first)
     slope = get_parameters(A, idx)

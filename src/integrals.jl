@@ -15,13 +15,13 @@ Interpolation types with no analytical antiderivative — `LagrangeInterpolation
 `IntegralNotFoundError`; use a numerical integrator such as
 [Integrals.jl](https://docs.sciml.ai/Integrals/stable/) for those.
 
-## Arguments
+# Arguments
 
   - `A`: the interpolation object.
   - `t`: the upper bound, with `first(A.t)` used as the lower bound.
   - `t1`, `t2`: the lower and upper bounds.
 
-## Examples
+# Examples
 
 ```jldoctest
 using DataInterpolations
@@ -284,6 +284,33 @@ function _extrapolate_integral_right(A::SmoothedConstantInterpolation, t)
     end
 end
 
+"""
+    _integral(A::AbstractInterpolation, idx::Integer, t1::Number, t2::Number)
+
+Developer hook used by [`integral`](@ref) to integrate one interval of an interpolation.
+Implement this method for a new interpolation subtype that supports analytic integration.
+`idx` identifies the interval `[A.t[idx], A.t[idx + 1]]`; the method must return the
+integral over the requested subinterval `[t1, t2]`, preserving the shape of one data point.
+
+The subtype must also provide an `I` field containing cached cumulative integrals when
+`cache_parameters` is true. If analytic integration is not supported, omit `I` and let the
+generic public method report `IntegralNotFoundError`.
+
+User code should call [`integral`](@ref) rather than this developer hook.
+
+# Arguments
+
+- `A`: an [`AbstractInterpolation`](@ref) subtype.
+- `idx`: the interval index, with bounds `A.t[idx]` and `A.t[idx + 1]`.
+- `t1`, `t2`: the requested interval bounds.
+
+# Examples
+
+```julia
+DataInterpolations._integral(A::MyInterpolation, idx::Integer, t1::Number, t2::Number) =
+    2 * (t2 - t1)
+```
+"""
 function _integral(
         A::LinearInterpolation{<:AbstractArray{<:Number}},
         idx::Number, t1::Number, t2::Number

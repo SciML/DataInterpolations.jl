@@ -6,25 +6,34 @@
 It is the method of interpolating between the data points using a linear polynomial. For any point, two data points one each side are chosen and connected with a line.
 Extrapolation extends the last linear polynomial on each side.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
 
-## Keyword Arguments
+# Keywords
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation
     computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = LinearInterpolation([1.0, 3.0], [0.0, 1.0])
+A(0.5)
+```
 """
 struct LinearInterpolation{
         uType, tType, IType, pType, T, propsType,
@@ -89,25 +98,34 @@ end
 It is the method of interpolating between the data points using quadratic polynomials. For any point, three data points nearby are taken to fit a quadratic polynomial.
 Extrapolation extends the last quadratic polynomial on each side.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
   - `mode`: `:Forward` or `:Backward`. If `:Forward`, two data points ahead of the point and one data point behind is taken for interpolation. If `:Backward`, two data points behind and one ahead is taken for interpolation.
 
-## Keyword Arguments
+# Keywords
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = QuadraticInterpolation([1.0, 4.0, 9.0], [1.0, 2.0, 3.0])
+A(2.5)
+```
 """
 struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
     AbstractInterpolation{T}
@@ -174,25 +192,33 @@ end
 
 It is the method of interpolation using Lagrange polynomials of (k-1)th order passing through all the data points where k is the number of data points.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
   - `n`: order of the polynomial. Currently only (k-1)th order where k is the number of data points.
 
-## Keyword Arguments
+# Keywords
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 
+# Examples
+
+```julia
+using DataInterpolations
+
+A = LagrangeInterpolation([1.0, 4.0, 9.0], [1.0, 2.0, 3.0])
+A(2.5)
+```
 """
 struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType} <:
     AbstractInterpolation{T}
@@ -255,12 +281,12 @@ end
 It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: [https://en.wikipedia.org/wiki/Akima_spline](https://en.wikipedia.org/wiki/Akima_spline).
 Extrapolation extends the last cubic polynomial on each side.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
 
-## Keyword Arguments
+# Keywords
 
   - `modified`: if `true`, use the modified Akima (makima) formula for the slopes at the knots,
     which adds an extra term `|m_{i+1} + m_i| / 2` to each weight. Tends to reduce overshoot
@@ -271,13 +297,22 @@ Extrapolation extends the last cubic polynomial on each side.
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = AkimaInterpolation([1.0, 4.0, 9.0, 16.0], [1.0, 2.0, 3.0, 4.0])
+A(2.5)
+```
 """
 struct AkimaInterpolation{
         uType, tType, IType, bType, cType, dType, T, propsType,
@@ -420,25 +455,34 @@ It is the method of interpolating using a constant polynomial. For any point, tw
 If it is `:left`, then the value at the left point is chosen and if it is `:right`, the value at the right point is chosen.
 Extrapolation extends the last constant polynomial at the end points on each side.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
 
-## Keyword Arguments
+# Keywords
 
   - `dir`: indicates which value should be used for interpolation (`:left` or `:right`).
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = ConstantInterpolation([1.0, 2.0, 3.0], [0.0, 1.0, 2.0])
+A(0.5)
+```
 """
 struct ConstantInterpolation{uType, tType, IType, T, propsType} <:
     AbstractInterpolation{T}
@@ -501,12 +545,12 @@ value transitions to make the curve continuously differentiable while the integr
 drifts far from the integral of constant interpolation. `u[end]` is ignored,
 except when using extrapolation types `Constant` or `Extension`.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
 
-## Keyword Arguments
+# Keywords
 
   - `d_max`: Around each time point `tᵢ` there is a continuously differentiable (quadratic) transition between `uᵢ₋₁` and `uᵢ`,
     on the interval `[tᵢ - d, tᵢ + d]`. The distance `d` is determined as `d = min((tᵢ - tᵢ₋₁)/2, (tᵢ₊₁ - tᵢ)/2, d_max)`.
@@ -514,13 +558,22 @@ except when using extrapolation types `Constant` or `Extension`.
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` (also made smooth at the boundaries) and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = SmoothedConstantInterpolation([1.0, 2.0, 3.0], [0.0, 1.0, 2.0])
+A(0.5)
+```
 """
 struct SmoothedConstantInterpolation{
         uType, tType, IType, dType, cType, dmaxType, T, propsType,
@@ -586,24 +639,33 @@ end
 It is a spline interpolation using piecewise quadratic polynomials between each pair of data points. Its first derivative is also continuous.
 Extrapolation extends the last quadratic polynomial on each side.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
 
-## Keyword Arguments
+# Keywords
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = QuadraticSpline([1.0, 4.0, 9.0], [1.0, 2.0, 3.0])
+A(2.5)
+```
 """
 struct QuadraticSpline{
         uType, tType, IType, pType, kType, cType, scType, T, propsType,
@@ -729,24 +791,33 @@ end
 It is a spline interpolation using piecewise cubic polynomials between each pair of data points. Its first and second derivative is also continuous.
 Second derivative on both ends are zero, which are also called "natural" boundary conditions. Extrapolation extends the last cubic polynomial on each side.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
 
-## Keyword Arguments
+# Keywords
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = CubicSpline([1.0, 4.0, 9.0, 16.0], [1.0, 2.0, 3.0, 4.0])
+A(2.5)
+```
 """
 struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
     AbstractInterpolation{T}
@@ -930,7 +1001,7 @@ is constructed directly from the data sites `t`, and basis functions are evaluat
 values (no reparameterization). For more information, refer to de Boor's "A Practical Guide to Splines".
 Extrapolation is a constant polynomial of the end points on each side.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
@@ -941,19 +1012,27 @@ Extrapolation is a constant polynomial of the end points on each side.
     `d >= 3`; constructing such an interpolation warns, and the result may deviate from the data by orders of
     magnitude between the data points even though it still passes through them.
 
-## Keyword Arguments
+# Keywords
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 
+# Examples
+
+```julia
+using DataInterpolations
+
+A = BSplineInterpolation([1.0, 4.0, 9.0, 16.0], [1.0, 2.0, 3.0, 4.0], 2, :Average)
+A(2.5)
+```
 """
 struct BSplineInterpolation{uType, tType, kType, cType, scType, T, propsType} <:
     AbstractInterpolation{T}
@@ -1111,7 +1190,7 @@ end
 It is a regression based B-spline. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h < length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing.
 Extrapolation is a constant polynomial of the end points on each side.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
@@ -1119,19 +1198,27 @@ Extrapolation is a constant polynomial of the end points on each side.
   - `h`: number of control points to use.
   - `knotVecType`: symbol to knot vector, `:Uniform` for uniform knot vector, `:Average` for average spaced knot vector.
 
-## Keyword Arguments
+# Keywords
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 
+# Examples
+
+```julia
+using DataInterpolations
+
+A = BSplineApprox([1.0, 4.0, 9.0, 16.0], [1.0, 2.0, 3.0, 4.0], 2, 3, :Average)
+A(2.5)
+```
 """
 struct BSplineApprox{
         uType, tType, kType, cType, scType, T, propsType,
@@ -1337,25 +1424,34 @@ end
 
 It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomial such that the value and the first derivative are equal to given values in the data points.
 
-## Arguments
+# Arguments
 
   - `du`: the derivative at the data points.
   - `u`: data points.
   - `t`: time points.
 
-## Keyword Arguments
+# Keywords
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = CubicHermiteSpline([2.0, 4.0, 6.0], [1.0, 4.0, 9.0], [1.0, 2.0, 3.0])
+A(2.5)
+```
 """
 struct CubicHermiteSpline{
         uType, tType, IType, duType, pType, T, propsType,
@@ -1421,24 +1517,33 @@ It is a PCHIP Interpolation, which is a type of [`CubicHermiteSpline`](@ref) whe
 in such a way that the interpolation never overshoots the data. See [here](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf),
 section 3.4 for more details.
 
-## Arguments
+# Arguments
 
   - `u`: data points.
   - `t`: time points.
 
-## Keyword Arguments
+# Keywords
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = PCHIPInterpolation([1.0, 4.0, 9.0, 16.0], [1.0, 2.0, 3.0, 4.0])
+A(2.5)
+```
 """
 function PCHIPInterpolation(u, t; kwargs...)
     u, t = munge_data(u, t)
@@ -1452,26 +1557,37 @@ end
 
 It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polynomial such that the value and the first and second derivative are equal to given values in the data points.
 
-## Arguments
+# Arguments
 
   - `ddu`: the second derivative at the data points.
   - `du`: the derivative at the data points.
   - `u`: data points.
   - `t`: time points.
 
-## Keyword Arguments
+# Keywords
 
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = QuinticHermiteSpline(
+    [0.0, 0.0, 0.0], [2.0, 4.0, 6.0], [1.0, 4.0, 9.0], [1.0, 2.0, 3.0],
+)
+A(2.5)
+```
 """
 struct QuinticHermiteSpline{
         uType, tType, IType, duType, dduType, pType, T, propsType,
@@ -1587,7 +1703,7 @@ end
 Interpolate in a C¹ smooth way through the data with unit speed by approximating
 an interpolation (the shape interpolation) with line segments and circle segments.
 
-## Arguments
+# Arguments
 
   - `u`: The data to be interpolated in matrix form; (ndim, ndata).
 
@@ -1595,7 +1711,7 @@ NOTE: With this method it is not possible to pass keyword arguments to the const
 If you want to do this, construct the shape interpolation yourself and use the
 `SmoothArcLengthInterpolation(shape_itp::AbstractInterpolation; kwargs...)` method.
 
-## Keyword Arguments
+# Keywords
 
   - `t`: The time points of the shape interpolation. By default given by the cumulative sum of the Euclidean
     distances between the points `u`.
@@ -1607,13 +1723,22 @@ If you want to do this, construct the shape interpolation yourself and use the
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 
+# Examples
+
+```julia
+using DataInterpolations
+
+u = [0.0 1.0 2.0; 0.0 1.0 0.0]
+A = SmoothArcLengthInterpolation(u; m = 4)
+A(0.5)
+```
 """
 function SmoothArcLengthInterpolation(
         u::AbstractMatrix{U};
@@ -1644,12 +1769,12 @@ end
 
 Approximate the `shape_itp` with a C¹ unit speed interpolation using line segments and circle segments.
 
-## Arguments
+# Arguments
 
   - `shape_itp`: The interpolation to be approximated. Note that
     for the `SmoothArcLengthInterpolation` to be C¹ smooth, the `shape_itp` must be C¹ smooth as well.
 
-## Keyword Arguments
+# Keywords
 
   - `m`: The number of points at which the shape interpolation is evaluated in each interval between time points.
     The `SmoothArcLengthInterpolation` converges to the shape interpolation (in shape) as m → ∞.
@@ -1657,13 +1782,22 @@ Approximate the `shape_itp` with a C¹ unit speed interpolation using line segme
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 
+# Examples
+
+```julia
+using DataInterpolations
+
+shape = QuadraticSpline([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]], [0.0, 1.0, 2.0])
+A = SmoothArcLengthInterpolation(shape; m = 4)
+A(0.5)
+```
 """
 function SmoothArcLengthInterpolation(
         shape_itp::AbstractInterpolation;
@@ -1717,14 +1851,14 @@ end
 Make a C¹ smooth unit speed interpolation through the given data with the given tangents using line
 segments and circle segments.
 
-## Arguments
+# Arguments
 
   - `u`: The data to be interpolated in matrix form; (ndim, ndata).
   - `d`: The tangents to the curve in the points `u`.
   - `make_intersections`: Whether additional (point, tangent) pairs have to be added in between the provided
     data to ensure that the consecutive (tangent) lines intersect. Defaults to `Val(true)`.
 
-## Keyword Arguments
+# Keywords
 
   - `shape_itp`: The interpolation that is being approximated, if one exists. Note that this
     interpolation is not being used; it is just passed along to keep track of where the shape
@@ -1733,13 +1867,23 @@ segments and circle segments.
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
   - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
-    the possible options. This keyword is ignored if `extrapolation != Extrapolation.none`.
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
 
+# Examples
+
+```julia
+using DataInterpolations
+
+u = [0.0 1.0 2.0; 0.0 1.0 0.0]
+d = [1.0 1.0 1.0; 1.0 0.0 -1.0]
+A = SmoothArcLengthInterpolation(u, d)
+A(0.5)
+```
 """
 function SmoothArcLengthInterpolation(
         u::AbstractMatrix,

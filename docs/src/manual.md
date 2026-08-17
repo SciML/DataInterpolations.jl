@@ -19,7 +19,6 @@ QuinticHermiteSpline
 # Interface
 
 ```@docs
-DataInterpolations.AbstractInterpolation
 DataInterpolations.derivative
 DataInterpolations.integral
 ```
