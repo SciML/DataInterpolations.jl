@@ -15,6 +15,13 @@ using Symbolics
     end
 end
 
+@testset "Precompile workload" begin
+    A = LinearInterpolation([1.0, 2.0, 3.0], [0.0, 1.0, 2.0])
+    @test A(0.5) == 1.5
+    @test DataInterpolations.derivative(A, 0.5) == 1.0
+    @test DataInterpolations.integral(A, 0.0, 1.0) == 1.5
+end
+
 @testset "Symbolics" begin
     u = 2.0collect(1:10)
     t = 1.0collect(1:10)

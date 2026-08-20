@@ -74,6 +74,7 @@ using EnumX: EnumX, @enumx
 using StaticArrays: SVector
 import FindFirstFunctions
 import FindFirstFunctions: Guesser
+using PrecompileTools: @compile_workload, @setup_workload
 
 """
     ExtrapolationType
@@ -351,5 +352,16 @@ function Curvefit()
 end
 
 export Curvefit
+
+@setup_workload begin
+    u = [1.0, 2.0, 3.0]
+    t = [0.0, 1.0, 2.0]
+    @compile_workload begin
+        A = LinearInterpolation(u, t)
+        A(0.5)
+        derivative(A, 0.5)
+        integral(A, 0.0, 1.0)
+    end
+end
 
 end # module
