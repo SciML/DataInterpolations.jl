@@ -17,6 +17,8 @@ using DataInterpolations:
     CubicHermiteSpline,
     # PCHIPInterpolation,
     QuinticHermiteSpline,
+    ConstantInterpolationIntInv,
+    LinearInterpolationIntInv,
     output_size #===========# #===========#
 
 # Utilities #
@@ -68,8 +70,9 @@ end #===========# #===========#
 
 # Overloads #
 
-# We assume that with the exception of ConstantInterpolation and LinearInterpolation,
-# all interpolations have a non-zero second derivative at some point in the input domain.
+# We assume that with the exception of ConstantInterpolation, LinearInterpolation, and
+# ConstantInterpolationIntInv, all interpolations have a non-zero second derivative
+# at some point in the input domain.
 
 for (I, is_der1_zero, is_der2_zero) in (
         (:ConstantInterpolation, true, true),
@@ -83,6 +86,8 @@ for (I, is_der1_zero, is_der2_zero) in (
         (:BSplineApprox, false, false),
         (:CubicHermiteSpline, false, false),
         (:QuinticHermiteSpline, false, false),
+        (:ConstantInterpolationIntInv, false, true),
+        (:LinearInterpolationIntInv, false, false),
     )
     @eval function (interp::$(I){uType})(
             t::AbstractTracer
