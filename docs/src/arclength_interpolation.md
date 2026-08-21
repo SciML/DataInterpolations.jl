@@ -37,8 +37,9 @@ Here `m` determines how fine the approximation is. It is also possible to just p
 ```@example tutorial
 using LinearAlgebra
 
-# Example from only u
-A = SmoothArcLengthInterpolation(hcat(u...))
+# Example from only u — a `Vector` of `Vector`s (as here) or a `Matrix` of shape
+# (ndim, ndata) both work directly, no need to `hcat` first.
+A = SmoothArcLengthInterpolation(u)
 @show typeof(A.shape_itp)
 plot_itp(A)
 ```

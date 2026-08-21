@@ -94,6 +94,33 @@ end
     test_mooncake_ugrad(CubicSpline, u, t; name = "Cubic Spline")
     A = CubicSpline(u, t; extrapolation = ExtrapolationType.Extension)
     test_mooncake_tgrad(A, t; name = "Cubic Spline")
+    u_mat = Matrix(hcat(u, u)')
+    test_mooncake_ugrad(CubicSpline, u_mat, t; name = "Cubic Spline (matrix u)")
+end
+
+@testset "QuadraticSpline" begin
+    u = [1.0, 4.0, 9.0, 16.0]
+    t = [1.0, 2.0, 3.0, 4.0]
+    test_mooncake_ugrad(QuadraticSpline, u, t; name = "QuadraticSpline")
+    A = QuadraticSpline(u, t; extrapolation = ExtrapolationType.Extension)
+    test_mooncake_tgrad(A, t; name = "QuadraticSpline")
+    u_mat = Matrix(hcat(u, u)')
+    test_mooncake_ugrad(QuadraticSpline, u_mat, t; name = "QuadraticSpline (matrix u)")
+end
+
+@testset "SmoothedConstantInterpolation" begin
+    u = [1.0, 2.0, 3.0, 4.0, 5.0]
+    t = [0.0, 1.0, 2.0, 3.0, 4.0]
+    test_mooncake_ugrad(
+        SmoothedConstantInterpolation, u, t; name = "SmoothedConstantInterpolation"
+    )
+    A = SmoothedConstantInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
+    test_mooncake_tgrad(A, t; name = "SmoothedConstantInterpolation")
+    u_mat = Matrix(hcat(u, u)')
+    test_mooncake_ugrad(
+        SmoothedConstantInterpolation, u_mat, t;
+        name = "SmoothedConstantInterpolation (matrix u)"
+    )
 end
 
 @testset "AkimaInterpolation" begin
@@ -111,6 +138,12 @@ end
     test_mooncake_ugrad(CubicHermiteSpline, u, t; args = [du], name = "Cubic Hermite Spline")
     A = CubicHermiteSpline(du, u, t; extrapolation = ExtrapolationType.Extension)
     test_mooncake_tgrad(A, t; name = "Cubic Hermite Spline")
+    du_mat = Matrix(hcat(du, du)')
+    u_mat = Matrix(hcat(u, u)')
+    test_mooncake_ugrad(
+        CubicHermiteSpline, u_mat, t; args = [du_mat],
+        name = "Cubic Hermite Spline (matrix u)"
+    )
 end
 
 @testset "QuinticHermiteSpline" begin
@@ -123,6 +156,13 @@ end
     )
     A = QuinticHermiteSpline(ddu, du, u, t; extrapolation = ExtrapolationType.Extension)
     test_mooncake_tgrad(A, t; name = "Quintic Hermite Spline")
+    ddu_mat = Matrix(hcat(ddu, ddu)')
+    du_mat = Matrix(hcat(du, du)')
+    u_mat = Matrix(hcat(u, u)')
+    test_mooncake_ugrad(
+        QuinticHermiteSpline, u_mat, t; args = [ddu_mat, du_mat],
+        name = "Quintic Hermite Spline (matrix u)"
+    )
 end
 
 @testset "BSplineInterpolation" begin
@@ -145,4 +185,25 @@ end
     )
     A = BSplineApprox(u, t, 2, 4, :Uniform; extrapolation = ExtrapolationType.Extension)
     test_mooncake_tgrad(A, t; name = "BSpline Approximation")
+end
+
+@testset "SmoothArcLengthInterpolation" begin
+    # Doesn't fit `test_mooncake_tgrad`'s scalar-output assumption (`A(t)` is always a
+    # vector for this type), so this sum-reduces first, mirroring `test_mooncake_ugrad`'s
+    # existing pattern for vector-valued interpolations.
+    u = [0.3 -1.5 3.1; -0.2 0.2 -1.5; 10.4 -37.2 -5.8]
+    A = SmoothArcLengthInterpolation(u; m = 5)
+    trange = range(minimum(A.t), maximum(A.t); length = 25)
+    @testset "SmoothArcLengthInterpolation, derivatives w.r.t. t" begin
+        f_t = _t -> sum(A(_t))
+        cache = Mooncake.prepare_gradient_cache(f_t, first(trange))
+        for _t in trange
+            _, (_, mgrad) = Mooncake.value_and_gradient!!(cache, f_t, _t)
+            @test mgrad ≈ sum(DataInterpolations.derivative(A, _t)) atol = 1.0e-10
+        end
+    end
+    # `derivatives w.r.t. u` is not supported: the same in-place geometry-fitting
+    # constructor that blocks Zygote also fails here with an
+    # `increment_and_get_rdata!`/tangent-type error on the `Vector{Vector}` intermediates
+    # it builds while fitting circle/line segments.
 end
