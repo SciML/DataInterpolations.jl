@@ -60,6 +60,15 @@ end
     end
 end
 
+@testset "Higher-rank u (AbstractArray{T, 3})" begin
+    f3d(t_) = [sin(t_) cos(t_); 0.0 cos(2t_)]
+    u3d = cat(f3d.(t)...; dims = 3)
+    A = LinearInterpolation(u3d, t)
+    str = sprint(io -> show(io, MIME"text/plain"(), A))
+    @test startswith(str, "LinearInterpolation with 5 points\n")
+    @test all(occursin("u$i", str) for i in 1:4)
+end
+
 @testset "CurveFit" begin
     rng = StableRNG(12345)
     model(x, p) = @. p[1] / (1 + exp(x - p[2]))

@@ -57,7 +57,7 @@ end
             LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
             )
-        ) isa LinearInterpolation broken = VERSION < v"1.11" && t isa AbstractRange
+        ) isa LinearInterpolation skip = VERSION < v"1.11"
         A = LinearInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
@@ -79,7 +79,7 @@ end
             LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
             )
-        ) isa LinearInterpolation broken = VERSION < v"1.11" && t isa AbstractRange
+        ) isa LinearInterpolation skip = VERSION < v"1.11"
         A = LinearInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
@@ -504,8 +504,7 @@ end
         QuadraticInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
-    ) isa QuadraticInterpolation broken = VERSION <
-        v"1.11"
+    ) isa QuadraticInterpolation skip = VERSION < v"1.11"
     A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
     for (_t, _u) in zip(t, eachcol(u))
@@ -530,6 +529,15 @@ end
     @test A(5.0) == 25.0 * ones(5)
     @test @inferred(output_dim(A)) == 1
     @test @inferred(output_size(A)) == (5,)
+    # Vector{Vector} integral
+    A_scalar = QuadraticInterpolation(u_[1, :], t; extrapolation = ExtrapolationType.Extension)
+    @test DataInterpolations.integral(A, t[1], t[end])[1] ≈
+        DataInterpolations.integral(A_scalar, t[1], t[end])
+    A_cached = QuadraticInterpolation(
+        u, t; extrapolation = ExtrapolationType.Extension, cache_parameters = true
+    )
+    @test DataInterpolations.integral(A_cached, t[1], t[end]) ≈
+        DataInterpolations.integral(A, t[1], t[end])
     # Test allocation-free interpolation with Vector{StaticArrays.SVector}
     u_s = [convert(SVector{length(u[1])}, i) for i in u]
     @test @inferred(
@@ -724,6 +732,51 @@ end
         @test isfinite(A_ext(11.0))
         @test isfinite(DataInterpolations.derivative(A_makima, 5.0))
         @test isfinite(DataInterpolations.integral(A_makima, 0.0, 10.0))
+    end
+
+    @testset "AbstractMatrix" begin
+        t = 0.1:0.1:1.0
+        u2d = [sin.(t) cos.(t)]' |> collect
+        A = AkimaInterpolation(u2d, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
+    end
+    @testset "AbstractArray{T, 3}" begin
+        f3d(t) = [
+            sin(t) cos(t);
+            0.0 cos(2t)
+        ]
+        t = 0.1:0.1:1.0
+        u3d = cat(f3d.(t)..., dims = 3)
+        A = AkimaInterpolation(u3d, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        f_test = reduce(hcat, f3d.(t_test))
+        @test isapprox(u_test, f_test, atol = 1.0e-2)
+        @test @inferred(output_dim(A)) == 2
+        @test @inferred(output_size(A)) == (2, 2)
+    end
+    @testset "Vector{Vector}" begin
+        t = 0.1:0.1:1.0
+        u_vec = [[sin(t_), cos(t_)] for t_ in t]
+        A = AkimaInterpolation(u_vec, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        # derivative and integral share the same code path across shapes
+        @test isapprox(
+            DataInterpolations.derivative(A, 0.5)[1], cos(0.5), atol = 1.0e-2
+        )
+        @test isapprox(
+            DataInterpolations.integral(A, t[1], t[end])[1],
+            DataInterpolations.integral(AkimaInterpolation([u_[1] for u_ in u_vec], t), t[1], t[end]),
+            atol = 1.0e-10
+        )
     end
 
     @testset "Sorted-batch evaluator" begin
@@ -936,6 +989,18 @@ end
         @test A_s(0) isa SVector{length(first(u))}
     end
 
+    @testset "Vector of Vectors integral" begin
+        u = [[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]]
+        A = ConstantInterpolation(u, t)
+        u_scalar = [u_[1] for u_ in u]
+        A_scalar = ConstantInterpolation(u_scalar, t)
+        @test DataInterpolations.integral(A, t[1], t[end])[1] ≈
+            DataInterpolations.integral(A_scalar, t[1], t[end])
+        A_cached = ConstantInterpolation(u, t; cache_parameters = true)
+        @test DataInterpolations.integral(A_cached, t[1], t[end]) ≈
+            DataInterpolations.integral(A, t[1], t[end])
+    end
+
     @testset "Vector of Matrices case" for u in [
             [[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]],
             [["B" "C"; "B" "C"], ["A" "B"; "A" "B"], ["B" "C"; "B" "C"], ["A" "B"; "A" "B"]],
@@ -1101,6 +1166,48 @@ end
     @test A(2.0) == P₁(2.0) * ones(4, 3)
     @test @inferred(output_dim(A)) == 2
     @test @inferred(output_size(A)) == (4, 3)
+
+    @testset "AbstractMatrix" begin
+        t = 0.1:0.1:1.0
+        u2d = [sin.(t) cos.(t)]' |> collect
+        A = QuadraticSpline(u2d, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
+
+        A_vec = QuadraticSpline([[sin(t_), cos(t_)] for t_ in t], t)
+        @test isapprox(
+            DataInterpolations.derivative(A, 0.5), DataInterpolations.derivative(A_vec, 0.5),
+            atol = 1.0e-10
+        )
+        @test isapprox(
+            DataInterpolations.integral(A, t[1], t[end]),
+            DataInterpolations.integral(A_vec, t[1], t[end]), atol = 1.0e-10
+        )
+        A_cached = QuadraticSpline(u2d, t; cache_parameters = true)
+        @test isapprox(
+            DataInterpolations.integral(A_cached, t[1], t[end]),
+            DataInterpolations.integral(A, t[1], t[end]), atol = 1.0e-10
+        )
+    end
+    @testset "AbstractArray{T, 3}" begin
+        f3d(t) = [
+            sin(t) cos(t);
+            0.0 cos(2t)
+        ]
+        t = 0.1:0.1:1.0
+        u3d = cat(f3d.(t)..., dims = 3)
+        A = QuadraticSpline(u3d, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        f_test = reduce(hcat, f3d.(t_test))
+        @test isapprox(u_test, f_test, atol = 1.0e-2)
+        @test @inferred(output_dim(A)) == 2
+        @test @inferred(output_size(A)) == (2, 2)
+    end
 
     # Test extrapolation
     u = [0.0, 1.0, 3.0]
@@ -1390,6 +1497,20 @@ end
             @test @inferred(output_dim(A)) == 1
             @test @inferred(output_size(A)) == (2,)
         end
+        @testset "Vector{Vector}" begin
+            t = 0.1:0.1:1.0
+            u_vec = [[sin(t_), cos(t_)] for t_ in t]
+            A = @inferred(BSplineInterpolation(u_vec, t, 2, :Uniform))
+            t_test = 0.1:0.05:1.0
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+
+            A = @inferred(BSplineInterpolation(u_vec, t, 2, :Average))
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        end
         @testset "AbstractArray{T, 3}" begin
             f3d(t) = [
                 sin(t) cos(t);
@@ -1509,6 +1630,20 @@ end
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-2)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-2)
         end
+        @testset "Vector{Vector}" begin
+            t = 0.1:0.1:1.0
+            u_vec = [[sin(t_), cos(t_)] for t_ in t]
+            A = BSplineApprox(u_vec, t, 2, 5, :Uniform)
+            t_test = 0.1:0.05:1.0
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+
+            A = BSplineApprox(u_vec, t, 2, 5, :Average)
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-2)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-2)
+        end
         @testset "AbstractArray{T, 3}" begin
             f3d(t) = [
                 sin(t) cos(t);
@@ -1568,6 +1703,29 @@ end
         @test length(u3) == length(du3)
         A3 = CubicHermiteSpline(du3, u3, t)
         @test u3 ≈ A3.(t)
+    end
+    @testset "AbstractMatrix" begin
+        u2d = [u u .+ 1]'
+        du2d = [du du]'
+        A = CubicHermiteSpline(du2d, u2d, t)
+        @test reduce(hcat, A.(t)) ≈ u2d
+        A_vec = CubicHermiteSpline(
+            [[du[i], du[i]] for i in eachindex(du)],
+            [[u[i], u[i] + 1] for i in eachindex(u)], t
+        )
+        @test isapprox(
+            DataInterpolations.derivative(A, 100.0),
+            DataInterpolations.derivative(A_vec, 100.0), atol = 1.0e-10
+        )
+        @test isapprox(
+            DataInterpolations.integral(A, t[1], t[end]),
+            DataInterpolations.integral(A_vec, t[1], t[end]), atol = 1.0e-10
+        )
+        A_cached = CubicHermiteSpline(du2d, u2d, t; cache_parameters = true)
+        @test isapprox(
+            DataInterpolations.integral(A_cached, t[1], t[end]),
+            DataInterpolations.integral(A, t[1], t[end]), atol = 1.0e-10
+        )
     end
 end
 
@@ -1638,6 +1796,31 @@ end
         ddu3 = [[ddu[i] ddu[i]] for i in eachindex(ddu)]
         A3 = QuinticHermiteSpline(ddu3, du3, u3, t)
         @test u3 ≈ A3.(t)
+    end
+    @testset "AbstractMatrix" begin
+        u2d = [u u .+ 1]'
+        du2d = [du du]'
+        ddu2d = [ddu ddu]'
+        A = QuinticHermiteSpline(ddu2d, du2d, u2d, t)
+        @test reduce(hcat, A.(t)) ≈ u2d
+        A_vec = QuinticHermiteSpline(
+            [[ddu[i], ddu[i]] for i in eachindex(ddu)],
+            [[du[i], du[i]] for i in eachindex(du)],
+            [[u[i], u[i] + 1] for i in eachindex(u)], t
+        )
+        @test isapprox(
+            DataInterpolations.derivative(A, 100.0),
+            DataInterpolations.derivative(A_vec, 100.0), atol = 1.0e-10
+        )
+        @test isapprox(
+            DataInterpolations.integral(A, t[1], t[end]),
+            DataInterpolations.integral(A_vec, t[1], t[end]), atol = 1.0e-10
+        )
+        A_cached = QuinticHermiteSpline(ddu2d, du2d, u2d, t; cache_parameters = true)
+        @test isapprox(
+            DataInterpolations.integral(A_cached, t[1], t[end]),
+            DataInterpolations.integral(A, t[1], t[end]), atol = 1.0e-10
+        )
     end
 end
 

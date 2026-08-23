@@ -416,7 +416,7 @@ function _akima_init!(
 end
 
 function AkimaInterpolation(
-        u, t; modified::Bool = false,
+        u::AbstractVector{<:Number}, t; modified::Bool = false,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
@@ -435,6 +435,96 @@ function AkimaInterpolation(
     c = Vector{T}(undef, n - 1)
     d = Vector{T}(undef, n - 1)
     _akima_init!(b, c, d, u, t, Val(modified))
+
+    A = AkimaInterpolation(
+        u, t, nothing, b, c, d, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+    I = cumulative_integral(A, cache_parameters)
+    return AkimaInterpolation(
+        u, t, I, b, c, d, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+end
+
+# Builds each dimension's Akima coefficients independently, by reusing the scalar
+# `_akima_init!` kernel on a length-`n` scalar slice per leading index (row of a Matrix,
+# component of a Vector{Vector}, ...). Akima's weights are defined per-dimension, so this
+# is not simply a broadcast of the scalar formula, unlike e.g. QuadraticInterpolation.
+function AkimaInterpolation(
+        u::AbstractArray{T, N}, t; modified::Bool = false,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+    ) where {T, N}
+    extrapolation_left,
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
+    u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
+    n = length(t)
+    dims = size(u)[1:(end - 1)]
+    b = Array{T}(undef, dims..., n)
+    c = Array{T}(undef, dims..., n - 1)
+    d = Array{T}(undef, dims..., n - 1)
+    u_flat = reshape(u, :, n)
+    b_flat = reshape(b, :, n)
+    c_flat = reshape(c, :, n - 1)
+    d_flat = reshape(d, :, n - 1)
+    for i in axes(u_flat, 1)
+        _akima_init!(
+            view(b_flat, i, :), view(c_flat, i, :), view(d_flat, i, :),
+            view(u_flat, i, :), t, Val(modified)
+        )
+    end
+
+    A = AkimaInterpolation(
+        u, t, nothing, b, c, d, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+    I = cumulative_integral(A, cache_parameters)
+    return AkimaInterpolation(
+        u, t, I, b, c, d, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+end
+
+function AkimaInterpolation(
+        u::AbstractVector{<:AbstractVector{T}}, t; modified::Bool = false,
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+    ) where {T}
+    extrapolation_left,
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
+    u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
+    n = length(t)
+    dim = length(u[1])
+    b = [Vector{T}(undef, dim) for _ in 1:n]
+    c = [Vector{T}(undef, dim) for _ in 1:(n - 1)]
+    d = [Vector{T}(undef, dim) for _ in 1:(n - 1)]
+    for j in 1:dim
+        u_j = [u_[j] for u_ in u]
+        b_j = Vector{T}(undef, n)
+        c_j = Vector{T}(undef, n - 1)
+        d_j = Vector{T}(undef, n - 1)
+        _akima_init!(b_j, c_j, d_j, u_j, t, Val(modified))
+        for i in 1:n
+            b[i][j] = b_j[i]
+        end
+        for i in 1:(n - 1)
+            c[i][j] = c_j[i]
+            d[i][j] = d_j[i]
+        end
+    end
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
@@ -771,6 +861,41 @@ function QuadraticSpline(
             c[i][j] = c_dim_
         end
     end
+
+    p = QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
+    A = QuadraticSpline(
+        u, t, nothing, p, k, c, sc, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+    I = cumulative_integral(A, cache_parameters)
+    return QuadraticSpline(
+        u, t, I, p, k, c, sc, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+end
+
+function QuadraticSpline(
+        u::AbstractArray{T, N}, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        cache_parameters = false,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+    ) where {T, N}
+    extrapolation_left,
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
+    u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
+
+    n = length(t)
+    dtype_sc = typeof(one(eltype(t)) / one(eltype(t)))
+    sc = zeros(dtype_sc, n)
+    k, A = quadratic_spline_params(t, sc)
+
+    u_reshaped = reshape(u, prod(size(u)[1:(end - 1)]), :)
+    c = (A \ u_reshaped')'
+    c = reshape(collect(c), size(u)...)
 
     p = QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     A = QuadraticSpline(
@@ -1133,6 +1258,54 @@ function BSplineInterpolation(
 end
 
 function BSplineInterpolation(
+        u::AbstractVector{<:AbstractVector{T}}, t, d, knotVecType;
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+    ) where {T}
+    extrapolation_left,
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
+    u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
+    n = length(t)
+    n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
+    d ≥ BSPLINE_STACK_MAXLEN &&
+        error("BSplineInterpolation supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
+    k = zeros(eltype(t), n + d + 1)
+    # Clamped knot vector endpoints
+    for i in 1:(d + 1)
+        k[i] = t[1]
+        k[n + i] = t[end]
+    end
+    if knotVecType == :Uniform
+        # Uniformly spaced interior knots
+        for i in (d + 2):n
+            k[i] = t[1] + (i - d - 1) // (n - d) * (t[end] - t[1])
+        end
+    elseif knotVecType == :Average
+        # Average (de Boor) interior knots, generalized for all d >= 0
+        # using max(d, 1) to handle d = 0 (places knots at data sites)
+        denom = max(d, 1)
+        for j in 1:(n - d - 1)
+            k[d + 1 + j] = sum(t[(j + 1):(j + denom)]) / denom
+        end
+    end
+    # control points
+    sc = zeros(eltype(t), n, n)
+    spline_coefficients!(sc, d, k, t)
+    c = (sc \ reduce(hcat, u)')'
+    c = collect(eachcol(c))
+    sc = zeros(eltype(t), n)
+    return BSplineInterpolation(
+        u, t, d, k, c, sc, knotVecType,
+        extrapolation_left, extrapolation_right, t_props
+    )
+end
+
+function BSplineInterpolation(
         u::AbstractArray, t, d, knotVecType;
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
@@ -1335,6 +1508,78 @@ function BSplineApprox(
     M = transpose(sc) * sc
     P = M \ Q
     c[2:(end - 1)] .= vec(P)
+    sc = zeros(eltype(t), h)
+    return BSplineApprox(
+        u, t, d, h, k, c, sc, knotVecType,
+        extrapolation_left, extrapolation_right, t_props
+    )
+end
+
+function BSplineApprox(
+        u::AbstractVector{<:AbstractVector{T}}, t, d, h, knotVecType;
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+    ) where {T}
+    extrapolation_left,
+        extrapolation_right = munge_extrapolation(
+        extrapolation, extrapolation_left, extrapolation_right
+    )
+    u, t = munge_data(u, t)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
+    n = length(t)
+    h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
+    d ≥ BSPLINE_STACK_MAXLEN &&
+        error("BSplineApprox supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
+    dim = length(u[1])
+    k = zeros(eltype(t), h + d + 1)
+    # Clamped knot vector endpoints
+    for i in 1:(d + 1)
+        k[i] = t[1]
+        k[h + i] = t[end]
+    end
+    if knotVecType == :Uniform
+        # Uniformly spaced interior knots
+        for i in (d + 2):h
+            k[i] = t[1] + (i - d - 1) // (h - d) * (t[end] - t[1])
+        end
+    elseif knotVecType == :Average
+        # Knot placement using Piegl-Tiller method for approximation
+        denom = max(d, 1)
+        delta = n / (h - denom + 1)
+        for j in 1:(h - d - 1)
+            frac = j * delta
+            i = min(floor(Int, frac), n - 1)
+            alpha = frac - i
+            k[d + 1 + j] = (1 - alpha) * t[i] + alpha * t[i + 1]
+        end
+    end
+    # control points
+    c = zeros(T, dim, h)
+    c[:, 1] = u[1]
+    c[:, end] = u[end]
+    q = zeros(T, dim, n)
+    sc = zeros(eltype(t), n, h)
+    for i in 1:n
+        spline_coefficients!(view(sc, i, :), d, k, t[i])
+    end
+    for k in 2:(n - 1)
+        q[:, k] = u[k] - sc[k, 1] * u[1] - sc[k, h] * u[end]
+    end
+    Q = Matrix{T}(undef, dim, h - 2)
+    for i in 2:(h - 1)
+        s = zeros(T, dim)
+        for k in 2:(n - 1)
+            s = s + sc[k, i] .* q[:, k]
+        end
+        Q[:, i - 1] = s
+    end
+    sc = sc[2:(end - 1), 2:(h - 1)]
+    M = transpose(sc) * sc
+    P = (M \ Q')'
+    c[:, 2:(end - 1)] = P
+    c = collect(eachcol(c))
     sc = zeros(eltype(t), h)
     return BSplineApprox(
         u, t, d, h, k, c, sc, knotVecType,
@@ -1671,14 +1916,11 @@ struct SmoothArcLengthInterpolation{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    out::Vector{P}
-    derivative::Vector{P}
-    in_place::Bool
     function SmoothArcLengthInterpolation(
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, extrapolation_left, extrapolation_right,
-            out, derivative, in_place, t_props
+            cache_parameters, t_props
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -1688,7 +1930,7 @@ struct SmoothArcLengthInterpolation{
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, nothing, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, false, out, derivative, in_place
+            Guesser(t), t_props, kind, cache_parameters
         )
     end
 end
@@ -1705,7 +1947,8 @@ an interpolation (the shape interpolation) with line segments and circle segment
 
 # Arguments
 
-  - `u`: The data to be interpolated in matrix form; (ndim, ndata).
+  - `u`: The data to be interpolated in matrix form; (ndim, ndata). A `Vector` of
+    equal-length `Vector`s (one per data point) is also accepted.
 
 NOTE: With this method it is not possible to pass keyword arguments to the constructor of the shape interpolation.
 If you want to do this, construct the shape interpolation yourself and use the
@@ -1759,6 +2002,10 @@ function SmoothArcLengthInterpolation(
     end
     shape_itp = interpolation_type(collect.(eachcol(u)), t)
     return SmoothArcLengthInterpolation(shape_itp; kwargs...)
+end
+
+function SmoothArcLengthInterpolation(u::AbstractVector{<:AbstractVector}; kwargs...)
+    return SmoothArcLengthInterpolation(reduce(hcat, u); kwargs...)
 end
 
 """
@@ -1845,16 +2092,17 @@ end
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        cache_parameters::Bool = false,
-        in_place::Bool = true)
+        cache_parameters::Bool = false)
 
 Make a C¹ smooth unit speed interpolation through the given data with the given tangents using line
 segments and circle segments.
 
 # Arguments
 
-  - `u`: The data to be interpolated in matrix form; (ndim, ndata).
-  - `d`: The tangents to the curve in the points `u`.
+  - `u`: The data to be interpolated in matrix form; (ndim, ndata). A `Vector` of
+    equal-length `Vector`s (one per data point) is also accepted.
+  - `d`: The tangents to the curve in the points `u`. Accepts the same `AbstractMatrix` or
+    `Vector` of `Vector`s forms as `u`.
   - `make_intersections`: Whether additional (point, tangent) pairs have to be added in between the provided
     data to ensure that the consecutive (tangent) lines intersect. Defaults to `Val(true)`.
 
@@ -1891,6 +2139,14 @@ function SmoothArcLengthInterpolation(
         kwargs...
     )
     return SmoothArcLengthInterpolation(u, d, Val{true}(); kwargs...)
+end
+
+function SmoothArcLengthInterpolation(
+        u::AbstractVector{<:AbstractVector},
+        d::AbstractVector{<:AbstractVector};
+        kwargs...
+    )
+    return SmoothArcLengthInterpolation(reduce(hcat, u), reduce(hcat, d); kwargs...)
 end
 
 function SmoothArcLengthInterpolation(
@@ -1972,7 +2228,6 @@ function SmoothArcLengthInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters::Bool = false,
-        in_place::Bool = true,
         search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     N = size(u, 1)
@@ -2024,14 +2279,18 @@ function SmoothArcLengthInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
 
-    out = Vector{P}(undef, N)
-    derivative = Vector{P}(undef, N)
-
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
-    return SmoothArcLengthInterpolation(
+    A = SmoothArcLengthInterpolation(
         u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
         center, radius, dir_1, dir_2, short_side_left,
         nothing, extrapolation_left, extrapolation_right,
-        out, derivative, in_place, t_props
+        cache_parameters, t_props
+    )
+    I = cumulative_integral(A, cache_parameters)
+    return SmoothArcLengthInterpolation(
+        u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
+        center, radius, dir_1, dir_2, short_side_left,
+        I, extrapolation_left, extrapolation_right,
+        cache_parameters, t_props
     )
 end

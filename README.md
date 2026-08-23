@@ -63,6 +63,32 @@ corresponding to `(u,t)` pairs.
   - `CubicHermiteSpline(du, u, t)` - A third order Hermite interpolation, which matches the values and first (`du`) order derivatives in the data points exactly.
   - `PCHIPInterpolation(u, t)` - a type of `CubicHermiteSpline` where the derivative values `du` are derived from the input data in such a way that the interpolation never overshoots the data.
   - `QuinticHermiteSpline(ddu, du, u, t)` - A fifth order Hermite interpolation, which matches the values and first (`du`) and second (`ddu`) order derivatives in the data points exactly.
+  - `SmoothArcLengthInterpolation(u)` - A C¹ smooth, unit-speed (arc-length parameterized) interpolation through `u` given in matrix form `(ndim, ndata)`, approximated with line and circle segments. Unlike the methods above, `t` is derived from `u` (the cumulative arc length) rather than supplied by the user.
+
+## Feature Support
+
+Every interpolation method above accepts `u` as a plain `Vector`, a `Matrix` (`ndim × ndata`), or a `Vector` of equal-length `Vector`s — and `derivative`/`integral` work for all three, with two exceptions:
+
+| | `Vector` | `Matrix` | `Vector{Vector}` |
+|---|:---:|:---:|:---:|
+| Interpolation | ✓ | ✓ | ✓ |
+| Derivative | ✓ | ✓ | ✓ |
+| Integral | ✓ | ✓ | ✓ |
+
+  - `LagrangeInterpolation` has no closed-form antiderivative for an arbitrary-order polynomial, so `integral` throws `IntegralNotFoundError` regardless of `u`'s shape. Use a numerical integrator such as [Integrals.jl](https://docs.sciml.ai/Integrals/stable/) instead.
+  - `SmoothArcLengthInterpolation` only accepts `Matrix` or `Vector{Vector}` — plain `Vector` is mathematically degenerate for it (rounding a corner with a circular arc requires at least 2 dimensions).
+
+### Automatic Differentiation
+
+| | w.r.t. `t` (evaluation) | w.r.t. `u` (through construction) |
+|---|:---:|:---:|
+| ForwardDiff | ✓ | ✓¹ |
+| Zygote | ✓ | ✓, except `LagrangeInterpolation`, `BSplineInterpolation`, `BSplineApprox`, `QuadraticSpline`, `AkimaInterpolation`, `SmoothArcLengthInterpolation`² |
+| Mooncake | ✓ | ✓, except `AkimaInterpolation`¹, `SmoothArcLengthInterpolation`³ |
+
+  1. `AkimaInterpolation`'s slope formula uses `abs()`, which is non-differentiable at specific data configurations (a kink, not an AD-engine limitation) and can return `NaN`.
+  2. These constructors fit coefficients via mutating loops/linear solves, which Zygote's reverse-mode AD cannot trace through ("Mutating arrays is not supported"); Mooncake handles all of them except `SmoothArcLengthInterpolation`.
+  3. `SmoothArcLengthInterpolation`'s circle/line-fitting constructor produces `Vector{Vector}`-shaped intermediates that Mooncake's tangent machinery doesn't yet have a rule for.
 
 ## Extension Methods
 

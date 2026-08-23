@@ -38,7 +38,7 @@ function test_integral(
             @test isapprox(qint, aint, atol = 1.0e-5, rtol = 1.0e-8)
 
             aint = integral(func, t, t)
-            @test aint == 0.0
+            @test iszero(aint)
         end
 
         # integrals with extrapolation
@@ -85,6 +85,15 @@ end
     test_integral(
         LinearInterpolation; args = [u, t], name = "Linear Interpolation (Vector)"
     )
+    u = vcat((2.0collect(1:10))', (3.0collect(1:10))')
+    test_integral(
+        LinearInterpolation; args = [u, t], name = "Linear Interpolation (Matrix)"
+    )
+    u = [[2.0i, 3.0i] for i in 1:10]
+    test_integral(
+        LinearInterpolation; args = [u, t],
+        name = "Linear Interpolation (Vector of Vectors)"
+    )
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     test_integral(
@@ -98,6 +107,16 @@ end
     t = [1.0, 2.0, 3.0, 4.0]
     test_integral(
         SmoothedConstantInterpolation; args = [u, t], name = "Smoothed constant interpolation"
+    )
+    u2 = vcat(u', u')
+    test_integral(
+        SmoothedConstantInterpolation; args = [u2, t],
+        name = "Smoothed constant interpolation (Matrix)"
+    )
+    u_vov = [[u_, u_] for u_ in u]
+    test_integral(
+        SmoothedConstantInterpolation; args = [u_vov, t],
+        name = "Smoothed constant interpolation (Vector of Vectors)"
     )
 
     A_constant = ConstantInterpolation(u, t)
@@ -116,11 +135,37 @@ end
     @test DataInterpolations.integral(A, 5.0, 6.0) == 16.0
 end
 
+@testset "ConstantInterpolation" begin
+    u = [1.0, 4.0, 9.0, 16.0]
+    t = [1.0, 2.0, 3.0, 4.0]
+    test_integral(
+        ConstantInterpolation; args = [u, t], name = "Constant Interpolation (Vector)"
+    )
+    u2 = vcat(u', u')
+    test_integral(
+        ConstantInterpolation; args = [u2, t], name = "Constant Interpolation (Matrix)"
+    )
+    u_vov = [[u_, u_] for u_ in u]
+    test_integral(
+        ConstantInterpolation; args = [u_vov, t],
+        name = "Constant Interpolation (Vector of Vectors)"
+    )
+end
+
 @testset "QuadraticInterpolation" begin
     u = [1.0, 4.0, 9.0, 16.0]
     t = [1.0, 2.0, 3.0, 4.0]
     test_integral(
         QuadraticInterpolation; args = [u, t], name = "Quadratic Interpolation (Vector)"
+    )
+    u2 = [1.0 4.0 9.0 16.0; 1.0 4.0 9.0 16.0]
+    test_integral(
+        QuadraticInterpolation; args = [u2, t], name = "Quadratic Interpolation (Matrix)"
+    )
+    u_vov = [[1.0, 1.0], [4.0, 4.0], [9.0, 9.0], [16.0, 16.0]]
+    test_integral(
+        QuadraticInterpolation; args = [u_vov, t],
+        name = "Quadratic Interpolation (Vector of Vectors)"
     )
     u = [3.0, 0.0, 3.0, 0.0]
     t = [1.0, 2.0, 3.0, 4.0]
@@ -149,6 +194,13 @@ end
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
     test_integral(QuadraticSpline; args = [u, t], name = "Quadratic Spline (Vector)")
+    u2 = [0.0 1.0 3.0; 0.0 1.0 3.0]
+    test_integral(QuadraticSpline; args = [u2, t], name = "Quadratic Spline (Matrix)")
+    u_vov = [[u_, u_] for u_ in u]
+    test_integral(
+        QuadraticSpline; args = [u_vov, t],
+        name = "Quadratic Spline (Vector of Vectors)"
+    )
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     test_integral(
@@ -160,6 +212,12 @@ end
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
     test_integral(CubicSpline; args = [u, t], name = "Cubic Spline (Vector)")
+    u2 = [0.0 1.0 3.0; 0.0 1.0 3.0]
+    test_integral(CubicSpline; args = [u2, t], name = "Cubic Spline (Matrix)")
+    u_vov = [[u_, u_] for u_ in u]
+    test_integral(
+        CubicSpline; args = [u_vov, t], name = "Cubic Spline (Vector of Vectors)"
+    )
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     test_integral(
@@ -171,6 +229,15 @@ end
     u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
     t = collect(0.0:10.0)
     test_integral(AkimaInterpolation; args = [u, t], name = "Akima Interpolation (Vector)")
+    u2 = vcat(u', u')
+    test_integral(
+        AkimaInterpolation; args = [u2, t], name = "Akima Interpolation (Matrix)"
+    )
+    u_vov = [[u_, u_] for u_ in u]
+    test_integral(
+        AkimaInterpolation; args = [u_vov, t],
+        name = "Akima Interpolation (Vector of Vectors)"
+    )
     u = round.(rand(100), digits = 5)
     t = 1.0collect(1:100)
     test_integral(
@@ -185,6 +252,18 @@ end
     test_integral(
         CubicHermiteSpline; args = [du, u, t],
         name = "Cubic Hermite Spline (Vector)"
+    )
+    du2 = vcat(du', du')
+    u2 = vcat(u', u')
+    test_integral(
+        CubicHermiteSpline; args = [du2, u2, t],
+        name = "Cubic Hermite Spline (Matrix)"
+    )
+    du_vov = [[du_, du_] for du_ in du]
+    u_vov = [[u_, u_] for u_ in u]
+    test_integral(
+        CubicHermiteSpline; args = [du_vov, u_vov, t],
+        name = "Cubic Hermite Spline (Vector of Vectors)"
     )
 
     u = round.(rand(100), digits = 5)
@@ -205,6 +284,20 @@ end
     test_integral(
         QuinticHermiteSpline; args = [ddu, du, u, t],
         name = "Quintic Hermite Spline (Vector)"
+    )
+    ddu2 = vcat(ddu', ddu')
+    du2 = vcat(du', du')
+    u2 = vcat(u', u')
+    test_integral(
+        QuinticHermiteSpline; args = [ddu2, du2, u2, t],
+        name = "Quintic Hermite Spline (Matrix)"
+    )
+    ddu_vov = [[ddu_, ddu_] for ddu_ in ddu]
+    du_vov = [[du_, du_] for du_ in du]
+    u_vov = [[u_, u_] for u_ in u]
+    test_integral(
+        QuinticHermiteSpline; args = [ddu_vov, du_vov, u_vov, t],
+        name = "Quintic Hermite Spline (Vector of Vectors)"
     )
 
     u = round.(rand(100), digits = 5)
@@ -245,6 +338,20 @@ end
         name = "BSpline Interpolation (d=3, Average)",
         test_cache_parameters = false
     )
+    u2 = vcat(u', u')
+    test_integral(
+        BSplineInterpolation;
+        args = [u2, t, 2, :Uniform],
+        name = "BSpline Interpolation (d=2, Uniform): Matrix",
+        test_cache_parameters = false
+    )
+    u_vov = [[u_, u_] for u_ in u]
+    test_integral(
+        BSplineInterpolation;
+        args = [u_vov, t, 2, :Uniform],
+        name = "BSpline Interpolation (d=2, Uniform): Vector{Vector}",
+        test_cache_parameters = false
+    )
 end
 
 @testset "BSplineApprox" begin
@@ -261,6 +368,35 @@ end
         args = [u, t, 3, 4, :Average],
         name = "BSpline Approx (d=3, Average)",
         test_cache_parameters = false
+    )
+    u2 = vcat(u', u')
+    test_integral(
+        BSplineApprox;
+        args = [u2, t, 2, 4, :Uniform],
+        name = "BSpline Approx (d=2, Uniform): Matrix",
+        test_cache_parameters = false
+    )
+    u_vov = [[u_, u_] for u_ in u]
+    test_integral(
+        BSplineApprox;
+        args = [u_vov, t, 2, 4, :Uniform],
+        name = "BSpline Approx (d=2, Uniform): Vector{Vector}",
+        test_cache_parameters = false
+    )
+end
+
+@testset "SmoothArcLengthInterpolation" begin
+    u = [0.3 -1.5 3.1; -0.2 0.2 -1.5; 10.4 -37.2 -5.8]
+    test_integral(
+        SmoothArcLengthInterpolation;
+        args = [u], kwargs = Pair[:m => 5],
+        name = "Smooth Arc Length Interpolation"
+    )
+    u_vov = [u[:, i] for i in 1:size(u, 2)]
+    test_integral(
+        SmoothArcLengthInterpolation;
+        args = [u_vov], kwargs = Pair[:m => 5],
+        name = "Smooth Arc Length Interpolation (Vector of Vectors)"
     )
 end
 
