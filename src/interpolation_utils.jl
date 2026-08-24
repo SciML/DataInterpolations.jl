@@ -515,7 +515,7 @@ function get_parameters(A::QuinticHermiteSpline, idx)
     end
 end
 
-function du_PCHIP(u, t)
+function du_PCHIP(u::AbstractVector{<:Number}, t)
     h = diff(t)
     δ = diff(u) ./ h
     s = sign.(δ)
@@ -566,6 +566,34 @@ function du_PCHIP(u, t)
     end
 
     return _du.(eachindex(t))
+end
+
+# Builds each dimension's PCHIP derivative independently, by reusing the scalar
+# `du_PCHIP` kernel on a length-`n` scalar slice per leading index (row of a Matrix,
+# component of a Vector{Vector}, ...), matching the `AkimaInterpolation` pattern.
+function du_PCHIP(u::AbstractArray{T, N}, t) where {T, N}
+    n = length(t)
+    dims = size(u)[1:(end - 1)]
+    du = Array{T}(undef, dims..., n)
+    u_flat = reshape(u, :, n)
+    du_flat = reshape(du, :, n)
+    for i in axes(u_flat, 1)
+        du_flat[i, :] .= du_PCHIP(u_flat[i, :], t)
+    end
+    return du
+end
+
+function du_PCHIP(u::AbstractVector{<:AbstractVector{T}}, t) where {T}
+    dim = length(u[1])
+    du = [Vector{T}(undef, dim) for _ in eachindex(u)]
+    for j in 1:dim
+        u_j = [u_[j] for u_ in u]
+        du_j = du_PCHIP(u_j, t)
+        for i in eachindex(t)
+            du[i][j] = du_j[i]
+        end
+    end
+    return du
 end
 
 function integrate_cubic_polynomial(t1, t2, offset, a, b, c, d)
