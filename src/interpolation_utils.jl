@@ -212,15 +212,20 @@ function warn_if_ill_conditioned(F, sc, n, d, knotVecType)
     return nothing
 end
 
-function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
-    # Duplicate time points make the collocation system singular
+# Duplicate time points make the collocation system singular
+function check_no_duplicate_t(name, t::AbstractVector)
     if any(i -> t[i] == t[i + 1], 1:(length(t) - 1))
         throw(
             ArgumentError(
-                "The time points `t` must be unique for `QuadraticSpline`, but duplicate values were found."
+                "The time points `t` must be unique for `$name`, but duplicate values were found."
             )
         )
     end
+    return nothing
+end
+
+function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
+    check_no_duplicate_t(:QuadraticSpline, t)
 
     # Create knot vector
     # Don't use x[end-1] as knot to match number of degrees of freedom with data

@@ -169,6 +169,7 @@ function QuadraticInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(:QuadraticInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = QuadraticParameterCache(u, t, cache_parameters, mode)
     A = QuadraticInterpolation(
@@ -267,6 +268,7 @@ function LagrangeInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(:LagrangeInterpolation, t)
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
     end
@@ -428,6 +430,7 @@ function AkimaInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(:AkimaInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     T = eltype(u)
@@ -464,6 +467,7 @@ function AkimaInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(:AkimaInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     dims = size(u)[1:(end - 1)]
@@ -505,6 +509,7 @@ function AkimaInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(:AkimaInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     dim = length(u[1])
@@ -996,6 +1001,7 @@ function CubicSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(:CubicSpline, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -1042,6 +1048,7 @@ function CubicSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(:CubicSpline, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -1089,6 +1096,7 @@ function CubicSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(:CubicSpline, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -1741,6 +1749,7 @@ function CubicHermiteSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(:CubicHermiteSpline, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = CubicHermiteParameterCache(du, u, t, cache_parameters)
     A = CubicHermiteSpline(
@@ -1878,6 +1887,7 @@ function QuinticHermiteSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(:QuinticHermiteSpline, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
     A = QuinticHermiteSpline(
