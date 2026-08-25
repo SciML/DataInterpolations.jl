@@ -576,6 +576,18 @@ end
     A = @inferred(QuadraticInterpolation(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(0.0)
     @test_throws DataInterpolations.RightExtrapolationError A(5.0)
+
+    # Duplicate time points throw an informative error instead of silently
+    # producing NaN across the segments touching the duplicate (#475)
+    @test_throws ArgumentError QuadraticInterpolation(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError QuadraticInterpolation(
+        rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError QuadraticInterpolation(
+        [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
 end
 
 @testset "Lagrange Interpolation" begin
@@ -646,6 +658,18 @@ end
     A = @inferred(LagrangeInterpolation(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
     @test_throws DataInterpolations.RightExtrapolationError A(4.0)
+
+    # Duplicate time points throw an informative error instead of silently
+    # producing NaN across (almost) the entire domain (#475)
+    @test_throws ArgumentError LagrangeInterpolation(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError LagrangeInterpolation(
+        rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError LagrangeInterpolation(
+        [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
 end
 
 @testset "Akima Interpolation" begin
@@ -854,6 +878,18 @@ end
         A_dim = AkimaInterpolation(u, t)
         @test_throws DimensionMismatch A_dim(zeros(3), [1.0, 2.0])
     end
+
+    # Duplicate time points throw an informative error instead of silently
+    # producing NaN across the entire domain (#475)
+    @test_throws ArgumentError AkimaInterpolation(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError AkimaInterpolation(
+        rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError AkimaInterpolation(
+        [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
 end
 
 @testset "ConstantInterpolation" begin
@@ -1326,6 +1362,14 @@ end
     @test_throws DataInterpolations.LeftExtrapolationError A(-2.0)
     @test_throws DataInterpolations.RightExtrapolationError A(2.0)
 
+    # Duplicate time points throw an informative error (#475)
+    @test_throws ArgumentError CubicSpline([1.0, 2.0, 3.0], [1.0, 1.0, 2.0])
+    @test_throws ArgumentError CubicSpline(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError CubicSpline(rand(2, 3), [1.0, 1.0, 2.0])
+    @test_throws ArgumentError CubicSpline([rand(2) for _ in 1:3], [1.0, 1.0, 2.0])
+
     @testset "AbstractMatrix" begin
         t = 0.1:0.1:1.0
         u = [sin.(t) cos.(t)]' |> collect
@@ -1727,6 +1771,19 @@ end
             DataInterpolations.integral(A, t[1], t[end]), atol = 1.0e-10
         )
     end
+
+    # Duplicate time points throw an informative error instead of silently
+    # producing NaN through `integral` (and sometimes through evaluation at
+    # a duplicated node) (#475)
+    @test_throws ArgumentError CubicHermiteSpline(
+        [0.5, 0.5, 0.5, 0.5, 0.5], [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError CubicHermiteSpline(
+        rand(2, 5), rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError CubicHermiteSpline(
+        [rand(2) for _ in 1:5], [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
 end
 
 @testset "PCHIPInterpolation" begin
@@ -1741,6 +1798,11 @@ end
     @test all(A.du[3:4] .== 0.0)
     @test @inferred(output_dim(A)) == 0
     @test @inferred(output_size(A)) == ()
+
+    # Duplicate time points throw an informative error (#475)
+    @test_throws ArgumentError PCHIPInterpolation(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
 end
 
 @testset "Quintic Hermite Spline" begin
@@ -1822,6 +1884,20 @@ end
             DataInterpolations.integral(A, t[1], t[end]), atol = 1.0e-10
         )
     end
+
+    # Duplicate time points throw an informative error instead of silently
+    # producing NaN through `integral` (#475)
+    @test_throws ArgumentError QuinticHermiteSpline(
+        [0.1, 0.1, 0.1, 0.1, 0.1], [0.5, 0.5, 0.5, 0.5, 0.5],
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError QuinticHermiteSpline(
+        rand(2, 5), rand(2, 5), rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError QuinticHermiteSpline(
+        [rand(2) for _ in 1:5], [rand(2) for _ in 1:5],
+        [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
 end
 
 @testset "Smooth Arc Length Interpolation" begin
