@@ -2083,12 +2083,17 @@ end
         xvals[42] + 0.5 * (xvals[43] - xvals[42])
 
     @variables dx[1:100]
+    @variables ddx[1:100]
     @test_nowarn chs = CubicHermiteSpline(dx, x, t)
     @test_nowarn qi = QuadraticInterpolation(x, t)
     @test_nowarn li = LagrangeInterpolation(x, t)
     @test_nowarn cs = CubicSpline(x, t)
+    @test_nowarn qhs = QuinticHermiteSpline(ddx, dx, x, t)
 
-    @test_throws Exception ai = AkimaInterpolation(x, t)
-    @test_throws Exception bsi = BSplineInterpolation(x, t, 3, :Average)
-    @test_throws Exception pc = PCHIPInterpolation(x, t)
+    # #429: Akima/PCHIP's sign-based branching and BSplineInterpolation's/QuadraticSpline's
+    # `\` on a raw `u` both used to break (silently, for the latter two) on symbolic `u`.
+    @test_nowarn ai = AkimaInterpolation(x, t)
+    @test_nowarn pc = PCHIPInterpolation(x, t)
+    @test_nowarn bsi = BSplineInterpolation(x, t, 3, :Average)
+    @test_nowarn qs = QuadraticSpline(x, t)
 end
