@@ -34,9 +34,10 @@ run_qa(
             # interpolated macro output where static analysis cannot see them.
             ignore = (
                 :AkimaInterpolation, :BSplineApprox, :BSplineInterpolation,
-                :ConstantInterpolation, :CubicHermiteSpline, :CubicSpline,
-                :LagrangeInterpolation, :LinearInterpolation, :QuadraticInterpolation,
-                :QuadraticSpline, :QuinticHermiteSpline,
+                :ConstantInterpolation, :ConstantInterpolationIntInv,
+                :CubicHermiteSpline, :CubicSpline, :LagrangeInterpolation,
+                :LinearInterpolation, :LinearInterpolationIntInv,
+                :QuadraticInterpolation, :QuadraticSpline, :QuinticHermiteSpline,
             ),
         ),
         all_qualified_accesses_are_public = (;
