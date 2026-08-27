@@ -90,6 +90,12 @@ Every interpolation method above accepts `u` as a plain `Vector`, a `Matrix` (`n
   2. These constructors fit coefficients via mutating loops/linear solves, which Zygote's reverse-mode AD cannot trace through ("Mutating arrays is not supported"); Mooncake handles all of them except `SmoothArcLengthInterpolation`.
   3. `SmoothArcLengthInterpolation`'s circle/line-fitting constructor produces `Vector{Vector}`-shaped intermediates that Mooncake's tangent machinery doesn't yet have a rule for.
 
+### Symbolic construction (Symbolics.jl)
+
+Building an interpolation directly from a symbolic `u` (e.g. `@variables u[1:n]`) works for every method except `SmoothArcLengthInterpolation`¹. See the [Symbolics.jl docs page](https://docs.sciml.ai/DataInterpolations/stable/symbolics/) for details. This is separate from evaluating an already-built interpolation at a symbolic *time* argument (`A(τ)`), which all methods support.
+
+  1. Its constructor does real computational geometry (fitting circle/line segments, detecting intersections) that branches on the concrete shape of the data — this can't be resolved for unassigned symbolic values.
+
 ## Extension Methods
 
 The following methods require extra dependencies and will be loaded as package extensions.
