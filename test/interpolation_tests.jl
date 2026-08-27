@@ -2089,11 +2089,14 @@ end
     @test_nowarn li = LagrangeInterpolation(x, t)
     @test_nowarn cs = CubicSpline(x, t)
     @test_nowarn qhs = QuinticHermiteSpline(ddx, dx, x, t)
-
-    # #429: Akima/PCHIP's sign-based branching and BSplineInterpolation's/QuadraticSpline's
-    # `\` on a raw `u` both used to break (silently, for the latter two) on symbolic `u`.
+    @test_nowarn sci = SmoothedConstantInterpolation(x, t)
+    @test_nowarn bsa = BSplineApprox(x, t, 3, 20, :Average)
     @test_nowarn ai = AkimaInterpolation(x, t)
     @test_nowarn pc = PCHIPInterpolation(x, t)
     @test_nowarn bsi = BSplineInterpolation(x, t, 3, :Average)
     @test_nowarn qs = QuadraticSpline(x, t)
+    # `SmoothArcLengthInterpolation` fits circle/line segments, which requires branching on
+    # the concrete shape of the data (not just its sign) and can't be resolved symbolically.
+    @variables xm[1:2, 1:10]
+    @test_throws Exception SmoothArcLengthInterpolation(collect(xm); m = 2)
 end
