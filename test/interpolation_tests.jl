@@ -1803,6 +1803,29 @@ end
     @test_throws ArgumentError PCHIPInterpolation(
         [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
     )
+
+    @testset "AbstractMatrix" begin
+        t = 0.1:0.1:1.0
+        u2d = [sin.(t) cos.(t)]' |> collect
+        A = PCHIPInterpolation(u2d, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        @test output_dim(A) == 1
+        @test output_size(A) == (2,)
+    end
+    @testset "Vector{Vector}" begin
+        t = 0.1:0.1:1.0
+        u_vec = [[sin(t_), cos(t_)] for t_ in t]
+        A = PCHIPInterpolation(u_vec, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        @test output_dim(A) == 1
+        @test output_size(A) == (2,)
+    end
 end
 
 @testset "Quintic Hermite Spline" begin
