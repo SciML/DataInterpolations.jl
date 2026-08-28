@@ -403,9 +403,8 @@ function _akima_init!(
                 bdefault = (m[i + 3] + m[i]) / 2
             end
             w12 = w1 + w2
-            b[i] = w12 > tol ?
-                (w1 * m[i + 1] + w2 * m[i + 2]) / w12 :
-                bdefault
+            # `ifelse`, not `?:`, so `u` may hold symbolic (e.g. Symbolics.Num) entries.
+            b[i] = ifelse(w12 > tol, (w1 * m[i + 1] + w2 * m[i + 2]) / w12, bdefault)
         end
 
         for i in 1:(n - 1)
@@ -823,7 +822,9 @@ function QuadraticSpline(
     dtype_sc = typeof(one(eltype(t)) / one(eltype(t)))
     sc = zeros(dtype_sc, n)
     k, A = quadratic_spline_params(t, sc)
-    c = A \ u
+    # `reshape`, not plain `u`: `\` on a raw Symbolics.Arr silently returns an unevaluated
+    # symbolic term instead of actually solving.
+    c = vec(A \ reshape(u, :, 1))
 
     p = QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     A = QuadraticSpline(
@@ -1257,7 +1258,8 @@ function BSplineInterpolation(
     sc = zeros(eltype(t), n, n)
     spline_coefficients!(sc, d, k, t)
     F = bspline_collocation_factorization(sc, n, d, knotVecType)
-    c = vec(F \ u[:, :])
+    # `reshape`, not `u[:, :]`: the latter needs cartesian indexing, unsupported by Symbolics.Arr.
+    c = vec(F \ reshape(u, :, 1))
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
         u, t, d, k, c, sc, knotVecType,

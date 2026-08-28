@@ -522,15 +522,14 @@ function du_PCHIP(u, t)
 
     # Special handling of the slope at the endpoints, see
     # Cleve Moler, Numerical Computing with MATLAB, Chap 3.6 (file pchiptx.m, function pchipend())
+    # `ifelse`/`&`, not `if`/`&&`, so `u` (and hence `δ`) may hold symbolic entries.
     function _edge_case(h₁, h₂, δ₁, δ₂)
         d = ((2 * h₁ + h₂) * δ₁ - h₁ * δ₂) / (h₁ + h₂)
-        return if sign(d) != sign(δ₁)
-            zero(eltype(δ))
-        elseif sign(δ₁) != sign(δ₂) && abs(d) > 3 * abs(δ₁)
-            3 * δ₁
-        else
-            d
-        end
+        return ifelse(
+            sign(d) != sign(δ₁),
+            zero(eltype(δ)),
+            ifelse((sign(δ₁) != sign(δ₂)) & (abs(d) > 3 * abs(δ₁)), 3 * δ₁, d)
+        )
     end
 
     function _du(k)
@@ -542,27 +541,31 @@ function du_PCHIP(u, t)
             s[k - 1], s[k]
         end
 
-        return if sₖ₋₁ == 0 && sₖ == 0
-            zero(eltype(δ))
-        elseif sₖ₋₁ == sₖ
-            if k == 1
-                _edge_case(h[1], h[2], δ[1], δ[2])
-            elseif k == lastindex(t)
-                _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
-            else
-                w₁ = 2h[k] + h[k - 1]
-                w₂ = h[k] + 2h[k - 1]
-                (w₁ + w₂) / (w₁ / δ[k - 1] + w₂ / δ[k])
-            end
+        # `k` is a concrete `Int`, so branching on it directly is safe; only the
+        # branches on the (possibly symbolic) signs `sₖ₋₁`, `sₖ` need `ifelse`.
+        same_sign_branch = if k == 1
+            _edge_case(h[1], h[2], δ[1], δ[2])
+        elseif k == lastindex(t)
+            _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
         else
-            if k == 1
-                _edge_case(h[1], h[2], δ[1], δ[2])
-            elseif k == lastindex(t)
-                _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
-            else
-                zero(eltype(δ))
-            end
+            w₁ = 2h[k] + h[k - 1]
+            w₂ = h[k] + 2h[k - 1]
+            (w₁ + w₂) / (w₁ / δ[k - 1] + w₂ / δ[k])
         end
+
+        diff_sign_branch = if k == 1
+            _edge_case(h[1], h[2], δ[1], δ[2])
+        elseif k == lastindex(t)
+            _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
+        else
+            zero(eltype(δ))
+        end
+
+        return ifelse(
+            (sₖ₋₁ == 0) & (sₖ == 0),
+            zero(eltype(δ)),
+            ifelse(sₖ₋₁ == sₖ, same_sign_branch, diff_sign_branch)
+        )
     end
 
     return _du.(eachindex(t))

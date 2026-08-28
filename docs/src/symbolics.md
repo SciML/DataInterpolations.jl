@@ -45,6 +45,19 @@ f_deriv2 = build_function(ex3, τ, expression = Val{false})
 @test f_deriv2(0.5) ≈ DataInterpolations.derivative(A, 0.5, 2) # true
 ```
 
+### Symbolic construction
+
+The examples above evaluate a concretely-built interpolation at a symbolic *time* argument. `u` itself can also be symbolic, e.g. from `@variables u[1:n]`:
+
+```@example symbolics
+@variables u[1:5]
+t2 = 0.0:1.0:4.0
+B = LinearInterpolation(u, t2)
+B(2.5) # a Num expression in u[1], ..., u[5]
+```
+
+Every interpolation method supports this except `SmoothArcLengthInterpolation`, whose constructor does computational geometry (circle/line segment fitting, intersection detection) that depends on the concrete shape of the data and can't be resolved symbolically.
+
 ## Using with ModelingToolkit.jl
 
 We recommend using the
