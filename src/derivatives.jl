@@ -203,70 +203,63 @@ function _derivative(A::QuadraticInterpolation, t::Number, iguess)
     return @. 2α * Δt + β
 end
 
+# Analytic derivative of the barycentric interpolant p(t) = N(t)/D(t):
+# p'(t) = (N'(t)D(t) - N(t)D'(t)) / D(t)^2, evaluated in O(n).
+# At a node t = t_k, N and D individually diverge, so the differentiation-matrix
+# formula p'(t_k) = Σ_{j≠k} (w_j/w_k)/(t_k - t_j) * (u_j - u_k) is used instead.
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
-    der = zero(A.u[1])
-    for j in eachindex(A.t)
-        tmp = zero(A.t[1])
-        if isnan(A.bcache[j])
-            mult = one(A.t[1])
-            for i in 1:(j - 1)
-                mult *= (A.t[j] - A.t[i])
-            end
-            for i in (j + 1):length(A.t)
-                mult *= (A.t[j] - A.t[i])
-            end
-            A.bcache[j] = mult
-        else
-            mult = A.bcache[j]
+    idx = _searchsortedfirst(A.t, t)
+    if !isnothing(idx)
+        der = zero(A.u[1])
+        invw_idx = inv(A.p.w[idx])
+        for j in eachindex(A.t)
+            j == idx && continue
+            coef = (A.p.w[j] * invw_idx) / (A.t[idx] - A.t[j])
+            der += coef * (A.u[j] - A.u[idx])
         end
-        for l in eachindex(A.t)
-            if l != j
-                k = one(A.t[1])
-                for m in eachindex(A.t)
-                    if m != j && m != l
-                        k *= (t - A.t[m])
-                    end
-                end
-                k *= inv(mult)
-                tmp += k
-            end
-        end
-        der += A.u[j] * tmp
+        return der
     end
-    return der
+    N = zero(A.p.wu[1])
+    D = zero(A.t[1])
+    N′ = zero(A.p.wu[1])
+    D′ = zero(A.t[1])
+    for i in eachindex(A.t)
+        invti = inv(t - A.t[i])
+        wi_inv = A.p.w[i] * invti
+        wui_inv = A.p.wu[i] * invti
+        D += wi_inv
+        N += wui_inv
+        D′ -= wi_inv * invti
+        N′ -= wui_inv * invti
+    end
+    return (N′ * D - N * D′) / D^2
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
-    der = zero(A.u[:, 1])
-    for j in eachindex(A.t)
-        tmp = zero(A.t[1])
-        if isnan(A.bcache[j])
-            mult = one(A.t[1])
-            for i in 1:(j - 1)
-                mult *= (A.t[j] - A.t[i])
-            end
-            for i in (j + 1):length(A.t)
-                mult *= (A.t[j] - A.t[i])
-            end
-            A.bcache[j] = mult
-        else
-            mult = A.bcache[j]
+    idx = _searchsortedfirst(A.t, t)
+    if !isnothing(idx)
+        der = zero(A.u[:, 1])
+        invw_idx = inv(A.p.w[idx])
+        @views for j in eachindex(A.t)
+            j == idx && continue
+            coef = (A.p.w[j] * invw_idx) / (A.t[idx] - A.t[j])
+            @. der += coef * (A.u[:, j] - A.u[:, idx])
         end
-        for l in eachindex(A.t)
-            if l != j
-                k = one(A.t[1])
-                for m in eachindex(A.t)
-                    if m != j && m != l
-                        k *= (t - A.t[m])
-                    end
-                end
-                k *= inv(mult)
-                tmp += k
-            end
-        end
-        der += A.u[:, j] * tmp
+        return der
     end
-    return der
+    N = zero(A.p.wu[:, 1])
+    D = zero(A.t[1])
+    N′ = zero(A.p.wu[:, 1])
+    D′ = zero(A.t[1])
+    @views for i in eachindex(A.t)
+        invti = inv(t - A.t[i])
+        wi_inv = A.p.w[i] * invti
+        D += wi_inv
+        D′ -= wi_inv * invti
+        @. N += A.p.wu[:, i] * invti
+        @. N′ -= A.p.wu[:, i] * invti^2
+    end
+    return @. (N′ * D - N * D′) / D^2
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)

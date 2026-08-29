@@ -221,32 +221,28 @@ A = LagrangeInterpolation([1.0, 4.0, 9.0], [1.0, 2.0, 3.0])
 A(2.5)
 ```
 """
-struct LagrangeInterpolation{uType, tType, T, bcacheType, propsType} <:
+struct LagrangeInterpolation{uType, tType, T, pType, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
     n::Int
-    bcache::bcacheType
-    idxs::Vector{Int}
+    p::pType
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     function LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right, t_props)
-        bcache = zeros(eltype(u[1]), n + 1)
-        idxs = zeros(Int, n + 1)
-        fill!(bcache, NaN)
+        p = LagrangeParameterCache(u, t)
         kind = _resolve_strategy_kind(t, t_props)
         return new{
-            typeof(u), typeof(t), eltype(u), typeof(bcache),
+            typeof(u), typeof(t), eltype(u), typeof(p),
             typeof(t_props),
         }(
             u,
             t,
             n,
-            bcache,
-            idxs,
+            p,
             extrapolation_left,
             extrapolation_right,
             Guesser(t),
