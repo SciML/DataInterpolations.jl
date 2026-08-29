@@ -283,3 +283,38 @@ function quintic_hermite_spline_parameters(ddu, du, u, t, idx)
     c₃ = (6u₁ - 6u₀ - 3(du₀ + du₁)Δt + (ddu₁ - ddu₀)Δt^2 / 2) / Δt^5
     return c₁, c₂, c₃
 end
+
+struct LagrangeParameterCache{wType, wuType}
+    w::wType
+    wu::wuType
+end
+
+# Barycentric weights `w[i] = 1 / ∏_{j≠i} (t[i] - t[j])`, computed once so that
+# `_interpolate`/`_derivative` can evaluate in O(n) instead of O(n²) per call.
+function LagrangeParameterCache(u::AbstractVector, t::AbstractVector)
+    n = length(t)
+    w = zeros(eltype(t), n)
+    for i in 1:n
+        mult = one(eltype(t))
+        for j in 1:n
+            i != j && (mult *= (t[i] - t[j]))
+        end
+        w[i] = inv(mult)
+    end
+    wu = w .* u
+    return LagrangeParameterCache{typeof(w), typeof(wu)}(w, wu)
+end
+
+function LagrangeParameterCache(u::AbstractMatrix, t::AbstractVector)
+    n = length(t)
+    w = zeros(eltype(t), n)
+    for i in 1:n
+        mult = one(eltype(t))
+        for j in 1:n
+            i != j && (mult *= (t[i] - t[j]))
+        end
+        w[i] = inv(mult)
+    end
+    wu = u .* w'
+    return LagrangeParameterCache{typeof(w), typeof(wu)}(w, wu)
+end

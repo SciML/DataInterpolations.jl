@@ -616,61 +616,29 @@ function _quadratic_eval_sorted!(
     return nothing
 end
 
-# Lagrange Interpolation
+# Lagrange Interpolation (barycentric form, weights precomputed at construction)
 function _interpolate(A::LagrangeInterpolation{<:AbstractVector}, t::Number, iguess)
-    idx = get_idx(A, t, iguess)
-    findRequiredIdxs!(A, t, idx)
-    if A.t[A.idxs[1]] == t
-        return A.u[A.idxs[1]]
-    end
-    N = zero(A.u[1])
+    idx = _searchsortedfirst(A.t, t)
+    !isnothing(idx) && return A.u[idx]
+    N = zero(A.p.wu[1])
     D = zero(A.t[1])
-    tmp = N
-    for i in 1:length(A.idxs)
-        if isnan(A.bcache[A.idxs[i]])
-            mult = one(A.t[1])
-            for j in 1:(i - 1)
-                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
-            end
-            for j in (i + 1):length(A.idxs)
-                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
-            end
-            A.bcache[A.idxs[i]] = mult
-        else
-            mult = A.bcache[A.idxs[i]]
-        end
-        tmp = inv((t - A.t[A.idxs[i]]) * mult)
-        D += tmp
-        N += (tmp * A.u[A.idxs[i]])
+    for i in eachindex(A.t)
+        invti = inv(t - A.t[i])
+        D += A.p.w[i] * invti
+        N += A.p.wu[i] * invti
     end
     return N / D
 end
 
 function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, iguess)
-    idx = get_idx(A, t, iguess)
-    findRequiredIdxs!(A, t, idx)
-    if A.t[A.idxs[1]] == t
-        return A.u[:, A.idxs[1]]
-    end
-    N = zero(A.u[:, 1])
+    idx = _searchsortedfirst(A.t, t)
+    !isnothing(idx) && return A.u[:, idx]
+    N = zero(A.p.wu[:, 1])
     D = zero(A.t[1])
-    tmp = D
-    for i in 1:length(A.idxs)
-        if isnan(A.bcache[A.idxs[i]])
-            mult = one(A.t[1])
-            for j in 1:(i - 1)
-                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
-            end
-            for j in (i + 1):length(A.idxs)
-                mult *= (A.t[A.idxs[i]] - A.t[A.idxs[j]])
-            end
-            A.bcache[A.idxs[i]] = mult
-        else
-            mult = A.bcache[A.idxs[i]]
-        end
-        tmp = inv((t - A.t[A.idxs[i]]) * mult)
-        D += tmp
-        @. N += (tmp * A.u[:, A.idxs[i]])
+    @views for i in eachindex(A.t)
+        invti = inv(t - A.t[i])
+        D += A.p.w[i] * invti
+        @. N += A.p.wu[:, i] * invti
     end
     return N / D
 end

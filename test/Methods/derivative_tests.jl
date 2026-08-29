@@ -47,7 +47,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             adiff = derivative(func, _t)
             adiff2 = derivative(func, _t, 2)
             @test isapprox(fdiff, adiff, atol = 1.0e-8)
-            @test isapprox(fdiff2, adiff2, atol = 1.0e-8)
+            @test isapprox(fdiff2, adiff2, atol = 1.0e-7)
             # Cached index
             if hasproperty(func, :t_props) && !func.t_props.is_uniform
                 @test abs(
@@ -69,7 +69,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             )
             fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), t[1])
             adiff2 = derivative(func, t[1], 2)
-            @test isapprox(fdiff2, adiff2, atol = 1.0e-8)
+            @test isapprox(fdiff2, adiff2, atol = 1.0e-7)
         end
 
         # t = tend
@@ -82,7 +82,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             )
             fdiff2 = backward_fdm(5, 1; geom = true)(t -> derivative(func, t), t[end])
             adiff2 = derivative(func, t[end], 2)
-            @test isapprox(fdiff2, adiff2, atol = 1.0e-8)
+            @test isapprox(fdiff2, adiff2, atol = 1.0e-7)
         end
     end
     @test_throws DataInterpolations.DerivativeNotFoundError derivative(

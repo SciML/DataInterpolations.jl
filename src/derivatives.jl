@@ -203,70 +203,80 @@ function _derivative(A::QuadraticInterpolation, t::Number, iguess)
     return @. 2α * Δt + β
 end
 
-function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
-    der = zero(A.u[1])
+# Differentiation-matrix formula at node `A.t[k]`, generic over `values`: with `A.u` it
+# gives the first derivative; with the vector of first derivatives it gives the second
+# (D² = D·D, the standard spectral-differentiation trick).
+function _lagrange_node_derivative(A::LagrangeInterpolation{<:AbstractVector}, k, values)
+    der = zero(values[k])
+    invw_k = inv(A.p.w[k])
     for j in eachindex(A.t)
-        tmp = zero(A.t[1])
-        if isnan(A.bcache[j])
-            mult = one(A.t[1])
-            for i in 1:(j - 1)
-                mult *= (A.t[j] - A.t[i])
-            end
-            for i in (j + 1):length(A.t)
-                mult *= (A.t[j] - A.t[i])
-            end
-            A.bcache[j] = mult
-        else
-            mult = A.bcache[j]
-        end
-        for l in eachindex(A.t)
-            if l != j
-                k = one(A.t[1])
-                for m in eachindex(A.t)
-                    if m != j && m != l
-                        k *= (t - A.t[m])
-                    end
-                end
-                k *= inv(mult)
-                tmp += k
-            end
-        end
-        der += A.u[j] * tmp
+        j == k && continue
+        coef = (A.p.w[j] * invw_k) / (A.t[k] - A.t[j])
+        der += coef * (values[j] - values[k])
     end
     return der
 end
 
-function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
-    der = zero(A.u[:, 1])
-    for j in eachindex(A.t)
-        tmp = zero(A.t[1])
-        if isnan(A.bcache[j])
-            mult = one(A.t[1])
-            for i in 1:(j - 1)
-                mult *= (A.t[j] - A.t[i])
-            end
-            for i in (j + 1):length(A.t)
-                mult *= (A.t[j] - A.t[i])
-            end
-            A.bcache[j] = mult
-        else
-            mult = A.bcache[j]
-        end
-        for l in eachindex(A.t)
-            if l != j
-                k = one(A.t[1])
-                for m in eachindex(A.t)
-                    if m != j && m != l
-                        k *= (t - A.t[m])
-                    end
-                end
-                k *= inv(mult)
-                tmp += k
-            end
-        end
-        der += A.u[:, j] * tmp
+function _lagrange_node_derivative(
+        A::LagrangeInterpolation{<:AbstractMatrix}, k, values::AbstractMatrix
+    )
+    der = zero(values[:, k])
+    invw_k = inv(A.p.w[k])
+    @views for j in eachindex(A.t)
+        j == k && continue
+        coef = (A.p.w[j] * invw_k) / (A.t[k] - A.t[j])
+        der = der + coef * (values[:, j] - values[:, k])
     end
     return der
+end
+
+function _lagrange_second_derivative_at_node(A::LagrangeInterpolation{<:AbstractVector}, k)
+    du = [_lagrange_node_derivative(A, j, A.u) for j in eachindex(A.t)]
+    return _lagrange_node_derivative(A, k, du)
+end
+
+function _lagrange_second_derivative_at_node(A::LagrangeInterpolation{<:AbstractMatrix}, k)
+    du = stack(_lagrange_node_derivative(A, j, A.u) for j in eachindex(A.t))
+    return _lagrange_node_derivative(A, k, du)
+end
+
+# p(t) = N(t)/D(t), so p'(t) = (N'D - ND')/D^2; off-node only, since N and D individually
+# diverge at a node (handled above via `_lagrange_node_derivative`).
+function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number)
+    idx = _searchsortedfirst(A.t, t)
+    !isnothing(idx) && return _lagrange_node_derivative(A, idx, A.u)
+    N = zero(A.p.wu[1])
+    D = zero(A.t[1])
+    N′ = zero(A.p.wu[1])
+    D′ = zero(A.t[1])
+    for i in eachindex(A.t)
+        invti = inv(t - A.t[i])
+        wi_inv = A.p.w[i] * invti
+        wui_inv = A.p.wu[i] * invti
+        D += wi_inv
+        N += wui_inv
+        D′ -= wi_inv * invti
+        N′ -= wui_inv * invti
+    end
+    return (N′ * D - N * D′) / D^2
+end
+
+function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
+    idx = _searchsortedfirst(A.t, t)
+    !isnothing(idx) && return _lagrange_node_derivative(A, idx, A.u)
+    N = zero(A.p.wu[:, 1])
+    D = zero(A.t[1])
+    N′ = zero(A.p.wu[:, 1])
+    D′ = zero(A.t[1])
+    @views for i in eachindex(A.t)
+        invti = inv(t - A.t[i])
+        wi_inv = A.p.w[i] * invti
+        D += wi_inv
+        D′ -= wi_inv * invti
+        N = N + A.p.wu[:, i] * invti
+        N′ = N′ - A.p.wu[:, i] * invti^2
+    end
+    return @. (N′ * D - N * D′) / D^2
 end
 
 function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)
@@ -274,6 +284,24 @@ function _derivative(A::LagrangeInterpolation{<:AbstractVector}, t::Number, idx)
 end
 function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, idx)
     return _derivative(A, t)
+end
+
+# Autodiffing `_derivative` again (the generic `order == 2` path) hits a 0/0 at nodes,
+# since ForwardDiff's `Dual` equality compares partials too so the node check misses
+# under nested AD. Use the exact second differentiation matrix there instead; off-node,
+# the generic nested-autodiff path already works.
+function derivative(A::LagrangeInterpolation, t::Number, order::Int = 1)
+    (order ∉ (1, 2)) && throw(DerivativeNotFoundError())
+    if t < first(A.t)
+        return _extrapolate_derivative_left(A, t, order)
+    elseif t > last(A.t)
+        return _extrapolate_derivative_right(A, t, order)
+    end
+    iguess = A.iguesser
+    order == 1 && return _derivative(A, t, iguess)
+    idx = _searchsortedfirst(A.t, t)
+    !isnothing(idx) && return _lagrange_second_derivative_at_node(A, idx)
+    return ForwardDiff.derivative(τ -> -_derivative(A, -τ, iguess), -t)
 end
 
 function _derivative(A::AkimaInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)

@@ -123,8 +123,8 @@ end
     I_ref = DataInterpolations.integral(A_constant, first(t), last(t))
     I_smoothed = [
         DataInterpolations.integral(
-                SmoothedConstantInterpolation(u, t; d_max), first(t), last(t)
-            )
+            SmoothedConstantInterpolation(u, t; d_max), first(t), last(t)
+        )
             for d_max in 0.0:0.1:1.0
     ]
     @test all(I_smoothed .≈ I_ref)
