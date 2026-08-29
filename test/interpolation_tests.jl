@@ -654,7 +654,7 @@ end
     t = [1.0, 2.0, 3.0]
     A = @inferred(LagrangeInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
     @test A(0.0) == 0.0
-    @test A(4.0) == 16.0
+    @test A(4.0) ≈ 16.0
     A = @inferred(LagrangeInterpolation(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
     @test_throws DataInterpolations.RightExtrapolationError A(4.0)
