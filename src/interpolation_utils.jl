@@ -187,13 +187,9 @@ function warn_if_ill_conditioned(F, sc, n, d, knotVecType)
     return nothing
 end
 
-"""
-    min_number_of_points(::Type{<:AbstractInterpolation})
-
-The minimum number of data points required to construct this interpolation type.
-Defaults to `1`. Interpolation types whose fit formula needs more points than that
-(e.g. a quadratic needs at least 3 points to be well-defined) override this method.
-"""
+# Minimum number of data points required to construct this interpolation type.
+# Defaults to 1; types whose fit formula needs more (e.g. a quadratic needs at
+# least 3 points to be well-defined) override this method.
 min_number_of_points(::Type{<:AbstractInterpolation}) = 1
 
 min_number_of_points(::Type{LinearInterpolation}) = 2
