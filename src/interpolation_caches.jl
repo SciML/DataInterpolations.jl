@@ -77,6 +77,8 @@ function LinearInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_no_duplicate_t(LinearInterpolation, t)
+    check_min_length(LinearInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = LinearParameterCache(u, t, cache_parameters)
     A = LinearInterpolation(
@@ -169,7 +171,8 @@ function QuadraticInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(:QuadraticInterpolation, t)
+    check_no_duplicate_t(QuadraticInterpolation, t)
+    check_min_length(QuadraticInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = QuadraticParameterCache(u, t, cache_parameters, mode)
     A = QuadraticInterpolation(
@@ -264,7 +267,7 @@ function LagrangeInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(:LagrangeInterpolation, t)
+    check_no_duplicate_t(LagrangeInterpolation, t)
     if n != length(t) - 1
         error("Currently only n=length(t) - 1 is supported")
     end
@@ -425,7 +428,8 @@ function AkimaInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(:AkimaInterpolation, t)
+    check_no_duplicate_t(AkimaInterpolation, t)
+    check_min_length(AkimaInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     T = eltype(u)
@@ -462,7 +466,8 @@ function AkimaInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(:AkimaInterpolation, t)
+    check_no_duplicate_t(AkimaInterpolation, t)
+    check_min_length(AkimaInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     dims = size(u)[1:(end - 1)]
@@ -504,7 +509,8 @@ function AkimaInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(:AkimaInterpolation, t)
+    check_no_duplicate_t(AkimaInterpolation, t)
+    check_min_length(AkimaInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     dim = length(u[1])
@@ -707,6 +713,7 @@ function SmoothedConstantInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
+    check_min_length(SmoothedConstantInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = SmoothedConstantParameterCache(
         u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right
@@ -998,7 +1005,8 @@ function CubicSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(:CubicSpline, t)
+    check_no_duplicate_t(CubicSpline, t)
+    check_min_length(CubicSpline, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -1045,7 +1053,8 @@ function CubicSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(:CubicSpline, t)
+    check_no_duplicate_t(CubicSpline, t)
+    check_min_length(CubicSpline, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -1093,7 +1102,8 @@ function CubicSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(:CubicSpline, t)
+    check_no_duplicate_t(CubicSpline, t)
+    check_min_length(CubicSpline, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t) - 1
     h = vcat(0, map(k -> t[k + 1] - t[k], 1:(length(t) - 1)), 0)
@@ -1225,7 +1235,7 @@ function BSplineInterpolation(
     u, t = munge_data(u, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
-    n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
+    n < d + 1 && throw(ArgumentError("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points."))
     d ≥ BSPLINE_STACK_MAXLEN &&
         error("BSplineInterpolation supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
     k = zeros(eltype(t), n + d + 1)
@@ -1277,7 +1287,7 @@ function BSplineInterpolation(
     u, t = munge_data(u, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
-    n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
+    n < d + 1 && throw(ArgumentError("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points."))
     d ≥ BSPLINE_STACK_MAXLEN &&
         error("BSplineInterpolation supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
     k = zeros(eltype(t), n + d + 1)
@@ -1325,7 +1335,7 @@ function BSplineInterpolation(
     u, t = munge_data(u, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
-    n < d + 1 && error("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points.")
+    n < d + 1 && throw(ArgumentError("BSplineInterpolation needs at least d + 1, i.e. $(d + 1) points."))
     d ≥ BSPLINE_STACK_MAXLEN &&
         error("BSplineInterpolation supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
     k = zeros(eltype(t), n + d + 1)
@@ -1465,7 +1475,7 @@ function BSplineApprox(
     u, t = munge_data(u, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
-    h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
+    h < d + 1 && throw(ArgumentError("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points."))
     d ≥ BSPLINE_STACK_MAXLEN &&
         error("BSplineApprox supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
     k = zeros(eltype(t), h + d + 1)
@@ -1535,7 +1545,7 @@ function BSplineApprox(
     u, t = munge_data(u, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
-    h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
+    h < d + 1 && throw(ArgumentError("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points."))
     d ≥ BSPLINE_STACK_MAXLEN &&
         error("BSplineApprox supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
     dim = length(u[1])
@@ -1607,7 +1617,7 @@ function BSplineApprox(
     u, t = munge_data(u, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
-    h < d + 1 && error("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points.")
+    h < d + 1 && throw(ArgumentError("BSplineApprox needs at least d + 1, i.e. $(d + 1) control points."))
     d ≥ BSPLINE_STACK_MAXLEN &&
         error("BSplineApprox supports degree d < $(BSPLINE_STACK_MAXLEN); got d = $d.")
     k = zeros(eltype(t), h + d + 1)
@@ -1747,7 +1757,8 @@ function CubicHermiteSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(:CubicHermiteSpline, t)
+    check_no_duplicate_t(CubicHermiteSpline, t)
+    check_min_length(CubicHermiteSpline, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = CubicHermiteParameterCache(du, u, t, cache_parameters)
     A = CubicHermiteSpline(
@@ -1799,6 +1810,14 @@ A(2.5)
 """
 function PCHIPInterpolation(u, t; kwargs...)
     u, t = munge_data(u, t)
+    # Checked directly (rather than relying on the delegated `CubicHermiteSpline`
+    # construction below) so the error names `PCHIPInterpolation`, and fires before
+    # `du_PCHIP` runs rather than after.
+    check_no_duplicate_t(:PCHIPInterpolation, t)
+    # `du_PCHIP`'s edge-case slope formula needs a neighbor on both sides of each
+    # endpoint, so at least 3 points (unlike the underlying `CubicHermiteSpline`,
+    # which only needs 2 since its `du` is supplied directly, not derived from `u`).
+    check_min_length(:PCHIPInterpolation, 3, t)
     du = du_PCHIP(u, t)
     return CubicHermiteSpline(du, u, t; kwargs...)
 end
@@ -1885,7 +1904,8 @@ function QuinticHermiteSpline(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(:QuinticHermiteSpline, t)
+    check_no_duplicate_t(QuinticHermiteSpline, t)
+    check_min_length(QuinticHermiteSpline, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
     A = QuinticHermiteSpline(
@@ -1997,6 +2017,8 @@ function SmoothArcLengthInterpolation(
         interpolation_type::Type{<:AbstractInterpolation} = QuadraticSpline,
         kwargs...
     ) where {U}
+    check_min_length(:SmoothArcLengthInterpolation, 2, size(u, 2))
+    isnothing(t) || check_no_duplicate_t(:SmoothArcLengthInterpolation, t)
     if isnothing(t)
         # Compute default t based on point distances
         N, n = size(u)
@@ -2060,6 +2082,7 @@ function SmoothArcLengthInterpolation(
         kwargs...
     )
     (; u, t) = shape_itp
+    check_min_length(:SmoothArcLengthInterpolation, 2, length(u))
     T = promote_type(eltype(eltype(u)), eltype(t))
 
     # Resp. the output dimensionality and the number of data points in the original interpolation
@@ -2146,6 +2169,7 @@ function SmoothArcLengthInterpolation(
         d::AbstractMatrix;
         kwargs...
     )
+    check_min_length(:SmoothArcLengthInterpolation, 2, size(u, 2))
     return SmoothArcLengthInterpolation(u, d, Val{true}(); kwargs...)
 end
 
@@ -2238,6 +2262,10 @@ function SmoothArcLengthInterpolation(
         cache_parameters::Bool = false,
         search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
+    # Needs at least one segment to fit a line/circle through, independent of whatever
+    # `interpolation_type` was used to build the shape (which has its own, possibly
+    # weaker, point requirement checked separately during its own construction).
+    check_min_length(:SmoothArcLengthInterpolation, 2, size(u, 2))
     N = size(u, 1)
     n_circle_arcs = size(u, 2) - 1
 

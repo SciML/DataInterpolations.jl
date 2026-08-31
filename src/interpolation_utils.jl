@@ -187,6 +187,40 @@ function warn_if_ill_conditioned(F, sc, n, d, knotVecType)
     return nothing
 end
 
+# Minimum number of data points required to construct this interpolation type.
+# Defaults to 1; types whose fit formula needs more (e.g. a quadratic needs at
+# least 3 points to be well-defined) override this method.
+min_number_of_points(::Type{<:AbstractInterpolation}) = 1
+
+min_number_of_points(::Type{LinearInterpolation}) = 2
+min_number_of_points(::Type{QuadraticInterpolation}) = 3
+min_number_of_points(::Type{AkimaInterpolation}) = 2
+min_number_of_points(::Type{SmoothedConstantInterpolation}) = 2
+min_number_of_points(::Type{QuadraticSpline}) = 2
+min_number_of_points(::Type{CubicSpline}) = 3
+min_number_of_points(::Type{CubicHermiteSpline}) = 2
+min_number_of_points(::Type{QuinticHermiteSpline}) = 2
+
+# Below `min_number_of_points`, a type's fit formula is underdetermined and errors
+# somewhere down in its internals with an uninformative `BoundsError` or similar.
+function check_min_length(name, n_min::Integer, n::Integer)
+    if n < n_min
+        throw(
+            ArgumentError(
+                "`$name` needs at least $n_min point" * (n_min == 1 ? "" : "s") *
+                    ", but only $n " * (n == 1 ? "was" : "were") * " given."
+            )
+        )
+    end
+    return nothing
+end
+
+check_min_length(name, n_min::Integer, t::AbstractVector) =
+    check_min_length(name, n_min, length(t))
+
+check_min_length(T::Type, t::AbstractVector) =
+    check_min_length(nameof(T), min_number_of_points(T), length(t))
+
 # Duplicate time points make the collocation system singular
 function check_no_duplicate_t(name, t::AbstractVector)
     if any(i -> t[i] == t[i + 1], 1:(length(t) - 1))
@@ -199,8 +233,11 @@ function check_no_duplicate_t(name, t::AbstractVector)
     return nothing
 end
 
+check_no_duplicate_t(T::Type, t::AbstractVector) = check_no_duplicate_t(nameof(T), t)
+
 function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
-    check_no_duplicate_t(:QuadraticSpline, t)
+    check_no_duplicate_t(QuadraticSpline, t)
+    check_min_length(QuadraticSpline, t)
 
     # Create knot vector
     # Don't use x[end-1] as knot to match number of degrees of freedom with data

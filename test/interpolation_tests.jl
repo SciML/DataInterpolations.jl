@@ -434,6 +434,22 @@ end
             @test isapprox(A_m(q), slope_form_eval(A_m, q); atol = 1.0e-12)
         end
     end
+    # Too few points throw an informative error
+    @test_throws ArgumentError LinearInterpolation([1.0], [1.0])
+    @test_throws ArgumentError LinearInterpolation(rand(2, 1), [1.0])
+    @test_throws ArgumentError LinearInterpolation([rand(2)], [1.0])
+
+    # Duplicate time points throw an informative error instead of silently picking
+    # one of the ambiguous values (#475; previously only some methods checked this)
+    @test_throws ArgumentError LinearInterpolation(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError LinearInterpolation(
+        rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError LinearInterpolation(
+        [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
 end
 
 @testset "Quadratic Interpolation" begin
@@ -588,6 +604,10 @@ end
     @test_throws ArgumentError QuadraticInterpolation(
         [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
     )
+    # Too few points throw an informative error
+    @test_throws ArgumentError QuadraticInterpolation([1.0, 2.0], [1.0, 2.0])
+    @test_throws ArgumentError QuadraticInterpolation(rand(2, 2), [1.0, 2.0])
+    @test_throws ArgumentError QuadraticInterpolation([rand(2), rand(2)], [1.0, 2.0])
 end
 
 @testset "Lagrange Interpolation" begin
@@ -890,6 +910,10 @@ end
     @test_throws ArgumentError AkimaInterpolation(
         [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
     )
+    # Too few points throw an informative error
+    @test_throws ArgumentError AkimaInterpolation([1.0], [1.0])
+    @test_throws ArgumentError AkimaInterpolation(rand(2, 1), [1.0])
+    @test_throws ArgumentError AkimaInterpolation([rand(2)], [1.0])
 end
 
 @testset "ConstantInterpolation" begin
@@ -1151,6 +1175,10 @@ end
     @test A(1.9) == u[1] * ones(5, 3)
     @test A(3.1) == u[2] * ones(5, 3)
     @test A(2.5) ≈ ((u[1] + u[2]) / 2) * ones(5, 3)
+    # Too few points throw an informative error
+    @test_throws ArgumentError SmoothedConstantInterpolation([1.0], [1.0])
+    @test_throws ArgumentError SmoothedConstantInterpolation(rand(2, 1), [1.0])
+    @test_throws ArgumentError SmoothedConstantInterpolation([rand(2)], [1.0])
 end
 
 @testset "QuadraticSpline Interpolation" begin
@@ -1281,6 +1309,10 @@ end
         [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
     )
     @test_throws ArgumentError QuadraticSpline([1.0, 2.0, 3.0], [0.0, 0.0, 1.0])
+    # Too few points throw an informative error
+    @test_throws ArgumentError QuadraticSpline([1.0], [1.0])
+    @test_throws ArgumentError QuadraticSpline(rand(2, 1), [1.0])
+    @test_throws ArgumentError QuadraticSpline([rand(2)], [1.0])
 end
 
 @testset "CubicSpline Interpolation" begin
@@ -1369,6 +1401,10 @@ end
     )
     @test_throws ArgumentError CubicSpline(rand(2, 3), [1.0, 1.0, 2.0])
     @test_throws ArgumentError CubicSpline([rand(2) for _ in 1:3], [1.0, 1.0, 2.0])
+    # Too few points throw an informative error
+    @test_throws ArgumentError CubicSpline([1.0, 2.0], [1.0, 2.0])
+    @test_throws ArgumentError CubicSpline(rand(2, 2), [1.0, 2.0])
+    @test_throws ArgumentError CubicSpline([rand(2), rand(2)], [1.0, 2.0])
 
     @testset "AbstractMatrix" begin
         t = 0.1:0.1:1.0
@@ -1503,10 +1539,10 @@ end
         @test [A(190.0), A(225.0)] ≈ [13.438136405352909, 11.365386175733823]
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
 
-        @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
+        @test_throws ArgumentError("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
             u[1:3], t[1:3], 3, :Uniform
         )
-        @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 5 points.") BSplineInterpolation(
+        @test_throws ArgumentError("BSplineInterpolation needs at least d + 1, i.e. 5 points.") BSplineInterpolation(
             u[1:4], t[1:4], 4, :Average
         )
         @test_nowarn BSplineInterpolation(u[1:3], t[1:3], 2, :Uniform)
@@ -1642,10 +1678,10 @@ end
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
         test_cached_index(A)
 
-        @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 3 control points.") BSplineApprox(
+        @test_throws ArgumentError("BSplineApprox needs at least d + 1, i.e. 3 control points.") BSplineApprox(
             u, t, 2, 2, :Uniform
         )
-        @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 4 control points.") BSplineApprox(
+        @test_throws ArgumentError("BSplineApprox needs at least d + 1, i.e. 4 control points.") BSplineApprox(
             u, t, 3, 3, :Average
         )
         @test_nowarn BSplineApprox(u, t, 2, 3, :Uniform)
@@ -1784,6 +1820,10 @@ end
     @test_throws ArgumentError CubicHermiteSpline(
         [rand(2) for _ in 1:5], [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
     )
+    # Too few points throw an informative error
+    @test_throws ArgumentError CubicHermiteSpline([1.0], [1.0], [1.0])
+    @test_throws ArgumentError CubicHermiteSpline(rand(2, 1), rand(2, 1), [1.0])
+    @test_throws ArgumentError CubicHermiteSpline([rand(2)], [rand(2)], [1.0])
 end
 
 @testset "PCHIPInterpolation" begin
@@ -1803,6 +1843,11 @@ end
     @test_throws ArgumentError PCHIPInterpolation(
         [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
     )
+    # Too few points throw an informative error
+    @test_throws ArgumentError PCHIPInterpolation([1.0, 1.0], [1.0, 2.0])
+    @test_throws ArgumentError PCHIPInterpolation([1.0], [1.0])
+    @test_throws ArgumentError PCHIPInterpolation(rand(2, 2), [1.0, 2.0])
+    @test_throws ArgumentError PCHIPInterpolation([rand(2), rand(2)], [1.0, 2.0])
 
     @testset "AbstractMatrix" begin
         t = 0.1:0.1:1.0
@@ -1921,6 +1966,14 @@ end
         [rand(2) for _ in 1:5], [rand(2) for _ in 1:5],
         [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
     )
+    # Too few points throw an informative error
+    @test_throws ArgumentError QuinticHermiteSpline([1.0], [1.0], [1.0], [1.0])
+    @test_throws ArgumentError QuinticHermiteSpline(
+        rand(2, 1), rand(2, 1), rand(2, 1), [1.0]
+    )
+    @test_throws ArgumentError QuinticHermiteSpline(
+        [rand(2)], [rand(2)], [rand(2)], [1.0]
+    )
 end
 
 @testset "Smooth Arc Length Interpolation" begin
@@ -1944,6 +1997,41 @@ end
     @test A.t[end] ≈ L rtol = 1.0e-4
     @test all(
         t_ -> A(prevfloat(t_)) ≈ A(nextfloat(t_)), A.t[2:(end - 1)]
+    )
+    # A single point silently produced a degenerate 1-point object instead of an
+    # error, when `interpolation_type` needed fewer points than the arc-length fit
+    # itself does (needs at least one segment, independent of `interpolation_type`).
+    # Checked independently in every constructor entry point, not just delegated.
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        reshape([1.0, 2.0], 2, 1); interpolation_type = LagrangeInterpolation
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        [[1.0, 2.0]]; interpolation_type = LagrangeInterpolation
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        LagrangeInterpolation([1.0], [1.0])
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        reshape([1.0, 2.0], 2, 1), reshape([1.0, 0.0], 2, 1)
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        [[1.0, 2.0]], [[1.0, 0.0]]
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        reshape([1.0, 2.0], 2, 1), reshape([1.0, 0.0], 2, 1), Val(true)
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        reshape([1.0, 2.0], 2, 1), reshape([1.0, 0.0], 2, 1), Val(false)
+    )
+
+    # Explicit duplicate `t` throws an informative error naming
+    # `SmoothArcLengthInterpolation`, regardless of `interpolation_type` (some, like
+    # `ConstantInterpolation`, don't reject duplicates themselves).
+    u_dup = [0.0 1.0 2.0 3.0; 0.0 1.0 0.0 -1.0]
+    t_dup = [0.0, 1.0, 1.0, 2.0]
+    @test_throws ArgumentError SmoothArcLengthInterpolation(u_dup; t = t_dup)
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        u_dup; t = t_dup, interpolation_type = ConstantInterpolation
     )
 end
 
