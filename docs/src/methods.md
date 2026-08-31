@@ -98,9 +98,11 @@ Note that `u[end]` is ignored, except when using extrapolation types `Constant` 
 ## Quadratic Spline
 
 This is the quadratic spline. It is a continuously differentiable interpolation
-which hits each of the data points exactly. Splines are a local interpolation
-method, meaning that the curve in a given spot is only affected by the points
-nearest to it.
+which hits each of the data points exactly. Unlike a piecewise polynomial built
+directly from the data (e.g. [Quadratic Interpolation](@ref)), the control points
+of a quadratic spline are solved for globally to satisfy continuity of the
+derivative at every knot, so changing a single data point can, in principle,
+affect the curve everywhere rather than only near that point.
 
 ```@example tutorial
 A = QuadraticSpline(u, t)
@@ -110,7 +112,9 @@ plot(A)
 ## Cubic Spline
 
 This is the cubic spline. It is a continuously twice differentiable interpolation
-which hits each of the data points exactly.
+which hits each of the data points exactly. As with [Quadratic Spline](@ref), its
+control points are solved for globally, so changing a single data point can, in
+principle, affect the curve everywhere rather than only near that point.
 
 ```@example tutorial
 A = CubicSpline(u, t)
