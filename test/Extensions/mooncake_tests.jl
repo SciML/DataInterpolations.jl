@@ -3,6 +3,18 @@ using ForwardDiff
 using Mooncake
 using Test
 
+@testset "Constructor validations" begin
+    function f(u)
+        DataInterpolations.check_no_duplicate_t(LinearInterpolation, u)
+        DataInterpolations.check_min_length(LinearInterpolation, u)
+        return sum(u)
+    end
+    u = [1.0, 2.0]
+    cache = Mooncake.prepare_gradient_cache(f, u)
+    _, (_, mgrad) = Mooncake.value_and_gradient!!(cache, f, u)
+    @test mgrad == ones(2)
+end
+
 # Differentiates a scalar accumulation sum over t w.r.t. u values.
 # sum(A(_t)) handles both scalar u (A returns Number) and matrix u (A returns Vector).
 function test_mooncake_ugrad(

@@ -1,7 +1,8 @@
 module DataInterpolationsMooncakeExt
 
 using DataInterpolations: _interpolate, munge_data, AbstractInterpolation,
-    LinearInterpolation, QuadraticInterpolation, warn_if_ill_conditioned
+    LinearInterpolation, QuadraticInterpolation, check_min_length,
+    check_no_duplicate_t, warn_if_ill_conditioned
 using ChainRulesCore: ChainRulesCore
 using FindFirstFunctions: FindFirstFunctions
 using Mooncake: Mooncake, @from_chainrules, @zero_adjoint, MinimalCtx, DefaultCtx
@@ -66,5 +67,8 @@ end
 # Diagnostic only: returns `nothing` and just emits a warning. `@warn` expands to a
 # try/catch, which Mooncake cannot differentiate in reverse mode.
 @zero_adjoint DefaultCtx Tuple{typeof(warn_if_ill_conditioned), Any, Any, Any, Any, Any}
+@zero_adjoint DefaultCtx Tuple{typeof(check_min_length), Any, Any}
+@zero_adjoint DefaultCtx Tuple{typeof(check_min_length), Any, Any, Any}
+@zero_adjoint DefaultCtx Tuple{typeof(check_no_duplicate_t), Any, Any}
 
 end
