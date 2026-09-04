@@ -15,8 +15,9 @@ using ChainRulesCore, Makie, Mooncake, Optim, SparseConnectivityTracer, Symbolic
 # allowed here instead.
 const DATAINTERPOLATIONS_INTERNALS = (
     :AbstractInterpolation, :CurvefitCache, :DerivativeNotFoundError,
-    :ExtrapolationError, :IntegralNotFoundError, :_interpolate, :derivative, :get_idx,
-    :get_show, :integral, :munge_data, :to_plottable, :warn_if_ill_conditioned,
+    :ExtrapolationError, :IntegralNotFoundError, :_interpolate, :check_min_length,
+    :check_no_duplicate_t, :derivative, :get_idx, :get_show, :integral, :munge_data,
+    :to_plottable, :warn_if_ill_conditioned,
 )
 
 run_qa(
