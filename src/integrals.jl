@@ -426,9 +426,8 @@ function _integral(
     tᵢ = A.t[idx]
     tᵢ₊₁ = A.t[idx + 1]
     c₁, c₂ = get_parameters(A, idx)
-    ax = axes(A.z)[1:(end - 1)]
-    zᵢ = A.z[ax..., idx]
-    zᵢ₊₁ = A.z[ax..., idx + 1]
+    zᵢ = _u_view(A.z, idx)
+    zᵢ₊₁ = _u_view(A.z, idx + 1)
     zero_ = zero(c₁)
     return integrate_cubic_polynomial(
         t1, t2, tᵢ, zero_, c₁, zero_, zᵢ₊₁ / (6A.h[idx + 1])

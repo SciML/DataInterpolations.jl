@@ -225,7 +225,7 @@ function _lagrange_node_derivative(
     @views for j in eachindex(A.t)
         j == k && continue
         coef = (A.p.w[j] * invw_k) / (A.t[k] - A.t[j])
-        der = der + coef * (values[:, j] - values[:, k])
+        @. der += coef * (values[:, j] - values[:, k])
     end
     return der
 end
@@ -264,17 +264,20 @@ end
 function _derivative(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number)
     idx = _searchsortedfirst(A.t, t)
     !isnothing(idx) && return _lagrange_node_derivative(A, idx, A.u)
-    N = zero(A.p.wu[:, 1])
-    D = zero(A.t[1])
-    N′ = zero(A.p.wu[:, 1])
-    D′ = zero(A.t[1])
+    # Preallocate wide enough for `t` (e.g. a ForwardDiff `Dual`) so the loop below can
+    # accumulate in place instead of allocating new arrays every iteration.
+    T = promote_type(eltype(A.p.wu), typeof(t))
+    N = zeros(T, size(A.p.wu, 1))
+    D = zero(T)
+    N′ = zeros(T, size(A.p.wu, 1))
+    D′ = zero(T)
     @views for i in eachindex(A.t)
         invti = inv(t - A.t[i])
         wi_inv = A.p.w[i] * invti
         D += wi_inv
         D′ -= wi_inv * invti
-        N = N + A.p.wu[:, i] * invti
-        N′ = N′ - A.p.wu[:, i] * invti^2
+        @. N += A.p.wu[:, i] * invti
+        @. N′ -= A.p.wu[:, i] * invti^2
     end
     return @. (N′ * D - N * D′) / D^2
 end
@@ -366,12 +369,10 @@ function _derivative(A::CubicSpline{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
-    ax = axes(A.z)[1:(end - 1)]
-    dI = (-A.z[ax..., idx] * Δt₂^2 + A.z[ax..., idx + 1] * Δt₁^2) / (2A.h[idx + 1])
     c₁, c₂ = get_parameters(A, idx)
-    dC = c₁
-    dD = -c₂
-    return dI + dC + dD
+    denom = 2A.h[idx + 1]
+    return @. (-$(_u_view(A.z, idx)) * Δt₂^2 + $(_u_view(A.z, idx + 1)) * Δt₁^2) / denom +
+        c₁ - c₂
 end
 
 function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Number, iguess)
@@ -430,7 +431,6 @@ function _derivative(
         return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) :
             typed_nan(A.u) .* A.u[:, 1]
     end
-    ax_u = axes(A.u)[1:(end - 1)]
     n = length(A.t)
     # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
     vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, n)
@@ -438,15 +438,15 @@ function _derivative(
     if t == A.t[1]
         denom = A.k[A.d + 2] - A.k[2]
         if denom != 0
-            ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / denom
+            ducum = (_u_view(A.c, 2) - _u_view(A.c, 1)) / denom
         end
     else
         @inbounds for i in 1:(n - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
             l = i + 1 - offset
             if denom != 0 && 1 <= l <= m
-                ducum = ducum +
-                    vals[l] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) / denom
+                coef = vals[l] / denom
+                ducum = ducum + coef * (_u_view(A.c, i + 1) - _u_view(A.c, i))
             end
         end
     end
@@ -507,21 +507,21 @@ function _derivative(
         return isempty(searchsorted(A.t, t)) ? zero(A.u[:, 1]) :
             typed_nan(A.u) .* A.u[:, 1]
     end
-    ax_u = axes(A.u)[1:(end - 1)]
     # Stack-allocated basis window (see `_interpolate`): must be reentrant, #532.
     vals, offset, m = bspline_nonzero_coefficients(A.d - 1, A.k, t, A.h)
     ducum = zeros(size(A.u)[1:(end - 1)]...)
     if t == A.t[1]
         denom = A.k[A.d + 2] - A.k[2]
         if denom != 0
-            ducum = (A.c[ax_u..., 2] - A.c[ax_u..., 1]) / denom
+            ducum = (_u_view(A.c, 2) - _u_view(A.c, 1)) / denom
         end
     else
         @inbounds for i in 1:(A.h - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
             l = i + 1 - offset
             if denom != 0 && 1 <= l <= m
-                ducum += vals[l] * (A.c[ax_u..., i + 1] - A.c[ax_u..., i]) / denom
+                coef = vals[l] / denom
+                ducum = ducum + coef * (_u_view(A.c, i + 1) - _u_view(A.c, i))
             end
         end
     end

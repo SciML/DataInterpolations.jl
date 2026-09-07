@@ -633,8 +633,11 @@ end
 function _interpolate(A::LagrangeInterpolation{<:AbstractMatrix}, t::Number, iguess)
     idx = _searchsortedfirst(A.t, t)
     !isnothing(idx) && return A.u[:, idx]
-    N = zero(A.p.wu[:, 1])
-    D = zero(A.t[1])
+    # Preallocate wide enough for `t` (e.g. a ForwardDiff `Dual`) so the loop below can
+    # accumulate in place instead of allocating a new array every iteration.
+    T = promote_type(eltype(A.p.wu), typeof(t))
+    N = zeros(T, size(A.p.wu, 1))
+    D = zero(T)
     @views for i in eachindex(A.t)
         invti = inv(t - A.t[i])
         D += A.p.w[i] * invti
@@ -1106,12 +1109,10 @@ function _interpolate(A::CubicSpline{<:AbstractArray}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
-    ax = axes(A.z)[1:(end - 1)]
-    I = (A.z[ax..., idx] * Δt₂^3 + A.z[ax..., idx + 1] * Δt₁^3) / (6A.h[idx + 1])
     c₁, c₂ = get_parameters(A, idx)
-    C = c₁ * Δt₁
-    D = c₂ * Δt₂
-    return I + C + D
+    denom = 6A.h[idx + 1]
+    return @. ($(_u_view(A.z, idx)) * Δt₂^3 + $(_u_view(A.z, idx + 1)) * Δt₁^3) / denom +
+        c₁ * Δt₁ + c₂ * Δt₂
 end
 
 function (A::CubicSpline{<:AbstractVector{<:Number}})(
@@ -1307,13 +1308,12 @@ function _interpolate(
         t::Number,
         iguess
     )
-    ax_u = axes(A.u)[1:(end - 1)]
     n = length(A.t)
     # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
     vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, n)
     ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)
     @inbounds for l in 1:m
-        ucum = ucum + (vals[l] * A.c[ax_u..., offset + l])
+        ucum = ucum + vals[l] * _u_view(A.c, offset + l)
     end
     return ucum
 end
@@ -1344,12 +1344,11 @@ end
 function _interpolate(
         A::BSplineApprox{<:AbstractArray{<:Number}}, t::Number, iguess
     )
-    ax_u = axes(A.u)[1:(end - 1)]
     # Stack-allocated basis window: evaluation must be reentrant for thread safety (#532)
     vals, offset, m = bspline_nonzero_coefficients(A.d, A.k, t, A.h)
     ucum = zeros(eltype(A.u), size(A.u)[1:(end - 1)]...)
     @inbounds for l in 1:m
-        ucum = ucum + (vals[l] * A.c[ax_u..., offset + l])
+        ucum = ucum + vals[l] * _u_view(A.c, offset + l)
     end
     return ucum
 end
