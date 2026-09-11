@@ -9,6 +9,9 @@ Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 StableRNGs = "860ef19b-820b-49d6-a774-d7a799459cd3"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
+[sources]
+DataInterpolations = {path = "/home/runner/_work/DataInterpolations.jl/DataInterpolations.jl"}
+
 [compat]
 CurveFit = "1.5"
 Documenter = "1"
