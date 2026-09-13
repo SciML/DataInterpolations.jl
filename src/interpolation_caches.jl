@@ -6,6 +6,12 @@
 It is the method of interpolating between the data points using a linear polynomial. For any point, two data points one each side are chosen and connected with a line.
 Extrapolation extends the last linear polynomial on each side.
 
+`t` may contain repeated time points: a pair of equal knots encodes a jump (a
+discontinuity), e.g. `u = [1.0, 2.0, 1.0], t = [0.0, 1.0, 1.0]` ramps up to `2.0`
+on `(0, 1)` and steps down to `1.0` at `t = 1`. At a repeated knot the value is
+right-continuous — `A(t)` returns the post-jump value, matching
+`ConstantInterpolation` with the default `dir = :left`.
+
 # Arguments
 
   - `u`: data points.
@@ -77,7 +83,6 @@ function LinearInterpolation(
         extrapolation, extrapolation_left, extrapolation_right
     )
     u, t = munge_data(u, t)
-    check_no_duplicate_t(LinearInterpolation, t)
     check_min_length(LinearInterpolation, t)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     p = LinearParameterCache(u, t, cache_parameters)

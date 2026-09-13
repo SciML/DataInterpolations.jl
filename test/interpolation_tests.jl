@@ -439,17 +439,61 @@ end
     @test_throws ArgumentError LinearInterpolation(rand(2, 1), [1.0])
     @test_throws ArgumentError LinearInterpolation([rand(2)], [1.0])
 
-    # Duplicate time points throw an informative error instead of silently picking
-    # one of the ambiguous values (#475; previously only some methods checked this)
-    @test_throws ArgumentError LinearInterpolation(
-        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
-    )
-    @test_throws ArgumentError LinearInterpolation(
-        rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
-    )
-    @test_throws ArgumentError LinearInterpolation(
-        [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
-    )
+    # Repeated knots encode jumps (issue #610): the zero-width segment is the
+    # discontinuity, and at the knot itself the value is right-continuous (the
+    # post-jump value, like `ConstantInterpolation` with `dir = :left`).
+    @testset "Repeated knots (jumps)" begin
+        u = [1.0, 2.0, 1.0, 0.0, 1.0, 1.0]
+        t = [0.0, 1.0, 1.0, 2.0, 2.0, 3.0]
+        for A in (
+                LinearInterpolation(u, t),
+                LinearInterpolation(u, t; cache_parameters = true),
+            )
+            # Segments between jumps interpolate normally
+            @test A(0.5) ≈ 1.5
+            @test A(1.5) ≈ 0.5
+            @test A(2.5) ≈ 1.0
+            # The left/right limits straddle each jump
+            @test A(1.0 - eps()) ≈ 2.0
+            @test A(1.0 + eps()) ≈ 1.0
+            @test isapprox(A(2.0 - eps()), 0.0; atol = 1.0e-14)
+            @test A(2.0 + eps()) ≈ 1.0
+            # At the knot itself: post-jump value
+            @test A(1.0) == 1.0
+            @test A(2.0) == 1.0
+            # `derivative` is documented as the left derivative at a knot
+            @test DataInterpolations.derivative(A, 1.0) == 1.0
+            @test DataInterpolations.derivative(A, 2.0) == -1.0
+            # Sorted-batch evaluator picks the same (post-jump) segment as `A(t)`
+            tt = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+            out = similar(tt)
+            A(out, tt)
+            @test out ≈ A.(tt)
+            # Zero-width segments contribute nothing to the integral
+            @test DataInterpolations.integral(A, 3.0) ≈ 3.0
+        end
+
+        # Matrix- and vector-of-vectors-valued data take the same code paths
+        u_vov = [[ui, -ui] for ui in u]
+        A_vov = LinearInterpolation(u_vov, t)
+        @test A_vov(1.0) == [1.0, -1.0]
+        @test A_vov(0.5) ≈ [1.5, -1.5]
+        u_mat = reduce(hcat, u_vov)
+        A_mat = LinearInterpolation(u_mat, t)
+        @test A_mat(1.0) == [1.0, -1.0]
+        @test A_mat(0.5) ≈ [1.5, -1.5]
+
+        # Long knot vector: exercises the `searchsortedlast!` batch branch
+        # (`32 * n_interior < n`) at a repeated knot.
+        t_big = sort!([collect(0.0:199.0); 50.0])
+        u_big = collect(1.0:201.0)
+        A_big = LinearInterpolation(u_big, t_big)
+        tt_big = [49.5, 50.0, 50.5]
+        out_big = similar(tt_big)
+        A_big(out_big, tt_big)
+        @test out_big ≈ A_big.(tt_big)
+        @test A_big(50.0) == 52.0
+    end
 end
 
 @testset "Quadratic Interpolation" begin
