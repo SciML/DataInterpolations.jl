@@ -439,7 +439,10 @@ function _linear_eval_sorted!(
             let i_local = i_first_interior, idx = 1
                 @inbounds while i_local <= i_last_interior
                     ttt = tt[i_local]
-                    while idx < n - 1 && ttt > t[idx + 1]
+                    # `>=` (not `>`) so an exact-knot query picks the segment that
+                    # `searchsortedlast!` above and scalar `A(t)` would: for repeated
+                    # knots this is the post-jump segment, not the zero-width one.
+                    while idx < n - 1 && ttt >= t[idx + 1]
                         idx += 1
                     end
                     slope = get_parameters(A, idx)

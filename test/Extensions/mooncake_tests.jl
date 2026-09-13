@@ -5,7 +5,7 @@ using Test
 
 @testset "Constructor validations" begin
     function f(u)
-        DataInterpolations.check_no_duplicate_t(LinearInterpolation, u)
+        DataInterpolations.check_no_duplicate_t(CubicSpline, u)
         DataInterpolations.check_min_length(LinearInterpolation, u)
         return sum(u)
     end
