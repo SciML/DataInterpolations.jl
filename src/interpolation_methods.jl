@@ -33,7 +33,7 @@ end
 DataInterpolations._interpolate(A::MyInterpolation, t::Number, iguess) = 2t
 ```
 """
-function _interpolate(A, t)
+@inline function _interpolate(A, t)
     return if t < first(A.t)
         _extrapolate_left(A, t)
     elseif t > last(A.t)
@@ -215,13 +215,13 @@ end
 # runtime branch or verification. Float `Vector` knots branch on `kind`
 # (uniformity is a value property and a `Vector` can be mutated, so the
 # uniform arm verifies and falls back). Both arms share a return type.
-function _interpolate(
+@inline function _interpolate(
         A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}, <:AbstractRange},
         t::Number, iguess,
     )
     return _linear_uniform_range_interpolate(A, t, iguess)
 end
-function _interpolate(
+@inline function _interpolate(
         A::LinearInterpolation{<:AbstractVector{<:AbstractFloat}}, t::Number, iguess,
     )
     return if A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
@@ -230,7 +230,7 @@ function _interpolate(
         _linear_slope_interpolate(A, t, iguess)
     end
 end
-function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
+@inline function _interpolate(A::LinearInterpolation{<:AbstractVector}, t::Number, iguess)
     return _linear_slope_interpolate(A, t, iguess)
 end
 
@@ -1097,7 +1097,7 @@ function _quadraticspline_eval_sorted!(
 end
 
 # CubicSpline Interpolation
-function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
+@inline function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
