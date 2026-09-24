@@ -1,0 +1,20 @@
+[Core]
+versions = ["lts", "1", "pre"]
+
+["Core 32-bit"]
+group = "Core"
+versions = ["1"]
+os = ["ubuntu-latest"]
+arch = "x86"
+
+[Methods]
+versions = ["lts", "1", "pre"]
+
+[Extensions]
+versions = ["lts", "1"]
+
+[Misc]
+versions = ["lts", "1", "pre"]
+
+[QA]
+versions = ["lts", "1"]

@@ -47,6 +47,7 @@ plot!(ts, A.(ts), fillrange = 0.0, fillalpha = 0.75,
 
 ```@docs
 DataInterpolations.invert_integral
+DataInterpolations.AbstractIntegralInverseInterpolation
 ConstantInterpolationIntInv
 LinearInterpolationIntInv
 ```

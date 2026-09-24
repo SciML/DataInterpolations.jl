@@ -37,8 +37,9 @@ Here `m` determines how fine the approximation is. It is also possible to just p
 ```@example tutorial
 using LinearAlgebra
 
-# Example from only u
-A = SmoothArcLengthInterpolation(hcat(u...))
+# Example from only u — a `Vector` of `Vector`s (as here) or a `Matrix` of shape
+# (ndim, ndata) both work directly, no need to `hcat` first.
+A = SmoothArcLengthInterpolation(u)
 @show typeof(A.shape_itp)
 plot_itp(A)
 ```
@@ -53,7 +54,7 @@ SmoothArcLengthInterpolation(::AbstractMatrix, ::AbstractMatrix)
 
 ## Method derivation
 
-Say we have an ordered set of points $u_1, \ldots, u_n \in \mathbb{R}^N$ and we want to make a lightweight $C^1$ smooth interpolation by arc-length $\tilde{\gamma}: [0,T] \rightarrow \mathbb{R}^N$ through these points. The first part is easy, just pick your favorite established interpolation method that achieves $C^1$ smoothness. The arc-length part however turns out to be quite [nasty](https://ijpam.eu/contents/2006-31-3/10/10.pdf). Here I propose a method that is quite general and cheap to compute.
+Say we have an ordered set of points $u_1, \ldots, u_n \in \mathbb{R}^N$ and we want to make a lightweight $C^1$ smooth interpolation by arc-length $\tilde{\gamma}: [0,T] \rightarrow \mathbb{R}^N$ through these points. The first part is easy, just pick your favorite established interpolation method that achieves $C^1$ smoothness. The arc-length part however turns out to be quite nasty; see Gil, "On the Arc Length Parametrization Problem", International Journal of Pure and Applied Mathematics 31(3), 2006. Here I propose a method that is quite general and cheap to compute.
 
 ### The 2-dimensional case
 

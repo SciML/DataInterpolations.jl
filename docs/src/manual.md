@@ -16,10 +16,16 @@ PCHIPInterpolation
 QuinticHermiteSpline
 ```
 
+# Interface
+
+```@docs
+DataInterpolations.derivative
+DataInterpolations.integral
+```
+
 # Utility Functions
 
 ```@docs
-DataInterpolations.looks_linear
 DataInterpolations.output_dim
 DataInterpolations.output_size
 ```

@@ -2,7 +2,7 @@ using SparseConnectivityTracer
 using SparseConnectivityTracer: DEFAULT_GRADIENT_TRACER, DEFAULT_HESSIAN_TRACER
 using SparseConnectivityTracer: trace_input, Dual, primal
 using DataInterpolations
-using DataInterpolations: AbstractInterpolation
+using DataInterpolations: AbstractInterpolation, invert_integral
 
 using LinearAlgebra: I
 using Test
@@ -241,8 +241,8 @@ end
             InterpolationTest(AkimaInterpolation(u, t)),
             InterpolationTest(QuadraticSpline(u, t)),
             InterpolationTest(CubicSpline(u, t)),
-            InterpolationTest(BSplineInterpolation(u, t, 3, :ArcLen, :Average)),
-            InterpolationTest(BSplineApprox(u, t, 3, 4, :ArcLen, :Average)),
+            InterpolationTest(BSplineInterpolation(u, t, 3, :Average)),
+            InterpolationTest(BSplineApprox(u, t, 3, 4, :Average)),
             InterpolationTest(PCHIPInterpolation(u, t)),
             InterpolationTest(CubicHermiteSpline(du, u, t)),
             InterpolationTest(QuinticHermiteSpline(ddu, du, u, t)),
@@ -250,6 +250,26 @@ end
         test_jacobian(t)
         test_hessian(t)
         test_output(t)
+        yield()
+    end
+end
+
+# Integral inverse interpolations require strictly-positive u data
+u_pos = [1.0, 2.0, 3.0, 4.0, 5.0]
+
+@testset "Integral Inverse Interpolations" begin
+    @testset "$(testname(it))" for it in (
+            InterpolationTest(
+                invert_integral(ConstantInterpolation(u_pos, t));
+                is_der2_zero = true
+            ),
+            InterpolationTest(
+                invert_integral(LinearInterpolation(u_pos, t))
+            ),
+        )
+        test_jacobian(it)
+        test_hessian(it)
+        test_output(it)
         yield()
     end
 end
@@ -267,10 +287,10 @@ for N in (2, 5)
                 InterpolationTest(LagrangeInterpolation(um, t)),
                 ## The following interpolations appear to not be supported on N dimensions as of DataInterpolations v6.2.0:
                 # InterpolationTest(AkimaInterpolation(um, t)),
-                # InterpolationTest(BSplineApprox(um, t, 3, 4, :ArcLen, :Average)),
+                # InterpolationTest(BSplineApprox(um, t, 3, 4, :Average)),
                 # InterpolationTest(QuadraticSpline(um, t)),
                 # InterpolationTest(CubicSpline(um, t)),
-                # InterpolationTest(BSplineInterpolation(um, t, 3, :ArcLen, :Average)),
+                # InterpolationTest(BSplineInterpolation(um, t, 3, :Average)),
                 # InterpolationTest(PCHIPInterpolation(um, t)),
             )
             test_jacobian(t)

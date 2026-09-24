@@ -1,8 +1,7 @@
 module DataInterpolationsMakieExt
 
-using DataInterpolations
-using DataInterpolations: AbstractInterpolation
-using Makie
+using DataInterpolations: DataInterpolations, AbstractInterpolation
+using Makie: Makie
 
 # Define the default type of plot that you want
 Makie.plottype(::AbstractInterpolation) = Makie.ScatterLines
@@ -36,7 +35,7 @@ function Makie.convert_arguments(
         denseplot = true
     )
     densex,
-        densey = convert_arguments(Makie.PointBased(), A; plotdensity = plotdensity, denseplot = denseplot)
+        densey = Makie.convert_arguments(Makie.PointBased(), A; plotdensity = plotdensity, denseplot = denseplot)
     return [
         Makie.SpecApi.Lines(densex, densey),
         Makie.SpecApi.Scatter(A.t, A.u),

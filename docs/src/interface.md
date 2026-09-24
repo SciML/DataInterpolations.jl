@@ -111,7 +111,7 @@ Integrals of the interpolated curves can also be computed easily.
 
 !!! note
     
-    Integrals for `LagrangeInterpolation`, `BSplineInterpolation`, `BSplineApprox`, `Curvefit` will error as there are no simple analytical solutions available. Please use numerical methods instead, such as [Integrals.jl](https://docs.sciml.ai/Integrals/stable/).
+    Integrals for `LagrangeInterpolation` and `Curvefit` will error as there are no simple analytical solutions available. Please use numerical methods instead, such as [Integrals.jl](https://docs.sciml.ai/Integrals/stable/).
 
 To compute the integrals from the start of time points provided during interpolation to any point, we can do:
 

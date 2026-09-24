@@ -15,6 +15,10 @@ plot(A)
 
 Extrapolation behavior can be set left and right of the data simultaneously with the `extrapolation` keyword, or left and right separately with the `extrapolation_left` and `extrapolation_right` keywords respectively.
 
+```@docs
+ExtrapolationType
+```
+
 ## `ExtrapolationType.None`
 
 This extrapolation type will throw an error when the input `t` is beyond the data in the specified direction.

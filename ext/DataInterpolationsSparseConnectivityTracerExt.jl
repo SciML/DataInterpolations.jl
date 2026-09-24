@@ -3,7 +3,6 @@ module DataInterpolationsSparseConnectivityTracerExt
 using SparseConnectivityTracer: AbstractTracer, Dual, primal, tracer
 using SparseConnectivityTracer: GradientTracer, gradient_tracer_1_to_1
 using SparseConnectivityTracer: HessianTracer, hessian_tracer_1_to_1
-using FillArrays: Fill # from FillArrays.jl
 using DataInterpolations:
     AbstractInterpolation,
     LinearInterpolation,
@@ -18,6 +17,8 @@ using DataInterpolations:
     CubicHermiteSpline,
     # PCHIPInterpolation,
     QuinticHermiteSpline,
+    ConstantInterpolationIntInv,
+    LinearInterpolationIntInv,
     output_size #===========# #===========#
 
 # Utilities #
@@ -53,7 +54,7 @@ function _sct_interpolate(
     )
     t = gradient_tracer_1_to_1(t, is_der_1_zero)
     N = only(output_size(interp))
-    return Fill(t, N)
+    return fill(t, N)
 end
 function _sct_interpolate(
         interp::AbstractInterpolation,
@@ -64,13 +65,14 @@ function _sct_interpolate(
     )
     t = hessian_tracer_1_to_1(t, is_der_1_zero, is_der_2_zero)
     N = only(output_size(interp))
-    return Fill(t, N)
+    return fill(t, N)
 end #===========# #===========#
 
 # Overloads #
 
-# We assume that with the exception of ConstantInterpolation and LinearInterpolation,
-# all interpolations have a non-zero second derivative at some point in the input domain.
+# We assume that with the exception of ConstantInterpolation, LinearInterpolation, and
+# ConstantInterpolationIntInv, all interpolations have a non-zero second derivative
+# at some point in the input domain.
 
 for (I, is_der1_zero, is_der2_zero) in (
         (:ConstantInterpolation, true, true),
@@ -84,6 +86,8 @@ for (I, is_der1_zero, is_der2_zero) in (
         (:BSplineApprox, false, false),
         (:CubicHermiteSpline, false, false),
         (:QuinticHermiteSpline, false, false),
+        (:ConstantInterpolationIntInv, false, true),
+        (:LinearInterpolationIntInv, false, false),
     )
     @eval function (interp::$(I){uType})(
             t::AbstractTracer

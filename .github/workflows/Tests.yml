@@ -20,26 +20,5 @@ concurrency:
 
 jobs:
   tests:
-    name: "Tests"
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - "1"
-          - "lts"
-          - "pre"
-        group:
-          - Core
-          - Methods
-          - Extensions
-          - Misc
-          - QA
-        exclude:
-          # AllocCheck doesn't work on pre-release Julia versions
-          - version: "pre"
-            group: QA
-    uses: "SciML/.github/.github/workflows/tests.yml@v1"
-    with:
-      julia-version: "${{ matrix.version }}"
-      group: "${{ matrix.group }}"
+    uses: "SciML/.github/.github/workflows/grouped-tests.yml@v1"
     secrets: "inherit"

@@ -98,9 +98,11 @@ Note that `u[end]` is ignored, except when using extrapolation types `Constant` 
 ## Quadratic Spline
 
 This is the quadratic spline. It is a continuously differentiable interpolation
-which hits each of the data points exactly. Splines are a local interpolation
-method, meaning that the curve in a given spot is only affected by the points
-nearest to it.
+which hits each of the data points exactly. Unlike a piecewise polynomial built
+directly from the data (e.g. [Quadratic Interpolation](@ref)), the control points
+of a quadratic spline are solved for globally to satisfy continuity of the
+derivative at every knot, so changing a single data point can, in principle,
+affect the curve everywhere rather than only near that point.
 
 ```@example tutorial
 A = QuadraticSpline(u, t)
@@ -110,7 +112,9 @@ plot(A)
 ## Cubic Spline
 
 This is the cubic spline. It is a continuously twice differentiable interpolation
-which hits each of the data points exactly.
+which hits each of the data points exactly. As with [Quadratic Spline](@ref), its
+control points are solved for globally, so changing a single data point can, in
+principle, affect the curve everywhere rather than only near that point.
 
 ```@example tutorial
 A = CubicSpline(u, t)
@@ -124,10 +128,10 @@ that every data point is taken into account for each point of the curve.
 The interpolating B-spline is the version which hits each of the points. This
 method is described in more detail [here](https://pages.mtu.edu/%7Eshene/COURSES/cs3621/NOTES/INT-APP/CURVE-INT-global.html).
 Let's plot a cubic B-spline (3rd order). Since the data points are not close to
-uniformly spaced, we will use the `:ArcLen` and `:Average` choices:
+uniformly spaced, we will use the `:Average` knot vector:
 
 ```@example tutorial
-A = BSplineInterpolation(u, t, 3, :ArcLen, :Average)
+A = BSplineInterpolation(u, t, 3, :Average)
 plot(A)
 ```
 
@@ -138,7 +142,7 @@ is a least square approximation. This has a natural effect of smoothing the
 data. For example, if we use 4 control points, we get the result:
 
 ```@example tutorial
-A = BSplineApprox(u, t, 3, 4, :ArcLen, :Average)
+A = BSplineApprox(u, t, 3, 4, :Average)
 plot(A)
 ```
 
@@ -172,40 +176,6 @@ A = QuinticHermiteSpline(ddu, du, u, t)
 plot(A)
 ```
 
-## Regularization Smoothing
-
-Smoothing by regularization (a.k.a. ridge regression) finds a function ``\hat{u}``
-that minimizes the objective function:
-
-```math
-Q(\hat{u}) = \int_{t_1}^{t_N} \left|\hat{u}(t) - u(t)\right|^2 \mathrm{d}t + \lambda \int_{\hat{t}_1}^{\hat{t}_N} \left|\hat{u}^{(d)}(\hat{t})\right|^2 \mathrm{d} \hat{t}
-```
-
-where ``(d)`` denotes derivative order and ``\lambda`` is the regularization
-(smoothing) parameter. The integrals are evaluated numerically at the set of
-``t`` values for the first term and ``\hat{t}`` values for the second term
-(equal to ``t`` if not provided). Regularization smoothing is a global method
-that creates a smooth curve directly. See [Stickel (2010)
-Comput. Chem. Eng. 34:467](https://dx.doi.org/10.1016/j.compchemeng.2009.10.007)
-for details. The implementation in this package uses cubic splines to
-interpolate between the smoothed points after they are determined.
-
-```@example tutorial
-using RegularizationTools
-d = 2
-λ = 1e3
-A = RegularizationSmooth(u, t, d; λ = λ, alg = :fixed)
-û = A.û
-# interpolate using the smoothed values
-N = 200
-titp = collect(range(minimum(t), maximum(t), length = N))
-uitp = A.(titp)
-lw = 1.5
-scatter(t, u, label = "data")
-scatter!(t, û, marker = :square, label = "smoothed data")
-plot!(titp, uitp, lw = lw, label = "smoothed interpolation")
-```
-
 ## Dense Data Demonstration
 
 Some methods are better suited for dense data. Let's generate such data to
@@ -216,33 +186,6 @@ import StableRNGs: StableRNG
 rng = StableRNG(318)
 t = sort(10 .* rand(rng, 100))
 u = sin.(t) .+ 0.5 * randn(rng, 100);
-```
-
-## Regularization Smoothing
-
-Although smoothing by regularization can be used to interpolate sparse data as
-shown above, it is especially useful for dense as well as scattered data (unequally
-spaced, unordered, and/or repeat-valued). Generalized cross validation (GCV) or
-so-called L-curve methods can be used to determine an "optimal" value for the
-smoothing parameter. In this example, we perform smoothing in two ways. In the
-first, we find smooth values at the original ``t`` values and then
-interpolate. In the second, we perform the smoothing for the interpolant
-``\hat{t}`` values directly. GCV is used to determine the regularization
-parameter for both cases.
-
-```@example tutorial
-d = 4
-A = RegularizationSmooth(u, t, d; alg = :gcv_svd)
-û = A.û
-N = 200
-titp = collect(range(minimum(t), maximum(t), length = N))
-uitp = A.(titp)
-Am = RegularizationSmooth(u, t, titp, d; alg = :gcv_svd)
-ûm = Am.û
-scatter(t, u, label = "simulated data", legend = :top)
-scatter!(t, û, marker = (:square, 4), label = "smoothed data")
-plot!(titp, uitp, lw = lw, label = "smoothed interpolation")
-plot!(titp, ûm, lw = lw, linestyle = :dash, label = "smoothed, more points")
 ```
 
 ## Curve Fits
@@ -263,8 +206,8 @@ match our data. Let's start with the guess of every `p` being zero, that is
 `p=ones(4)`. Then we would fit this curve using:
 
 ```@example tutorial
-using Optim
-A = Curvefit(u, t, m, ones(4), LBFGS())
+using CurveFit
+A = Curvefit(u, t, m, ones(4))
 plot(A)
 ```
 
@@ -280,7 +223,7 @@ parameters. For example, with `p=zeros(4)` as the initial parameters, the fit
 is not good:
 
 ```@example tutorial
-A = Curvefit(u, t, m, zeros(4), LBFGS())
+A = Curvefit(u, t, m, zeros(4))
 plot(A)
 ```
 
@@ -288,4 +231,8 @@ And the parameters show the issue:
 
 ```@example tutorial
 A.pmin
+```
+
+```@docs
+Curvefit
 ```

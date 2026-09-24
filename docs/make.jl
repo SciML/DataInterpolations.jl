@@ -9,7 +9,6 @@ makedocs(
     modules = [DataInterpolations],
     sitename = "DataInterpolations.jl",
     clean = true,
-    doctest = false,
     linkcheck = true,
     format = Documenter.HTML(
         assets = ["assets/favicon.ico"],
@@ -17,17 +16,18 @@ makedocs(
     ),
     linkcheck_ignore = [
         "https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/moler/interp.pdf",
+        "https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/",
     ],
     pages = [
         "index.md",
         "Interpolation methods" => "methods.md",
         "Extrapolation methods" => "extrapolation_methods.md",
         "Interface" => "interface.md",
+        "Abstract interpolation interface" => "abstract_interpolation.md",
         "Using with Symbolics/ModelingToolkit" => "symbolics.md",
         "Manual" => "manual.md",
         "Smooth arc length interpolation" => "arclength_interpolation.md",
         "Inverting Integrals" => "inverting_integrals.md",
-        "clarification.md",
     ]
 )
 

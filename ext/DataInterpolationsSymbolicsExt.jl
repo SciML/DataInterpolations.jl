@@ -2,8 +2,8 @@ module DataInterpolationsSymbolicsExt
 
 using DataInterpolations: AbstractInterpolation
 import DataInterpolations: derivative
-using Symbolics
-using Symbolics: Num, unwrap, SymbolicUtils
+using Symbolics: Symbolics, Num, unwrap, SymbolicUtils,
+    @register_derivative, @register_symbolic
 
 @register_symbolic (interp::AbstractInterpolation)(t)
 Base.nameof(interp::AbstractInterpolation) = :Interpolation

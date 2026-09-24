@@ -1,3 +1,26 @@
+"""
+    AbstractIntegralInverseInterpolation{T}
+
+Developer supertype for interpolation objects that evaluate the inverse of a cumulative
+integral. Subtypes retain the [`AbstractInterpolation`](@ref) call and derivative
+interfaces, with `u` representing the original time values and `t` representing cumulative
+integral values. The internal `itp` field stores the source interpolation used to evaluate
+the inverse derivative.
+
+Users should construct these objects with [`invert_integral`](@ref), rather than calling a
+concrete constructor directly. A new implementation must provide the same
+`_interpolate(A, t, iguess)` contract as [`DataInterpolations._interpolate`](@ref) and return
+the source interpolation's reciprocal value from `_derivative`.
+
+# Fields
+
+- `u`: the original interpolation's sample locations.
+- `t`: cumulative integral values used as inverse-interpolation locations.
+- `itp`: the source interpolation used to evaluate the inverse derivative.
+
+Implementations also provide the interval-search fields described for
+[`AbstractInterpolation`](@ref), including `iguesser`, `kind`, and `t_props`.
+"""
 abstract type AbstractIntegralInverseInterpolation{T} <: AbstractInterpolation{T} end
 
 """
@@ -9,9 +32,24 @@ Creates the inverted integral interpolation object from the given interpolation.
   - `A.u` must be a number type (on which an ordering is defined)
   - This is currently only supported for `ConstantInterpolation` and `LinearInterpolation`
 
-## Arguments
+# Arguments
 
   - `A`: interpolation object satisfying the above requirements
+
+# Returns
+
+- An [`AbstractIntegralInverseInterpolation`](@ref) that maps an integrated value back to
+  its time location.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = LinearInterpolation([1.0, 2.0, 3.0], [0.0, 1.0, 2.0])
+A_inverse = invert_integral(A)
+A_inverse(1.0)
+```
 """
 invert_integral(::AbstractInterpolation) = throw(IntegralInverseNotFoundError())
 
@@ -27,23 +65,42 @@ end
 It is the interpolation of the inverse of the integral of a `LinearInterpolation`.
 Can be easily constructed with `invert_integral(A::LinearInterpolation{<:AbstractVector{<:Number}})`
 
-## Arguments
+# Arguments
 
   - `u` : Given by `A.t`
   - `t` : Given by `A.I` (the cumulative integral of `A`)
   - `A` : The `LinearInterpolation` object
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = LinearInterpolation([1.0, 2.0, 3.0], [0.0, 1.0, 2.0])
+A_inverse = invert_integral(A)
+A_inverse(1.0)
+```
 """
-struct LinearInterpolationIntInv{uType, tType, itpType, T} <:
+struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     itp::itpType
-    function LinearInterpolationIntInv(u, t, A, extrapolation_left, extrapolation_right)
-        return new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, extrapolation_left, extrapolation_right, Guesser(t), A
+    function LinearInterpolationIntInv(
+            u, t, A, extrapolation_left, extrapolation_right, t_props,
+        )
+        kind = _resolve_strategy_kind(t, t_props)
+        return new{
+            typeof(u), typeof(t), typeof(A), eltype(u),
+            typeof(t_props),
+        }(
+            u, t, extrapolation_left, extrapolation_right,
+            Guesser(t), t_props, kind, A
         )
     end
 end
@@ -61,12 +118,14 @@ end
 function invert_integral(
         A::LinearInterpolation{<:AbstractVector{<:Number}};
         extrapolation_left::ExtrapolationType.T = A.extrapolation_left,
-        extrapolation_right::ExtrapolationType.T = A.extrapolation_right
+        extrapolation_right::ExtrapolationType.T = A.extrapolation_right,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     !invertible_integral(A) && throw(IntegralNotInvertibleError())
-
+    t_I = get_I(A)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t_I))
     return LinearInterpolationIntInv(
-        A.t, get_I(A), A, extrapolation_left, extrapolation_right
+        A.t, t_I, A, extrapolation_left, extrapolation_right, t_props
     )
 end
 
@@ -87,25 +146,42 @@ end
 It is the interpolation of the inverse of the integral of a `ConstantInterpolation`.
 Can be easily constructed with `invert_integral(A::ConstantInterpolation{<:AbstractVector{<:Number}})`
 
-## Arguments
+# Arguments
 
   - `u` : Given by `A.t`
   - `t` : Given by `A.I` (the cumulative integral of `A`)
   - `A` : The `ConstantInterpolation` object
+
+# Examples
+
+```julia
+using DataInterpolations
+
+A = ConstantInterpolation([1.0, 2.0, 3.0], [0.0, 1.0, 2.0])
+A_inverse = invert_integral(A)
+A_inverse(1.0)
+```
 """
-struct ConstantInterpolationIntInv{uType, tType, itpType, T} <:
+struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     AbstractIntegralInverseInterpolation{T}
     u::uType
     t::tType
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
+    t_props::propsType
+    kind::FindFirstFunctions.StrategyKind
     itp::itpType
     function ConstantInterpolationIntInv(
-            u, t, A, extrapolation_left, extrapolation_right
+            u, t, A, extrapolation_left, extrapolation_right, t_props,
         )
-        return new{typeof(u), typeof(t), typeof(A), eltype(u)}(
-            u, t, extrapolation_left, extrapolation_right, Guesser(t), A
+        kind = _resolve_strategy_kind(t, t_props)
+        return new{
+            typeof(u), typeof(t), typeof(A), eltype(u),
+            typeof(t_props),
+        }(
+            u, t, extrapolation_left, extrapolation_right,
+            Guesser(t), t_props, kind, A
         )
     end
 end
@@ -117,11 +193,14 @@ end
 function invert_integral(
         A::ConstantInterpolation{<:AbstractVector{<:Number}};
         extrapolation_left::ExtrapolationType.T = A.extrapolation_left,
-        extrapolation_right::ExtrapolationType.T = A.extrapolation_right
+        extrapolation_right::ExtrapolationType.T = A.extrapolation_right,
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
     )
     !invertible_integral(A) && throw(IntegralNotInvertibleError())
+    t_I = get_I(A)
+    t_props = something(search_properties, FindFirstFunctions.SearchProperties(t_I))
     return ConstantInterpolationIntInv(
-        A.t, get_I(A), A, extrapolation_left, extrapolation_right
+        A.t, t_I, A, extrapolation_left, extrapolation_right, t_props
     )
 end
 

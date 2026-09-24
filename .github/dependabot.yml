@@ -6,5 +6,15 @@ updates:
     schedule:
       interval: "weekly"
     ignore:
-      - dependency-name: "crate-ci/typos"
+      - dependency-name: "*"
         update-types: ["version-update:semver-patch", "version-update:semver-minor"]
+  - package-ecosystem: "julia"
+    directories:
+      - "/"
+      - "/docs"
+    schedule:
+      interval: "daily"
+    groups:
+      all-julia-packages:
+        patterns:
+          - "*"

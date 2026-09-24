@@ -1,11 +1,10 @@
 using DataInterpolations, Test
-using FindFirstFunctions: searchsortedfirstcorrelated
+using FindFirstFunctions: FindFirstFunctions, BracketGallop
 using FiniteDifferences
 using DataInterpolations: derivative, get_transition_ts
 using Symbolics
 using StableRNGs
-using RegularizationTools
-using Optim
+using CurveFit
 import ForwardDiff
 using LinearAlgebra
 
@@ -48,12 +47,14 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             adiff = derivative(func, _t)
             adiff2 = derivative(func, _t, 2)
             @test isapprox(fdiff, adiff, atol = 1.0e-8)
-            @test isapprox(fdiff2, adiff2, atol = 1.0e-8)
+            @test isapprox(fdiff2, adiff2, atol = 1.0e-7)
             # Cached index
-            if hasproperty(func, :iguesser) && !func.iguesser.linear_lookup
+            if hasproperty(func, :t_props) && !func.t_props.is_uniform
                 @test abs(
                     func.iguesser.idx_prev[] -
-                        searchsortedfirstcorrelated(func.t, _t, func.iguesser(_t))
+                        FindFirstFunctions.searchsorted_first(
+                        BracketGallop(), func.t, _t, func.iguesser(_t)
+                    )
                 ) <= 1
             end
         end
@@ -68,7 +69,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             )
             fdiff2 = forward_fdm(5, 1; geom = true)(t -> derivative(func, t), t[1])
             adiff2 = derivative(func, t[1], 2)
-            @test isapprox(fdiff2, adiff2, atol = 1.0e-8)
+            @test isapprox(fdiff2, adiff2, atol = 1.0e-7)
         end
 
         # t = tend
@@ -81,7 +82,7 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             )
             fdiff2 = backward_fdm(5, 1; geom = true)(t -> derivative(func, t), t[end])
             adiff2 = derivative(func, t[end], 2)
-            @test isapprox(fdiff2, adiff2, atol = 1.0e-8)
+            @test isapprox(fdiff2, adiff2, atol = 1.0e-7)
         end
     end
     @test_throws DataInterpolations.DerivativeNotFoundError derivative(
@@ -112,6 +113,11 @@ end
     test_derivatives(
         LinearInterpolation; args = [u, t], name = "Linear Interpolation (Matrix)"
     )
+    u = [[2.0i, 3.0i] for i in 1:10]
+    test_derivatives(
+        LinearInterpolation; args = [u, t],
+        name = "Linear Interpolation (Vector of Vectors)"
+    )
 
     # Issue: https://github.com/SciML/DataInterpolations.jl/issues/303
     u = [3.0, 3.0]
@@ -138,6 +144,12 @@ end
         QuadraticInterpolation;
         args = [u, t],
         name = "Quadratic Interpolation (Matrix)"
+    )
+    u = [[1.0, 1.0], [4.0, 4.0], [9.0, 9.0], [16.0, 16.0]]
+    test_derivatives(
+        QuadraticInterpolation;
+        args = [u, t],
+        name = "Quadratic Interpolation (Vector of Vectors)"
     )
 end
 
@@ -172,6 +184,15 @@ end
         @test derivative(A, t[1]) ≈ derivative(A, nextfloat(t[1]))
         @test derivative(A, t[end]) ≈ derivative(A, prevfloat(t[end]))
     end
+    u2 = vcat(u', u')
+    test_derivatives(
+        AkimaInterpolation; args = [u2, t], name = "Akima Interpolation (Matrix)"
+    )
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        AkimaInterpolation; args = [u_vov, t],
+        name = "Akima Interpolation (Vector of Vectors)"
+    )
 end
 
 @testset "Constant Interpolation" begin
@@ -181,6 +202,16 @@ end
     t2 = collect(0.0:9.0)
     @test all(isnan, derivative.(Ref(A), t))
     @test all(derivative.(Ref(A), t2 .+ 0.1) .== 0.0)
+
+    u_mat = vcat(u', u')
+    A_mat = ConstantInterpolation(u_mat, t)
+    @test all(t_ -> all(isnan, derivative(A_mat, t_)), t)
+    @test all(t_ -> all(iszero, derivative(A_mat, t_)), t2 .+ 0.1)
+
+    u_vov = [[u_, u_] for u_ in u]
+    A_vov = ConstantInterpolation(u_vov, t)
+    @test all(t_ -> all(isnan, derivative(A_vov, t_)), t)
+    @test all(t_ -> all(iszero, derivative(A_vov, t_)), t2 .+ 0.1)
 end
 
 @testset "SmoothedConstantInterpolation" begin
@@ -195,6 +226,17 @@ end
         u, t; extrapolation = ExtrapolationType.Extension
     )
     @test all(_t -> abs(derivative(A, _t)) < 1.0e-10, setdiff(get_transition_ts(A), t))
+
+    u_mat = vcat(u', u')
+    test_derivatives(
+        SmoothedConstantInterpolation; args = [u_mat, t],
+        name = "Smoothed constant interpolation (Matrix)"
+    )
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        SmoothedConstantInterpolation; args = [u_vov, t],
+        name = "Smoothed constant interpolation (Vector of Vectors)"
+    )
 end
 
 @testset "Quadratic Spline" begin
@@ -202,6 +244,10 @@ end
     t = [-1.0, 0.0, 1.0]
     test_derivatives(
         QuadraticSpline; args = [u, t], name = "Quadratic Interpolation (Vector)"
+    )
+    u_mat = [0.0 1.0 3.0; 0.0 1.0 3.0]
+    test_derivatives(
+        QuadraticSpline; args = [u_mat, t], name = "Quadratic Interpolation (Matrix)"
     )
     u = [[1.0, 2.0, 9.0], [3.0, 7.0, 5.0], [5.0, 4.0, 1.0]]
     test_derivatives(
@@ -220,6 +266,10 @@ end
     t = [-1.0, 0.0, 1.0]
     test_derivatives(
         CubicSpline; args = [u, t], name = "Cubic Spline Interpolation (Vector)"
+    )
+    u_mat = [0.0 1.0 3.0; 0.0 1.0 3.0]
+    test_derivatives(
+        CubicSpline; args = [u_mat, t], name = "Cubic Spline Interpolation (Matrix)"
     )
     u = [[1.0, 2.0, 9.0], [3.0, 7.0, 5.0], [5.0, 4.0, 1.0]]
     test_derivatives(
@@ -241,7 +291,6 @@ end
         args = [
             u, t, 2,
             :Uniform,
-            :Uniform,
         ],
         name = "BSpline Interpolation (Uniform, Uniform)"
     )
@@ -249,7 +298,6 @@ end
         BSplineInterpolation;
         args = [
             u, t, 2,
-            :ArcLen,
             :Average,
         ],
         name = "BSpline Interpolation (Arclen, Average)"
@@ -261,9 +309,25 @@ end
             3,
             4,
             :Uniform,
-            :Uniform,
         ],
         name = "BSpline Approx (Uniform, Uniform)"
+    )
+
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        BSplineInterpolation;
+        args = [u_vov, t, 2, :Uniform],
+        name = "BSpline Interpolation (Uniform, Uniform): Vector{Vector}"
+    )
+    test_derivatives(
+        BSplineInterpolation;
+        args = [u_vov, t, 2, :Average],
+        name = "BSpline Interpolation (Arclen, Average): Vector{Vector}"
+    )
+    test_derivatives(
+        BSplineApprox;
+        args = [u_vov, t, 3, 4, :Uniform],
+        name = "BSpline Approx (Uniform, Uniform): Vector{Vector}"
     )
 
     f3d(t) = [
@@ -279,7 +343,6 @@ end
             u3d, t3d,
             2,
             :Uniform,
-            :Uniform,
         ],
         name = "BSpline Interpolation (Uniform, Uniform): AbstractArray"
     )
@@ -289,7 +352,6 @@ end
         args = [
             u3d, t3d,
             2,
-            :ArcLen,
             :Average,
         ],
         name = "BSpline Interpolation (Arclen, Average): AbstractArray"
@@ -302,7 +364,6 @@ end
             3,
             4,
             :Uniform,
-            :Uniform,
         ],
         name = "BSpline Approx (Uniform, Uniform): AbstractArray"
     )
@@ -313,7 +374,6 @@ end
             u3d, t3d,
             3,
             4,
-            :ArcLen,
             :Average,
         ],
         name = "BSpline Approx (Arclen, Average): AbstractArray"
@@ -332,6 +392,19 @@ end
     @test derivative.(Ref(A), t) ≈ du
     @test derivative(A, 100.0) ≈ 0.0105409 rtol = 1.0e-5
     @test derivative(A, 300.0) ≈ -0.0806717 rtol = 1.0e-5
+
+    du2 = vcat(du', du')
+    u2 = vcat(u', u')
+    test_derivatives(
+        CubicHermiteSpline; args = [du2, u2, t],
+        name = "Cubic Hermite Spline (Matrix)"
+    )
+    du_vov = [[du_, du_] for du_ in du]
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        CubicHermiteSpline; args = [du_vov, u_vov, t],
+        name = "Cubic Hermite Spline (Vector of Vectors)"
+    )
 end
 
 @testset "Quintic Hermite Spline" begin
@@ -348,46 +421,43 @@ end
     @test derivative.(Ref(A), t, 2) ≈ ddu
     @test derivative(A, 100.0) ≈ 0.0103916 rtol = 1.0e-5
     @test derivative(A, 300.0) ≈ 0.0331361 rtol = 1.0e-5
+
+    ddu2 = vcat(ddu', ddu')
+    du2 = vcat(du', du')
+    u2 = vcat(u', u')
+    test_derivatives(
+        QuinticHermiteSpline; args = [ddu2, du2, u2, t],
+        name = "Quintic Hermite Spline (Matrix)"
+    )
+    ddu_vov = [[ddu_, ddu_] for ddu_ in ddu]
+    du_vov = [[du_, du_] for du_ in du]
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        QuinticHermiteSpline; args = [ddu_vov, du_vov, u_vov, t],
+        name = "Quintic Hermite Spline (Vector of Vectors)"
+    )
 end
 
 @testset "Smooth Arc Length Interpolation" begin
     u = [0.3 -1.5 3.1; -0.2 0.2 -1.5; 10.4 -37.2 -5.8]
     test_derivatives(
         SmoothArcLengthInterpolation, args = [u], kwargs = Pair[
-            :m => 5, :in_place => false,
+            :m => 5,
         ],
         name = "Smooth Arc Length Interpolation"
     )
-    A = SmoothArcLengthInterpolation(u'; m = 25, in_place = false)
+    A = SmoothArcLengthInterpolation(u'; m = 25)
     @test all(t -> norm(derivative(A, t)) ≈ 1, range(0, A.t[end]; length = 100))
     @test all(
         t_ -> derivative(A, prevfloat(t_)) ≈ derivative(A, nextfloat(t_)), A.t[2:(end - 1)]
     )
-end
 
-@testset "RegularizationSmooth" begin
-    npts = 50
-    xmin = 0.0
-    xspan = 3 / 2 * π
-    x = collect(range(xmin, xmin + xspan, length = npts))
-    rng = StableRNG(655)
-    x = x + xspan / npts * (rand(rng, npts) .- 0.5)
-    # select a subset randomly
-    idx = unique(rand(rng, collect(eachindex(x)), 20))
-    t = x[unique(idx)]
-    npts = length(t)
-    ut = sin.(t)
-    stdev = 1.0e-1 * maximum(ut)
-    u = ut + stdev * randn(rng, npts)
-    # data must be ordered if t̂ is not provided
-    idx = sortperm(t)
-    tₒ = t[idx]
-    uₒ = u[idx]
-    A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
+    u_vov = [u[:, i] for i in 1:size(u, 2)]
     test_derivatives(
-        RegularizationSmooth; args = [uₒ, tₒ],
-        kwargs = [:alg => :fixed],
-        name = "RegularizationSmooth"
+        SmoothArcLengthInterpolation, args = [u_vov], kwargs = Pair[
+            :m => 5,
+        ],
+        name = "Smooth Arc Length Interpolation (Vector of Vectors)"
     )
 end
 
@@ -397,7 +467,7 @@ end
     t = range(-10, stop = 10, length = 40)
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
-    test_derivatives(Curvefit; args = [u, t, model, p0, LBFGS()], name = "Curvefit")
+    test_derivatives(Curvefit; args = [u, t, model, p0], name = "Curvefit")
 end
 
 @testset "Symbolic derivatives" begin

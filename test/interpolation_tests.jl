@@ -1,7 +1,7 @@
 using DataInterpolations
-using FindFirstFunctions: searchsortedfirstcorrelated
+using FindFirstFunctions: FindFirstFunctions, GuesserHint
 using StableRNGs
-using Optim, ForwardDiff
+using CurveFit, NonlinearSolve, ForwardDiff
 using BenchmarkTools
 using Unitful
 using LinearAlgebra
@@ -23,10 +23,10 @@ end
 function test_cached_index(A)
     for t in range(first(A.t), last(A.t); length = 2 * length(A.t) - 1)
         A(t)
-        idx = searchsortedfirstcorrelated(A.t, t, A.iguesser)
+        idx = FindFirstFunctions.searchsorted_first(GuesserHint(A.iguesser), A.t, t)
         @test abs(
             A.iguesser.idx_prev[] -
-                searchsortedfirstcorrelated(A.t, t, A.iguesser)
+                FindFirstFunctions.searchsorted_first(GuesserHint(A.iguesser), A.t, t)
         ) <= 2
     end
     return
@@ -37,7 +37,6 @@ end
 
     for t in (1.0:10.0, 1.0collect(1:10))
         u = 2.0collect(1:10)
-        #t = 1.0collect(1:10)
         A = @inferred(
             LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
@@ -58,10 +57,7 @@ end
             LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
             )
-        ) isa LinearInterpolation broken = VERSION <
-            v"1.11" &&
-            t isa
-            AbstractRange
+        ) isa LinearInterpolation skip = VERSION < v"1.11"
         A = LinearInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
@@ -83,10 +79,7 @@ end
             LinearInterpolation(
                 u, t; extrapolation = ExtrapolationType.Extension
             )
-        ) isa LinearInterpolation broken = VERSION <
-            v"1.11" &&
-            t isa
-            AbstractRange
+        ) isa LinearInterpolation skip = VERSION < v"1.11"
         A = LinearInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
@@ -268,6 +261,239 @@ end
     @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
     @test_throws DataInterpolations.RightExtrapolationError A(11.0)
     @test_throws DataInterpolations.LeftExtrapolationError A([-1.0, 11.0])
+
+    # ForwardDiff gradient w.r.t. t with duplicate time points (issue #510)
+    test_tvals = [0.0, 1.0, 1.0, 5.0]
+    test_uvals = [1.0, 2.0, 4.0, 8.0]
+    f(tvals) = LinearInterpolation(test_uvals, tvals)(3.5)
+    @test_nowarn ForwardDiff.gradient(f, test_tvals)
+
+    # Differentiate through both values and knots simultaneously with 15+ knots,
+    # which promotes the knot vector to ForwardDiff.Dual and exercises the
+    # SearchProperties linearity probe (regression for the v9.0.0 breakage;
+    # fixed upstream in FindFirstFunctions 3.2).
+    test_tvals = collect(0.0:14.0)
+    test_uvals = test_tvals .+ 1.0
+    parameters = vcat(test_uvals, test_tvals)
+    function f_all(parameters)
+        uvals = parameters[1:15]
+        tvals = parameters[16:30]
+        return LinearInterpolation(uvals, tvals)(2.5)
+    end
+    expected_gradient = zeros(30)
+    expected_gradient[3:4] .= 0.5
+    expected_gradient[18:19] .= -0.5
+    @test ForwardDiff.gradient(f_all, parameters) == expected_gradient
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t_b = collect(0.0:10.0)
+
+        # Each fast-path extrapolation mode matches the per-point path
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A_b = LinearInterpolation(
+                u_b, t_b; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        # Periodic/Reflective fall back to map!
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A_b = LinearInterpolation(u_b, t_b; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        # ExtrapolationType.None throws on out-of-range
+        A_none = LinearInterpolation(u_b, t_b)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # Unsorted falls back to map!
+        A_b = LinearInterpolation(u_b, t_b; extrapolation = ExtrapolationType.Constant)
+        tt_u = [3.1, 7.7, 0.2, 5.5, 9.9]
+        out_u = similar(tt_u)
+        A_b(out_u, tt_u)
+        for k in eachindex(tt_u)
+            @test out_u[k] ≈ A_b(tt_u[k])
+        end
+
+        # Sparse n >> m case: this is where the FindFirstFunctions path
+        # kicks in. Verify both correctness and that it doesn't error.
+        rng = StableRNG(1)
+        n, m = 4096, 4
+        t_big = sort!(rand(rng, n) .* 10.0)
+        u_big = rand(rng, n)
+        tt_sparse = sort!(rand(rng, m) .* 10.0)
+        A_big = LinearInterpolation(
+            u_big, t_big; extrapolation = ExtrapolationType.Constant
+        )
+        out_sparse = similar(tt_sparse)
+        A_big(out_sparse, tt_sparse)
+        for k in eachindex(tt_sparse)
+            @test out_sparse[k] ≈ A_big(tt_sparse[k])
+        end
+
+        # DimensionMismatch
+        @test_throws DimensionMismatch LinearInterpolation(u_b, t_b)(
+            zeros(3), [1.0, 2.0]
+        )
+    end
+
+    @testset "Uniform-grid fast path parity" begin
+        # The uniform lerp differs from the slope form by a few ulps; the
+        # realistic bound is `length(t) * eps * max(|u|)`.
+        function slope_form_eval(A, q)
+            idx = DataInterpolations.get_idx(A, q, A.iguesser)
+            t1 = A.t[idx]
+            u1 = A.u[idx]
+            slope = DataInterpolations.get_parameters(A, idx)
+            return u1 + slope * (q - t1)
+        end
+
+        rng = StableRNG(0xfacefeed)
+        n = 1001
+        t_r = range(0.0, 10.0; length = n)   # Range knots (static path)
+        t_v = collect(t_r)                   # uniform Vector knots (runtime path)
+        u = randn(rng, n)
+
+        for t in (t_r, t_v)
+            A = LinearInterpolation(u, t)
+            @test A.t_props.is_uniform
+            @test A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
+
+            tol = n * eps(Float64) * maximum(abs, u)
+            qs = sort!(rand(rng, 5000) .* 9.999)
+            for q in qs
+                @test isapprox(A(q), slope_form_eval(A, q); atol = tol, rtol = 0)
+            end
+        end
+
+        # Non-uniform: slope path, exact match.
+        t_nu = sort!(rand(StableRNG(0xcafef00d), n)) .* 10.0
+        A_nu = LinearInterpolation(u, t_nu)
+        @test !A_nu.t_props.is_uniform
+        @test A_nu.kind !== FindFirstFunctions.KIND_UNIFORM_STEP
+        qs_nu = sort!(rand(StableRNG(0x0b0bcafe), 5000)) .* (last(t_nu) - first(t_nu)) .+
+            first(t_nu)
+        for q in qs_nu
+            @test A_nu(q) == slope_form_eval(A_nu, q)
+        end
+
+        # Uniform at the sampled probe points but jittered between them:
+        # must not be classified uniform (a false positive corrupts the lerp).
+        t_trick = collect(1.0:101.0)
+        t_trick[52:60] .= range(54.5, 60.0, length = 9)
+        A_trick = LinearInterpolation(randn(StableRNG(0xdeadbeef), 101), t_trick)
+        @test !A_trick.t_props.is_uniform
+        @test A_trick.kind !== FindFirstFunctions.KIND_UNIFORM_STEP
+
+        # Extension extrapolation: t far outside the span pushes the float
+        # index past typemax(Int); the kernel must clamp before truncating.
+        A_ext = LinearInterpolation(
+            u, t_v; extrapolation = ExtrapolationType.Extension
+        )
+        for q in (1.0e300, -1.0e300)
+            @test isapprox(A_ext(q), slope_form_eval(A_ext, q); rtol = 1.0e-10)
+        end
+
+        # push! leaves t_props/kind stale; the fast path must detect the
+        # changed spacing against the live knots and fall back.
+        t_m = collect(0.0:1.0:10.0)
+        A_m = LinearInterpolation(sin.(t_m), t_m)
+        @test A_m.kind === FindFirstFunctions.KIND_UNIFORM_STEP
+        push!(A_m, -0.3, 10.5)   # breaks the uniform spacing (1.0 → 0.5)
+        # mutated region falls back (exact); untouched region keeps the lerp.
+        for q in (10.1, 10.25, 10.4)
+            @test A_m(q) == slope_form_eval(A_m, q)
+        end
+        for q in (5.5, 0.3)
+            @test isapprox(A_m(q), slope_form_eval(A_m, q); atol = 1.0e-12)
+        end
+    end
+    # Too few points throw an informative error
+    @test_throws ArgumentError LinearInterpolation([1.0], [1.0])
+    @test_throws ArgumentError LinearInterpolation(rand(2, 1), [1.0])
+    @test_throws ArgumentError LinearInterpolation([rand(2)], [1.0])
+
+    # Repeated knots encode jumps (issue #610): the zero-width segment is the
+    # discontinuity, and at the knot itself the value is right-continuous (the
+    # post-jump value, like `ConstantInterpolation` with `dir = :left`).
+    @testset "Repeated knots (jumps)" begin
+        u = [1.0, 2.0, 1.0, 0.0, 1.0, 1.0]
+        t = [0.0, 1.0, 1.0, 2.0, 2.0, 3.0]
+        for A in (
+                LinearInterpolation(u, t),
+                LinearInterpolation(u, t; cache_parameters = true),
+            )
+            # Segments between jumps interpolate normally
+            @test A(0.5) ≈ 1.5
+            @test A(1.5) ≈ 0.5
+            @test A(2.5) ≈ 1.0
+            # The left/right limits straddle each jump
+            @test A(1.0 - eps()) ≈ 2.0
+            @test A(1.0 + eps()) ≈ 1.0
+            @test isapprox(A(2.0 - eps()), 0.0; atol = 1.0e-14)
+            @test A(2.0 + eps()) ≈ 1.0
+            # At the knot itself: post-jump value
+            @test A(1.0) == 1.0
+            @test A(2.0) == 1.0
+            # `derivative` is documented as the left derivative at a knot
+            @test DataInterpolations.derivative(A, 1.0) == 1.0
+            @test DataInterpolations.derivative(A, 2.0) == -1.0
+            # Sorted-batch evaluator picks the same (post-jump) segment as `A(t)`
+            tt = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+            out = similar(tt)
+            A(out, tt)
+            @test out ≈ A.(tt)
+            # Zero-width segments contribute nothing to the integral
+            @test DataInterpolations.integral(A, 3.0) ≈ 3.0
+        end
+
+        # Matrix- and vector-of-vectors-valued data take the same code paths
+        u_vov = [[ui, -ui] for ui in u]
+        A_vov = LinearInterpolation(u_vov, t)
+        @test A_vov(1.0) == [1.0, -1.0]
+        @test A_vov(0.5) ≈ [1.5, -1.5]
+        u_mat = reduce(hcat, u_vov)
+        A_mat = LinearInterpolation(u_mat, t)
+        @test A_mat(1.0) == [1.0, -1.0]
+        @test A_mat(0.5) ≈ [1.5, -1.5]
+
+        # Long knot vector: exercises the `searchsortedlast!` batch branch
+        # (`32 * n_interior < n`) at a repeated knot.
+        t_big = sort!([collect(0.0:199.0); 50.0])
+        u_big = collect(1.0:201.0)
+        A_big = LinearInterpolation(u_big, t_big)
+        tt_big = [49.5, 50.0, 50.5]
+        out_big = similar(tt_big)
+        A_big(out_big, tt_big)
+        @test out_big ≈ A_big.(tt_big)
+        @test A_big(50.0) == 52.0
+    end
 end
 
 @testset "Quadratic Interpolation" begin
@@ -338,8 +564,7 @@ end
         QuadraticInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
-    ) isa QuadraticInterpolation broken = VERSION <
-        v"1.11"
+    ) isa QuadraticInterpolation skip = VERSION < v"1.11"
     A = QuadraticInterpolation(u, t; extrapolation = ExtrapolationType.Extension)
 
     for (_t, _u) in zip(t, eachcol(u))
@@ -364,6 +589,15 @@ end
     @test A(5.0) == 25.0 * ones(5)
     @test @inferred(output_dim(A)) == 1
     @test @inferred(output_size(A)) == (5,)
+    # Vector{Vector} integral
+    A_scalar = QuadraticInterpolation(u_[1, :], t; extrapolation = ExtrapolationType.Extension)
+    @test DataInterpolations.integral(A, t[1], t[end])[1] ≈
+        DataInterpolations.integral(A_scalar, t[1], t[end])
+    A_cached = QuadraticInterpolation(
+        u, t; extrapolation = ExtrapolationType.Extension, cache_parameters = true
+    )
+    @test DataInterpolations.integral(A_cached, t[1], t[end]) ≈
+        DataInterpolations.integral(A, t[1], t[end])
     # Test allocation-free interpolation with Vector{StaticArrays.SVector}
     u_s = [convert(SVector{length(u[1])}, i) for i in u]
     @test @inferred(
@@ -402,6 +636,22 @@ end
     A = @inferred(QuadraticInterpolation(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(0.0)
     @test_throws DataInterpolations.RightExtrapolationError A(5.0)
+
+    # Duplicate time points throw an informative error instead of silently
+    # producing NaN across the segments touching the duplicate (#475)
+    @test_throws ArgumentError QuadraticInterpolation(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError QuadraticInterpolation(
+        rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError QuadraticInterpolation(
+        [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    # Too few points throw an informative error
+    @test_throws ArgumentError QuadraticInterpolation([1.0, 2.0], [1.0, 2.0])
+    @test_throws ArgumentError QuadraticInterpolation(rand(2, 2), [1.0, 2.0])
+    @test_throws ArgumentError QuadraticInterpolation([rand(2), rand(2)], [1.0, 2.0])
 end
 
 @testset "Lagrange Interpolation" begin
@@ -468,10 +718,22 @@ end
     t = [1.0, 2.0, 3.0]
     A = @inferred(LagrangeInterpolation(u, t; extrapolation = ExtrapolationType.Extension))
     @test A(0.0) == 0.0
-    @test A(4.0) == 16.0
+    @test A(4.0) ≈ 16.0
     A = @inferred(LagrangeInterpolation(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
     @test_throws DataInterpolations.RightExtrapolationError A(4.0)
+
+    # Duplicate time points throw an informative error instead of silently
+    # producing NaN across (almost) the entire domain (#475)
+    @test_throws ArgumentError LagrangeInterpolation(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError LagrangeInterpolation(
+        rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError LagrangeInterpolation(
+        [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
 end
 
 @testset "Akima Interpolation" begin
@@ -505,6 +767,197 @@ end
     A = @inferred(AkimaInterpolation(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
     @test_throws DataInterpolations.RightExtrapolationError A(11.0)
+
+    # Modified Akima (makima) — same struct, different b computation
+    @testset "Modified Akima (makima)" begin
+        A_makima = @inferred(AkimaInterpolation(u, t; modified = true))
+        # Interpolates the data points exactly
+        for i in eachindex(t)
+            @test A_makima(t[i]) ≈ u[i]
+        end
+        # Differs from standard Akima on this data set
+        A_std = AkimaInterpolation(u, t)
+        @test any(
+            !isapprox(A_makima(ti), A_std(ti); atol = 1.0e-12)
+                for ti in 0.5:1.0:9.5
+        )
+
+        # Compare against a direct vectorized implementation of the makima formula
+        n = length(t)
+        dt_vec = diff(t)
+        m = Array{eltype(u)}(undef, n + 3)
+        m[3:(end - 2)] = diff(u) ./ dt_vec
+        m[2] = 2m[3] - m[4]
+        m[1] = 2m[2] - m[3]
+        m[end - 1] = 2m[end - 2] - m[end - 3]
+        m[end] = 2m[end - 1] - m[end - 2]
+        w1 = abs.(m[4:end] .- m[3:(end - 1)]) .+
+            abs.(m[4:end] .+ m[3:(end - 1)]) ./ 2
+        w2 = abs.(m[2:(end - 2)] .- m[1:(end - 3)]) .+
+            abs.(m[2:(end - 2)] .+ m[1:(end - 3)]) ./ 2
+        b_ref = (w1 .* m[2:(end - 2)] .+ w2 .* m[3:(end - 1)]) ./ (w1 .+ w2)
+        @test A_makima.b ≈ b_ref
+
+        # Makima avoids the w1 + w2 == 0 division-by-zero edge case
+        # that the original Akima formula explicitly works around: a
+        # constant-then-constant signal produces zero forward and backward
+        # slope differences at the transition.
+        u_flat = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
+        t_flat = collect(0.0:5.0)
+        A_flat = @inferred(AkimaInterpolation(u_flat, t_flat; modified = true))
+        @test all(isfinite, A_flat.b)
+        @test all(isfinite, A_flat.c)
+        @test all(isfinite, A_flat.d)
+        for i in eachindex(t_flat)
+            @test A_flat(t_flat[i]) ≈ u_flat[i]
+        end
+
+        # Extrapolation, derivatives and integrals work via the shared struct path
+        A_ext = AkimaInterpolation(
+            u, t; modified = true, extrapolation = ExtrapolationType.Extension
+        )
+        @test isfinite(A_ext(-1.0))
+        @test isfinite(A_ext(11.0))
+        @test isfinite(DataInterpolations.derivative(A_makima, 5.0))
+        @test isfinite(DataInterpolations.integral(A_makima, 0.0, 10.0))
+    end
+
+    @testset "AbstractMatrix" begin
+        t = 0.1:0.1:1.0
+        u2d = [sin.(t) cos.(t)]' |> collect
+        A = AkimaInterpolation(u2d, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
+    end
+    @testset "AbstractArray{T, 3}" begin
+        f3d(t) = [
+            sin(t) cos(t);
+            0.0 cos(2t)
+        ]
+        t = 0.1:0.1:1.0
+        u3d = cat(f3d.(t)..., dims = 3)
+        A = AkimaInterpolation(u3d, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        f_test = reduce(hcat, f3d.(t_test))
+        @test isapprox(u_test, f_test, atol = 1.0e-2)
+        @test @inferred(output_dim(A)) == 2
+        @test @inferred(output_size(A)) == (2, 2)
+    end
+    @testset "Vector{Vector}" begin
+        t = 0.1:0.1:1.0
+        u_vec = [[sin(t_), cos(t_)] for t_ in t]
+        A = AkimaInterpolation(u_vec, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        # derivative and integral share the same code path across shapes
+        @test isapprox(
+            DataInterpolations.derivative(A, 0.5)[1], cos(0.5), atol = 1.0e-2
+        )
+        @test isapprox(
+            DataInterpolations.integral(A, t[1], t[end])[1],
+            DataInterpolations.integral(AkimaInterpolation([u_[1] for u_ in u_vec], t), t[1], t[end]),
+            atol = 1.0e-10
+        )
+    end
+
+    @testset "Sorted-batch evaluator" begin
+        u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t = collect(0.0:10.0)
+
+        for modified in (false, true)
+            A = AkimaInterpolation(u, t; modified = modified)
+            # Sorted query: fast path matches the per-point path
+            tt = sort!([0.0, 0.5, 1.0, 2.7, 5.3, 7.9, 10.0])
+            out = similar(tt)
+            A(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A(tt[k])
+            end
+            # Knot pass-through
+            outk = similar(t)
+            A(outk, t)
+            for k in eachindex(t)
+                @test outk[k] ≈ u[k]
+            end
+            # Unsorted query falls back to per-point and stays consistent
+            tt_unsorted = [3.1, 7.7, 0.2, 5.5, 9.9]
+            out_u = similar(tt_unsorted)
+            A(out_u, tt_unsorted)
+            for k in eachindex(tt_unsorted)
+                @test out_u[k] ≈ A(tt_unsorted[k])
+            end
+        end
+
+        # Each fast-path extrapolation mode matches the per-point path
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A = AkimaInterpolation(
+                u, t; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A(tt[k])
+            end
+        end
+
+        # Periodic/Reflective fall back to the map! path
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A = AkimaInterpolation(u, t; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A(tt[k])
+            end
+        end
+
+        # ExtrapolationType.None throws when a sorted query is out of range
+        A_none = AkimaInterpolation(u, t)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # DimensionMismatch
+        A_dim = AkimaInterpolation(u, t)
+        @test_throws DimensionMismatch A_dim(zeros(3), [1.0, 2.0])
+    end
+
+    # Duplicate time points throw an informative error instead of silently
+    # producing NaN across the entire domain (#475)
+    @test_throws ArgumentError AkimaInterpolation(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError AkimaInterpolation(
+        rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError AkimaInterpolation(
+        [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    # Too few points throw an informative error
+    @test_throws ArgumentError AkimaInterpolation([1.0], [1.0])
+    @test_throws ArgumentError AkimaInterpolation(rand(2, 1), [1.0])
+    @test_throws ArgumentError AkimaInterpolation([rand(2)], [1.0])
 end
 
 @testset "ConstantInterpolation" begin
@@ -640,6 +1093,18 @@ end
         @test A_s(0) isa SVector{length(first(u))}
     end
 
+    @testset "Vector of Vectors integral" begin
+        u = [[1.0, 2.0], [0.0, 1.0], [1.0, 2.0], [0.0, 1.0]]
+        A = ConstantInterpolation(u, t)
+        u_scalar = [u_[1] for u_ in u]
+        A_scalar = ConstantInterpolation(u_scalar, t)
+        @test DataInterpolations.integral(A, t[1], t[end])[1] ≈
+            DataInterpolations.integral(A_scalar, t[1], t[end])
+        A_cached = ConstantInterpolation(u, t; cache_parameters = true)
+        @test DataInterpolations.integral(A_cached, t[1], t[end]) ≈
+            DataInterpolations.integral(A, t[1], t[end])
+    end
+
     @testset "Vector of Matrices case" for u in [
             [[1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0], [1.0 2.0; 1.0 2.0], [0.0 1.0; 0.0 1.0]],
             [["B" "C"; "B" "C"], ["A" "B"; "A" "B"], ["B" "C"; "B" "C"], ["A" "B"; "A" "B"]],
@@ -754,6 +1219,10 @@ end
     @test A(1.9) == u[1] * ones(5, 3)
     @test A(3.1) == u[2] * ones(5, 3)
     @test A(2.5) ≈ ((u[1] + u[2]) / 2) * ones(5, 3)
+    # Too few points throw an informative error
+    @test_throws ArgumentError SmoothedConstantInterpolation([1.0], [1.0])
+    @test_throws ArgumentError SmoothedConstantInterpolation(rand(2, 1), [1.0])
+    @test_throws ArgumentError SmoothedConstantInterpolation([rand(2)], [1.0])
 end
 
 @testset "QuadraticSpline Interpolation" begin
@@ -806,6 +1275,48 @@ end
     @test @inferred(output_dim(A)) == 2
     @test @inferred(output_size(A)) == (4, 3)
 
+    @testset "AbstractMatrix" begin
+        t = 0.1:0.1:1.0
+        u2d = [sin.(t) cos.(t)]' |> collect
+        A = QuadraticSpline(u2d, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        @test @inferred(output_dim(A)) == 1
+        @test @inferred(output_size(A)) == (2,)
+
+        A_vec = QuadraticSpline([[sin(t_), cos(t_)] for t_ in t], t)
+        @test isapprox(
+            DataInterpolations.derivative(A, 0.5), DataInterpolations.derivative(A_vec, 0.5),
+            atol = 1.0e-10
+        )
+        @test isapprox(
+            DataInterpolations.integral(A, t[1], t[end]),
+            DataInterpolations.integral(A_vec, t[1], t[end]), atol = 1.0e-10
+        )
+        A_cached = QuadraticSpline(u2d, t; cache_parameters = true)
+        @test isapprox(
+            DataInterpolations.integral(A_cached, t[1], t[end]),
+            DataInterpolations.integral(A, t[1], t[end]), atol = 1.0e-10
+        )
+    end
+    @testset "AbstractArray{T, 3}" begin
+        f3d(t) = [
+            sin(t) cos(t);
+            0.0 cos(2t)
+        ]
+        t = 0.1:0.1:1.0
+        u3d = cat(f3d.(t)..., dims = 3)
+        A = QuadraticSpline(u3d, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        f_test = reduce(hcat, f3d.(t_test))
+        @test isapprox(u_test, f_test, atol = 1.0e-2)
+        @test @inferred(output_dim(A)) == 2
+        @test @inferred(output_size(A)) == (2, 2)
+    end
+
     # Test extrapolation
     u = [0.0, 1.0, 3.0]
     t = [-1.0, 0.0, 1.0]
@@ -815,6 +1326,37 @@ end
     A = @inferred(QuadraticSpline(u, t))
     @test_throws DataInterpolations.LeftExtrapolationError A(-2.0)
     @test_throws DataInterpolations.RightExtrapolationError A(2.0)
+
+    # Two data points degenerate to the linear interpolant
+    u = [1.0, 3.0]
+    t = [0.0, 1.0]
+    A = @inferred(QuadraticSpline(u, t))
+    @test A(0.0) == 1.0
+    @test A(1.0) == 3.0
+    @test A(0.25) == 1.5
+    @test DataInterpolations.derivative(A, 0.5) == 2.0
+    @test DataInterpolations.integral(A, 0.0, 1.0) == 2.0
+    A = QuadraticSpline(u, t; cache_parameters = true)
+    @test A(0.25) == 1.5
+    A = QuadraticSpline([[1.0, 2.0], [3.0, 6.0]], t)
+    @test A(0.5) == [2.0, 4.0]
+
+    # Rational data with t[1] == 0; u = (t + 1)^2 is reproduced exactly
+    u = [1 // 1, 4 // 1, 9 // 1]
+    t = [0 // 1, 1 // 1, 2 // 1]
+    A = QuadraticSpline(u, t)
+    @test A(1 // 2) == 9 // 4
+    @test A(3 // 2) == 25 // 4
+
+    # Duplicate time points throw an informative error
+    @test_throws ArgumentError QuadraticSpline(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError QuadraticSpline([1.0, 2.0, 3.0], [0.0, 0.0, 1.0])
+    # Too few points throw an informative error
+    @test_throws ArgumentError QuadraticSpline([1.0], [1.0])
+    @test_throws ArgumentError QuadraticSpline(rand(2, 1), [1.0])
+    @test_throws ArgumentError QuadraticSpline([rand(2)], [1.0])
 end
 
 @testset "CubicSpline Interpolation" begin
@@ -896,6 +1438,18 @@ end
     @test_throws DataInterpolations.LeftExtrapolationError A(-2.0)
     @test_throws DataInterpolations.RightExtrapolationError A(2.0)
 
+    # Duplicate time points throw an informative error (#475)
+    @test_throws ArgumentError CubicSpline([1.0, 2.0, 3.0], [1.0, 1.0, 2.0])
+    @test_throws ArgumentError CubicSpline(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError CubicSpline(rand(2, 3), [1.0, 1.0, 2.0])
+    @test_throws ArgumentError CubicSpline([rand(2) for _ in 1:3], [1.0, 1.0, 2.0])
+    # Too few points throw an informative error
+    @test_throws ArgumentError CubicSpline([1.0, 2.0], [1.0, 2.0])
+    @test_throws ArgumentError CubicSpline(rand(2, 2), [1.0, 2.0])
+    @test_throws ArgumentError CubicSpline([rand(2), rand(2)], [1.0, 2.0])
+
     @testset "AbstractMatrix" begin
         t = 0.1:0.1:1.0
         u = [sin.(t) cos.(t)]' |> collect
@@ -920,6 +1474,79 @@ end
         f_test = reduce(hcat, f3d.(t_test))
         @test isapprox(u_test, f_test, atol = 1.0e-2)
     end
+
+    @testset "Sorted-batch evaluator" begin
+        u_b = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
+        t_b = collect(0.0:10.0)
+
+        for el in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                ),
+                er in (
+                    ExtrapolationType.Constant,
+                    ExtrapolationType.Linear,
+                    ExtrapolationType.Extension,
+                )
+
+            A_b = CubicSpline(
+                u_b, t_b; extrapolation_left = el, extrapolation_right = er
+            )
+            tt = collect(-2.0:0.4:12.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        for ext in (ExtrapolationType.Periodic, ExtrapolationType.Reflective)
+            A_b = CubicSpline(u_b, t_b; extrapolation = ext)
+            tt = collect(-3.0:0.5:13.0)
+            out = similar(tt)
+            A_b(out, tt)
+            for k in eachindex(tt)
+                @test out[k] ≈ A_b(tt[k])
+            end
+        end
+
+        A_none = CubicSpline(u_b, t_b)
+        @test_throws DataInterpolations.LeftExtrapolationError A_none(
+            similar([-1.0, 5.0]), [-1.0, 5.0]
+        )
+        @test_throws DataInterpolations.RightExtrapolationError A_none(
+            similar([5.0, 11.0]), [5.0, 11.0]
+        )
+
+        # cache_parameters=true also works
+        A_cache = CubicSpline(
+            u_b, t_b; extrapolation = ExtrapolationType.Extension, cache_parameters = true
+        )
+        tt = collect(-2.0:0.4:12.0)
+        out = similar(tt)
+        A_cache(out, tt)
+        for k in eachindex(tt)
+            @test out[k] ≈ A_cache(tt[k])
+        end
+
+        # Sparse n >> m
+        rng = StableRNG(2)
+        n, m = 4096, 4
+        t_big = sort!(rand(rng, n) .* 10.0)
+        u_big = rand(rng, n)
+        tt_sparse = sort!(rand(rng, m) .* 10.0)
+        A_big = CubicSpline(
+            u_big, t_big; extrapolation = ExtrapolationType.Constant
+        )
+        out_sparse = similar(tt_sparse)
+        A_big(out_sparse, tt_sparse)
+        for k in eachindex(tt_sparse)
+            @test out_sparse[k] ≈ A_big(tt_sparse[k])
+        end
+
+        @test_throws DimensionMismatch CubicSpline(u_b, t_b)(zeros(3), [1.0, 2.0])
+    end
 end
 
 @testset "BSplines" begin
@@ -929,10 +1556,10 @@ end
         t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
         u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
         test_interpolation_type(BSplineInterpolation)
-        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform, :Uniform))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform))
 
-        @test [A(25.0), A(80.0)] == [13.454197730061425, 10.305633616059845]
-        @test [A(190.0), A(225.0)] == [14.07428439395079, 11.057784141519251]
+        @test [A(25.0), A(80.0)] == [14.411908462307684, 9.99346697254525]
+        @test [A(190.0), A(225.0)] == [13.56561617594697, 11.297503333875742]
         @test [A(t[1]), A(t[end])] == [u[1], u[end]]
         test_cached_index(A)
         @test @inferred(output_dim(A)) == 0
@@ -941,45 +1568,45 @@ end
         # Test extrapolation
         A = @inferred(
             BSplineInterpolation(
-                u, t, 2, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension
+                u, t, 2, :Uniform; extrapolation = ExtrapolationType.Constant
             )
         )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform, :Uniform))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Uniform))
         @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
         @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
-        A = @inferred(BSplineInterpolation(u, t, 2, :ArcLen, :Average))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Average))
 
-        @test [A(25.0), A(80.0)] ≈ [13.363814458968484, 10.685201117692609]
-        @test [A(190.0), A(225.0)] ≈ [13.437481084762863, 11.367034741256461]
+        @test [A(25.0), A(80.0)] ≈ [13.364285794535945, 10.683641750973738]
+        @test [A(190.0), A(225.0)] ≈ [13.438136405352909, 11.365386175733823]
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
 
-        @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
-            u[1:3], t[1:3], 3, :Uniform, :Uniform
+        @test_throws ArgumentError("BSplineInterpolation needs at least d + 1, i.e. 4 points.") BSplineInterpolation(
+            u[1:3], t[1:3], 3, :Uniform
         )
-        @test_throws ErrorException("BSplineInterpolation needs at least d + 1, i.e. 5 points.") BSplineInterpolation(
-            u[1:4], t[1:4], 4, :ArcLen, :Average
+        @test_throws ArgumentError("BSplineInterpolation needs at least d + 1, i.e. 5 points.") BSplineInterpolation(
+            u[1:4], t[1:4], 4, :Average
         )
-        @test_nowarn BSplineInterpolation(u[1:3], t[1:3], 2, :Uniform, :Uniform)
+        @test_nowarn BSplineInterpolation(u[1:3], t[1:3], 2, :Uniform)
 
         # Test extrapolation
         A = @inferred(
             BSplineInterpolation(
-                u, t, 2, :ArcLen, :Average; extrapolation = ExtrapolationType.Extension
+                u, t, 2, :Average; extrapolation = ExtrapolationType.Constant
             )
         )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = @inferred(BSplineInterpolation(u, t, 2, :ArcLen, :Average))
+        A = @inferred(BSplineInterpolation(u, t, 2, :Average))
         @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
         @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
         @testset "AbstractMatrix" begin
             t = 0.1:0.1:1.0
             u2d = [sin.(t) cos.(t)]' |> collect
-            A = @inferred(BSplineInterpolation(u2d, t, 2, :Uniform, :Uniform))
+            A = @inferred(BSplineInterpolation(u2d, t, 2, :Uniform))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
@@ -987,12 +1614,26 @@ end
             @test @inferred(output_dim(A)) == 1
             @test @inferred(output_size(A)) == (2,)
 
-            A = @inferred(BSplineInterpolation(u2d, t, 2, :ArcLen, :Average))
+            A = @inferred(BSplineInterpolation(u2d, t, 2, :Average))
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
             @test @inferred(output_dim(A)) == 1
             @test @inferred(output_size(A)) == (2,)
+        end
+        @testset "Vector{Vector}" begin
+            t = 0.1:0.1:1.0
+            u_vec = [[sin(t_), cos(t_)] for t_ in t]
+            A = @inferred(BSplineInterpolation(u_vec, t, 2, :Uniform))
+            t_test = 0.1:0.05:1.0
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+
+            A = @inferred(BSplineInterpolation(u_vec, t, 2, :Average))
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
         end
         @testset "AbstractArray{T, 3}" begin
             f3d(t) = [
@@ -1001,7 +1642,7 @@ end
             ]
             t = 0.1:0.1:1.0
             u3d = cat(f3d.(t)..., dims = 3)
-            A = @inferred(BSplineInterpolation(u3d, t, 2, :Uniform, :Uniform))
+            A = @inferred(BSplineInterpolation(u3d, t, 2, :Uniform))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             f_test = reduce(hcat, f3d.(t_test))
@@ -1009,7 +1650,7 @@ end
             @test @inferred(output_dim(A)) == 2
             @test @inferred(output_size(A)) == (2, 2)
 
-            A = @inferred(BSplineInterpolation(u3d, t, 2, :ArcLen, :Average))
+            A = @inferred(BSplineInterpolation(u3d, t, 2, :Average))
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test, f_test, atol = 1.0e-2)
@@ -1018,45 +1659,111 @@ end
         end
     end
 
+    # `:Uniform` knots space the interior knots by `1/(n - d)` against a data site
+    # spacing of `1/(n - 1)`, so the collocation system becomes exponentially
+    # ill-conditioned in `n` for degree 3 and up. The fit still passes through the data,
+    # so the only signal the caller gets is the warning (#567).
+    @testset "Ill-conditioned collocation systems are reported" begin
+        f(x) = sin(x)
+        build(n, d, knotVecType) = BSplineInterpolation(
+            f.(range(0, 2π, length = n)), collect(range(0, 2π, length = n)),
+            d, knotVecType
+        )
+
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(160, 3, :Uniform)
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(320, 3, :Uniform)
+        @test_logs (:warn, r"ill-conditioned") match_mode = :any build(80, 5, :Uniform)
+        # The message has to point somewhere useful.
+        @test_logs (:warn, r"knotVecType = :Average") match_mode = :any build(160, 3, :Uniform)
+
+        # `:Average` knots are well conditioned at any degree or size, and small
+        # problems with `:Uniform` knots are still fine, so neither may warn.
+        @test_nowarn build(160, 3, :Average)
+        @test_nowarn build(640, 5, :Average)
+        @test_nowarn build(20, 3, :Uniform)
+        @test_nowarn build(6, 3, :Uniform)
+        # Degrees 1 and 2 never drift past half a knot span, so they stay sound.
+        @test_nowarn build(320, 1, :Uniform)
+        @test_nowarn build(320, 2, :Uniform)
+
+        # Whether the factorization hits an exact zero pivot at large `n` is
+        # BLAS-dependent, so drive the singular branch with duplicate data sites, which
+        # give the collocation matrix two identical rows.
+        u_dup = [1.0, 2.0, 2.0, 3.0, 5.0, 8.0]
+        t_dup = [0.0, 1.0, 1.0, 2.0, 3.0, 4.0]
+        @test_throws "numerically singular" BSplineInterpolation(u_dup, t_dup, 2, :Average)
+        # Degree 2 is not a knot-vector problem, so it must not be blamed on one.
+        err = try
+            BSplineInterpolation(u_dup, t_dup, 2, :Uniform)
+        catch e
+            sprint(showerror, e)
+        end
+        @test !occursin("knotVecType = :Average", err)
+
+        # `:Average` knots keep the interpolant convergent at the requested order over
+        # the range where `:Uniform` diverges, which is the property being protected.
+        xq = range(0, 2π, length = 2001)
+        maxerr(A) = maximum(abs(A(x) - f(x)) for x in xq)
+        errs = map((160, 320)) do n
+            maxerr(build(n, 3, :Average))
+        end
+        @test log2(errs[1] / errs[2]) > 3.5
+        @test errs[2] < 1.0e-9
+    end
+
     @testset "BSplineApprox" begin
         test_interpolation_type(BSplineApprox)
         t = [0, 62.25, 109.66, 162.66, 205.8, 252.3]
         u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
-        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
+        A = BSplineApprox(u, t, 2, 4, :Uniform)
 
-        @test [A(25.0), A(80.0)] ≈ [12.979802931218234, 10.914310609953178]
-        @test [A(190.0), A(225.0)] ≈ [13.851245975109263, 12.963685868886575]
+        @test [A(25.0), A(80.0)] ≈ [12.653438633006644, 10.829963801404205]
+        @test [A(190.0), A(225.0)] ≈ [13.688412211160633, 12.785204994978452]
         @test [A(t[1]), A(t[end])] ≈ [u[1], u[end]]
         test_cached_index(A)
 
-        @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 3 control points.") BSplineApprox(
-            u, t, 2, 2, :Uniform, :Uniform
+        @test_throws ArgumentError("BSplineApprox needs at least d + 1, i.e. 3 control points.") BSplineApprox(
+            u, t, 2, 2, :Uniform
         )
-        @test_throws ErrorException("BSplineApprox needs at least d + 1, i.e. 4 control points.") BSplineApprox(
-            u, t, 3, 3, :ArcLen, :Average
+        @test_throws ArgumentError("BSplineApprox needs at least d + 1, i.e. 4 control points.") BSplineApprox(
+            u, t, 3, 3, :Average
         )
-        @test_nowarn BSplineApprox(u, t, 2, 3, :Uniform, :Uniform)
+        @test_nowarn BSplineApprox(u, t, 2, 3, :Uniform)
 
         # Test extrapolation
         A = BSplineApprox(
-            u, t, 2, 4, :Uniform, :Uniform; extrapolation = ExtrapolationType.Extension
+            u, t, 2, 4, :Uniform; extrapolation = ExtrapolationType.Constant
         )
         @test A(-1.0) == u[1]
         @test A(300.0) == u[end]
-        A = BSplineApprox(u, t, 2, 4, :Uniform, :Uniform)
+        A = BSplineApprox(u, t, 2, 4, :Uniform)
         @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
         @test_throws DataInterpolations.RightExtrapolationError A(300.0)
 
         @testset "AbstractMatrix" begin
             t = 0.1:0.1:1.0
             u2d = [sin.(t) cos.(t)]' |> collect
-            A = BSplineApprox(u2d, t, 2, 5, :Uniform, :Uniform)
+            A = BSplineApprox(u2d, t, 2, 5, :Uniform)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
 
-            A = BSplineApprox(u2d, t, 2, 5, :ArcLen, :Average)
+            A = BSplineApprox(u2d, t, 2, 5, :Average)
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-2)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-2)
+        end
+        @testset "Vector{Vector}" begin
+            t = 0.1:0.1:1.0
+            u_vec = [[sin(t_), cos(t_)] for t_ in t]
+            A = BSplineApprox(u_vec, t, 2, 5, :Uniform)
+            t_test = 0.1:0.05:1.0
+            u_test = reduce(hcat, A.(t_test))
+            @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+            @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+
+            A = BSplineApprox(u_vec, t, 2, 5, :Average)
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-2)
             @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-2)
@@ -1068,13 +1775,13 @@ end
             ]
             t = 0.1:0.1:1.0
             u3d = cat(f3d.(t)..., dims = 3)
-            A = BSplineApprox(u3d, t, 2, 6, :Uniform, :Uniform)
+            A = BSplineApprox(u3d, t, 2, 6, :Uniform)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             f_test = reduce(hcat, f3d.(t_test))
             @test isapprox(u_test, f_test, atol = 1.0e-2)
 
-            A = BSplineApprox(u3d, t, 2, 7, :ArcLen, :Average)
+            A = BSplineApprox(u3d, t, 2, 7, :Average)
             t_test = 0.1:0.05:1.0
             u_test = reduce(hcat, A.(t_test))
             @test isapprox(u_test, f_test, atol = 1.0e-2)
@@ -1121,6 +1828,46 @@ end
         A3 = CubicHermiteSpline(du3, u3, t)
         @test u3 ≈ A3.(t)
     end
+    @testset "AbstractMatrix" begin
+        u2d = [u u .+ 1]'
+        du2d = [du du]'
+        A = CubicHermiteSpline(du2d, u2d, t)
+        @test reduce(hcat, A.(t)) ≈ u2d
+        A_vec = CubicHermiteSpline(
+            [[du[i], du[i]] for i in eachindex(du)],
+            [[u[i], u[i] + 1] for i in eachindex(u)], t
+        )
+        @test isapprox(
+            DataInterpolations.derivative(A, 100.0),
+            DataInterpolations.derivative(A_vec, 100.0), atol = 1.0e-10
+        )
+        @test isapprox(
+            DataInterpolations.integral(A, t[1], t[end]),
+            DataInterpolations.integral(A_vec, t[1], t[end]), atol = 1.0e-10
+        )
+        A_cached = CubicHermiteSpline(du2d, u2d, t; cache_parameters = true)
+        @test isapprox(
+            DataInterpolations.integral(A_cached, t[1], t[end]),
+            DataInterpolations.integral(A, t[1], t[end]), atol = 1.0e-10
+        )
+    end
+
+    # Duplicate time points throw an informative error instead of silently
+    # producing NaN through `integral` (and sometimes through evaluation at
+    # a duplicated node) (#475)
+    @test_throws ArgumentError CubicHermiteSpline(
+        [0.5, 0.5, 0.5, 0.5, 0.5], [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError CubicHermiteSpline(
+        rand(2, 5), rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError CubicHermiteSpline(
+        [rand(2) for _ in 1:5], [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    # Too few points throw an informative error
+    @test_throws ArgumentError CubicHermiteSpline([1.0], [1.0], [1.0])
+    @test_throws ArgumentError CubicHermiteSpline(rand(2, 1), rand(2, 1), [1.0])
+    @test_throws ArgumentError CubicHermiteSpline([rand(2)], [rand(2)], [1.0])
 end
 
 @testset "PCHIPInterpolation" begin
@@ -1135,6 +1882,39 @@ end
     @test all(A.du[3:4] .== 0.0)
     @test @inferred(output_dim(A)) == 0
     @test @inferred(output_size(A)) == ()
+
+    # Duplicate time points throw an informative error (#475)
+    @test_throws ArgumentError PCHIPInterpolation(
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    # Too few points throw an informative error
+    @test_throws ArgumentError PCHIPInterpolation([1.0, 1.0], [1.0, 2.0])
+    @test_throws ArgumentError PCHIPInterpolation([1.0], [1.0])
+    @test_throws ArgumentError PCHIPInterpolation(rand(2, 2), [1.0, 2.0])
+    @test_throws ArgumentError PCHIPInterpolation([rand(2), rand(2)], [1.0, 2.0])
+
+    @testset "AbstractMatrix" begin
+        t = 0.1:0.1:1.0
+        u2d = [sin.(t) cos.(t)]' |> collect
+        A = PCHIPInterpolation(u2d, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        @test output_dim(A) == 1
+        @test output_size(A) == (2,)
+    end
+    @testset "Vector{Vector}" begin
+        t = 0.1:0.1:1.0
+        u_vec = [[sin(t_), cos(t_)] for t_ in t]
+        A = PCHIPInterpolation(u_vec, t)
+        t_test = 0.1:0.05:1.0
+        u_test = reduce(hcat, A.(t_test))
+        @test isapprox(u_test[1, :], sin.(t_test), atol = 1.0e-3)
+        @test isapprox(u_test[2, :], cos.(t_test), atol = 1.0e-3)
+        @test output_dim(A) == 1
+        @test output_size(A) == (2,)
+    end
 end
 
 @testset "Quintic Hermite Spline" begin
@@ -1191,6 +1971,53 @@ end
         A3 = QuinticHermiteSpline(ddu3, du3, u3, t)
         @test u3 ≈ A3.(t)
     end
+    @testset "AbstractMatrix" begin
+        u2d = [u u .+ 1]'
+        du2d = [du du]'
+        ddu2d = [ddu ddu]'
+        A = QuinticHermiteSpline(ddu2d, du2d, u2d, t)
+        @test reduce(hcat, A.(t)) ≈ u2d
+        A_vec = QuinticHermiteSpline(
+            [[ddu[i], ddu[i]] for i in eachindex(ddu)],
+            [[du[i], du[i]] for i in eachindex(du)],
+            [[u[i], u[i] + 1] for i in eachindex(u)], t
+        )
+        @test isapprox(
+            DataInterpolations.derivative(A, 100.0),
+            DataInterpolations.derivative(A_vec, 100.0), atol = 1.0e-10
+        )
+        @test isapprox(
+            DataInterpolations.integral(A, t[1], t[end]),
+            DataInterpolations.integral(A_vec, t[1], t[end]), atol = 1.0e-10
+        )
+        A_cached = QuinticHermiteSpline(ddu2d, du2d, u2d, t; cache_parameters = true)
+        @test isapprox(
+            DataInterpolations.integral(A_cached, t[1], t[end]),
+            DataInterpolations.integral(A, t[1], t[end]), atol = 1.0e-10
+        )
+    end
+
+    # Duplicate time points throw an informative error instead of silently
+    # producing NaN through `integral` (#475)
+    @test_throws ArgumentError QuinticHermiteSpline(
+        [0.1, 0.1, 0.1, 0.1, 0.1], [0.5, 0.5, 0.5, 0.5, 0.5],
+        [1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError QuinticHermiteSpline(
+        rand(2, 5), rand(2, 5), rand(2, 5), [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    @test_throws ArgumentError QuinticHermiteSpline(
+        [rand(2) for _ in 1:5], [rand(2) for _ in 1:5],
+        [rand(2) for _ in 1:5], [0.0, 1.0, 1.0, 2.0, 3.0]
+    )
+    # Too few points throw an informative error
+    @test_throws ArgumentError QuinticHermiteSpline([1.0], [1.0], [1.0], [1.0])
+    @test_throws ArgumentError QuinticHermiteSpline(
+        rand(2, 1), rand(2, 1), rand(2, 1), [1.0]
+    )
+    @test_throws ArgumentError QuinticHermiteSpline(
+        [rand(2)], [rand(2)], [rand(2)], [1.0]
+    )
 end
 
 @testset "Smooth Arc Length Interpolation" begin
@@ -1215,6 +2042,41 @@ end
     @test all(
         t_ -> A(prevfloat(t_)) ≈ A(nextfloat(t_)), A.t[2:(end - 1)]
     )
+    # A single point silently produced a degenerate 1-point object instead of an
+    # error, when `interpolation_type` needed fewer points than the arc-length fit
+    # itself does (needs at least one segment, independent of `interpolation_type`).
+    # Checked independently in every constructor entry point, not just delegated.
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        reshape([1.0, 2.0], 2, 1); interpolation_type = LagrangeInterpolation
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        [[1.0, 2.0]]; interpolation_type = LagrangeInterpolation
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        LagrangeInterpolation([1.0], [1.0])
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        reshape([1.0, 2.0], 2, 1), reshape([1.0, 0.0], 2, 1)
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        [[1.0, 2.0]], [[1.0, 0.0]]
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        reshape([1.0, 2.0], 2, 1), reshape([1.0, 0.0], 2, 1), Val(true)
+    )
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        reshape([1.0, 2.0], 2, 1), reshape([1.0, 0.0], 2, 1), Val(false)
+    )
+
+    # Explicit duplicate `t` throws an informative error naming
+    # `SmoothArcLengthInterpolation`, regardless of `interpolation_type` (some, like
+    # `ConstantInterpolation`, don't reject duplicates themselves).
+    u_dup = [0.0 1.0 2.0 3.0; 0.0 1.0 0.0 -1.0]
+    t_dup = [0.0, 1.0, 1.0, 2.0]
+    @test_throws ArgumentError SmoothArcLengthInterpolation(u_dup; t = t_dup)
+    @test_throws ArgumentError SmoothArcLengthInterpolation(
+        u_dup; t = t_dup, interpolation_type = ConstantInterpolation
+    )
 end
 
 @testset "Curvefit" begin
@@ -1225,7 +2087,7 @@ end
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
 
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt())
 
     ts = [-7.0, -2.0, 0.0, 2.5, 5.0]
     vs = [
@@ -1241,10 +2103,14 @@ end
     @test @inferred(output_size(A)) == ()
 
     # Test extrapolation
-    A = Curvefit(u, t, model, p0, LBFGS(); extrapolate = true)
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt(); extrapolate = true)
     @test A(15.0) == model(15.0, A.pmin)
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt())
     @test_throws DataInterpolations.ExtrapolationError A(15.0)
+
+    # With lb, ub
+    A = Curvefit(u, t, model, p0, LevenbergMarquardt(), false, [0.0, 0.0], [1.0, 1.0])
+    @test all(0.0 .<= A.pmin .<= 1.0)
 end
 
 @testset "Type of vector returned" begin
@@ -1252,7 +2118,6 @@ end
     ut1 = Float32[0.1, 0.2, 0.3, 0.4, 0.5]
     ut2 = Float64[0.1, 0.2, 0.3, 0.4, 0.5]
     for u in (ut1, ut2), t in (ut1, ut2)
-
         interp = @inferred(LinearInterpolation(ut1, ut2))
         for xs in (u, t)
             ys = @inferred(interp(xs))
@@ -1373,12 +2238,20 @@ end
         xvals[42] + 0.5 * (xvals[43] - xvals[42])
 
     @variables dx[1:100]
+    @variables ddx[1:100]
     @test_nowarn chs = CubicHermiteSpline(dx, x, t)
     @test_nowarn qi = QuadraticInterpolation(x, t)
     @test_nowarn li = LagrangeInterpolation(x, t)
     @test_nowarn cs = CubicSpline(x, t)
-
-    @test_throws Exception ai = AkimaInterpolation(x, t)
-    @test_throws Exception bsi = BSplineInterpolation(x, t, 3, :ArcLen, :Average)
-    @test_throws Exception pc = PCHIPInterpolation(x, t)
+    @test_nowarn qhs = QuinticHermiteSpline(ddx, dx, x, t)
+    @test_nowarn sci = SmoothedConstantInterpolation(x, t)
+    @test_nowarn bsa = BSplineApprox(x, t, 3, 20, :Average)
+    @test_nowarn ai = AkimaInterpolation(x, t)
+    @test_nowarn pc = PCHIPInterpolation(x, t)
+    @test_nowarn bsi = BSplineInterpolation(x, t, 3, :Average)
+    @test_nowarn qs = QuadraticSpline(x, t)
+    # `SmoothArcLengthInterpolation` fits circle/line segments, which requires branching on
+    # the concrete shape of the data (not just its sign) and can't be resolved symbolically.
+    @variables xm[1:2, 1:10]
+    @test_throws Exception SmoothArcLengthInterpolation(collect(xm); m = 2)
 end

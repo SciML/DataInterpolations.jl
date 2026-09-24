@@ -1,6 +1,5 @@
 using DataInterpolations
-using Optim, StableRNGs
-using RegularizationTools
+using CurveFit, StableRNGs
 
 t = [1.0, 2.0, 3.0, 4.0, 5.0]
 x = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -46,19 +45,28 @@ end
         )
     end
     @testset "BSplineInterpolation" begin
-        A = BSplineInterpolation(x, t, 3, :Uniform, :Uniform)
+        A = BSplineInterpolation(x, t, 3, :Uniform)
         @test startswith(
             sprint(io -> show(io, MIME"text/plain"(), A)),
             "BSplineInterpolation with 5 points, with degree 3\n"
         )
     end
     @testset "BSplineApprox" begin
-        A = BSplineApprox(x, t, 2, 4, :Uniform, :Uniform)
+        A = BSplineApprox(x, t, 2, 4, :Uniform)
         @test startswith(
             sprint(io -> show(io, MIME"text/plain"(), A)),
             "BSplineApprox with 5 points, with degree 2, number of control points 4\n"
         )
     end
+end
+
+@testset "Higher-rank u (AbstractArray{T, 3})" begin
+    f3d(t_) = [sin(t_) cos(t_); 0.0 cos(2t_)]
+    u3d = cat(f3d.(t)...; dims = 3)
+    A = LinearInterpolation(u3d, t)
+    str = sprint(io -> show(io, MIME"text/plain"(), A))
+    @test startswith(str, "LinearInterpolation with 5 points\n")
+    @test all(occursin("u$i", str) for i in 1:4)
 end
 
 @testset "CurveFit" begin
@@ -67,34 +75,9 @@ end
     t = range(-10, stop = 10, length = 40)
     u = model(t, [1.0, 2.0]) + 0.01 * randn(rng, length(t))
     p0 = [0.5, 0.5]
-    A = Curvefit(u, t, model, p0, LBFGS())
+    A = Curvefit(u, t, model, p0)
     @test startswith(
         sprint(io -> show(io, MIME"text/plain"(), A)),
-        "Curvefit with 40 points, using LBFGS\n"
-    )
-end
-
-@testset "RegularizationSmooth" begin
-    npts = 50
-    xmin = 0.0
-    xspan = 3 / 2 * π
-    x = collect(range(xmin, xmin + xspan, length = npts))
-    rng = StableRNG(655)
-    x = x + xspan / npts * (rand(rng, npts) .- 0.5)
-    # select a subset randomly
-    idx = unique(rand(rng, collect(eachindex(x)), 20))
-    t = x[unique(idx)]
-    npts = length(t)
-    ut = sin.(t)
-    stdev = 1.0e-1 * maximum(ut)
-    u = ut + stdev * randn(rng, npts)
-    # data must be ordered if t̂ is not provided
-    idx = sortperm(t)
-    tₒ = t[idx]
-    uₒ = u[idx]
-    A = RegularizationSmooth(uₒ, tₒ; alg = :fixed)
-    @test startswith(
-        sprint(io -> show(io, MIME"text/plain"(), A)),
-        "RegularizationSmooth with 15 points, with regularization coefficient 1.0\n"
+        "Curvefit with 40 points.\n"
     )
 end

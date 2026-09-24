@@ -1,55 +1,59 @@
-function findRequiredIdxs!(A::LagrangeInterpolation, t, idx)
-    n = length(A.t) - 1
-    i_min, idx_min, idx_max = if t == A.t[idx]
-        A.idxs[1] = idx
-        2, idx, idx
-    else
-        1, idx + 1, idx
-    end
-    for i in i_min:(n + 1)
-        if idx_min == 1
-            A.idxs[i:end] .= range(idx_max + 1, idx_max + (n + 2 - i))
-            break
-        elseif idx_max == length(A.t)
-            A.idxs[i:end] .= (idx_min - 1):-1:(idx_min - (n + 2 - i))
-            break
-        else
-            left_diff = abs(t - A.t[idx_min - 1])
-            right_diff = abs(t - A.t[idx_max + 1])
-            left_expand = left_diff <= right_diff
-        end
-        if left_expand
-            idx_min -= 1
-            A.idxs[i] = idx_min
-        else
-            idx_max += 1
-            A.idxs[i] = idx_max
-        end
-    end
-    return idx
+# Returns the index of `t` in the sorted `ts` if present exactly, else `nothing`.
+function _searchsortedfirst(ts, t)
+    idx = searchsortedfirst(ts, t)
+    return (idx > lastindex(ts) || ts[idx] != t) ? nothing : idx
 end
 
 function spline_coefficients!(N, d, k, u::Number)
+    # Zero the whole vector: the body only writes `(i-d):i`, but callers read
+    # all of `N`, so stale entries outside that window must not leak.
     N .= zero(u)
+    n = length(N)
     if u == k[1]
         N[1] = one(u)
         return 1:1
     elseif u == k[end]
         N[end] = one(u)
-        return length(N):length(N)
+        return n:n
     else
-        i = findfirst(x -> x > u, k)::Int - 1
-        N[i] = one(u)
-        for deg in 1:d
-            N[i - deg] = (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) * N[i - deg + 1]
-            for j in (i - deg + 1):(i - 1)
-                N[j] = (u - k[j]) / (k[j + deg] - k[j]) * N[j] +
-                    (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) * N[j + 1]
-            end
-            N[i] = (u - k[i]) / (k[i + deg] - k[i]) * N[i]
+        idx = findfirst(x -> x > u, k)
+        # For out-of-range points, extend the boundary polynomial span
+        i = if idx === nothing
+            # u > k[end]: use last span
+            findlast(j -> k[j] < k[end], 1:length(k))::Int
+        elseif idx == 1
+            # u < k[1]: use first span
+            findfirst(j -> k[j + 1] > k[1], 1:(length(k) - 1))::Int
+        else
+            idx - 1
         end
-        return (i - d):i
+        return _spline_coefficients_body!(N, d, k, u, i)
     end
+end
+
+# B-spline basis recurrence given the located knot index `i`.
+function _spline_coefficients_body!(N, d, k, u, i)
+    n = length(N)
+    N[i] = one(u)
+    for deg in 1:d
+        ii = i - deg
+        if ii >= 1
+            denom = k[i + 1] - k[ii + 1]
+            N[ii] = denom != 0 ? (k[i + 1] - u) / denom * N[ii + 1] : zero(u)
+        end
+        for j in max(ii + 1, 1):(i - 1)
+            denom1 = k[j + deg] - k[j]
+            denom2 = k[j + deg + 1] - k[j + 1]
+            left = denom1 != 0 ? (u - k[j]) / denom1 * N[j] : zero(u)
+            right = denom2 != 0 ? (k[j + deg + 1] - u) / denom2 * N[j + 1] : zero(u)
+            N[j] = left + right
+        end
+        denom = k[i + deg] - k[i]
+        N[i] = denom != 0 ? (u - k[i]) / denom * N[i] : zero(u)
+    end
+    lo = max(i - d, 1)
+    hi = min(i, n)
+    return lo:hi
 end
 
 function spline_coefficients!(N, d, k, u::AbstractVector)
@@ -59,7 +63,181 @@ function spline_coefficients!(N, d, k, u::AbstractVector)
     return nothing
 end
 
+# A degree-`d` B-spline has only `d + 1` nonzero basis functions at any point, so
+# evaluation needs a scratch buffer of just `d + 1` entries — not one sized to the
+# full knot/control-point vector. `bspline_nonzero_coefficients` computes those
+# values into an immutable static vector for degrees up to `BSPLINE_STACK_MAXLEN - 1`;
+# callers fall back to the heap `spline_coefficients!` for larger degrees, which
+# essentially never occur.
+const BSPLINE_STACK_MAXLEN = 16
+
+@inline function _static_setindex(N::SVector{L, T}, x, idx) where {L, T}
+    return SVector{L, T}(ntuple(j -> ifelse(j == idx, convert(T, x), N[j]), Val(L)))
+end
+
+# Returns `(vals, offset, m)`: `vals[l]` is the basis weight of control point
+# `offset + l` for `l in 1:m`. `ncp` is the number of control points (needed only to
+# place the single nonzero weight at the right boundary). Mirrors the locator and
+# recurrence of `spline_coefficients!`, but writes into a local window indexed `1:m`
+# instead of absolute knot indices.
+@inline function bspline_nonzero_coefficients(d::Integer, k, u::T, ncp::Integer) where {T}
+    # The recurrence divides knot differences, which can produce non-integer
+    # values even when `u` and `k` are integer-valued, so the scratch buffer's
+    # element type must be the promotion of `T` and `eltype(k)`, not `T` alone.
+    T2 = promote_type(T, eltype(k))
+    N = zero(SVector{BSPLINE_STACK_MAXLEN, T2})
+    if u == k[1]
+        N = _static_setindex(N, one(T2), 1)
+        return N, 0, 1
+    elseif u == k[end]
+        N = _static_setindex(N, one(T2), 1)
+        return N, ncp - 1, 1
+    end
+    i = searchsortedlast(k, u)
+    # For out-of-range points, extend the boundary polynomial span (mirrors
+    # the locator in `spline_coefficients!`).
+    if i == 0
+        # u < k[1]: use first span
+        i = findfirst(j -> k[j + 1] > k[1], 1:(length(k) - 1))::Int
+    elseif i == length(k)
+        # u > k[end]: use last span
+        i = findlast(j -> k[j] < k[end], 1:length(k))::Int
+    end
+    # Local index of global knot index `g` is `g + off` (so `i - d → 1`, `i → d + 1`).
+    off = d + 1 - i
+    N = _static_setindex(N, one(T2), i + off)
+    @inbounds begin
+        for deg in 1:d
+            N = _static_setindex(
+                N,
+                (k[i + 1] - u) / (k[i + 1] - k[i - deg + 1]) *
+                    N[i - deg + 1 + off],
+                i - deg + off,
+            )
+            for j in (i - deg + 1):(i - 1)
+                N = _static_setindex(
+                    N,
+                    (u - k[j]) / (k[j + deg] - k[j]) * N[j + off] +
+                        (k[j + deg + 1] - u) / (k[j + deg + 1] - k[j + 1]) *
+                        N[j + 1 + off],
+                    j + off,
+                )
+            end
+            N = _static_setindex(N, (u - k[i]) / (k[i + deg] - k[i]) * N[i + off], i + off)
+        end
+    end
+    return N, i - d - 1, d + 1
+end
+
+# Hager's estimate of `‖inv(A)‖₁` from an existing factorization: a handful of solves
+# against `F` and `F'`, so O(n²) on top of the factorization rather than the O(n³) an
+# explicit inverse would cost. This is what LAPACK's `gecon` does internally.
+function norm_inv_1_estimate(F, n)
+    x = fill(one(eltype(F)) / n, n)
+    est = zero(real(eltype(F)))
+    for _ in 1:5
+        y = F \ x
+        est = norm(y, 1)
+        z = F' \ map(yᵢ -> yᵢ < zero(yᵢ) ? -one(yᵢ) : one(yᵢ), y)
+        j = argmax(abs.(z))
+        abs(z[j]) <= dot(z, x) && break
+        fill!(x, zero(eltype(x)))
+        x[j] = one(eltype(x))
+    end
+    return est
+end
+
+# A `:Uniform` knot vector spaces the interior knots by `1/(n - d)` while the data
+# sites are spaced `1/(n - 1)`, so the collocation points drift away from the Greville
+# abscissae of the basis functions they are paired with — by up to `(d - 1)/2` knot
+# spans, independent of `n`. Past half a span the collocation system's condition number
+# grows exponentially in `n`, and the interpolant diverges between the data points
+# while still passing through them, so nothing about the fit looks wrong (#567).
+# `:Average` knots are the standard pairing for interpolation and stay well conditioned.
+function bspline_collocation_factorization(sc, n, d, knotVecType)
+    F = lu(sc; check = false)
+    LinearAlgebra.issuccess(F) || error(
+        "BSplineInterpolation: the collocation system for degree $d with " *
+            "`knotVecType = :$knotVecType` and $n points is numerically singular." *
+            ill_conditioned_advice(d, knotVecType)
+    )
+    warn_if_ill_conditioned(F, sc, n, d, knotVecType)
+    return F
+end
+
+# Only degree 3 and up: the drift peaks at `(d - 1)/2` knot spans, so it first crosses
+# the half-span stability threshold at `d = 3`. Degrees 1 and 2 are sound with
+# `:Uniform` knots, and a failure there is caused by something else — duplicate data
+# sites, say — which this advice would misattribute.
+function ill_conditioned_advice(d, knotVecType)
+    (knotVecType == :Uniform && d >= 3) || return ""
+    return " A `:Uniform` knot vector is unsuitable for interpolation at degree $d; " *
+        "use `knotVecType = :Average` instead."
+end
+
+function warn_if_ill_conditioned(F, sc, n, d, knotVecType)
+    κ = opnorm(sc, 1) * norm_inv_1_estimate(F, n)
+    κ <= 1 / sqrt(eps(float(real(eltype(sc))))) && return nothing
+    @warn "BSplineInterpolation: the collocation system for degree $d with " *
+        "`knotVecType = :$knotVecType` and $n points is ill-conditioned (estimated " *
+        "1-norm condition number $(round(κ, sigdigits = 3))). The interpolant still " *
+        "passes through the data but may deviate from it by orders of magnitude in " *
+        "between, most visibly near the ends of the domain." *
+        ill_conditioned_advice(d, knotVecType)
+    return nothing
+end
+
+# Minimum number of data points required to construct this interpolation type.
+# Defaults to 1; types whose fit formula needs more (e.g. a quadratic needs at
+# least 3 points to be well-defined) override this method.
+min_number_of_points(::Type{<:AbstractInterpolation}) = 1
+
+min_number_of_points(::Type{LinearInterpolation}) = 2
+min_number_of_points(::Type{QuadraticInterpolation}) = 3
+min_number_of_points(::Type{AkimaInterpolation}) = 2
+min_number_of_points(::Type{SmoothedConstantInterpolation}) = 2
+min_number_of_points(::Type{QuadraticSpline}) = 2
+min_number_of_points(::Type{CubicSpline}) = 3
+min_number_of_points(::Type{CubicHermiteSpline}) = 2
+min_number_of_points(::Type{QuinticHermiteSpline}) = 2
+
+# Below `min_number_of_points`, a type's fit formula is underdetermined and errors
+# somewhere down in its internals with an uninformative `BoundsError` or similar.
+function check_min_length(name, n_min::Integer, n::Integer)
+    if n < n_min
+        throw(
+            ArgumentError(
+                "`$name` needs at least $n_min point" * (n_min == 1 ? "" : "s") *
+                    ", but only $n " * (n == 1 ? "was" : "were") * " given."
+            )
+        )
+    end
+    return nothing
+end
+
+check_min_length(name, n_min::Integer, t::AbstractVector) =
+    check_min_length(name, n_min, length(t))
+
+check_min_length(T::Type, t::AbstractVector) =
+    check_min_length(nameof(T), min_number_of_points(T), length(t))
+
+# Duplicate time points make the collocation system singular
+function check_no_duplicate_t(name, t::AbstractVector)
+    if any(i -> t[i] == t[i + 1], 1:(length(t) - 1))
+        throw(
+            ArgumentError(
+                "The time points `t` must be unique for `$name`, but duplicate values were found."
+            )
+        )
+    end
+    return nothing
+end
+
+check_no_duplicate_t(T::Type, t::AbstractVector) = check_no_duplicate_t(nameof(T), t)
+
 function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
+    check_no_duplicate_t(QuadraticSpline, t)
+    check_min_length(QuadraticSpline, t)
 
     # Create knot vector
     # Don't use x[end-1] as knot to match number of degrees of freedom with data
@@ -69,20 +247,42 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
     k[4:(end - 3)] .= t[2:(end - 2)]
 
     # Create linear system Ac = u, where:
-    # - A consists of basis function evaulations in t
+    # - A consists of basis function evaluations in t
     # - c are 1D control points
     n = length(t)
-    dtype_sc = typeof(t[1] / t[1])
+    dtype_sc = typeof(one(eltype(t)) / one(eltype(t)))
 
     diag = Vector{dtype_sc}(undef, n)
     diag_hi = Vector{dtype_sc}(undef, n - 1)
     diag_lo = Vector{dtype_sc}(undef, n - 1)
 
+    # The locator is non-decreasing in `i` (both `t` and `k` sorted), so a
+    # running pointer gives the index in amortised O(1) — O(n) overall.
+    nk = length(k)
+    d = 2
+    fill!(sc, zero(dtype_sc))
+    locator = 1
     for (i, tᵢ) in enumerate(t)
-        spline_coefficients!(sc, 2, k, tᵢ)
+        if tᵢ == k[1] || tᵢ == k[end]
+            # Only fires at the endpoints (i == 1 and i == n) by construction.
+            on_first = tᵢ == k[1]
+            diag[i] = (on_first && i == 1) || (!on_first && i == length(sc)) ?
+                one(dtype_sc) : zero(dtype_sc)
+            (i > 1) && (diag_lo[i - 1] = zero(dtype_sc))
+            (i < n) && (diag_hi[i] = zero(dtype_sc))
+            continue
+        end
+        while locator < nk && k[locator + 1] <= tᵢ
+            locator += 1
+        end
+        _spline_coefficients_body!(sc, d, k, tᵢ, locator)
         diag[i] = sc[i]
         (i > 1) && (diag_lo[i - 1] = sc[i - 1])
         (i < n) && (diag_hi[i] = sc[i + 1])
+        # Re-zero the body's write window for the next iteration.
+        for j in (locator - d):locator
+            sc[j] = zero(dtype_sc)
+        end
     end
 
     A = Tridiagonal(diag_lo, diag, diag_hi)
@@ -102,7 +302,7 @@ function munge_data(
     Tt = nonmissingtype(eltype(t))
 
     if Tu === eltype(u) && Tt === eltype(t)
-        if !issorted(check_sorted)
+        if !issorted(check_sorted; by = ForwardDiff.value)
             # there is likely an user error
             msg = "The $(sorted_arg_name[1]) argument (`$(sorted_arg_name[2])`), which is used for the interpolation domain, is not sorted."
             if issorted(u)
@@ -159,97 +359,104 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     return U, t
 end
 
-seems_linear(assume_linear_t::Bool, _) = assume_linear_t
-seems_linear(assume_linear_t::Number, t) = looks_linear(t; threshold = assume_linear_t)
+# Resolve the search `StrategyKind` once at construction; stored as the
+# non-parametric `kind::StrategyKind` cache field. The props-aware form
+# reuses an already-computed `SearchProperties` instead of re-probing `t`.
+@inline _resolve_strategy_kind(t::AbstractVector) = FindFirstFunctions.Auto(t).kind
+@inline _resolve_strategy_kind(t::AbstractVector, props::FindFirstFunctions.SearchProperties) =
+    FindFirstFunctions.Auto(t, props).kind
 
-"""
-    looks_linear(t; threshold = 1e-2)
-
-Determine if the abscissae `t` are regularly distributed, taking the standard deviation of
-the difference between the array of abscissae with respect to the straight line linking
-its first and last elements, normalized by the range of `t`. If this standard deviation is
-below the given `threshold`, the vector looks linear (return true). Internal function -
-interface may change.
-"""
-function looks_linear(t; threshold = 1.0e-2)
-    length(t) <= 2 && return true
-    t_0, t_f = first(t), last(t)
-    t_span = t_f - t_0
-    tspan_over_N = t_span * length(t)^(-1)
-    norm_var = sum(
-        (t_i - t_0 - i * tspan_over_N)^2 for (i, t_i) in enumerate(t)
-    ) / (length(t) * t_span^2)
-    return norm_var < threshold^2
-end
-
-@inline function _searchsortedlast_branchless(v::AbstractVector, x)
-    n = length(v)
-    @inbounds begin
-        lo, hi = 1, n + 1  # hi is exclusive upper bound so lo can reach n
-        iters = 64 - leading_zeros((hi - lo - 1) % UInt64)
-        for _ in 1:iters
-            mid = (lo + hi) >>> 1  # mid ∈ [1, n], always in-bounds
-            cond = v[mid] <= x
-            lo = ifelse(cond, mid, lo)
-            hi = ifelse(cond, hi, mid)
-        end
-    end
-    return lo
-end
-
-@inline function _searchsortedlast_hint(v::AbstractVector, x, hint::Int)
-    n = length(v)
-    ix = clamp(hint, 1, n)
-    @inbounds begin
-        if v[ix] <= x
-            (ix == n || x < v[ix + 1]) && return ix          # direct hit
-            for _ in 1:8                                       # walk right
-                ix += 1
-                (ix == n || x < v[ix + 1]) && return ix
-            end
-        else
-            for _ in 1:8                                       # walk left
-                ix -= 1
-                ix < 1 && return 1
-                v[ix] <= x && return ix
-            end
-        end
-    end
-    return _searchsortedlast_branchless(v, x)                  # fallback
-end
-
-@inline function get_idx(
-        A::AbstractInterpolation, t, iguess::Union{<:Integer, Guesser}; lb = 1,
+function get_idx(
+        A::AbstractInterpolation, t, iguess::Integer; lb = 1,
         ub_shift = -1, idx_shift = 0, side = :last
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    return if side == :last
-        idx = if iguess isa Guesser
-            _searchsortedlast_hint(tvec, t, iguess.idx_prev[])
-        else
-            _searchsortedlast_branchless(tvec, t)
-        end
-        if iguess isa Guesser
-            iguess.idx_prev[] = idx
-        end
-        clamp(idx + idx_shift, lb, ub)
-    elseif side == :first
-        clamp(searchsortedfirstcorrelated(tvec, t, iguess) + idx_shift, lb, ub)
+    raw = _dispatch_search(A, tvec, t, iguess, side)
+    return clamp(raw + idx_shift, lb, ub)
+end
+
+function get_idx(
+        A::AbstractInterpolation, t, iguess::Guesser; lb = 1,
+        ub_shift = -1, idx_shift = 0, side = :last
+    )
+    tvec = A.t
+    ub = length(tvec) + ub_shift
+    # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
+    # falls back to the cached `idx_prev` otherwise.
+    hint = iguess(t)
+    raw = _dispatch_search(A, tvec, t, hint, side)
+    idx = clamp(raw + idx_shift, lb, ub)
+    iguess.idx_prev[] = idx
+    return idx
+end
+
+# `KIND_UNIFORM_STEP` needs the props for its closed form, so reconstruct the
+# (isbits) `Auto` from `A.t_props`; other kinds dispatch on the bare enum. The
+# branch sits at the call so each arm has a concrete first arg (a hoisted
+# `Union{Auto,StrategyKind}` would break inference); both return `Int`.
+@inline function _dispatch_search(A, tvec, t, hint, side)
+    if A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
+        auto = FindFirstFunctions.Auto(A.t_props)
+        return side == :last ?
+            FindFirstFunctions.searchsorted_last(auto, tvec, t, hint) :
+            side == :first ?
+            FindFirstFunctions.searchsorted_first(auto, tvec, t, hint) :
+            error("side must be :first or :last")
     else
-        error("side must be :first or :last")
+        return side == :last ?
+            FindFirstFunctions.searchsorted_last(A.kind, tvec, t, hint) :
+            side == :first ?
+            FindFirstFunctions.searchsorted_first(A.kind, tvec, t, hint) :
+            error("side must be :first or :last")
     end
 end
 
 cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
-function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameters::Bool)
+
+function _cumulative_integral(A, cache_parameters::Bool)
     Base.require_one_based_indexing(A.u)
-    idxs = cache_parameters ? (1:(length(A.t) - 1)) : (1:0)
-    return cumsum(
-        _integral(A, idx, t1, t2)
-            for (idx, t1, t2) in
-            zip(idxs, @view(A.t[begin:(end - 1)]), @view(A.t[(begin + 1):end]))
+    if cache_parameters
+        return cumsum(
+            _integral(A, idx, t1, t2)
+                for (idx, t1, t2) in
+                zip(
+                    1:(length(A.t) - 1), @view(A.t[begin:(end - 1)]),
+                    @view(A.t[(begin + 1):end])
+                )
+        )
+    end
+    length(A.t) < 2 && return cumsum(
+        _integral(A, idx, t1, t2) for (idx, t1, t2) in zip(1:0, A.t, A.t)
     )
+    # `cumsum` over an empty generator isn't guaranteed to infer a concrete element
+    # type without evaluating the body (it doesn't for e.g. `CubicSpline`, giving
+    # `Vector{Union{}}`), so compute one sample to fix the type instead, mirroring
+    # the "compute once to infer types" pattern used by the parameter caches below.
+    sample = _integral(A, 1, A.t[1], A.t[2])
+    return typeof(sample)[]
+end
+
+function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameters::Bool)
+    return _cumulative_integral(A, cache_parameters)
+end
+
+# Not every interpolation type defines `_integral` for `u::AbstractVector{<:AbstractVector}`
+# (e.g. `LagrangeInterpolation` doesn't, since it has no analytic antiderivative at all).
+# Rather than hardcoding the list of
+# types that do, check whether a matching `_integral` method actually exists, so that
+# construction only builds the cache (and gives `A.I` a concrete, non-`Nothing` element
+# type) for interpolations that genuinely support it — and so this keeps working as-is
+# for any future type that gains `_integral` support for this `u` shape.
+function cumulative_integral(
+        A::AbstractInterpolation{<:AbstractVector{<:Number}}, cache_parameters::Bool
+    )
+    Tt = eltype(A.t)
+    return if hasmethod(_integral, Tuple{typeof(A), Int, Tt, Tt})
+        _cumulative_integral(A, cache_parameters)
+    else
+        nothing
+    end
 end
 
 function get_parameters(A::LinearInterpolation, idx)
@@ -292,7 +499,7 @@ function get_parameters(A::QuadraticSpline, idx)
     return if A.cache_parameters
         A.p.α[idx], A.p.β[idx]
     else
-        quadratic_spline_parameters(A.u, A.t, A.k, A.c, A.sc, idx)
+        quadratic_spline_parameters(A.u, A.t, A.k, A.c, idx)
     end
 end
 
@@ -320,22 +527,21 @@ function get_parameters(A::QuinticHermiteSpline, idx)
     end
 end
 
-function du_PCHIP(u, t)
+function du_PCHIP(u::AbstractVector{<:Number}, t)
     h = diff(t)
     δ = diff(u) ./ h
     s = sign.(δ)
 
     # Special handling of the slope at the endpoints, see
     # Cleve Moler, Numerical Computing with MATLAB, Chap 3.6 (file pchiptx.m, function pchipend())
+    # `ifelse`/`&`, not `if`/`&&`, so `u` (and hence `δ`) may hold symbolic entries.
     function _edge_case(h₁, h₂, δ₁, δ₂)
         d = ((2 * h₁ + h₂) * δ₁ - h₁ * δ₂) / (h₁ + h₂)
-        return if sign(d) != sign(δ₁)
-            zero(eltype(δ))
-        elseif sign(δ₁) != sign(δ₂) && abs(d) > 3 * abs(δ₁)
-            3 * δ₁
-        else
-            d
-        end
+        return ifelse(
+            sign(d) != sign(δ₁),
+            zero(eltype(δ)),
+            ifelse((sign(δ₁) != sign(δ₂)) & (abs(d) > 3 * abs(δ₁)), 3 * δ₁, d)
+        )
     end
 
     function _du(k)
@@ -347,30 +553,62 @@ function du_PCHIP(u, t)
             s[k - 1], s[k]
         end
 
-        return if sₖ₋₁ == 0 && sₖ == 0
-            zero(eltype(δ))
-        elseif sₖ₋₁ == sₖ
-            if k == 1
-                _edge_case(h[1], h[2], δ[1], δ[2])
-            elseif k == lastindex(t)
-                _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
-            else
-                w₁ = 2h[k] + h[k - 1]
-                w₂ = h[k] + 2h[k - 1]
-                (w₁ + w₂) / (w₁ / δ[k - 1] + w₂ / δ[k])
-            end
+        # `k` is a concrete `Int`, so branching on it directly is safe; only the
+        # branches on the (possibly symbolic) signs `sₖ₋₁`, `sₖ` need `ifelse`.
+        same_sign_branch = if k == 1
+            _edge_case(h[1], h[2], δ[1], δ[2])
+        elseif k == lastindex(t)
+            _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
         else
-            if k == 1
-                _edge_case(h[1], h[2], δ[1], δ[2])
-            elseif k == lastindex(t)
-                _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
-            else
-                zero(eltype(δ))
-            end
+            w₁ = 2h[k] + h[k - 1]
+            w₂ = h[k] + 2h[k - 1]
+            (w₁ + w₂) / (w₁ / δ[k - 1] + w₂ / δ[k])
         end
+
+        diff_sign_branch = if k == 1
+            _edge_case(h[1], h[2], δ[1], δ[2])
+        elseif k == lastindex(t)
+            _edge_case(h[end], h[end - 1], δ[end], δ[end - 1])
+        else
+            zero(eltype(δ))
+        end
+
+        return ifelse(
+            (sₖ₋₁ == 0) & (sₖ == 0),
+            zero(eltype(δ)),
+            ifelse(sₖ₋₁ == sₖ, same_sign_branch, diff_sign_branch)
+        )
     end
 
     return _du.(eachindex(t))
+end
+
+# Builds each dimension's PCHIP derivative independently, by reusing the scalar
+# `du_PCHIP` kernel on a length-`n` scalar slice per leading index (row of a Matrix,
+# component of a Vector{Vector}, ...), matching the `AkimaInterpolation` pattern.
+function du_PCHIP(u::AbstractArray{T, N}, t) where {T, N}
+    n = length(t)
+    dims = size(u)[1:(end - 1)]
+    du = Array{T}(undef, dims..., n)
+    u_flat = reshape(u, :, n)
+    du_flat = reshape(du, :, n)
+    for i in axes(u_flat, 1)
+        du_flat[i, :] .= du_PCHIP(u_flat[i, :], t)
+    end
+    return du
+end
+
+function du_PCHIP(u::AbstractVector{<:AbstractVector{T}}, t) where {T}
+    dim = length(u[1])
+    du = [Vector{T}(undef, dim) for _ in eachindex(u)]
+    for j in 1:dim
+        u_j = [u_[j] for u_ in u]
+        du_j = du_PCHIP(u_j, t)
+        for i in eachindex(t)
+            du[i][j] = du_j[i]
+        end
+    end
+    return du
 end
 
 function integrate_cubic_polynomial(t1, t2, offset, a, b, c, d)
@@ -476,3 +714,19 @@ function get_transition_ts(A::SmoothedConstantInterpolation)
 end
 
 get_transition_ts(A::AbstractInterpolation) = A.t
+
+# Data points sit in the last dimension of `u`, unless `u` holds one value per
+# data point. `_u_view` aliases `u` and is meant for expressions that build a new
+# result from it; `_u_point` returns what `_interpolate` would, so it is safe to
+# hand back to the caller.
+_u_view(u::AbstractVector, idx) = u[idx]
+_u_view(u::AbstractArray, idx) = selectdim(u, ndims(u), idx)
+
+_u_point(u::AbstractVector, idx) = u[idx]
+_u_point(u::AbstractArray, idx) = copy(_u_view(u, idx))
+
+_first(u::AbstractVector) = first(u)
+_first(u::AbstractArray) = _u_view(u, firstindex(u, ndims(u)))
+
+_last(u::AbstractVector) = last(u)
+_last(u::AbstractArray) = _u_view(u, lastindex(u, ndims(u)))
