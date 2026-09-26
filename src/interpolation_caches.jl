@@ -361,6 +361,10 @@ struct AkimaInterpolation{
     end
 end
 
+# Strip nested ForwardDiff.Dual wrappers down to the underlying numeric value.
+_primal(x::ForwardDiff.Dual) = _primal(ForwardDiff.value(x))
+_primal(x) = x
+
 # In-place scalar kernel for computing the Akima / makima coefficients.
 # Allocates a single length-(n+3) buffer for the padded divided differences;
 # every other intermediate (dm, f1, f2, f12, w1, w2, ind, b-default) from the
@@ -391,8 +395,8 @@ function _akima_init!(
                 bdefault = (m[i + 3] + m[i]) / 2
             end
             w12 = w1 + w2
-            # Primal-positive weight → scaled weighted slope; primal zero → fallback (`ForwardDiff.value`).
-            w12_pos = ForwardDiff.value(w12) > zero(ForwardDiff.value(w12))
+            # Primal-positive weight → scaled weighted slope; primal zero → fallback.
+            w12_pos = _primal(w12) > zero(_primal(w12))
             s = ifelse(w1 > w2, w1, w2)
             s_safe = ifelse(w12_pos, s, one(s))
             bw = (w1 / s_safe * m[i + 1] + w2 / s_safe * m[i + 2]) /

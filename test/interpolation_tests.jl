@@ -1067,6 +1067,21 @@ end
             return (mid_frozen(xp) - mid_frozen(xm)) / (2h)
         end
         @test g_fd ≈ g_ref rtol = 1.0e-5
+
+        # Hessian must stay finite under nested Duals (one ForwardDiff.value layer
+        # is not enough). Reference from SciML/DataInterpolations.jl@master and from
+        # an independent reimplementation of master's tol-cutoff formula.
+        H = ForwardDiff.hessian(f, u)
+        H_ref = [
+            0.0 -0.125 0.25 -0.125 0.0 0.0
+            -0.125 0.5 -0.625 0.25 0.0 0.0
+            0.25 -0.625 0.5 -0.125 0.0 0.0
+            -0.125 0.25 -0.125 0.0 0.0 0.0
+            0.0 0.0 0.0 0.0 0.0 0.0
+            0.0 0.0 0.0 0.0 0.0 0.0
+        ]
+        @test all(isfinite, H)
+        @test H ≈ H_ref
     end
 
     # Duplicate time points throw an informative error instead of silently
