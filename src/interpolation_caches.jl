@@ -391,18 +391,13 @@ function _akima_init!(
                 bdefault = (m[i + 3] + m[i]) / 2
             end
             w12 = w1 + w2
-            # Use the weighted slope for every strictly positive total weight, in a
-            # max-scaled form that stays well-conditioned for tiny weights. A
-            # positive cutoff such as `1e-9 * wmax` introduces a jump between the
-            # weighted and fallback formulas (#614). Only exact zero weight uses
-            # the fallback. `ifelse` (not `?:`) so symbolic `u` works; both
-            # branches are evaluated, so the weighted branch must stay defined at
-            # `w12 == 0` (replace a zero scale/denominator with one).
+            # Primal-positive weight → scaled weighted slope; primal zero → fallback (`ForwardDiff.value`).
+            w12_pos = ForwardDiff.value(w12) > zero(ForwardDiff.value(w12))
             s = ifelse(w1 > w2, w1, w2)
-            s_safe = ifelse(w12 > zero(w12), s, one(s))
+            s_safe = ifelse(w12_pos, s, one(s))
             bw = (w1 / s_safe * m[i + 1] + w2 / s_safe * m[i + 2]) /
-                ifelse(w12 > zero(w12), w12 / s_safe, one(w12))
-            b[i] = ifelse(w12 > zero(w12), bw, bdefault)
+                ifelse(w12_pos, w12 / s_safe, one(w12))
+            b[i] = ifelse(w12_pos, bw, bdefault)
         end
 
         for i in 1:(n - 1)

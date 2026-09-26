@@ -943,8 +943,7 @@ end
         @test_throws DimensionMismatch A_dim(zeros(3), [1.0, 2.0])
     end
 
-    # Positive small-weight cutoff used to switch to the fallback average and
-    # produce a large jump in the interpolant for tiny input perturbations (#614).
+    # Interpolated values stay continuous across tiny strictly positive weight changes.
     @testset "Akima small-weight cutoff continuity (#614)" begin
         t = collect(1.0:7.0)
         knots(e) = [
@@ -1007,6 +1006,67 @@ end
         bound = δ + Δb / 4
 
         @test abs(v_hi - v_lo) ≤ bound
+    end
+
+    # Zero-weight Duals must follow the fallback slope, not a 0/0 weighted path.
+    @testset "Akima zero-weight ForwardDiff gradient (#614)" begin
+        u = [1.0, 1.0, 1.0, 1.0, 2.0, 3.0]
+        t = collect(1.0:6.0)
+        f(x) = AkimaInterpolation(x, t)(2.5)
+        g = ForwardDiff.gradient(f, u)
+        # Master (tol-cutoff) ForwardDiff values for this input; independently
+        # checked by central differences with branches frozen at the base point's
+        # primal weights (coordinate FD of the nonsmooth map does not match).
+        g_ref = [-0.125, 0.8125, 0.25, 0.0625, 0.0, 0.0]
+        @test g ≈ g_ref
+
+        function padded_m(x, t_)
+            n = length(x)
+            m = zeros(n + 3)
+            for i in 1:(n - 1)
+                m[i + 2] = (x[i + 1] - x[i]) / (t_[i + 1] - t_[i])
+            end
+            m[2] = 2 * m[3] - m[4]
+            m[1] = 2 * m[2] - m[3]
+            m[n + 2] = 2 * m[n + 1] - m[n]
+            m[n + 3] = 2 * m[n + 2] - m[n + 1]
+            return m
+        end
+        m0 = padded_m(u, t)
+        function mid_frozen(x)
+            n = length(x)
+            m = Vector{eltype(x)}(undef, n + 3)
+            for i in 1:(n - 1)
+                m[i + 2] = (x[i + 1] - x[i]) / (t[i + 1] - t[i])
+            end
+            m[2] = 2 * m[3] - m[4]
+            m[1] = 2 * m[2] - m[3]
+            m[n + 2] = 2 * m[n + 1] - m[n]
+            m[n + 3] = 2 * m[n + 2] - m[n + 1]
+            b = similar(x)
+            for i in 1:n
+                w1 = abs(m[i + 3] - m[i + 2])
+                w2 = abs(m[i + 1] - m[i])
+                w12 = w1 + w2
+                bdefault = (m[i + 3] + m[i]) / 2
+                use_w = (abs(m0[i + 3] - m0[i + 2]) + abs(m0[i + 1] - m0[i])) > 0
+                s = ifelse(w1 > w2, w1, w2)
+                s_safe = ifelse(use_w, s, one(s))
+                bw = (w1 / s_safe * m[i + 1] + w2 / s_safe * m[i + 2]) /
+                    ifelse(use_w, w12 / s_safe, one(w12))
+                b[i] = ifelse(use_w, bw, bdefault)
+            end
+            return 0.5 * (x[2] + x[3]) + 0.125 * (b[2] - b[3])
+        end
+        h = 1.0e-6
+        g_fd = map(1:6) do j
+            xp = copy(u)
+            xm = copy(u)
+            xp[j] += h
+            xm[j] -= h
+            return (mid_frozen(xp) - mid_frozen(xm)) / (2h)
+        end
+        @test g_fd ≈ g_ref rtol = 1.0e-5
     end
 
     # Duplicate time points throw an informative error instead of silently
