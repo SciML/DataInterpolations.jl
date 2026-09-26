@@ -380,22 +380,6 @@ function _akima_init!(
         m[n + 2] = 2 * m[n + 1] - m[n]
         m[n + 3] = 2 * m[n + 2] - m[n + 1]
 
-        # First pass: maximum weight, used as the small-weight cutoff
-        wmax = zero(T)
-        for i in 1:n
-            if modified
-                w1 = abs(m[i + 3] - m[i + 2]) + abs(m[i + 3] + m[i + 2]) / 2
-                w2 = abs(m[i + 1] - m[i]) + abs(m[i + 1] + m[i]) / 2
-            else
-                w1 = abs(m[i + 3] - m[i + 2])
-                w2 = abs(m[i + 1] - m[i])
-            end
-            w12 = w1 + w2
-            wmax = ifelse(w12 > wmax, w12, wmax)
-        end
-        tol = T(1.0e-9) * wmax
-
-        # Second pass: coefficients
         for i in 1:n
             if modified
                 w1 = abs(m[i + 3] - m[i + 2]) + abs(m[i + 3] + m[i + 2]) / 2
@@ -407,8 +391,18 @@ function _akima_init!(
                 bdefault = (m[i + 3] + m[i]) / 2
             end
             w12 = w1 + w2
-            # `ifelse`, not `?:`, so `u` may hold symbolic (e.g. Symbolics.Num) entries.
-            b[i] = ifelse(w12 > tol, (w1 * m[i + 1] + w2 * m[i + 2]) / w12, bdefault)
+            # Use the weighted slope for every strictly positive total weight, in a
+            # max-scaled form that stays well-conditioned for tiny weights. A
+            # positive cutoff such as `1e-9 * wmax` introduces a jump between the
+            # weighted and fallback formulas (#614). Only exact zero weight uses
+            # the fallback. `ifelse` (not `?:`) so symbolic `u` works; both
+            # branches are evaluated, so the weighted branch must stay defined at
+            # `w12 == 0` (replace a zero scale/denominator with one).
+            s = ifelse(w1 > w2, w1, w2)
+            s_safe = ifelse(w12 > zero(w12), s, one(s))
+            bw = (w1 / s_safe * m[i + 1] + w2 / s_safe * m[i + 2]) /
+                ifelse(w12 > zero(w12), w12 / s_safe, one(w12))
+            b[i] = ifelse(w12 > zero(w12), bw, bdefault)
         end
 
         for i in 1:(n - 1)

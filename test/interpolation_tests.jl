@@ -943,6 +943,72 @@ end
         @test_throws DimensionMismatch A_dim(zeros(3), [1.0, 2.0])
     end
 
+    # Positive small-weight cutoff used to switch to the fallback average and
+    # produce a large jump in the interpolant for tiny input perturbations (#614).
+    @testset "Akima small-weight cutoff continuity (#614)" begin
+        t = collect(1.0:7.0)
+        knots(e) = [
+            0.02
+            0.02 .+ cumsum(
+                [
+                    0.001, 0.001 + e, 0.01, 0.01 + 2e, 0.02, 0.022,
+                ]
+            )
+        ]
+        lo = 6.333336741333462e-12
+        hi = 6.333336741333463e-12
+        ulo = knots(lo)
+        uhi = knots(hi)
+        δ = maximum(abs, uhi .- ulo)
+
+        v_lo = AkimaInterpolation(ulo, t)(2.5)
+        v_hi = AkimaInterpolation(uhi, t)(2.5)
+
+        # Bound from the Hermite form at the interval midpoint (unit spacing):
+        #   A = (u_i + u_{i+1})/2 + (b_i - b_{i+1})/8
+        # ⇒ |ΔA| ≤ δ + (|Δb_i| + |Δb_{i+1}|)/8.
+        # With strictly positive weight, b = m₂ + α(m₁ - m₂), α = w₁/w₁₂, so
+        #   |Δb| ≤ |Δm₂| + |Δ(m₁ - m₂)| + |Δα|·|m₁ - m₂|,
+        #   |Δα| ≤ (|Δw₁| + |Δw₁₂|) / w_min.
+        # Each classic Akima weight is an absolute slope difference, so
+        # |Δw| ≤ |Δm_a| + |Δm_b|. Interior divided differences change by ≤ 2δ;
+        # one-step end extrapolation m₂ = 2m₃ - m₄ gives |Δm| ≤ 6δ. The midpoint
+        # value at 2.5 only depends on knot slopes at i = 2, 3, whose stencils
+        # stay within that amplification. w_min and the local |m₁ - m₂| are read
+        # from the two input vectors (not fitted to the output jump).
+        function padded_slopes(u, t_)
+            n = length(u)
+            m = Vector{eltype(u)}(undef, n + 3)
+            for i in 1:(n - 1)
+                m[i + 2] = (u[i + 1] - u[i]) / (t_[i + 1] - t_[i])
+            end
+            m[2] = 2 * m[3] - m[4]
+            m[1] = 2 * m[2] - m[3]
+            m[n + 2] = 2 * m[n + 1] - m[n]
+            m[n + 3] = 2 * m[n + 2] - m[n + 1]
+            return m
+        end
+        w_min = Inf
+        diam = 0.0
+        for m in (padded_slopes(ulo, t), padded_slopes(uhi, t))
+            for i in (2, 3)
+                w1 = abs(m[i + 3] - m[i + 2])
+                w2 = abs(m[i + 1] - m[i])
+                w12 = w1 + w2
+                @test w12 > 0
+                w_min = min(w_min, w12)
+                diam = max(diam, abs(m[i + 1] - m[i + 2]))
+            end
+        end
+        Δm = 6δ
+        Δw = 2 * Δm
+        Δα = (Δw + 2 * Δw) / w_min
+        Δb = Δm + 2 * Δm + Δα * diam
+        bound = δ + Δb / 4
+
+        @test abs(v_hi - v_lo) ≤ bound
+    end
+
     # Duplicate time points throw an informative error instead of silently
     # producing NaN across the entire domain (#475)
     @test_throws ArgumentError AkimaInterpolation(
