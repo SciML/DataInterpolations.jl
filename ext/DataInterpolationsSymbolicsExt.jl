@@ -15,7 +15,7 @@ Base.nameof(interp::AbstractInterpolation) = :Interpolation
             Tt::SymbolicUtils.TypeT,
             To::SymbolicUtils.TypeT
         )
-        @assert Ti <: AbstractInterpolation
+        @assert Ti <: Union{AbstractInterpolation, SymbolicUtils.FnType{<:Tuple, <:Any, <:AbstractInterpolation}}
         @assert Tt <: Real
         @assert To <: Integer
         Real
@@ -34,6 +34,7 @@ Base.nameof(interp::AbstractInterpolation) = :Interpolation
 
     @register_derivative derivative(interp, t, ord) 2 derivative(interp, t, ord + 1)
     @register_derivative (interp::AbstractInterpolation)(t) 1 derivative(interp, t, 1)
+    @register_derivative (interp::Symbolics.SymbolicCallable{<:AbstractInterpolation})(t) 1 derivative(interp.f, t, 1)
 else
     function derivative(interp::AbstractInterpolation, t::Num, order = 1)
         Symbolics.wrap(SymbolicUtils.term(derivative, interp, unwrap(t), order))
