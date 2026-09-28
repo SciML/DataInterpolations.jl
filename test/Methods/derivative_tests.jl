@@ -506,6 +506,40 @@ end
     @test_throws DataInterpolations.DerivativeNotFoundError symfunc3(ts[1])
 end
 
+@testset "Symbolic derivatives of symbolic interpolations" begin
+    u = [0.0, 1.5, 0.0]
+    t = [0.0, 0.5, 1.0]
+    A = QuadraticSpline(u, t)
+    B = QuadraticSpline(2u, t)
+    @variables τ ω(τ) (itp::typeof(A))(..) (aitp::DataInterpolations.AbstractInterpolation)(..)
+    itp_sym = Symbolics.unwrap(itp)
+    D = Symbolics.Differential(τ)
+    D2 = Symbolics.Differential(τ)^2
+
+    @test isequal(
+        Symbolics.derivative(itp(ω), τ),
+        D(ω) * DataInterpolations.derivative(itp_sym, ω, 1)
+    )
+    @test isequal(
+        expand_derivatives(D(aitp(τ))),
+        DataInterpolations.derivative(Symbolics.unwrap(aitp), τ, 1)
+    )
+
+    df = expand_derivatives(D(itp(τ)))
+    df2 = expand_derivatives(D2(itp(τ)))
+    @test !Symbolics.hasderiv(df) && !Symbolics.hasderiv(df2)
+    @test isequal(Symbolics.scalarize(df), df) && isequal(Symbolics.scalarize(df2), df2)
+    symfunc1 = Symbolics.build_function(df, itp_sym, τ; expression = Val{false})
+    symfunc2 = Symbolics.build_function(df2, itp_sym, τ; expression = Val{false})
+    ts = 0.0:0.1:1.0
+    for interp in (A, B)
+        @test all(map(ti -> symfunc1(interp, ti) == derivative(interp, ti), ts))
+        @test all(map(ti -> symfunc2(interp, ti) == derivative(interp, ti, 2), ts))
+    end
+    @test Symbolics.value(substitute(df, Dict(itp => B, τ => 0.3); fold = Val(true))) ==
+        derivative(B, 0.3)
+end
+
 @testset "Jacobian tests" begin
     u = rand(5)
     t = 0:4
