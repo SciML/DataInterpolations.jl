@@ -142,3 +142,22 @@ end
     @test lin_bytes < 200_000
     @test const_bytes < 120_000
 end
+
+@testset "Default-cache Vector invert_integral allocations" begin
+    n = 10_000
+    t = collect(range(0.0, 2.0; length = n))
+    u = 2t .+ 3
+    # Fresh `cumulative_integral` already owns a Vector; collecting it again
+    # adds ~80kB. Master budgets ~270kB for Linear/Constant at this size.
+    function min_inverse_bytes(A)
+        f = () -> DataInterpolations.invert_integral(A)
+        for _ in 1:3
+            f()
+        end
+        return minimum(@allocated(f()) for _ in 1:5)
+    end
+    for method in (LinearInterpolation, ConstantInterpolation)
+        A = method(u, t)
+        @test min_inverse_bytes(A) <= 270_000
+    end
+end
