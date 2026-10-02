@@ -120,3 +120,25 @@ using StaticArrays: SVector
         @test_nowarn test_allocs(A2_s, 0.7)
     end
 end
+
+@testset "Cached plain-Vector construction allocations" begin
+    n = 10_000
+    t = collect(range(0.0, 2.0; length = n))
+    u = 2t .+ 3
+    # Guard against a second full-sized segment buffer before cumsum.
+    # Master budgets ~160kB (Linear) and ~80kB (Constant) at this size.
+    function min_construct_bytes(f)
+        for _ in 1:3
+            f()
+        end
+        return minimum(@allocated(f()) for _ in 1:5)
+    end
+    lin_bytes = min_construct_bytes(
+        () -> LinearInterpolation(u, t; cache_parameters = true)
+    )
+    const_bytes = min_construct_bytes(
+        () -> ConstantInterpolation(u, t; cache_parameters = true)
+    )
+    @test lin_bytes < 200_000
+    @test const_bytes < 120_000
+end

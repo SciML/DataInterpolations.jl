@@ -113,9 +113,9 @@ function smoothed_constant_interpolation_parameters(
     end
 end
 
-struct QuadraticParameterCache{pType}
-    α::pType
-    β::pType
+struct QuadraticParameterCache{αType, βType}
+    α::αType
+    β::βType
 end
 
 function QuadraticParameterCache(u, t, cache_parameters, mode)
@@ -162,9 +162,9 @@ function quadratic_interpolation_parameters(u, t, idx, mode)
     return α, β
 end
 
-struct QuadraticSplineParameterCache{pType}
-    α::pType
-    β::pType
+struct QuadraticSplineParameterCache{αType, βType}
+    α::αType
+    β::βType
 end
 
 function QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
@@ -213,9 +213,9 @@ function quadratic_spline_parameters(u, t, k, c, idx)
     return α, β
 end
 
-struct CubicSplineParameterCache{pType}
-    c₁::pType
-    c₂::pType
+struct CubicSplineParameterCache{c1Type, c2Type}
+    c₁::c1Type
+    c₂::c2Type
 end
 
 function CubicSplineParameterCache(u, h, z, cache_parameters)
@@ -248,9 +248,9 @@ function cubic_spline_parameters(u::AbstractArray, h, z, idx)
     return c₁, c₂
 end
 
-struct CubicHermiteParameterCache{pType}
-    c₁::pType
-    c₂::pType
+struct CubicHermiteParameterCache{c1Type, c2Type}
+    c₁::c1Type
+    c₂::c2Type
 end
 
 function CubicHermiteParameterCache(du, u, t, cache_parameters)
@@ -279,10 +279,10 @@ function cubic_hermite_spline_parameters(du, u, t, idx)
     return c₁, c₂
 end
 
-struct QuinticHermiteParameterCache{pType}
-    c₁::pType
-    c₂::pType
-    c₃::pType
+struct QuinticHermiteParameterCache{c1Type, c2Type, c3Type}
+    c₁::c1Type
+    c₂::c2Type
+    c₃::c3Type
 end
 
 function QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)

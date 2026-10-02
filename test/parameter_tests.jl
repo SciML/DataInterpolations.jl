@@ -1,5 +1,6 @@
 using DataInterpolations
 using StaticArrays: SVector, SA
+using Unitful
 
 function test_cached_integration(method, args...)
     A_c = method(args...; cache_parameters = true)
@@ -113,6 +114,45 @@ end
             end
             @test A.I isa SVector
             @test A(2.5) ≈ method(collect.(args)...; cache_parameters = cp)(2.5)
+        end
+    end
+end
+
+# Analytic samples of 1 + t (value 1.5 and integral 1.5 on [0, 1]).
+@testset "Unitful coefficient caches (default caching)" begin
+    t = [0.0, 1.0, 2.0]u"s"
+    y = [1.0, 2.0, 3.0]u"m"
+    dy = [1.0, 1.0, 1.0]u"m/s"
+    ddy = [0.0, 0.0, 0.0]u"m/s^2"
+    for (method, args) in (
+            (QuadraticInterpolation, (y, t)),
+            (CubicHermiteSpline, (dy, y, t)),
+            (QuinticHermiteSpline, (ddy, dy, y, t)),
+        )
+        @testset "$(nameof(method))" begin
+            A = method(args...)
+            @test A(0.5u"s") ≈ 1.5u"m"
+            @test DataInterpolations.integral(A, 0.0u"s", 1.0u"s") ≈ 1.5u"m*s"
+        end
+    end
+end
+
+@testset "Mixed-precision Hermite coefficient caches" begin
+    for cp in (false, true)
+        @testset "CubicHermiteSpline cache_parameters=$cp" begin
+            A = CubicHermiteSpline(
+                Real[1.0, big"1.0"], [1.0, 2.0], [0.0, 1.0]; cache_parameters = cp
+            )
+            @test A(0.5) ≈ 1.5
+            @test DataInterpolations.integral(A, 0.0, 1.0) ≈ 1.5
+        end
+        @testset "QuinticHermiteSpline cache_parameters=$cp" begin
+            A = QuinticHermiteSpline(
+                Real[0.0, big"0.0"], [1.0, 1.0], [1.0, 2.0], [0.0, 1.0];
+                cache_parameters = cp
+            )
+            @test A(0.5) ≈ 1.5
+            @test DataInterpolations.integral(A, 0.0, 1.0) ≈ 1.5
         end
     end
 end
