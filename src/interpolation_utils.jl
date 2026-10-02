@@ -416,6 +416,14 @@ cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
 
 function _cumulative_integral(A, cache_parameters::Bool)
     Base.require_one_based_indexing(A.u)
+    # Element type of an empty `I` must match a real interval integral (not
+    # `eltype(A.u)`), or constructor inference widens to a Union. For fewer than
+    # two knots there are no intervals; prototype a zero-width sample without
+    # indexing past `t`.
+    if length(A.t) < 2
+        proto = _u_view(A.u, firstindex(A.u)) * zero(eltype(A.t))
+        return _empty_cache(A.t, typeof(proto))
+    end
     sample = _integral(A, 1, A.t[1], A.t[2])
     if cache_parameters
         segs = _map_segments(A.t, i -> _integral(A, i, A.t[i], A.t[i + 1]))
