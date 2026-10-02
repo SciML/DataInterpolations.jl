@@ -71,7 +71,7 @@ using RecipesBase: RecipesBase, @recipe, @series
 using PrettyTables: PrettyTables, pretty_table
 using ForwardDiff: ForwardDiff
 using EnumX: EnumX, @enumx
-using StaticArrays: SVector
+using StaticArrays: SVector, StaticArray, Size, similar_type
 import FindFirstFunctions
 import FindFirstFunctions: Guesser
 using PrecompileTools: @compile_workload, @setup_workload

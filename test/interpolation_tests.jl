@@ -108,7 +108,7 @@ end
     u_ = x' .* y
     u = [u_[:, i:(i + 1)] for i in 1:2:10]
     t = 1.0collect(2:2:10)
-    @test_broken @inferred(
+    @test @inferred(
         LinearInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
@@ -613,7 +613,7 @@ end
 
     # Vector{Matrix} interpolation test
     u = [repeat(u[i], 1, 3) for i in 1:4]
-    @test_broken @inferred(
+    @test @inferred(
         QuadraticInterpolation(
             u, t; extrapolation = ExtrapolationType.Extension
         )
