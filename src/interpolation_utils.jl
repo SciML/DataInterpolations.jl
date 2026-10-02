@@ -416,12 +416,11 @@ cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
 
 function _cumulative_integral(A, cache_parameters::Bool)
     Base.require_one_based_indexing(A.u)
+    sample = _integral(A, 1, A.t[1], A.t[2])
     if cache_parameters
         segs = _map_segments(A.t, i -> _integral(A, i, A.t[i], A.t[i + 1]))
         return cumsum(segs)
     end
-    length(A.t) < 2 && return _empty_cache(A.t, eltype(A.u))
-    sample = _integral(A, 1, A.t[1], A.t[2])
     return _empty_cache(A.t, typeof(sample))
 end
 
