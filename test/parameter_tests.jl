@@ -1,4 +1,5 @@
 using DataInterpolations
+using StaticArrays: SVector, SA
 
 function test_cached_integration(method, args...)
     A_c = method(args...; cache_parameters = true)
@@ -70,4 +71,48 @@ end
     @test A.p.c₂ ≈ [1.0, 19.5, 20.0, 19.0]
     @test A.p.c₃ ≈ [1.5, -37.5, -37.0, -26.5]
     test_cached_integration(QuinticHermiteSpline, ddu, du, u, t)
+end
+
+@testset "StaticArray parameter and integral caches" begin
+    u = SA[1.0, 2.0, 4.0]
+    t = SA[0.0, 1.0, 2.0]
+    u_v = [1.0, 2.0, 4.0]
+    t_v = [0.0, 1.0, 2.0]
+
+    for cp in (false, true)
+        A = LinearInterpolation(u, t; cache_parameters = cp)
+        n = cp ? 2 : 0
+        @test A.p.slope isa SVector{n, Float64}
+        @test A.I isa SVector{n, Float64}
+        A_v = LinearInterpolation(u_v, t_v; cache_parameters = cp)
+        @test A(1.5) ≈ A_v(1.5)
+        @test DataInterpolations.integral(A, 0.0, 2.0) ≈
+            DataInterpolations.integral(A_v, 0.0, 2.0)
+        @test A_v.p.slope isa Vector{Float64}
+        @test A_v.I isa Vector{Float64}
+    end
+
+    A = LinearInterpolation(u, t; cache_parameters = true)
+    @test A.p.slope ≈ [1.0, 2.0]
+
+    u4 = SA[1.0, 5.0, 3.0, 4.0]
+    t4 = SA[1.0, 2.0, 3.0, 4.0]
+    for (method, args) in (
+            (QuadraticInterpolation, (u4, t4)),
+            (QuadraticSpline, (u4, t4)),
+            (CubicSpline, (u4, t4)),
+            (SmoothedConstantInterpolation, (u4, t4)),
+            (CubicHermiteSpline, (SA[5.0, 3.0, 6.0, 8.0], u4, t4)),
+            (QuinticHermiteSpline, (SA[0.0, 3.0, 6.0, 4.0], SA[5.0, 3.0, 6.0, 8.0], u4, t4)),
+        )
+        for cp in (false, true)
+            A = method(args...; cache_parameters = cp)
+            fields = filter(n -> isdefined(A.p, n), (:slope, :α, :β, :c₁, :c₂, :c₃, :d, :c))
+            for f in fields
+                @test getfield(A.p, f) isa SVector
+            end
+            @test A.I isa SVector
+            @test A(2.5) ≈ method(collect.(args)...; cache_parameters = cp)(2.5)
+        end
+    end
 end
