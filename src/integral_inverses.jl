@@ -110,7 +110,8 @@ function invertible_integral(A::LinearInterpolation{<:AbstractVector{<:Number}})
 end
 
 function get_I(A::AbstractInterpolation)
-    I = isempty(A.I) ? cumulative_integral(A, true) : copy(A.I)
+    I = isempty(A.I) ? cumulative_integral(A, true) : A.I
+    I = collect(I)
     pushfirst!(I, 0)
     return I
 end

@@ -1,15 +1,40 @@
+function _map_cache(prototype::StaticArray{Tuple{N}, <:Any, 1}, f, ::Val{M}) where {N, M}
+    vals = ntuple(f, Val(M))
+    return similar_type(prototype, eltype(typeof(vals)), Size(M))(vals)
+end
+
+function _map_cache(::AbstractArray, f, n::Integer)
+    return map(f, 1:n)
+end
+
+_map_segments(t::StaticArray{Tuple{N}, <:Any, 1}, f) where {N} = _map_cache(t, f, Val(N - 1))
+_map_segments(t::AbstractArray, f) = _map_cache(t, f, length(t) - 1)
+_map_knots(t::StaticArray{Tuple{N}, <:Any, 1}, f) where {N} = _map_cache(t, f, Val(N))
+_map_knots(t::AbstractArray, f) = _map_cache(t, f, length(t))
+
+function _empty_cache(prototype::StaticArray, ::Type{T}) where {T}
+    return similar_type(prototype, T, Size(0))()
+end
+
+function _empty_cache(::AbstractArray, ::Type{T}) where {T}
+    return T[]
+end
+
+function _unzip_parameters(parameters, ::Val{K}) where {K}
+    return ntuple(j -> map(p -> p[j], parameters), Val(K))
+end
+
 struct LinearParameterCache{pType}
     slope::pType
 end
 
 function LinearParameterCache(u, t, cache_parameters)
     return if cache_parameters
-        slope = linear_interpolation_parameters.(Ref(u), Ref(t), 1:(length(t) - 1))
+        slope = _map_segments(t, i -> linear_interpolation_parameters(u, t, i))
         LinearParameterCache(slope)
     else
-        # Compute parameters once to infer types
         slope = linear_interpolation_parameters(u, t, 1)
-        LinearParameterCache(typeof(slope)[])
+        LinearParameterCache(_empty_cache(t, typeof(slope)))
     end
 end
 
@@ -46,13 +71,19 @@ function SmoothedConstantParameterCache(
         u, t, cache_parameters, d_max, extrapolation_left, extrapolation_right
     )
     return if cache_parameters
-        parameters = smoothed_constant_interpolation_parameters.(
-            Ref(u), Ref(t), d_max, eachindex(t), extrapolation_left, extrapolation_right
+        parameters = _map_knots(
+            t,
+            i -> smoothed_constant_interpolation_parameters(
+                u, t, d_max, i, extrapolation_left, extrapolation_right
+            ),
         )
-        d, c = collect.(eachrow(stack(collect.(parameters))))
+        d, c = _unzip_parameters(parameters, Val(2))
         SmoothedConstantParameterCache(d, c)
     else
-        SmoothedConstantParameterCache(eltype(t)[], eltype(u)[])
+        d, c = smoothed_constant_interpolation_parameters(
+            u, t, d_max, 1, extrapolation_left, extrapolation_right
+        )
+        SmoothedConstantParameterCache(_empty_cache(t, typeof(d)), _empty_cache(t, typeof(c)))
     end
 end
 
@@ -89,16 +120,14 @@ end
 
 function QuadraticParameterCache(u, t, cache_parameters, mode)
     return if cache_parameters
-        parameters = quadratic_interpolation_parameters.(
-            Ref(u), Ref(t), 1:(length(t) - 1), mode
+        parameters = _map_segments(
+            t, i -> quadratic_interpolation_parameters(u, t, i, mode)
         )
-        α, β = collect.(eachrow(stack(collect.(parameters))))
+        α, β = _unzip_parameters(parameters, Val(2))
         QuadraticParameterCache(α, β)
     else
-        # Compute parameters once to infer types
         α, β = quadratic_interpolation_parameters(u, t, 1, mode)
-        pType = typeof(α)
-        QuadraticParameterCache(pType[], pType[])
+        QuadraticParameterCache(_empty_cache(t, typeof(α)), _empty_cache(t, typeof(β)))
     end
 end
 
@@ -140,15 +169,14 @@ end
 
 function QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     return if cache_parameters
-        parameters = quadratic_spline_parameters.(
-            Ref(u), Ref(t), Ref(k), Ref(c), 1:(length(t) - 1)
+        parameters = _map_segments(
+            t, i -> quadratic_spline_parameters(u, t, k, c, i)
         )
-        α, β = collect.(eachrow(stack(collect.(parameters))))
+        α, β = _unzip_parameters(parameters, Val(2))
         QuadraticSplineParameterCache(α, β)
     else
-        # Compute parameters once to infer types
         α, β = quadratic_spline_parameters(u, t, k, c, 1)
-        QuadraticSplineParameterCache(typeof(α)[], typeof(β)[])
+        QuadraticSplineParameterCache(_empty_cache(t, typeof(α)), _empty_cache(t, typeof(β)))
     end
 end
 
@@ -192,16 +220,19 @@ end
 
 function CubicSplineParameterCache(u, h, z, cache_parameters)
     return if cache_parameters
-        parameters = cubic_spline_parameters.(
-            Ref(u), Ref(h), Ref(z), 1:(size(u)[end] - 1)
-        )
-        c₁, c₂ = collect.(eachrow(stack(collect.(parameters))))
+        parameters = if u isa AbstractVector
+            _map_segments(u, i -> cubic_spline_parameters(u, h, z, i))
+        else
+            _map_cache(h, i -> cubic_spline_parameters(u, h, z, i), size(u)[end] - 1)
+        end
+        c₁, c₂ = _unzip_parameters(parameters, Val(2))
         CubicSplineParameterCache(c₁, c₂)
     else
-        # Compute parameters once to infer types
         c₁, c₂ = cubic_spline_parameters(u, h, z, 1)
-        pType = typeof(c₁)
-        CubicSplineParameterCache(pType[], pType[])
+        proto = u isa AbstractVector ? u : h
+        CubicSplineParameterCache(
+            _empty_cache(proto, typeof(c₁)), _empty_cache(proto, typeof(c₂))
+        )
     end
 end
 
@@ -224,16 +255,16 @@ end
 
 function CubicHermiteParameterCache(du, u, t, cache_parameters)
     return if cache_parameters
-        parameters = cubic_hermite_spline_parameters.(
-            Ref(du), Ref(u), Ref(t), 1:(length(t) - 1)
+        parameters = _map_segments(
+            t, i -> cubic_hermite_spline_parameters(du, u, t, i)
         )
-        c₁, c₂ = collect.(eachrow(stack(collect.(parameters))))
+        c₁, c₂ = _unzip_parameters(parameters, Val(2))
         CubicHermiteParameterCache(c₁, c₂)
     else
-        # Compute parameters once to infer types
         c₁, c₂ = cubic_hermite_spline_parameters(du, u, t, 1)
-        pType = typeof(c₁)
-        CubicHermiteParameterCache(pType[], pType[])
+        CubicHermiteParameterCache(
+            _empty_cache(t, typeof(c₁)), _empty_cache(t, typeof(c₂))
+        )
     end
 end
 
@@ -256,16 +287,18 @@ end
 
 function QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
     return if cache_parameters
-        parameters = quintic_hermite_spline_parameters.(
-            Ref(ddu), Ref(du), Ref(u), Ref(t), 1:(length(t) - 1)
+        parameters = _map_segments(
+            t, i -> quintic_hermite_spline_parameters(ddu, du, u, t, i)
         )
-        c₁, c₂, c₃ = collect.(eachrow(stack(collect.(parameters))))
+        c₁, c₂, c₃ = _unzip_parameters(parameters, Val(3))
         QuinticHermiteParameterCache(c₁, c₂, c₃)
     else
-        # Compute parameters once to infer types
         c₁, c₂, c₃ = quintic_hermite_spline_parameters(ddu, du, u, t, 1)
-        pType = typeof(c₁)
-        QuinticHermiteParameterCache(pType[], pType[], pType[])
+        QuinticHermiteParameterCache(
+            _empty_cache(t, typeof(c₁)),
+            _empty_cache(t, typeof(c₂)),
+            _empty_cache(t, typeof(c₃)),
+        )
     end
 end
 

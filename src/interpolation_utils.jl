@@ -417,24 +417,12 @@ cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
 function _cumulative_integral(A, cache_parameters::Bool)
     Base.require_one_based_indexing(A.u)
     if cache_parameters
-        return cumsum(
-            _integral(A, idx, t1, t2)
-                for (idx, t1, t2) in
-                zip(
-                    1:(length(A.t) - 1), @view(A.t[begin:(end - 1)]),
-                    @view(A.t[(begin + 1):end])
-                )
-        )
+        segs = _map_segments(A.t, i -> _integral(A, i, A.t[i], A.t[i + 1]))
+        return cumsum(segs)
     end
-    length(A.t) < 2 && return cumsum(
-        _integral(A, idx, t1, t2) for (idx, t1, t2) in zip(1:0, A.t, A.t)
-    )
-    # `cumsum` over an empty generator isn't guaranteed to infer a concrete element
-    # type without evaluating the body (it doesn't for e.g. `CubicSpline`, giving
-    # `Vector{Union{}}`), so compute one sample to fix the type instead, mirroring
-    # the "compute once to infer types" pattern used by the parameter caches below.
+    length(A.t) < 2 && return _empty_cache(A.t, eltype(A.u))
     sample = _integral(A, 1, A.t[1], A.t[2])
-    return typeof(sample)[]
+    return _empty_cache(A.t, typeof(sample))
 end
 
 function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameters::Bool)
