@@ -68,3 +68,23 @@ end
             "than one thread (e.g. `julia -t auto`) to exercise it."
     end
 end
+
+# Issue #618: the cached search hint `iguesser.idx_prev` is only read when the
+# knots do not look linear, so evaluation on linear-looking knots must not write it.
+@testset "evaluation on linear-looking knots leaves idx_prev untouched (issue #618)" begin
+    u = sin.(1:12)
+    for t in (collect(1.0:12.0), collect(1.0:12.0) .+ 0.001 .* sin.(1:12)),
+            A in (
+                LinearInterpolation(u, t), LinearInterpolation(u, t; cache_parameters = true),
+                QuadraticInterpolation(u, t), CubicSpline(u, t),
+                ConstantInterpolation(u, t), AkimaInterpolation(u, t),
+            )
+        @test A.iguesser.linear_lookup
+        A.iguesser.idx_prev[] = 1
+        for x in range(first(t), last(t); length = 61)
+            A(x)
+            derivative(A, x)
+        end
+        @test A.iguesser.idx_prev[] == 1
+    end
+end
