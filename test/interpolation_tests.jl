@@ -943,7 +943,7 @@ end
         @test_throws DimensionMismatch A_dim(zeros(3), [1.0, 2.0])
     end
 
-    # Interpolated values stay continuous across tiny strictly positive weight changes.
+    # Interpolated values stay continuous where a slope weight crosses the cutoff.
     @testset "Akima small-weight cutoff continuity (#614)" begin
         t = collect(1.0:7.0)
         knots(e) = [
@@ -966,15 +966,21 @@ end
         # Bound from the Hermite form at the interval midpoint (unit spacing):
         #   A = (u_i + u_{i+1})/2 + (b_i - b_{i+1})/8
         # ⇒ |ΔA| ≤ δ + (|Δb_i| + |Δb_{i+1}|)/8.
-        # With strictly positive weight, b = m₂ + α(m₁ - m₂), α = w₁/w₁₂, so
-        #   |Δb| ≤ |Δm₂| + |Δ(m₁ - m₂)| + |Δα|·|m₁ - m₂|,
-        #   |Δα| ≤ (|Δw₁| + |Δw₁₂|) / w_min.
+        # Each knot slope is b = (1 - λ)·b_d + λ·b_w with λ = clamp(2w₁₂/tol - 1, 0, 1),
+        # fallback b_d (a mean of two slopes) and b_w = m₂ + α(m₁ - m₂), α = w₁/w₁₂, so
+        #   |Δb| ≤ max(|Δb_d|, |Δb_w|) + |Δλ|·|b_w - b_d|,
+        #   |Δb_w| ≤ |Δm₂| + |Δ(m₁ - m₂)| + |Δα|·|m₁ - m₂|,
+        #   |Δα| ≤ (|Δw₁| + |Δw₁₂|) / w_min,
+        #   |Δλ| ≤ 2(|Δw₁₂| + r·|Δtol|) / tol_min, r = max w₁₂/tol,
+        # and |b_w - b_d| is at most the spread of the four slopes in the stencil.
         # Each classic Akima weight is an absolute slope difference, so
         # |Δw| ≤ |Δm_a| + |Δm_b|. Interior divided differences change by ≤ 2δ;
         # one-step end extrapolation m₂ = 2m₃ - m₄ gives |Δm| ≤ 6δ. The midpoint
         # value at 2.5 only depends on knot slopes at i = 2, 3, whose stencils
-        # stay within that amplification. w_min and the local |m₁ - m₂| are read
-        # from the two input vectors (not fitted to the output jump).
+        # stay within that amplification. tol = 1e-9·wmax also sees the two-step
+        # end slopes (|Δm| ≤ 10δ), so |Δtol| ≤ 1e-9·40δ. w_min, tol_min, r and the
+        # slope spreads are read from the two input vectors (not fitted to the
+        # output jump).
         function padded_slopes(u, t_)
             n = length(u)
             m = Vector{eltype(u)}(undef, n + 3)
@@ -987,22 +993,26 @@ end
             m[n + 3] = 2 * m[n + 2] - m[n + 1]
             return m
         end
-        w_min = Inf
-        diam = 0.0
+        weight(m, i) = abs(m[i + 3] - m[i + 2]) + abs(m[i + 1] - m[i])
+        w_min = tol_min = Inf
+        r = diam = spread = 0.0
         for m in (padded_slopes(ulo, t), padded_slopes(uhi, t))
+            tol = 1.0e-9 * maximum(i -> weight(m, i), eachindex(t))
+            tol_min = min(tol_min, tol)
             for i in (2, 3)
-                w1 = abs(m[i + 3] - m[i + 2])
-                w2 = abs(m[i + 1] - m[i])
-                w12 = w1 + w2
-                @test w12 > 0
+                w12 = weight(m, i)
+                @test 2 * w12 > tol
                 w_min = min(w_min, w12)
+                r = max(r, w12 / tol)
                 diam = max(diam, abs(m[i + 1] - m[i + 2]))
+                spread = max(spread, maximum(m[i:(i + 3)]) - minimum(m[i:(i + 3)]))
             end
         end
         Δm = 6δ
         Δw = 2 * Δm
         Δα = (Δw + 2 * Δw) / w_min
-        Δb = Δm + 2 * Δm + Δα * diam
+        Δλ = 2 * (2 * Δw + r * 1.0e-9 * 40δ) / tol_min
+        Δb = Δm + 2 * Δm + Δα * diam + Δλ * spread
         bound = δ + Δb / 4
 
         @test abs(v_hi - v_lo) ≤ bound
@@ -1015,8 +1025,9 @@ end
         f(x) = AkimaInterpolation(x, t)(2.5)
         g = ForwardDiff.gradient(f, u)
         # Master (tol-cutoff) ForwardDiff values for this input; independently
-        # checked by central differences with branches frozen at the base point's
-        # primal weights (coordinate FD of the nonsmooth map does not match).
+        # checked by central differences of the textbook formula with branches
+        # frozen at the base point's weights (coordinate FD of the nonsmooth map
+        # does not match).
         g_ref = [-0.125, 0.8125, 0.25, 0.0625, 0.0, 0.0]
         @test g ≈ g_ref
 
@@ -1047,14 +1058,9 @@ end
             for i in 1:n
                 w1 = abs(m[i + 3] - m[i + 2])
                 w2 = abs(m[i + 1] - m[i])
-                w12 = w1 + w2
-                bdefault = (m[i + 3] + m[i]) / 2
                 use_w = (abs(m0[i + 3] - m0[i + 2]) + abs(m0[i + 1] - m0[i])) > 0
-                s = ifelse(w1 > w2, w1, w2)
-                s_safe = ifelse(use_w, s, one(s))
-                bw = (w1 / s_safe * m[i + 1] + w2 / s_safe * m[i + 2]) /
-                    ifelse(use_w, w12 / s_safe, one(w12))
-                b[i] = ifelse(use_w, bw, bdefault)
+                b[i] = use_w ? (w1 * m[i + 1] + w2 * m[i + 2]) / (w1 + w2) :
+                    (m[i + 3] + m[i]) / 2
             end
             return 0.5 * (x[2] + x[3]) + 0.125 * (b[2] - b[3])
         end
@@ -1068,9 +1074,9 @@ end
         end
         @test g_fd ≈ g_ref rtol = 1.0e-5
 
-        # Hessian must stay finite under nested Duals (one ForwardDiff.value layer
-        # is not enough). Reference from SciML/DataInterpolations.jl@master and from
-        # an independent reimplementation of master's tol-cutoff formula.
+        # Nested Duals (Hessian) take the same fallback at the flat knots. Reference
+        # from SciML/DataInterpolations.jl@master and from an independent
+        # reimplementation of master's tol-cutoff formula.
         H = ForwardDiff.hessian(f, u)
         H_ref = [
             0.0 -0.125 0.25 -0.125 0.0 0.0
@@ -1082,6 +1088,48 @@ end
         ]
         @test all(isfinite, H)
         @test H ≈ H_ref
+    end
+
+    # Weights at rounding level must give the fallback slope, not pick a side of a corner.
+    @testset "Akima rounding-level weights (#614)" begin
+        # Ramp then plateau: at the corner m₁ = m₂ = 1 and m₃ = m₄ = 0, so b₄ is
+        # the fallback (1 + 0)/2 and A(4.5) = 3 + (b₄ - b₅)/8 with b₅ = 0.
+        t = collect(1.0:7.0)
+        u0 = [0.0, 1.0, 2.0, 3.0, 3.0, 3.0, 3.0]
+        for j in 0:7
+            u = copy(u0)
+            j > 0 && (u[j] = nextfloat(u[j]))
+            A = AkimaInterpolation(u, t)
+            @test A.b[4] ≈ 0.5
+            @test A(4.5) ≈ 3 + 0.5 / 8
+            g = ForwardDiff.gradient(x -> AkimaInterpolation(x, t)(4.5), u)
+            @test maximum(abs, g) ≤ 1
+        end
+
+        # Decimal grids: the slopes either side of the corner are exact, the
+        # divided differences only up to rounding.
+        tt = collect(0.0:0.1:1.0)
+        u = 0.7 .* abs.(tt .- 0.5)
+        A = AkimaInterpolation(u, tt)
+        @test A.b[6] ≈ 0 atol = 1.0e-12
+        @test A(0.45) ≈ A(0.55)
+        g = ForwardDiff.gradient(x -> AkimaInterpolation(x, tt)(0.55), u)
+        @test maximum(abs, g) ≤ 1
+        u = 0.3 .* min.(tt, 0.5)
+        @test AkimaInterpolation(u, tt).b[6] ≈ 0.15
+        g = ForwardDiff.gradient(x -> AkimaInterpolation(x, tt)(0.55), u)
+        @test maximum(abs, g) ≤ 1
+    end
+
+    @testset "Akima slopes under extreme scaling" begin
+        t = collect(1.0:7.0)
+        u = [0.0, 1.0, 4.0, 9.0, 16.0, 20.0, 21.0]
+        for modified in (false, true)
+            b = AkimaInterpolation(u, t; modified).b
+            for s in (1.0e300, 1.0e-300)
+                @test AkimaInterpolation(s .* u, t; modified).b ./ s ≈ b
+            end
+        end
     end
 
     # Duplicate time points throw an informative error instead of silently

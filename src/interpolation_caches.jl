@@ -361,10 +361,6 @@ struct AkimaInterpolation{
     end
 end
 
-# Strip nested ForwardDiff.Dual wrappers down to the underlying numeric value.
-_primal(x::ForwardDiff.Dual) = _primal(ForwardDiff.value(x))
-_primal(x) = x
-
 # In-place scalar kernel for computing the Akima / makima coefficients.
 # Allocates a single length-(n+3) buffer for the padded divided differences;
 # every other intermediate (dm, f1, f2, f12, w1, w2, ind, b-default) from the
@@ -384,6 +380,22 @@ function _akima_init!(
         m[n + 2] = 2 * m[n + 1] - m[n]
         m[n + 3] = 2 * m[n + 2] - m[n + 1]
 
+        # First pass: maximum weight, used as the small-weight cutoff
+        wmax = zero(T)
+        for i in 1:n
+            if modified
+                w1 = abs(m[i + 3] - m[i + 2]) + abs(m[i + 3] + m[i + 2]) / 2
+                w2 = abs(m[i + 1] - m[i]) + abs(m[i + 1] + m[i]) / 2
+            else
+                w1 = abs(m[i + 3] - m[i + 2])
+                w2 = abs(m[i + 1] - m[i])
+            end
+            w12 = w1 + w2
+            wmax = ifelse(w12 > wmax, w12, wmax)
+        end
+        tol = T(1.0e-9) * wmax
+
+        # Second pass: coefficients
         for i in 1:n
             if modified
                 w1 = abs(m[i + 3] - m[i + 2]) + abs(m[i + 3] + m[i + 2]) / 2
@@ -395,13 +407,16 @@ function _akima_init!(
                 bdefault = (m[i + 3] + m[i]) / 2
             end
             w12 = w1 + w2
-            # Primal-positive weight → scaled weighted slope; primal zero → fallback.
-            w12_pos = _primal(w12) > zero(_primal(w12))
-            s = ifelse(w1 > w2, w1, w2)
-            s_safe = ifelse(w12_pos, s, one(s))
-            bw = (w1 / s_safe * m[i + 1] + w2 / s_safe * m[i + 2]) /
-                ifelse(w12_pos, w12 / s_safe, one(w12))
-            b[i] = ifelse(w12_pos, bw, bdefault)
+            # Weights up to `tol / 2` are rounding noise and give `bdefault`, weights above
+            # `tol` the weighted slope; the band between blends the two linearly so `b` is
+            # continuous in `u`. Scaling by `s = max(w1, w2)` keeps `w * m` finite.
+            # `ifelse`, not `?:`, so `u` may hold symbolic (e.g. Symbolics.Num) entries.
+            full = w12 > tol
+            part = 2 * w12 > tol
+            s = ifelse(part, ifelse(w1 > w2, w1, w2), one(w12))
+            bw = (w1 / s * m[i + 1] + w2 / s * m[i + 2]) / ifelse(part, w12 / s, one(w12))
+            λ = 2 * w12 / ifelse(part, tol, one(tol)) - 1
+            b[i] = ifelse(full, bw, ifelse(part, bdefault + λ * (bw - bdefault), bdefault))
         end
 
         for i in 1:(n - 1)
