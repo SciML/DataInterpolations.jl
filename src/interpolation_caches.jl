@@ -134,12 +134,12 @@ A = QuadraticInterpolation([1.0, 4.0, 9.0], [1.0, 2.0, 3.0])
 A(2.5)
 ```
 """
-struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
+struct QuadraticInterpolation{uType, tType, IType, pCacheType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
-    p::QuadraticParameterCache{pType}
+    p::pCacheType
     mode::Symbol
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
@@ -155,7 +155,7 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
         kind = _resolve_strategy_kind(t, t_props)
         return new{
-            typeof(u), typeof(t), typeof(I), typeof(p.α),
+            typeof(u), typeof(t), typeof(I), typeof(p),
             eltype(u), typeof(t_props),
         }(
             u, t, I, p, mode, extrapolation_left, extrapolation_right,
@@ -770,13 +770,13 @@ A(2.5)
 ```
 """
 struct QuadraticSpline{
-        uType, tType, IType, pType, kType, cType, scType, T, propsType,
+        uType, tType, IType, pCacheType, kType, cType, scType, T, propsType,
     } <:
     AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
-    p::QuadraticSplineParameterCache{pType}
+    p::pCacheType
     k::kType # knot vector
     c::cType # B-spline control points
     sc::scType # Spline coefficients (preallocated memory)
@@ -792,7 +792,7 @@ struct QuadraticSpline{
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
-            typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
+            typeof(u), typeof(t), typeof(I), typeof(p), typeof(k),
             typeof(c), typeof(sc), eltype(u), typeof(t_props),
         }(
             u,
@@ -958,12 +958,12 @@ A = CubicSpline([1.0, 4.0, 9.0, 16.0], [1.0, 2.0, 3.0, 4.0])
 A(2.5)
 ```
 """
-struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
+struct CubicSpline{uType, tType, IType, pCacheType, hType, zType, T, propsType} <:
     AbstractInterpolation{T}
     u::uType
     t::tType
     I::IType
-    p::CubicSplineParameterCache{pType}
+    p::pCacheType
     h::hType
     z::zType
     extrapolation_left::ExtrapolationType.T
@@ -978,7 +978,7 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
-            typeof(u), typeof(t), typeof(I), typeof(p.c₁),
+            typeof(u), typeof(t), typeof(I), typeof(p),
             typeof(h), typeof(z), eltype(u), typeof(t_props),
         }(
             u,
@@ -1720,14 +1720,14 @@ A(2.5)
 ```
 """
 struct CubicHermiteSpline{
-        uType, tType, IType, duType, pType, T, propsType,
+        uType, tType, IType, duType, pCacheType, T, propsType,
     } <:
     AbstractInterpolation{T}
     du::duType
     u::uType
     t::tType
     I::IType
-    p::CubicHermiteParameterCache{pType}
+    p::pCacheType
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
@@ -1741,7 +1741,7 @@ struct CubicHermiteSpline{
         kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
-            typeof(p.c₁), eltype(u), typeof(t_props),
+            typeof(p), eltype(u), typeof(t_props),
         }(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
             Guesser(t), t_props, kind, cache_parameters
@@ -1866,7 +1866,7 @@ A(2.5)
 ```
 """
 struct QuinticHermiteSpline{
-        uType, tType, IType, duType, dduType, pType, T, propsType,
+        uType, tType, IType, duType, dduType, pCacheType, T, propsType,
     } <:
     AbstractInterpolation{T}
     ddu::dduType
@@ -1874,7 +1874,7 @@ struct QuinticHermiteSpline{
     u::uType
     t::tType
     I::IType
-    p::QuinticHermiteParameterCache{pType}
+    p::pCacheType
     extrapolation_left::ExtrapolationType.T
     extrapolation_right::ExtrapolationType.T
     iguesser::Guesser{tType}
@@ -1888,7 +1888,7 @@ struct QuinticHermiteSpline{
         kind = _resolve_strategy_kind(t, t_props)
         return new{
             typeof(u), typeof(t), typeof(I), typeof(du),
-            typeof(ddu), typeof(p.c₁), eltype(u), typeof(t_props),
+            typeof(ddu), typeof(p), eltype(u), typeof(t_props),
         }(
             ddu, du, u, t, I, p, extrapolation_left, extrapolation_right,
             Guesser(t), t_props, kind, cache_parameters

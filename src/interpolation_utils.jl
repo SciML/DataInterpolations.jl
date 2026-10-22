@@ -416,25 +416,37 @@ cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
 
 function _cumulative_integral(A, cache_parameters::Bool)
     Base.require_one_based_indexing(A.u)
-    if cache_parameters
+    # Fewer than two knots ⇒ no intervals. Keep the empty-generator form so the
+    # element type matches `_integral` (e.g. Int knots still yield Float64), which
+    # avoids widening constructor inference to a Union with `eltype(u)`-based empties.
+    if length(A.t) < 2
         return cumsum(
-            _integral(A, idx, t1, t2)
-                for (idx, t1, t2) in
-                zip(
-                    1:(length(A.t) - 1), @view(A.t[begin:(end - 1)]),
-                    @view(A.t[(begin + 1):end])
-                )
+            _integral(A, idx, t1, t2) for (idx, t1, t2) in zip(1:0, A.t, A.t)
         )
     end
-    length(A.t) < 2 && return cumsum(
-        _integral(A, idx, t1, t2) for (idx, t1, t2) in zip(1:0, A.t, A.t)
-    )
-    # `cumsum` over an empty generator isn't guaranteed to infer a concrete element
-    # type without evaluating the body (it doesn't for e.g. `CubicSpline`, giving
-    # `Vector{Union{}}`), so compute one sample to fix the type instead, mirroring
-    # the "compute once to infer types" pattern used by the parameter caches below.
     sample = _integral(A, 1, A.t[1], A.t[2])
-    return typeof(sample)[]
+    if cache_parameters
+        return _filled_cumulative_integral(A.t, A)
+    end
+    return _empty_cache(A.t, typeof(sample))
+end
+
+# Static knots: materialize an `SVector` of segments then `cumsum` (still isbits).
+function _filled_cumulative_integral(::StaticArray, A)
+    segs = _map_segments(A.t, i -> _integral(A, i, A.t[i], A.t[i + 1]))
+    return cumsum(segs)
+end
+
+# Dynamic knots: accumulate with a single generator `cumsum` (no temporary buffer).
+function _filled_cumulative_integral(::AbstractArray, A)
+    return cumsum(
+        _integral(A, idx, t1, t2)
+            for (idx, t1, t2) in
+            zip(
+                1:(length(A.t) - 1), @view(A.t[begin:(end - 1)]),
+                @view(A.t[(begin + 1):end])
+            )
+    )
 end
 
 function cumulative_integral(A::AbstractInterpolation{<:Number}, cache_parameters::Bool)

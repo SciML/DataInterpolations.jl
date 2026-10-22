@@ -120,3 +120,44 @@ using StaticArrays: SVector
         @test_nowarn test_allocs(A2_s, 0.7)
     end
 end
+
+@testset "Cached plain-Vector construction allocations" begin
+    n = 10_000
+    t = collect(range(0.0, 2.0; length = n))
+    u = 2t .+ 3
+    # Guard against a second full-sized segment buffer before cumsum.
+    # Master budgets ~160kB (Linear) and ~80kB (Constant) at this size.
+    function min_construct_bytes(f)
+        for _ in 1:3
+            f()
+        end
+        return minimum(@allocated(f()) for _ in 1:5)
+    end
+    lin_bytes = min_construct_bytes(
+        () -> LinearInterpolation(u, t; cache_parameters = true)
+    )
+    const_bytes = min_construct_bytes(
+        () -> ConstantInterpolation(u, t; cache_parameters = true)
+    )
+    @test lin_bytes < 200_000
+    @test const_bytes < 120_000
+end
+
+@testset "Default-cache Vector invert_integral allocations" begin
+    n = 10_000
+    t = collect(range(0.0, 2.0; length = n))
+    u = 2t .+ 3
+    # Fresh `cumulative_integral` already owns a Vector; collecting it again
+    # adds ~80kB. Master budgets ~270kB for Linear/Constant at this size.
+    function min_inverse_bytes(A)
+        f = () -> DataInterpolations.invert_integral(A)
+        for _ in 1:3
+            f()
+        end
+        return minimum(@allocated(f()) for _ in 1:5)
+    end
+    for method in (LinearInterpolation, ConstantInterpolation)
+        A = method(u, t)
+        @test min_inverse_bytes(A) <= 270_000
+    end
+end
