@@ -1357,6 +1357,45 @@ end
     @test_throws ArgumentError QuadraticSpline([1.0], [1.0])
     @test_throws ArgumentError QuadraticSpline(rand(2, 1), [1.0])
     @test_throws ArgumentError QuadraticSpline([rand(2)], [1.0])
+
+    # Float32 data must preserve Float32 in knots and evaluation
+    t32 = Float32[0, 1, 2, 3, 4]
+    u32 = Float32[0, 1, 4, 9, 16]
+    A32 = QuadraticSpline(u32, t32)
+    @test eltype(A32.k) === Float32
+    @test typeof(A32(1.5f0)) === Float32
+    @test typeof(DataInterpolations.derivative(A32, 1.5f0)) === Float32
+    @test typeof(DataInterpolations.integral(A32, 0.5f0, 2.5f0)) === Float32
+
+    # Large-n: quadratic data is reproduced; cached/uncached agree
+    rng = StableRNG(42)
+    n = 10_000
+    t_big = collect(range(0.0, 1.0; length = n))
+    u_big = @. (t_big + 1)^2
+    A_big = QuadraticSpline(u_big, t_big)
+    A_cached = QuadraticSpline(u_big, t_big; cache_parameters = true)
+    ts = rand(rng, 500)
+    @test maximum(abs.(A_big.(ts) .- (ts .+ 1) .^ 2)) <= 1.0e-12
+    @test A_big.(ts) == A_cached.(ts)
+    @test DataInterpolations.derivative.(Ref(A_big), ts) ==
+        DataInterpolations.derivative.(Ref(A_cached), ts)
+    t1s = rand(rng, 100) .* 0.5
+    t2s = t1s .+ 0.5 .* rand(rng, 100)
+    @test maximum(
+        abs.(
+            DataInterpolations.integral.(Ref(A_big), t1s, t2s) .-
+                DataInterpolations.integral.(Ref(A_cached), t1s, t2s)
+        )
+    ) <= 1.0e-12
+    # Package-level locator coverage: evaluate at data knots (exact) and at the
+    # segment midpoints that `quadratic_spline_parameters` looks up. Boundary
+    # knots in `A.k` have multiplicity 3; those sites must still hit `u`.
+    @test A_big.(t_big) == u_big
+    @test count(==(t_big[1]), A_big.k) == 3
+    @test count(==(t_big[end]), A_big.k) == 3
+    t_mid = @. (t_big[1:(end - 1)] + t_big[2:end]) / 2
+    @test maximum(abs.(A_big.(t_mid) .- (t_mid .+ 1) .^ 2)) <= 1.0e-12
+    @test A_cached.(t_mid) == A_big.(t_mid)
 end
 
 @testset "CubicSpline Interpolation" begin

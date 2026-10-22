@@ -241,7 +241,7 @@ function quadratic_spline_params(t::AbstractVector, sc::AbstractVector)
 
     # Create knot vector
     # Don't use x[end-1] as knot to match number of degrees of freedom with data
-    k = zeros(length(t) + 3)
+    k = zeros(eltype(t), length(t) + 3)
     k[1:3] .= t[1]
     k[(end - 2):end] .= t[end]
     k[4:(end - 3)] .= t[2:(end - 2)]

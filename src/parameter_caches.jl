@@ -165,7 +165,7 @@ function quadratic_spline_parameters(u, t, k, c, idx)
         # shared scratch buffer so that evaluation is reentrant / thread-safe (#532).
         # `tᵢ₊` is always interior, so only the non-boundary branch of the Cox-de Boor
         # recursion is needed (cf. `spline_coefficients!`).
-        i = findfirst(x -> x > tᵢ₊, k)::Int - 1
+        i = searchsortedlast(k, tᵢ₊)
         w₁ = (k[i + 1] - tᵢ₊) / (k[i + 1] - k[i])
         w₂ = (tᵢ₊ - k[i]) / (k[i + 1] - k[i])
         N₁ = (k[i + 1] - tᵢ₊) / (k[i + 1] - k[i - 1]) * w₁
