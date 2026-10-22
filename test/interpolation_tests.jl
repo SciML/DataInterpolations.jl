@@ -2253,6 +2253,16 @@ f_cubic_spline = c -> square(CubicSpline, c)
     end
 end
 
+@testset "munge_data rejects unsorted t for matrix/N-d u" begin
+    # The vector `munge_data` method already rejects unsorted `t`; the matrix and
+    # N-d methods silently accepted it and returned wrong values
+    # (https://github.com/SciML/DataInterpolations.jl, candidate 5).
+    us = [1.0, 2.0, 3.0, 4.0]
+    ts = [1.0, 3.0, 2.0, 4.0]
+    @test_throws ArgumentError LinearInterpolation([us'; us'], ts)
+    @test_throws ArgumentError LinearInterpolation(reshape(vcat(us, us), 2, 1, 4), ts)
+end
+
 @testset "user error" begin
     @test_throws ArgumentError LinearInterpolation(rand(10), rand(10))
     @test_throws ArgumentError LinearInterpolation(1:10, rand(10))

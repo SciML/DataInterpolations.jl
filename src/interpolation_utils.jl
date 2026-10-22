@@ -328,6 +328,13 @@ function munge_data(U::AbstractMatrix, t::AbstractVector)
     TU = nonmissingtype(eltype(U))
     Tt = nonmissingtype(eltype(t))
     if TU === eltype(U) && Tt === eltype(t)
+        if !issorted(t; by = ForwardDiff.value)
+            throw(
+                ArgumentError(
+                    "The second argument (`t`), which is used for the interpolation domain, is not sorted."
+                )
+            )
+        end
         return U, t
     end
 
@@ -347,6 +354,13 @@ function munge_data(U::AbstractArray{T, N}, t) where {T, N}
     TU = nonmissingtype(eltype(U))
     Tt = nonmissingtype(eltype(t))
     if TU === eltype(U) && Tt === eltype(t)
+        if !issorted(t; by = ForwardDiff.value)
+            throw(
+                ArgumentError(
+                    "The second argument (`t`), which is used for the interpolation domain, is not sorted."
+                )
+            )
+        end
         return U, t
     end
 
