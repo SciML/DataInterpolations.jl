@@ -7,6 +7,7 @@ using Unitful
 using LinearAlgebra
 using Symbolics
 using StaticArrays: SVector, @SVector
+using OffsetArrays: OffsetArray
 
 function test_interpolation_type(T)
     @test T <: DataInterpolations.AbstractInterpolation
@@ -2251,6 +2252,20 @@ f_cubic_spline = c -> square(CubicSpline, c)
             @test t === t
         end
     end
+end
+
+@testset "munge_data rejects offset t" begin
+    # `ConstantInterpolation` (and every other type) funnels through `munge_data`,
+    # which must reject a non-one-based `t` rather than silently misinterpreting
+    # its indices (https://github.com/SciML/DataInterpolations.jl, candidate 6).
+    t = collect(1.0:10.0)
+    u = sin.(t)
+    @test_throws ArgumentError DataInterpolations.munge_data(u, OffsetArray(t, 1))
+    @test_throws ArgumentError ConstantInterpolation(u, OffsetArray(t, 1))
+    @test_throws ArgumentError DataInterpolations.munge_data([u u]', OffsetArray(t, 1))
+    @test_throws ArgumentError DataInterpolations.munge_data(
+        reshape(vcat(u, u), 2, 1, 10), OffsetArray(t, 1)
+    )
 end
 
 @testset "user error" begin

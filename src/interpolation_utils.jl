@@ -295,6 +295,7 @@ function munge_data(
         u::AbstractVector, t::AbstractVector;
         check_sorted = t, sorted_arg_name = ("second", "t")
     )
+    Base.require_one_based_indexing(t)
     length(t) == length(u) ||
         throw(ArgumentError("`u`, `t` length mismatch: length(t) ≠ length(u)"))
 
@@ -322,6 +323,7 @@ function munge_data(
 end
 
 function munge_data(U::AbstractMatrix, t::AbstractVector)
+    Base.require_one_based_indexing(t)
     length(t) == size(U, 2) ||
         throw(ArgumentError("`u`, `t` length mismatch: length(t) ≠ size(U, 2)"))
 
@@ -341,6 +343,7 @@ function munge_data(U::AbstractMatrix, t::AbstractVector)
 end
 
 function munge_data(U::AbstractArray{T, N}, t) where {T, N}
+    Base.require_one_based_indexing(t)
     length(t) == size(U, N) ||
         throw(ArgumentError("`u`, `t` length mismatch: length(t) ≠ size(U, N)"))
 
