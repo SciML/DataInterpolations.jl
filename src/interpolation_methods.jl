@@ -337,7 +337,7 @@ function _linear_uniform_interpolate(
     if !(in_cell && spacing_ok)
         return _linear_slope_interpolate(A, t, iguess)
     end
-    A.iguesser.idx_prev[] = idx0 + 1
+    A.iguesser.linear_lookup || (A.iguesser.idx_prev[] = idx0 + 1)
     α = (t - t1) * props.inv_step
     @inbounds u1 = A.u[idx0 + 1]
     @inbounds u2 = A.u[idx0 + 2]
