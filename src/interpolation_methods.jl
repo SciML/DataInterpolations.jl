@@ -371,7 +371,7 @@ function (A::LinearInterpolation{<:AbstractVector{<:Number}})(
             )
         )
     end
-    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+    if !Base.has_offset_axes(out, tt) && _sorted_batch_extrapolation_ok(A) && issorted(tt)
         _linear_eval_sorted!(out, A, tt)
     else
         map!(A, out, tt)
@@ -496,7 +496,7 @@ function (A::QuadraticInterpolation{<:AbstractVector{<:Number}})(
             )
         )
     end
-    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+    if !Base.has_offset_axes(out, tt) && _sorted_batch_extrapolation_ok(A) && issorted(tt)
         _quadratic_eval_sorted!(out, A, tt)
     else
         map!(A, out, tt)
@@ -687,7 +687,7 @@ function (A::AkimaInterpolation{<:AbstractVector{<:Number}})(
             )
         )
     end
-    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+    if !Base.has_offset_axes(out, tt) && _sorted_batch_extrapolation_ok(A) && issorted(tt)
         _akima_eval_sorted!(out, A, tt)
     else
         map!(A, out, tt)
@@ -818,7 +818,7 @@ function (A::ConstantInterpolation{<:AbstractVector})(
             )
         )
     end
-    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+    if !Base.has_offset_axes(out, tt) && _sorted_batch_extrapolation_ok(A) && issorted(tt)
         _constant_eval_sorted!(out, A, tt)
     else
         map!(A, out, tt)
@@ -968,7 +968,7 @@ function (A::QuadraticSpline{<:AbstractVector{<:Number}})(
             )
         )
     end
-    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+    if !Base.has_offset_axes(out, tt) && _sorted_batch_extrapolation_ok(A) && issorted(tt)
         _quadraticspline_eval_sorted!(out, A, tt)
     else
         map!(A, out, tt)
@@ -1128,7 +1128,7 @@ function (A::CubicSpline{<:AbstractVector{<:Number}})(
             )
         )
     end
-    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+    if !Base.has_offset_axes(out, tt) && _sorted_batch_extrapolation_ok(A) && issorted(tt)
         _cubicspline_eval_sorted!(out, A, tt)
     else
         map!(A, out, tt)
@@ -1385,7 +1385,7 @@ function (A::CubicHermiteSpline{<:AbstractVector{<:Number}})(
             )
         )
     end
-    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+    if !Base.has_offset_axes(out, tt) && _sorted_batch_extrapolation_ok(A) && issorted(tt)
         _cubic_hermite_eval_sorted!(out, A, tt)
     else
         map!(A, out, tt)
@@ -1545,7 +1545,7 @@ function (A::QuinticHermiteSpline{<:AbstractVector{<:Number}})(
             )
         )
     end
-    if _sorted_batch_extrapolation_ok(A) && issorted(tt)
+    if !Base.has_offset_axes(out, tt) && _sorted_batch_extrapolation_ok(A) && issorted(tt)
         _quintic_hermite_eval_sorted!(out, A, tt)
     else
         map!(A, out, tt)

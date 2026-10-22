@@ -7,6 +7,7 @@ using Unitful
 using LinearAlgebra
 using Symbolics
 using StaticArrays: SVector, @SVector
+using OffsetArrays: OffsetArray
 
 function test_interpolation_type(T)
     @test T <: DataInterpolations.AbstractInterpolation
@@ -2194,6 +2195,54 @@ end
         y = interp(x)
         @test y isa Array{Float64, 4}
         @test size(y) == (2, 3, 4, 3)
+    end
+end
+
+@testset "OffsetArray batch safety" begin
+    # The sorted-batch kernels behind `itp(out, ts)` index `out`/`tt` as if they
+    # were one-based, only checking `length`. A non-one-based `out` or `ts` must
+    # route to the `map!` fallback (which already handles arbitrary axes
+    # correctly, as it does on master for unsorted `tt`) instead of entering the
+    # `@inbounds` kernel and reading/writing out of bounds
+    # (https://github.com/SciML/DataInterpolations.jl, candidate 1).
+    t = collect(1.0:10.0)
+    u = sin.(t)
+    mk = (
+        LinearInterpolation = (u, t) -> LinearInterpolation(u, t),
+        QuadraticInterpolation = (u, t) -> QuadraticInterpolation(u, t),
+        AkimaInterpolation = (u, t) -> AkimaInterpolation(u, t),
+        ConstantInterpolation = (u, t) -> ConstantInterpolation(u, t),
+        QuadraticSpline = (u, t) -> QuadraticSpline(u, t),
+        CubicSpline = (u, t) -> CubicSpline(u, t),
+        CubicHermiteSpline = (u, t) -> CubicHermiteSpline(cos.(t), u, t),
+        QuinticHermiteSpline = (u, t) -> QuinticHermiteSpline(-u, cos.(t), u, t),
+    )
+    q_sorted = [1.5, 2.5, 3.5]
+    q_unsorted = [3.5, 1.5, 2.5]
+    for (name, f) in pairs(mk)
+        A = f(u, t)
+        @testset "$name" begin
+            for q in (q_sorted, q_unsorted)
+                ref = A.(q)
+                # offset tt, 1-based out
+                out1 = zeros(3)
+                A(out1, OffsetArray(copy(q), 1))
+                @test out1 ≈ ref
+                # 1-based tt, offset out
+                out2 = OffsetArray(zeros(3), 1)
+                A(out2, q)
+                @test collect(out2) ≈ ref
+                # both offset
+                out3 = OffsetArray(zeros(3), 1)
+                A(out3, OffsetArray(copy(q), 1))
+                @test collect(out3) ≈ ref
+            end
+            # one-based in, one-based out must still produce correct values
+            # (and takes the sorted fast path for sorted input)
+            out = zeros(3)
+            A(out, q_sorted)
+            @test out ≈ A.(q_sorted)
+        end
     end
 end
 
