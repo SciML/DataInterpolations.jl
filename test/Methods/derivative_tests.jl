@@ -173,6 +173,11 @@ end
         LagrangeInterpolation; args = [u, t],
         name = "Lagrange Interpolation (Vector of Matrices)"
     )
+    # The exact second derivative at a node, whatever the integer type of `order`.
+    A = LagrangeInterpolation([1.0, 4.0, 9.0, 16.0], [1.0, 2.0, 3.0, 4.0])
+    for order in (2, Int32(2), UInt8(2))
+        @test derivative(A, 2.0, order) == 2.0
+    end
 end
 
 @testset "Akima Interpolation" begin
