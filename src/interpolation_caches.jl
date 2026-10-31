@@ -407,8 +407,16 @@ function _akima_init!(
                 bdefault = (m[i + 3] + m[i]) / 2
             end
             w12 = w1 + w2
+            # Weights up to `tol / 2` are rounding noise and give `bdefault`, weights above
+            # `tol` the weighted slope; the band between blends the two linearly so `b` is
+            # continuous in `u`. Scaling by `s = max(w1, w2)` keeps `w * m` finite.
             # `ifelse`, not `?:`, so `u` may hold symbolic (e.g. Symbolics.Num) entries.
-            b[i] = ifelse(w12 > tol, (w1 * m[i + 1] + w2 * m[i + 2]) / w12, bdefault)
+            full = w12 > tol
+            part = 2 * w12 > tol
+            s = ifelse(part, ifelse(w1 > w2, w1, w2), one(w12))
+            bw = (w1 / s * m[i + 1] + w2 / s * m[i + 2]) / ifelse(part, w12 / s, one(w12))
+            λ = 2 * w12 / ifelse(part, tol, one(tol)) - 1
+            b[i] = ifelse(full, bw, ifelse(part, bdefault + λ * (bw - bdefault), bdefault))
         end
 
         for i in 1:(n - 1)
