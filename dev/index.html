@@ -26,9 +26,9 @@ Build Info:
   Official https://julialang.org release
 Platform Info:
   OS: Linux (x86_64-linux-gnu)
-  CPU: 4 × AMD EPYC 9V45 96-Core Processor
+  CPU: 4 × AMD EPYC 9V74 80-Core Processor
   WORD_SIZE: 64
-  LLVM: libLLVM-20.1.8 (ORCJIT, znver5)
+  LLVM: libLLVM-20.1.8 (ORCJIT, znver4)
   GC: Built with stock GC
 Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></details><details><summary>A more complete overview of all dependencies and their versions is also provided.</summary><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr32"><span class="sgr1">Status</span></span> `~/work/DataInterpolations.jl/DataInterpolations.jl/docs/Manifest.toml`
   <span class="sgr90">[47edcb42] </span>ADTypes v1.24.0
@@ -45,10 +45,10 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[aae01518] </span>BandedMatrices v1.14.0
   <span class="sgr90">[e2ed5e7c] </span>Bijections v0.2.2
   <span class="sgr90">[b2a6c25c] </span>BinaryHeaps v1.1.0
-  <span class="sgr90">[caf10ac8] </span>BipartiteGraphs v0.1.14
+  <span class="sgr90">[caf10ac8] </span>BipartiteGraphs v0.1.15
   <span class="sgr90">[8e7c35d0] </span>BlockArrays v1.10.3
   <span class="sgr90">[70df07ce] </span>BracketingNonlinearSolve v1.12.8
-  <span class="sgr90">[d360d2e6] </span>ChainRulesCore v1.26.7
+  <span class="sgr90">[d360d2e6] </span>ChainRulesCore v1.26.8
   <span class="sgr90">[944b1d66] </span>CodecZlib v0.7.9
   <span class="sgr90">[35d6a980] </span>ColorSchemes v3.31.0
   <span class="sgr90">[3da002f7] </span>ColorTypes v0.12.5
@@ -71,7 +71,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[864edb3b] </span>DataStructures v0.19.6
   <span class="sgr90">[e2d170a0] </span>DataValueInterfaces v1.0.0
   <span class="sgr90">[8bb1440f] </span>DelimitedFiles v1.9.1
-  <span class="sgr90">[2b5f629d] </span>DiffEqBase v7.21.4
+  <span class="sgr90">[2b5f629d] </span>DiffEqBase v7.21.5
   <span class="sgr90">[459566f4] </span>DiffEqCallbacks v4.19.5
   <span class="sgr90">[163ba53b] </span>DiffResults v1.1.0
   <span class="sgr90">[b552c78f] </span>DiffRules v1.16.0
@@ -115,7 +115,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[82899510] </span>IteratorInterfaceExtensions v1.0.0
   <span class="sgr90">[1019f520] </span>JLFzf v0.1.11
   <span class="sgr90">[692b3bcd] </span>JLLWrappers v1.8.0
-  <span class="sgr90">[682c06a0] </span>JSON v1.13.1
+  <span class="sgr90">[682c06a0] </span>JSON v1.13.4
   <span class="sgr90">[ae98c720] </span>Jieko v0.2.1
   <span class="sgr90">[ccbc3e58] </span>JumpProcesses v10.0.1
   <span class="sgr90">[ba0b0d4f] </span>Krylov v0.10.12
@@ -149,18 +149,18 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[6fe1bfb0] </span>OffsetArrays v1.17.0
   <span class="sgr90">[bac558e1] </span>OrderedCollections v2.0.3
   <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v7.8.1
-  <span class="sgr90">[6ad6398a] </span>OrdinaryDiffEqBDF v2.4.13
-  <span class="sgr90">[bbf590c4] </span>OrdinaryDiffEqCore v4.19.0
+  <span class="sgr90">[6ad6398a] </span>OrdinaryDiffEqBDF v2.4.14
+  <span class="sgr90">[bbf590c4] </span>OrdinaryDiffEqCore v4.19.1
   <span class="sgr90">[50262376] </span>OrdinaryDiffEqDefault v2.6.2
-  <span class="sgr90">[4302a76b] </span>OrdinaryDiffEqDifferentiation v3.12.4
-  <span class="sgr90">[127b3ac7] </span>OrdinaryDiffEqNonlinearSolve v2.9.9
+  <span class="sgr90">[4302a76b] </span>OrdinaryDiffEqDifferentiation v3.12.5
+  <span class="sgr90">[127b3ac7] </span>OrdinaryDiffEqNonlinearSolve v2.9.10
   <span class="sgr90">[43230ef6] </span>OrdinaryDiffEqRosenbrock v2.7.5
   <span class="sgr90">[b4bd8bb3] </span>OrdinaryDiffEqRosenbrockTableaus v2.4.2
   <span class="sgr90">[2d112036] </span>OrdinaryDiffEqSDIRK v2.9.8
   <span class="sgr90">[b1df2697] </span>OrdinaryDiffEqTsit5 v2.1.5
   <span class="sgr90">[79d7bb75] </span>OrdinaryDiffEqVerner v2.4.2
   <span class="sgr90">[90014a1f] </span>PDMats v0.11.41
-  <span class="sgr90">[69de0a69] </span>Parsers v3.0.3
+  <span class="sgr90">[69de0a69] </span>Parsers v3.0.5
   <span class="sgr90">[ccf2f8ad] </span>PlotThemes v3.3.0
   <span class="sgr90">[995b91a9] </span>PlotUtils v1.5.1
   <span class="sgr90">[91a5bcdd] </span>Plots v1.41.7
@@ -177,7 +177,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[795d4caa] </span>ReadOnlyDicts v1.0.1
   <span class="sgr90">[3cdcf5f2] </span>RecipesBase v1.4.0
   <span class="sgr90">[01d81517] </span>RecipesPipeline v0.6.12
-  <span class="sgr90">[731186ca] </span>RecursiveArrayTools v4.5.5
+  <span class="sgr90">[731186ca] </span>RecursiveArrayTools v4.5.6
   <span class="sgr90">[189a3867] </span>Reexport v1.2.2
   <span class="sgr90">[2792f1a3] </span>RegistryInstances v0.1.0
   <span class="sgr90">[05181044] </span>RelocatableFolders v1.0.1
@@ -213,7 +213,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[2913bbd2] </span>StatsBase v0.34.13
   <span class="sgr90">[4c63d2b9] </span>StatsFuns v2.2.1
   <span class="sgr90">[892a3eda] </span>StringManipulation v0.6.1
-  <span class="sgr90">[ec057cc2] </span>StructUtils v2.11.2
+  <span class="sgr90">[ec057cc2] </span>StructUtils v2.12.0
   <span class="sgr90">[2efcf032] </span>SymbolicIndexingInterface v0.3.55
   <span class="sgr90">[19f23fe9] </span>SymbolicLimits v1.2.2
   <span class="sgr90">[d1185830] </span>SymbolicUtils v4.54.0
@@ -238,7 +238,7 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[b22a6f82] </span>FFMPEG_jll v9.0.2+0
   <span class="sgr90">[a3f928ae] </span>Fontconfig_jll v2.18.3+0
   <span class="sgr90">[d7e528f0] </span>FreeType2_jll v2.15.0+0
-  <span class="sgr90">[559328eb] </span>FriBidi_jll v1.0.18+0
+  <span class="sgr90">[559328eb] </span>FriBidi_jll v1.0.19+0
   <span class="sgr90">[0656b61e] </span>GLFW_jll v3.5.1+0
   <span class="sgr90">[d2c73de3] </span>GR_jll v0.73.27+0
 <span class="sgr33">⌅</span> <span class="sgr90">[b0724c58] </span>GettextRuntime_jll v0.22.4+0
@@ -365,4 +365,4 @@ Threads: 1 default, 1 interactive, 1 GC (on 4 virtual cores)</code></pre></detai
   <span class="sgr90">[8e850b90] </span>libblastrampoline_jll v5.15.0+0
   <span class="sgr90">[8e850ede] </span>nghttp2_jll v1.70.0+0
   <span class="sgr90">[3f19e933] </span>p7zip_jll v17.8.3+0
-<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr33">⌅</span> have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v10.1.4/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v10.1.4/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Friday 30 October 2026 12:05">Friday 30 October 2026</span>. Using Julia version 1.13.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr33">⌅</span> have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre></details><p>You can also download the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v10.1.4/assets/Manifest.toml">manifest</a> file and the <a href="https://github.com/SciML/DataInterpolations.jl/tree/gh-pages/v10.1.4/assets/Project.toml">project</a> file.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="methods/">Interpolation methods »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Saturday 31 October 2026 11:16">Saturday 31 October 2026</span>. Using Julia version 1.13.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
