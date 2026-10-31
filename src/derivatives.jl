@@ -387,7 +387,7 @@ function _derivative(A::BSplineInterpolation{<:AbstractVector{<:Number}}, t::Num
         denom = A.k[A.d + 2] - A.k[2]
         ducum = denom != 0 ? (A.c[2] - A.c[1]) / denom : zero(eltype(A.u))
     else
-        @inbounds for i in 1:(n - 1)
+        @inbounds for i in max(1, offset):min(n - 1, offset + m - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
             l = i + 1 - offset
             if denom != 0 && 1 <= l <= m
@@ -413,7 +413,7 @@ function _derivative(
         denom = A.k[A.d + 2] - A.k[2]
         ducum = denom != 0 ? (A.c[2] - A.c[1]) / denom : zero(A.u[1])
     else
-        @inbounds for i in 1:(n - 1)
+        @inbounds for i in max(1, offset):min(n - 1, offset + m - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
             l = i + 1 - offset
             if denom != 0 && 1 <= l <= m
@@ -441,7 +441,7 @@ function _derivative(
             ducum = (_u_view(A.c, 2) - _u_view(A.c, 1)) / denom
         end
     else
-        @inbounds for i in 1:(n - 1)
+        @inbounds for i in max(1, offset):min(n - 1, offset + m - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
             l = i + 1 - offset
             if denom != 0 && 1 <= l <= m
@@ -464,7 +464,7 @@ function _derivative(A::BSplineApprox{<:AbstractVector{<:Number}}, t::Number, ig
         denom = A.k[A.d + 2] - A.k[2]
         ducum = denom != 0 ? (A.c[2] - A.c[1]) / denom : zero(eltype(A.u))
     else
-        @inbounds for i in 1:(A.h - 1)
+        @inbounds for i in max(1, offset):min(A.h - 1, offset + m - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
             l = i + 1 - offset
             if denom != 0 && 1 <= l <= m
@@ -489,7 +489,7 @@ function _derivative(
         denom = A.k[A.d + 2] - A.k[2]
         ducum = denom != 0 ? (A.c[2] - A.c[1]) / denom : zero(A.u[1])
     else
-        @inbounds for i in 1:(A.h - 1)
+        @inbounds for i in max(1, offset):min(A.h - 1, offset + m - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
             l = i + 1 - offset
             if denom != 0 && 1 <= l <= m
@@ -516,7 +516,7 @@ function _derivative(
             ducum = (_u_view(A.c, 2) - _u_view(A.c, 1)) / denom
         end
     else
-        @inbounds for i in 1:(A.h - 1)
+        @inbounds for i in max(1, offset):min(A.h - 1, offset + m - 1)
             denom = A.k[i + A.d + 1] - A.k[i + 1]
             l = i + 1 - offset
             if denom != 0 && 1 <= l <= m

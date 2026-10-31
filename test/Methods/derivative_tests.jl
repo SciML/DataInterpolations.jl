@@ -8,6 +8,30 @@ using CurveFit
 import ForwardDiff
 using LinearAlgebra
 
+mutable struct CountingVector{T, V <: AbstractVector{T}} <: AbstractVector{T}
+    v::V
+    reads::Int
+end
+CountingVector(v) = CountingVector(v, 0)
+Base.size(c::CountingVector) = size(c.v)
+Base.getindex(c::CountingVector, i::Int) = (c.reads += 1; c.v[i])
+function knot_reads(A, t, order)
+    B = if A isa BSplineInterpolation
+        BSplineInterpolation(
+            A.u, A.t, A.d, CountingVector(A.k), A.c, A.sc, A.knotVecType,
+            A.extrapolation_left, A.extrapolation_right, A.t_props,
+        )
+    else
+        BSplineApprox(
+            A.u, A.t, A.d, A.h, CountingVector(A.k), A.c, A.sc, A.knotVecType,
+            A.extrapolation_left, A.extrapolation_right, A.t_props,
+        )
+    end
+    v = derivative(B, t, order)
+    @test v == derivative(A, t, order)
+    return B.k.reads
+end
+
 function test_derivatives(method; args = [], kwargs = [], name::String)
     kwargs_extrapolation = (method == Curvefit) ?
         [:extrapolate => true] :
@@ -378,6 +402,55 @@ end
         ],
         name = "BSpline Approx (Arclen, Average): AbstractArray"
     )
+
+    # Restricting the B-spline derivative accumulation to the nonzero basis
+    # window must preserve values for every supported u shape and order.
+    @testset "BSpline derivative window matches autodiff / FD" begin
+        t_win = collect(range(0.0, 10.0; length = 40))
+        u_sc = sin.(t_win)
+        u_mat = [sin.(t_win)'; cos.(t_win)']
+        u_vov = [[sin(ti), cos(ti)] for ti in t_win]
+        pts = collect(range(0.25, 9.75; length = 17))
+        cases = (
+            ("Interp scalar", BSplineInterpolation(u_sc, t_win, 3, :Average), true),
+            ("Interp matrix", BSplineInterpolation(u_mat, t_win, 3, :Average), false),
+            ("Interp vov", BSplineInterpolation(u_vov, t_win, 3, :Average), false),
+            ("Approx scalar", BSplineApprox(u_sc, t_win, 3, 12, :Average), true),
+            ("Approx matrix", BSplineApprox(u_mat, t_win, 3, 12, :Average), false),
+            ("Approx vov", BSplineApprox(u_vov, t_win, 3, 12, :Average), false),
+        )
+        for (name, A, is_scalar) in cases
+            @testset "$name" begin
+                for t_eval in pts
+                    d1 = derivative(A, t_eval, 1)
+                    d2 = derivative(A, t_eval, 2)
+                    if is_scalar
+                        @test d1 ≈ ForwardDiff.derivative(A, t_eval) rtol = 1.0e-8 atol = 1.0e-8
+                        @test d2 ≈
+                            ForwardDiff.derivative(τ -> ForwardDiff.derivative(A, τ), t_eval) rtol = 1.0e-6 atol = 1.0e-6
+                    else
+                        @test d1 ≈ central_fdm(5, 1; geom = true)(A, t_eval) rtol = 1.0e-6 atol = 1.0e-6
+                        @test d2 ≈
+                            central_fdm(5, 1; geom = true)(τ -> derivative(A, τ), t_eval) rtol = 1.0e-5 atol = 1.0e-5
+                    end
+                end
+            end
+        end
+    end
+
+    @testset "BSpline derivative reads O(degree) knots" begin
+        for n in (100, 10_000)
+            t = collect(range(0.0, 100.0; length = n))
+            u = sin.(t)
+            for A in (
+                        BSplineInterpolation(u, t, 3, :Average),
+                        BSplineApprox(u, t, 3, n ÷ 3, :Average),
+                    ),
+                    order in (1, 2)
+                @test knot_reads(A, t[n ÷ 2] + 0.01, order) < 200
+            end
+        end
+    end
 end
 
 @testset "Cubic Hermite Spline" begin

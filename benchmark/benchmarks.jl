@@ -58,6 +58,23 @@ SUITE["derivative"]["linear"] = @benchmarkable DataInterpolations.derivative(
     $lin, 5.4321
 )
 
+# Large-n BSpline derivatives: only the O(degree) nonzero window should contribute.
+const n_bs = 10_000
+const t_bs = collect(range(0.0, 100.0; length = n_bs))
+const u_bs = sin.(t_bs)
+const bs_interp = BSplineInterpolation(u_bs, t_bs, 3, :Average)
+const bs_approx = BSplineApprox(u_bs, t_bs, 3, n_bs ÷ 3, :Average)
+const t_bs_mid = t_bs[n_bs ÷ 2] + 0.01
+SUITE["derivative"]["bspline_interp_d1"] = @benchmarkable DataInterpolations.derivative(
+    $bs_interp, $t_bs_mid, 1
+)
+SUITE["derivative"]["bspline_interp_d2"] = @benchmarkable DataInterpolations.derivative(
+    $bs_interp, $t_bs_mid, 2
+)
+SUITE["derivative"]["bspline_approx_d1"] = @benchmarkable DataInterpolations.derivative(
+    $bs_approx, $t_bs_mid, 1
+)
+
 # =============================================================================
 # Vector-valued output
 # =============================================================================
