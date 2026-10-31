@@ -383,11 +383,12 @@ function get_idx(
     tvec = A.t
     ub = length(tvec) + ub_shift
     # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
-    # falls back to the cached `idx_prev` otherwise.
+    # falls back to the cached `idx_prev` otherwise. Only that fallback reads
+    # `idx_prev`, so skip the write (shared state across threads) when unused.
     hint = iguess(t)
     raw = _dispatch_search(A, tvec, t, hint, side)
     idx = clamp(raw + idx_shift, lb, ub)
-    iguess.idx_prev[] = idx
+    iguess.linear_lookup || (iguess.idx_prev[] = idx)
     return idx
 end
 
