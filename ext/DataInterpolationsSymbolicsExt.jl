@@ -10,6 +10,10 @@ Base.nameof(interp::AbstractInterpolation) = :Interpolation
 
 @static if pkgversion(Symbolics) >= v"7"
     @register_symbolic derivative(interp::AbstractInterpolation, t, order::Integer) false
+    # The generic two-argument `derivative` evaluates the first derivative numerically, so a
+    # symbolic time is sent to the registered three-argument term instead.
+    derivative(interp::AbstractInterpolation, t::Union{Num, SymbolicUtils.BasicSymbolic}) =
+        derivative(interp, t, 1)
     function SymbolicUtils.promote_symtype(
             ::typeof(derivative), Ti::SymbolicUtils.TypeT,
             Tt::SymbolicUtils.TypeT,
