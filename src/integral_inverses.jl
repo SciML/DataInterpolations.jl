@@ -32,6 +32,8 @@ Creates the inverted integral interpolation object from the given interpolation.
   - `A.u` must be a number type (on which an ordering is defined)
   - This is currently only supported for `ConstantInterpolation` and `LinearInterpolation`
 
+The inverse takes its `cache_search` setting from `A`, since its derivative evaluates `A`.
+
 # Arguments
 
   - `A`: interpolation object satisfying the above requirements
@@ -91,6 +93,9 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     itp::itpType
+    # Inherited from `itp`: the inverse's derivative evaluates `itp`, so only a
+    # matching setting can make evaluation write-free.
+    cache_search::Bool
     function LinearInterpolationIntInv(
             u, t, A, extrapolation_left, extrapolation_right, t_props,
         )
@@ -100,7 +105,7 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType} <:
             typeof(t_props),
         }(
             u, t, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, A
+            Guesser(t), t_props, kind, A, _cache_search(A)
         )
     end
 end
@@ -172,6 +177,9 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     itp::itpType
+    # Inherited from `itp`: the inverse's derivative evaluates `itp`, so only a
+    # matching setting can make evaluation write-free.
+    cache_search::Bool
     function ConstantInterpolationIntInv(
             u, t, A, extrapolation_left, extrapolation_right, t_props,
         )
@@ -181,7 +189,7 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType} <:
             typeof(t_props),
         }(
             u, t, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, A
+            Guesser(t), t_props, kind, A, _cache_search(A)
         )
     end
 end
