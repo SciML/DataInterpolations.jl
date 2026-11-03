@@ -383,35 +383,52 @@ function get_idx(
     tvec = A.t
     ub = length(tvec) + ub_shift
     # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
-    # falls back to the cached `idx_prev` otherwise. Only that fallback reads
-    # `idx_prev`, so skip the write (shared state across threads) when unused.
-    hint = iguess(t)
+    # falls back to the cached `idx_prev` otherwise. With `cache_search = false`
+    # that fallback is replaced by an unhinted search, so nothing reads `idx_prev`.
+    hint = iguess.linear_lookup || _cache_search(A) ? iguess(t) : nothing
     raw = _dispatch_search(A, tvec, t, hint, side)
     idx = clamp(raw + idx_shift, lb, ub)
-    iguess.linear_lookup || (iguess.idx_prev[] = idx)
+    _record_hint!(A, iguess, idx)
     return idx
 end
+
+# Whether lookups on `A` start from the interval found by the previous lookup.
+# Subtypes without a `cache_search` field keep the stored hint.
+@inline _cache_search(A) = hasfield(typeof(A), :cache_search) ? getfield(A, :cache_search) : true
+
+# Store the found interval for the next lookup, only where the guesser reads it
+# (`!linear_lookup`) and `A` keeps it: the write is shared state across threads.
+@inline function _record_hint!(A, iguess::Guesser, idx)
+    !iguess.linear_lookup && _cache_search(A) && (iguess.idx_prev[] = idx)
+    return nothing
+end
+@inline _record_hint!(A, ::Integer, idx) = nothing
 
 # `KIND_UNIFORM_STEP` needs the props for its closed form, so reconstruct the
 # (isbits) `Auto` from `A.t_props`; other kinds dispatch on the bare enum. The
 # branch sits at the call so each arm has a concrete first arg (a hoisted
 # `Union{Auto,StrategyKind}` would break inference); both return `Int`.
+# `hint = nothing` selects FindFirstFunctions' unhinted search.
 @inline function _dispatch_search(A, tvec, t, hint, side)
+    h = _hint_args(hint)
     if A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
         auto = FindFirstFunctions.Auto(A.t_props)
         return side == :last ?
-            FindFirstFunctions.searchsorted_last(auto, tvec, t, hint) :
+            FindFirstFunctions.searchsorted_last(auto, tvec, t, h...) :
             side == :first ?
-            FindFirstFunctions.searchsorted_first(auto, tvec, t, hint) :
+            FindFirstFunctions.searchsorted_first(auto, tvec, t, h...) :
             error("side must be :first or :last")
     else
         return side == :last ?
-            FindFirstFunctions.searchsorted_last(A.kind, tvec, t, hint) :
+            FindFirstFunctions.searchsorted_last(A.kind, tvec, t, h...) :
             side == :first ?
-            FindFirstFunctions.searchsorted_first(A.kind, tvec, t, hint) :
+            FindFirstFunctions.searchsorted_first(A.kind, tvec, t, h...) :
             error("side must be :first or :last")
     end
 end
+
+@inline _hint_args(hint::Integer) = (hint,)
+@inline _hint_args(::Nothing) = ()
 
 cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
 
