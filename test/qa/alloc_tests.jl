@@ -119,4 +119,25 @@ using StaticArrays: SVector
         )
         @test_nowarn test_allocs(A2_s, 0.7)
     end
+
+    # The unhinted lookup taken with `cache_search = false` on knots that do not look
+    # linear (#618) is allocation-free and inferred too.
+    @testset "cache_search = false on irregular knots" begin
+        for n in (12, 40)
+            t = collect(100 .* range(0, 1; length = n) .^ 3)
+            u = sin.(t ./ 7)
+            for A in (
+                    LinearInterpolation(u, t; cache_search = false),
+                    CubicSpline(u, t; cache_search = false),
+                    AkimaInterpolation(u, t; cache_search = false),
+                    ConstantInterpolation(u, t; cache_search = false),
+                )
+                @test !A.iguesser.linear_lookup
+                @test_nowarn test_allocs(A, 37.3)
+                @test_nowarn test_derivative_allocs(A, 37.3)
+                @test @inferred(A(37.3)) isa Float64
+                @test @inferred(DataInterpolations.derivative(A, 37.3)) isa Float64
+            end
+        end
+    end
 end
