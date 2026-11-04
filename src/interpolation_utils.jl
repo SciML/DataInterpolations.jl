@@ -382,16 +382,19 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
-    # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
-    # falls back to the cached `idx_prev` otherwise. With `cache_search = false`
-    # that fallback is replaced by a binary search, so nothing reads `idx_prev`.
-    raw = if iguess.linear_lookup || _cache_search(A)
-        _dispatch_search(A, tvec, t, iguess(t), side)
-    else
-        _binary_search(tvec, t, side)
+    # With `cache_search = false`, knots that do not look linear use a binary
+    # search, so nothing reads or writes `idx_prev`.
+    if !(iguess.linear_lookup || _cache_search(A))
+        return clamp(_binary_search(tvec, t, side) + idx_shift, lb, ub)
     end
+    # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
+    # falls back to the cached `idx_prev` otherwise. Only that fallback reads
+    # `idx_prev`, so skip the write (shared state across threads) when unused.
+    # Keep this the only `_dispatch_search` call: each call inlines every kernel.
+    hint = iguess(t)
+    raw = _dispatch_search(A, tvec, t, hint, side)
     idx = clamp(raw + idx_shift, lb, ub)
-    _record_hint!(A, iguess, idx)
+    iguess.linear_lookup || (iguess.idx_prev[] = idx)
     return idx
 end
 
