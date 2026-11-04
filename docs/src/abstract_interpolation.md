@@ -32,6 +32,11 @@ For the generic integral interface, the subtype also provides:
 Construct `iguesser` with `FindFirstFunctions.Guesser(t)`. The `t` values must remain ordered,
 and `u` must store one sample per `t` entry along its last dimension.
 
+A subtype may also provide `cache_search::Bool`. When it is `false`, the generic interval
+search never reads or writes the interval stored in `iguesser`, so evaluation writes nothing
+to the interpolation (see [Sharing an interpolation across threads](@ref)). A subtype
+without the field keeps the stored interval.
+
 ## Developer hooks
 
 The following methods are the implementation hooks used by the generic interface. They are

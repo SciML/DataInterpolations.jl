@@ -137,3 +137,26 @@ DataInterpolations.integral(A2, 200.0, 300.0)
 !!! note
 
     If the times provided in the integral go beyond the range of the time points provided during interpolation, it uses extrapolation methods to compute the values, and hence the integral can be misrepresentative and might not reflect the true nature of the data.
+
+## Sharing an interpolation across threads
+
+On knots that are not close to evenly spaced, each lookup starts from the interval found
+by the previous one. This makes evaluating at increasing times (as an ODE solver does)
+fast, but the interval is stored in the interpolation, so every evaluation and derivative
+writes to it. When several threads evaluate one interpolation at once, those writes are a
+data race: results do not depend on the stored interval, which only seeds the search, but
+the threads contend for it.
+
+Pass `cache_search = false` to make evaluation write nothing to the interpolation. Lookups
+on unevenly spaced knots then use a binary search, which is slower for correlated queries
+but no slower for scattered ones. On evenly spaced knots the setting has no effect, since
+the lookup there never uses the stored interval. Alternatively, give each task its own copy
+of the interpolation.
+
+```@example interface
+A3 = CubicSpline(u, t; cache_search = false)
+A3(100.0) == A1(100.0)
+```
+
+An integral inverse ([`DataInterpolations.invert_integral`](@ref)) takes its setting from
+the interpolation it inverts.
