@@ -226,7 +226,7 @@ end
     u = sin.(t ./ 7)
     for method in (LinearInterpolation, CubicSpline)
         name = "$method, cache_search = false"
-        test_mooncake_ugrad(method, u, t; kwargs = [:cache_search => false], name)
+        test_mooncake_ugrad(method, u, t; kwargs = (; cache_search = false), name)
         A = method(u, t; cache_search = false, extrapolation = ExtrapolationType.Extension)
         test_mooncake_tgrad(A, t; name)
     end

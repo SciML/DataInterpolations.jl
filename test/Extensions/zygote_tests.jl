@@ -253,11 +253,11 @@ end
     t = collect(100 .* range(0, 1; length = 20) .^ 3)
     u = sin.(t ./ 7)
     test_zygote(
-        LinearInterpolation, u, t; kwargs = [:cache_search => false],
+        LinearInterpolation, u, t; kwargs = (; cache_search = false),
         name = "Linear Interpolation, cache_search = false"
     )
     test_zygote(
-        CubicSpline, u, t; kwargs = [:cache_search => false],
+        CubicSpline, u, t; kwargs = (; cache_search = false),
         name = "Cubic Spline, cache_search = false"
     )
 end
