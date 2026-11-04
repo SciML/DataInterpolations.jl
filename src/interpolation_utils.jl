@@ -382,14 +382,33 @@ function get_idx(
     )
     tvec = A.t
     ub = length(tvec) + ub_shift
+    # With `cache_search = false`, knots that do not look linear use a binary
+    # search, so nothing reads or writes `idx_prev`.
+    if !(iguess.linear_lookup || _cache_search(A))
+        return clamp(_binary_search(tvec, t, side) + idx_shift, lb, ub)
+    end
     # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
-    # falls back to the cached `idx_prev` otherwise.
+    # falls back to the cached `idx_prev` otherwise. Only that fallback reads
+    # `idx_prev`, so skip the write (shared state across threads) when unused.
+    # Keep this the only `_dispatch_search` call: each call inlines every kernel.
     hint = iguess(t)
     raw = _dispatch_search(A, tvec, t, hint, side)
     idx = clamp(raw + idx_shift, lb, ub)
-    iguess.idx_prev[] = idx
+    iguess.linear_lookup || (iguess.idx_prev[] = idx)
     return idx
 end
+
+# Whether lookups on `A` start from the interval found by the previous lookup.
+# Subtypes without a `cache_search` field keep the stored hint.
+@inline _cache_search(A) = hasfield(typeof(A), :cache_search) ? getfield(A, :cache_search) : true
+
+# Store the found interval for the next lookup, only where the guesser reads it
+# (`!linear_lookup`) and `A` keeps it: the write is shared state across threads.
+@inline function _record_hint!(A, iguess::Guesser, idx)
+    !iguess.linear_lookup && _cache_search(A) && (iguess.idx_prev[] = idx)
+    return nothing
+end
+@inline _record_hint!(A, ::Integer, idx) = nothing
 
 # `KIND_UNIFORM_STEP` needs the props for its closed form, so reconstruct the
 # (isbits) `Auto` from `A.t_props`; other kinds dispatch on the bare enum. The
@@ -410,6 +429,16 @@ end
             FindFirstFunctions.searchsorted_first(A.kind, tvec, t, hint) :
             error("side must be :first or :last")
     end
+end
+
+# The unhinted lookup for `cache_search = false`. Binary search is what
+# FindFirstFunctions falls back to without a hint for every hinted kind, and calling
+# it directly keeps the other kinds' kernels from being inlined a second time.
+@inline function _binary_search(tvec, t, side)
+    kind = FindFirstFunctions.KIND_BINARY_BRACKET
+    return side == :last ? FindFirstFunctions.searchsorted_last(kind, tvec, t) :
+        side == :first ? FindFirstFunctions.searchsorted_first(kind, tvec, t) :
+        error("side must be :first or :last")
 end
 
 cumulative_integral(::AbstractInterpolation, ::Bool) = nothing

@@ -48,8 +48,9 @@ function test_derivatives(method; args = [], kwargs = [], name::String)
             adiff2 = derivative(func, _t, 2)
             @test isapprox(fdiff, adiff, atol = 1.0e-8)
             @test isapprox(fdiff2, adiff2, atol = 1.0e-7)
-            # Cached index
-            if hasproperty(func, :t_props) && !func.t_props.is_uniform
+            # Cached index; only maintained when the guesser reads it (`!linear_lookup`)
+            if hasproperty(func, :t_props) && !func.t_props.is_uniform &&
+                    !func.iguesser.linear_lookup
                 @test abs(
                     func.iguesser.idx_prev[] -
                         FindFirstFunctions.searchsorted_first(
