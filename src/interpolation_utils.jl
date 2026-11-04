@@ -384,9 +384,12 @@ function get_idx(
     ub = length(tvec) + ub_shift
     # `iguess(t)` gives a linear-extrapolation hint when `t` looks linear and
     # falls back to the cached `idx_prev` otherwise. With `cache_search = false`
-    # that fallback is replaced by an unhinted search, so nothing reads `idx_prev`.
-    hint = iguess.linear_lookup || _cache_search(A) ? iguess(t) : nothing
-    raw = _dispatch_search(A, tvec, t, hint, side)
+    # that fallback is replaced by a binary search, so nothing reads `idx_prev`.
+    raw = if iguess.linear_lookup || _cache_search(A)
+        _dispatch_search(A, tvec, t, iguess(t), side)
+    else
+        _binary_search(tvec, t, side)
+    end
     idx = clamp(raw + idx_shift, lb, ub)
     _record_hint!(A, iguess, idx)
     return idx
@@ -408,27 +411,32 @@ end
 # (isbits) `Auto` from `A.t_props`; other kinds dispatch on the bare enum. The
 # branch sits at the call so each arm has a concrete first arg (a hoisted
 # `Union{Auto,StrategyKind}` would break inference); both return `Int`.
-# `hint = nothing` selects FindFirstFunctions' unhinted search.
 @inline function _dispatch_search(A, tvec, t, hint, side)
-    h = _hint_args(hint)
     if A.kind === FindFirstFunctions.KIND_UNIFORM_STEP
         auto = FindFirstFunctions.Auto(A.t_props)
         return side == :last ?
-            FindFirstFunctions.searchsorted_last(auto, tvec, t, h...) :
+            FindFirstFunctions.searchsorted_last(auto, tvec, t, hint) :
             side == :first ?
-            FindFirstFunctions.searchsorted_first(auto, tvec, t, h...) :
+            FindFirstFunctions.searchsorted_first(auto, tvec, t, hint) :
             error("side must be :first or :last")
     else
         return side == :last ?
-            FindFirstFunctions.searchsorted_last(A.kind, tvec, t, h...) :
+            FindFirstFunctions.searchsorted_last(A.kind, tvec, t, hint) :
             side == :first ?
-            FindFirstFunctions.searchsorted_first(A.kind, tvec, t, h...) :
+            FindFirstFunctions.searchsorted_first(A.kind, tvec, t, hint) :
             error("side must be :first or :last")
     end
 end
 
-@inline _hint_args(hint::Integer) = (hint,)
-@inline _hint_args(::Nothing) = ()
+# The unhinted lookup for `cache_search = false`. Binary search is what
+# FindFirstFunctions falls back to without a hint for every hinted kind, and calling
+# it directly keeps the other kinds' kernels from being inlined a second time.
+@inline function _binary_search(tvec, t, side)
+    kind = FindFirstFunctions.KIND_BINARY_BRACKET
+    return side == :last ? FindFirstFunctions.searchsorted_last(kind, tvec, t) :
+        side == :first ? FindFirstFunctions.searchsorted_first(kind, tvec, t) :
+        error("side must be :first or :last")
+end
 
 cumulative_integral(::AbstractInterpolation, ::Bool) = nothing
 

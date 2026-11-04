@@ -227,6 +227,14 @@ end
             )
             got == (ref, ref) || push!(bad, (; x, side, kw, ref, got))
         end
+        # Non-finite queries: both modes agree (whatever FindFirstFunctions defines).
+        for x in (NaN, Inf, -Inf), (side, kw) in sides
+            got = (
+                DataInterpolations.get_idx(A, x, A.iguesser; side, kw...),
+                DataInterpolations.get_idx(B, x, B.iguesser; side, kw...),
+            )
+            got[1] == got[2] || push!(bad, (; x, side, kw, got))
+        end
         @test isempty(bad)
     end
 end
