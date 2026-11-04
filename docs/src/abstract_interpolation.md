@@ -33,9 +33,10 @@ Construct `iguesser` with `FindFirstFunctions.Guesser(t)`. The `t` values must r
 and `u` must store one sample per `t` entry along its last dimension.
 
 A subtype may also provide `cache_search::Bool`. When it is `false`, the generic interval
-search never reads or writes the interval stored in `iguesser`, so evaluation writes nothing
-to the interpolation (see [Sharing an interpolation across threads](@ref)). A subtype
-without the field keeps the stored interval.
+search never reads or writes the interval stored in `iguesser`. Custom evaluation and
+derivative hooks must also avoid mutating shared state for the subtype to support concurrent
+evaluation (see [Sharing an interpolation across threads](@ref)). A subtype without the
+field keeps the stored interval.
 
 ## Developer hooks
 

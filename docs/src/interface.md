@@ -148,10 +148,10 @@ data race: results do not depend on the stored interval, which only seeds the se
 the threads contend for it.
 
 Pass `cache_search = false` to make evaluation write nothing to the interpolation. Lookups
-on unevenly spaced knots then use a binary search, which is slower for correlated queries
-but no slower for scattered ones. On evenly spaced knots the setting has no effect, since
-the lookup there never uses the stored interval. Alternatively, give each task its own copy
-of the interpolation.
+on unevenly spaced knots then use a binary search, which can be slower for correlated
+queries and faster for scattered ones. On evenly spaced knots the setting has no effect,
+since the lookup there never uses the stored interval. Alternatively, give each task its
+own copy of the interpolation.
 
 ```@example interface
 A3 = CubicSpline(u, t; cache_search = false)
