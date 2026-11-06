@@ -103,6 +103,14 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType} <:
             Guesser(t), t_props, kind, A
         )
     end
+
+    function LinearInterpolationIntInv{uType, tType, itpType, T, propsType}(
+            u, t, extrapolation_left, extrapolation_right, iguesser, t_props, kind, itp,
+        ) where {uType, tType, itpType, T, propsType}
+        return new{uType, tType, itpType, T, propsType}(
+            u, t, extrapolation_left, extrapolation_right, iguesser, t_props, kind, itp,
+        )
+    end
 end
 
 function invertible_integral(A::LinearInterpolation{<:AbstractVector{<:Number}})
@@ -182,6 +190,15 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType} <:
         }(
             u, t, extrapolation_left, extrapolation_right,
             Guesser(t), t_props, kind, A
+        )
+    end
+
+    # Every field, in order: the call that `repr` prints.
+    function ConstantInterpolationIntInv{uType, tType, itpType, T, propsType}(
+            u, t, extrapolation_left, extrapolation_right, iguesser, t_props, kind, itp,
+        ) where {uType, tType, itpType, T, propsType}
+        return new{uType, tType, itpType, T, propsType}(
+            u, t, extrapolation_left, extrapolation_right, iguesser, t_props, kind, itp,
         )
     end
 end

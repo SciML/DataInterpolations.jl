@@ -303,6 +303,14 @@ struct CurvefitCache{
             extrapolate
         )
     end
+
+    function CurvefitCache{uType, tType, mType, p0Type, ubType, lbType, algType, pminType, T}(
+            u, t, m, p0, ub, lb, alg, pmin, extrapolate,
+        ) where {uType, tType, mType, p0Type, ubType, lbType, algType, pminType, T}
+        return new{uType, tType, mType, p0Type, ubType, lbType, algType, pminType, T}(
+            u, t, m, p0, ub, lb, alg, pmin, extrapolate,
+        )
+    end
 end
 
 """

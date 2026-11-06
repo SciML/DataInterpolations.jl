@@ -1,6 +1,6 @@
 """
-    LinearInterpolation(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.None, 
-    extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, 
+    LinearInterpolation(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+    extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
     cache_parameters = false)
 
 It is the method of interpolating between the data points using a linear polynomial. For any point, two data points one each side are chosen and connected with a line.
@@ -69,6 +69,16 @@ struct LinearInterpolation{
             Guesser(t), t_props, kind, cache_parameters,
         )
     end
+
+    function LinearInterpolation{uType, tType, IType, pType, T, propsType}(
+            u, t, I, p, extrapolation_left, extrapolation_right, iguesser, t_props, kind,
+            cache_parameters,
+        ) where {uType, tType, IType, pType, T, propsType}
+        return new{uType, tType, IType, pType, T, propsType}(
+            u, t, I, p, extrapolation_left, extrapolation_right, iguesser, t_props, kind,
+            cache_parameters,
+        )
+    end
 end
 
 function LinearInterpolation(
@@ -99,7 +109,7 @@ end
 
 """
     QuadraticInterpolation(u, t, mode = :Forward; extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, 
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false)
 
 It is the method of interpolating between the data points using quadratic polynomials. For any point, three data points nearby are taken to fit a quadratic polynomial.
@@ -162,6 +172,17 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
             Guesser(t), t_props, kind, cache_parameters
         )
     end
+
+    # Every field, in order: the call that `repr` prints.
+    function QuadraticInterpolation{uType, tType, IType, pType, T, propsType}(
+            u, t, I, p, mode, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        ) where {uType, tType, IType, pType, T, propsType}
+        return new{uType, tType, IType, pType, T, propsType}(
+            u, t, I, p, mode, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        )
+    end
 end
 
 function QuadraticInterpolation(
@@ -196,7 +217,7 @@ function QuadraticInterpolation(u, t; kwargs...)
 end
 
 """
-    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolation::ExtrapolationType.T = ExtrapolationType.None, 
+    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
     extrapolation_left::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None)
 
 It is the method of interpolation using Lagrange polynomials of (k-1)th order passing through all the data points where k is the number of data points.
@@ -256,6 +277,15 @@ struct LagrangeInterpolation{uType, tType, T, pType, propsType} <:
             Guesser(t),
             t_props,
             kind
+        )
+    end
+
+    # Every field, in order: the call that `repr` prints.
+    function LagrangeInterpolation{uType, tType, T, pType, propsType}(
+            u, t, n, p, extrapolation_left, extrapolation_right, iguesser, t_props, kind,
+        ) where {uType, tType, T, pType, propsType}
+        return new{uType, tType, T, pType, propsType}(
+            u, t, n, p, extrapolation_left, extrapolation_right, iguesser, t_props, kind,
         )
     end
 end
@@ -357,6 +387,17 @@ struct AkimaInterpolation{
             t_props,
             kind,
             cache_parameters,
+        )
+    end
+
+    # Every field, in order: the call that `repr` prints.
+    function AkimaInterpolation{uType, tType, IType, bType, cType, dType, T, propsType}(
+            u, t, I, b, c, d, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        ) where {uType, tType, IType, bType, cType, dType, T, propsType}
+        return new{uType, tType, IType, bType, cType, dType, T, propsType}(
+            u, t, I, b, c, d, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
         )
     end
 end
@@ -619,6 +660,17 @@ struct ConstantInterpolation{uType, tType, IType, T, propsType} <:
             Guesser(t), t_props, kind, cache_parameters
         )
     end
+
+    # Every field, in order: the call that `repr` prints.
+    function ConstantInterpolation{uType, tType, IType, T, propsType}(
+            u, t, I, p, dir, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        ) where {uType, tType, IType, T, propsType}
+        return new{uType, tType, IType, T, propsType}(
+            u, t, I, p, dir, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        )
+    end
 end
 
 function ConstantInterpolation(
@@ -710,6 +762,17 @@ struct SmoothedConstantInterpolation{
         }(
             u, t, I, p, d_max, extrapolation_left, extrapolation_right,
             Guesser(t), t_props, kind, cache_parameters
+        )
+    end
+
+    # Every field, in order: the call that `repr` prints.
+    function SmoothedConstantInterpolation{uType, tType, IType, dType, cType, dmaxType, T, propsType}(
+            u, t, I, p, d_max, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        ) where {uType, tType, IType, dType, cType, dmaxType, T, propsType}
+        return new{uType, tType, IType, dType, cType, dmaxType, T, propsType}(
+            u, t, I, p, d_max, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
         )
     end
 end
@@ -816,6 +879,17 @@ struct QuadraticSpline{
             t_props,
             kind,
             cache_parameters,
+        )
+    end
+
+    # Every field, in order: the call that `repr` prints.
+    function QuadraticSpline{uType, tType, IType, pType, kType, cType, scType, T, propsType}(
+            u, t, I, p, k, c, sc, extrapolation_left, extrapolation_right, iguesser,
+            t_props, kind, cache_parameters,
+        ) where {uType, tType, IType, pType, kType, cType, scType, T, propsType}
+        return new{uType, tType, IType, pType, kType, cType, scType, T, propsType}(
+            u, t, I, p, k, c, sc, extrapolation_left, extrapolation_right, iguesser,
+            t_props, kind, cache_parameters,
         )
     end
 end
@@ -1001,6 +1075,17 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
             t_props,
             kind,
             cache_parameters,
+        )
+    end
+
+    # Every field, in order: the call that `repr` prints.
+    function CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType}(
+            u, t, I, p, h, z, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        ) where {uType, tType, IType, pType, hType, zType, T, propsType}
+        return new{uType, tType, IType, pType, hType, zType, T, propsType}(
+            u, t, I, p, h, z, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
         )
     end
 end
@@ -1230,6 +1315,17 @@ struct BSplineInterpolation{uType, tType, kType, cType, scType, T, propsType} <:
             Guesser(t),
             t_props,
             kind
+        )
+    end
+
+    # Every field, in order: the call that `repr` prints.
+    function BSplineInterpolation{uType, tType, kType, cType, scType, T, propsType}(
+            u, t, d, k, c, sc, knotVecType, extrapolation_left, extrapolation_right,
+            iguesser, t_props, kind,
+        ) where {uType, tType, kType, cType, scType, T, propsType}
+        return new{uType, tType, kType, cType, scType, T, propsType}(
+            u, t, d, k, c, sc, knotVecType, extrapolation_left, extrapolation_right,
+            iguesser, t_props, kind,
         )
     end
 end
@@ -1470,6 +1566,17 @@ struct BSplineApprox{
             Guesser(t),
             t_props,
             kind
+        )
+    end
+
+    # Every field, in order: the call that `repr` prints.
+    function BSplineApprox{uType, tType, kType, cType, scType, T, propsType}(
+            u, t, d, h, k, c, sc, knotVecType, extrapolation_left, extrapolation_right,
+            iguesser, t_props, kind,
+        ) where {uType, tType, kType, cType, scType, T, propsType}
+        return new{uType, tType, kType, cType, scType, T, propsType}(
+            u, t, d, h, k, c, sc, knotVecType, extrapolation_left, extrapolation_right,
+            iguesser, t_props, kind,
         )
     end
 end
@@ -1755,6 +1862,17 @@ struct CubicHermiteSpline{
             Guesser(t), t_props, kind, cache_parameters
         )
     end
+
+    # Every field, in order: the call that `repr` prints.
+    function CubicHermiteSpline{uType, tType, IType, duType, pType, T, propsType}(
+            du, u, t, I, p, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        ) where {uType, tType, IType, duType, pType, T, propsType}
+        return new{uType, tType, IType, duType, pType, T, propsType}(
+            du, u, t, I, p, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        )
+    end
 end
 
 function CubicHermiteSpline(
@@ -1902,6 +2020,17 @@ struct QuinticHermiteSpline{
             Guesser(t), t_props, kind, cache_parameters
         )
     end
+
+    # Every field, in order: the call that `repr` prints.
+    function QuinticHermiteSpline{uType, tType, IType, duType, dduType, pType, T, propsType}(
+            ddu, du, u, t, I, p, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        ) where {uType, tType, IType, duType, dduType, pType, T, propsType}
+        return new{uType, tType, IType, duType, dduType, pType, T, propsType}(
+            ddu, du, u, t, I, p, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        )
+    end
 end
 
 function QuinticHermiteSpline(
@@ -1972,6 +2101,19 @@ struct SmoothArcLengthInterpolation{
             center, radius, dir_1, dir_2, short_side_left,
             I, nothing, extrapolation_left, extrapolation_right,
             Guesser(t), t_props, kind, cache_parameters
+        )
+    end
+
+    # Every field, in order: the call that `repr` prints.
+    function SmoothArcLengthInterpolation{uType, tType, IType, P, D, S, T, propsType}(
+            u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment, center, radius, dir_1,
+            dir_2, short_side_left, I, p, extrapolation_left, extrapolation_right, iguesser,
+            t_props, kind, cache_parameters,
+        ) where {uType, tType, IType, P, D, S <: Union{AbstractInterpolation, Nothing}, T, propsType}
+        return new{uType, tType, IType, P, D, S, T, propsType}(
+            u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment, center, radius, dir_1,
+            dir_2, short_side_left, I, p, extrapolation_left, extrapolation_right, iguesser,
+            t_props, kind, cache_parameters,
         )
     end
 end
