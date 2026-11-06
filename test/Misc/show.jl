@@ -95,6 +95,13 @@ end
         DataInterpolations.invert_integral(ConstantInterpolation(x, t)),
     ]
     test_repr_roundtrip.(interpolations)
+
+    # Both constructors of QuadraticInterpolation accept only the two modes.
+    A = QuadraticInterpolation(x, t)
+    fields = Any[getfield(A, f) for f in fieldnames(typeof(A))]
+    fields[findfirst(==(:mode), fieldnames(typeof(A)))] = :Sideways
+    @test_throws "mode should be :Forward or :Backward" typeof(A)(fields...)
+    @test_throws "mode should be :Forward or :Backward" QuadraticInterpolation(x, t, :Sideways)
 end
 
 @testset "Higher-rank u (AbstractArray{T, 3})" begin

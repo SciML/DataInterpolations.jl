@@ -178,6 +178,8 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
             u, t, I, p, mode, extrapolation_left, extrapolation_right, iguesser, t_props,
             kind, cache_parameters,
         ) where {uType, tType, IType, pType, T, propsType}
+        mode ∈ (:Forward, :Backward) ||
+            error("mode should be :Forward or :Backward for QuadraticInterpolation")
         return new{uType, tType, IType, pType, T, propsType}(
             u, t, I, p, mode, extrapolation_left, extrapolation_right, iguesser, t_props,
             kind, cache_parameters,
