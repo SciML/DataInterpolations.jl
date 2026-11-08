@@ -91,18 +91,19 @@ struct LinearInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     itp::itpType
-    function LinearInterpolationIntInv(
-            u, t, A, extrapolation_left, extrapolation_right, t_props,
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(A), eltype(u),
-            typeof(t_props),
-        }(
-            u, t, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, A
-        )
-    end
+end
+
+function LinearInterpolationIntInv(
+        u, t, A, extrapolation_left, extrapolation_right, t_props,
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return LinearInterpolationIntInv{
+        typeof(u), typeof(t), typeof(A), eltype(u),
+        typeof(t_props),
+    }(
+        u, t, extrapolation_left, extrapolation_right,
+        Guesser(t), t_props, kind, A
+    )
 end
 
 function invertible_integral(A::LinearInterpolation{<:AbstractVector{<:Number}})
@@ -172,18 +173,19 @@ struct ConstantInterpolationIntInv{uType, tType, itpType, T, propsType} <:
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     itp::itpType
-    function ConstantInterpolationIntInv(
-            u, t, A, extrapolation_left, extrapolation_right, t_props,
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(A), eltype(u),
-            typeof(t_props),
-        }(
-            u, t, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, A
-        )
-    end
+end
+
+function ConstantInterpolationIntInv(
+        u, t, A, extrapolation_left, extrapolation_right, t_props,
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return ConstantInterpolationIntInv{
+        typeof(u), typeof(t), typeof(A), eltype(u),
+        typeof(t_props),
+    }(
+        u, t, extrapolation_left, extrapolation_right,
+        Guesser(t), t_props, kind, A
+    )
 end
 
 function invertible_integral(A::ConstantInterpolation{<:AbstractVector{<:Number}})

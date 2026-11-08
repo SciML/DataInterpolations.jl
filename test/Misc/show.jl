@@ -60,6 +60,50 @@ end
     end
 end
 
+@testset "repr round-trip" begin
+    # `repr` names FindFirstFunctions, whose search state every interpolation stores.
+    m = Module()
+    Core.eval(m, :(using DataInterpolations))
+    Core.eval(m, :(const FindFirstFunctions = DataInterpolations.FindFirstFunctions))
+    function test_repr_roundtrip(A)
+        @testset "$(nameof(typeof(A)))" begin
+            B = Core.eval(m, Meta.parse(repr(A)))
+            @test typeof(B) == typeof(A)
+            @test repr(B) == repr(A)
+            tm = (first(A.t) + last(A.t)) / 2
+            @test B(tm) == A(tm)
+        end
+    end
+    du = ones(5)
+    ddu = zeros(5)
+    interpolations = [
+        LinearInterpolation(x, t),
+        LinearInterpolation(x, t; cache_parameters = true),
+        QuadraticInterpolation(x, t),
+        LagrangeInterpolation(x, t),
+        AkimaInterpolation(x, t),
+        ConstantInterpolation(x, t),
+        SmoothedConstantInterpolation(x, t),
+        QuadraticSpline(x, t),
+        CubicSpline(x, t),
+        BSplineInterpolation(x, t, 3, :Uniform),
+        BSplineApprox(x, t, 2, 4, :Uniform),
+        CubicHermiteSpline(du, x, t),
+        QuinticHermiteSpline(ddu, du, x, t),
+        SmoothArcLengthInterpolation([0.3 -0.2 0.0; -1.5 0.2 0.0; 3.1 -1.5 0.0]; m = 5),
+        DataInterpolations.invert_integral(LinearInterpolation(x, t)),
+        DataInterpolations.invert_integral(ConstantInterpolation(x, t)),
+    ]
+    test_repr_roundtrip.(interpolations)
+
+    # Both constructors of QuadraticInterpolation accept only the two modes.
+    A = QuadraticInterpolation(x, t)
+    fields = Any[getfield(A, f) for f in fieldnames(typeof(A))]
+    fields[findfirst(==(:mode), fieldnames(typeof(A)))] = :Sideways
+    @test_throws "mode should be :Forward or :Backward" typeof(A)(fields...)
+    @test_throws "mode should be :Forward or :Backward" QuadraticInterpolation(x, t, :Sideways)
+end
+
 @testset "Higher-rank u (AbstractArray{T, 3})" begin
     f3d(t_) = [sin(t_) cos(t_); 0.0 cos(2t_)]
     u3d = cat(f3d.(t)...; dims = 3)
@@ -80,4 +124,7 @@ end
         sprint(io -> show(io, MIME"text/plain"(), A)),
         "Curvefit with 40 points.\n"
     )
+    # The model function does not print as a call, so rebuild from the fields directly.
+    B = typeof(A)((getfield(A, f) for f in fieldnames(typeof(A)))...)
+    @test B(0.5) == A(0.5)
 end

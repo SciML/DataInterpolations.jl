@@ -1,6 +1,6 @@
 """
-    LinearInterpolation(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.None, 
-    extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, 
+    LinearInterpolation(u, t; extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+    extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
     cache_parameters = false)
 
 It is the method of interpolating between the data points using a linear polynomial. For any point, two data points one each side are chosen and connected with a line.
@@ -56,19 +56,20 @@ struct LinearInterpolation{
     # A field, not a type parameter, so the constructor stays inferred.
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    @inline function LinearInterpolation(
-            u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters, t_props,
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(I), typeof(p.slope),
-            eltype(u), typeof(t_props),
-        }(
-            u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters,
-        )
-    end
+end
+
+@inline function LinearInterpolation(
+        u, t, I, p, extrapolation_left, extrapolation_right,
+        cache_parameters, t_props,
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return LinearInterpolation{
+        typeof(u), typeof(t), typeof(I), typeof(p.slope),
+        eltype(u), typeof(t_props),
+    }(
+        u, t, I, p, extrapolation_left, extrapolation_right,
+        Guesser(t), t_props, kind, cache_parameters,
+    )
 end
 
 function LinearInterpolation(
@@ -99,7 +100,7 @@ end
 
 """
     QuadraticInterpolation(u, t, mode = :Forward; extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
-        extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, 
+        extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false)
 
 It is the method of interpolating between the data points using quadratic polynomials. For any point, three data points nearby are taken to fit a quadratic polynomial.
@@ -147,21 +148,31 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    function QuadraticInterpolation(
-            u, t, I, p, mode, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
-        )
+    function QuadraticInterpolation{uType, tType, IType, pType, T, propsType}(
+            u, t, I, p, mode, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
+        ) where {uType, tType, IType, pType, T, propsType}
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(I), typeof(p.α),
-            eltype(u), typeof(t_props),
-        }(
-            u, t, I, p, mode, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
+        return new{uType, tType, IType, pType, T, propsType}(
+            u, t, I, p, mode, extrapolation_left, extrapolation_right, iguesser, t_props,
+            kind, cache_parameters,
         )
     end
+end
+
+function QuadraticInterpolation(
+        u, t, I, p, mode, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return QuadraticInterpolation{
+        typeof(u), typeof(t), typeof(I), typeof(p.α),
+        eltype(u), typeof(t_props),
+    }(
+        u, t, I, p, mode, extrapolation_left, extrapolation_right,
+        Guesser(t), t_props, kind, cache_parameters
+    )
 end
 
 function QuadraticInterpolation(
@@ -196,7 +207,7 @@ function QuadraticInterpolation(u, t; kwargs...)
 end
 
 """
-    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolation::ExtrapolationType.T = ExtrapolationType.None, 
+    LagrangeInterpolation(u, t, n = length(t) - 1; extrapolation::ExtrapolationType.T = ExtrapolationType.None,
     extrapolation_left::ExtrapolationType.T = ExtrapolationType.None, extrapolation_right::ExtrapolationType.T = ExtrapolationType.None)
 
 It is the method of interpolation using Lagrange polynomials of (k-1)th order passing through all the data points where k is the number of data points.
@@ -240,24 +251,25 @@ struct LagrangeInterpolation{uType, tType, T, pType, propsType} <:
     iguesser::Guesser{tType}
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
-    function LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right, t_props)
-        p = LagrangeParameterCache(u, t)
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), eltype(u), typeof(p),
-            typeof(t_props),
-        }(
-            u,
-            t,
-            n,
-            p,
-            extrapolation_left,
-            extrapolation_right,
-            Guesser(t),
-            t_props,
-            kind
-        )
-    end
+end
+
+function LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right, t_props)
+    p = LagrangeParameterCache(u, t)
+    kind = _resolve_strategy_kind(t, t_props)
+    return LagrangeInterpolation{
+        typeof(u), typeof(t), eltype(u), typeof(p),
+        typeof(t_props),
+    }(
+        u,
+        t,
+        n,
+        p,
+        extrapolation_left,
+        extrapolation_right,
+        Guesser(t),
+        t_props,
+        kind
+    )
 end
 
 function LagrangeInterpolation(
@@ -336,29 +348,30 @@ struct AkimaInterpolation{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    function AkimaInterpolation(
-            u, t, I, b, c, d, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
-            typeof(d), eltype(u), typeof(t_props),
-        }(
-            u,
-            t,
-            I,
-            b,
-            c,
-            d,
-            extrapolation_left,
-            extrapolation_right,
-            Guesser(t),
-            t_props,
-            kind,
-            cache_parameters,
-        )
-    end
+end
+
+function AkimaInterpolation(
+        u, t, I, b, c, d, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return AkimaInterpolation{
+        typeof(u), typeof(t), typeof(I), typeof(b), typeof(c),
+        typeof(d), eltype(u), typeof(t_props),
+    }(
+        u,
+        t,
+        I,
+        b,
+        c,
+        d,
+        extrapolation_left,
+        extrapolation_right,
+        Guesser(t),
+        t_props,
+        kind,
+        cache_parameters,
+    )
 end
 
 # In-place scalar kernel for computing the Akima / makima coefficients.
@@ -606,19 +619,20 @@ struct ConstantInterpolation{uType, tType, IType, T, propsType} <:
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    function ConstantInterpolation(
-            u, t, I, dir, extrapolation_left, extrapolation_right,
-            cache_parameters, t_props
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(I), eltype(u),
-            typeof(t_props),
-        }(
-            u, t, I, nothing, dir, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
-        )
-    end
+end
+
+function ConstantInterpolation(
+        u, t, I, dir, extrapolation_left, extrapolation_right,
+        cache_parameters, t_props
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return ConstantInterpolation{
+        typeof(u), typeof(t), typeof(I), eltype(u),
+        typeof(t_props),
+    }(
+        u, t, I, nothing, dir, extrapolation_left, extrapolation_right,
+        Guesser(t), t_props, kind, cache_parameters
+    )
 end
 
 function ConstantInterpolation(
@@ -699,19 +713,20 @@ struct SmoothedConstantInterpolation{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    function SmoothedConstantInterpolation(
-            u, t, I, p, d_max, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(I), typeof(p.d),
-            typeof(p.c), typeof(d_max), eltype(u), typeof(t_props),
-        }(
-            u, t, I, p, d_max, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
-        )
-    end
+end
+
+function SmoothedConstantInterpolation(
+        u, t, I, p, d_max, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return SmoothedConstantInterpolation{
+        typeof(u), typeof(t), typeof(I), typeof(p.d),
+        typeof(p.c), typeof(d_max), eltype(u), typeof(t_props),
+    }(
+        u, t, I, p, d_max, extrapolation_left, extrapolation_right,
+        Guesser(t), t_props, kind, cache_parameters
+    )
 end
 
 function SmoothedConstantInterpolation(
@@ -794,30 +809,31 @@ struct QuadraticSpline{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    function QuadraticSpline(
-            u, t, I, p, k, c, sc, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
-            typeof(c), typeof(sc), eltype(u), typeof(t_props),
-        }(
-            u,
-            t,
-            I,
-            p,
-            k,
-            c,
-            sc,
-            extrapolation_left,
-            extrapolation_right,
-            Guesser(t),
-            t_props,
-            kind,
-            cache_parameters,
-        )
-    end
+end
+
+function QuadraticSpline(
+        u, t, I, p, k, c, sc, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return QuadraticSpline{
+        typeof(u), typeof(t), typeof(I), typeof(p.α), typeof(k),
+        typeof(c), typeof(sc), eltype(u), typeof(t_props),
+    }(
+        u,
+        t,
+        I,
+        p,
+        k,
+        c,
+        sc,
+        extrapolation_left,
+        extrapolation_right,
+        Guesser(t),
+        t_props,
+        kind,
+        cache_parameters,
+    )
 end
 
 function QuadraticSpline(
@@ -980,29 +996,30 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    function CubicSpline(
-            u, t, I, p, h, z, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(I), typeof(p.c₁),
-            typeof(h), typeof(z), eltype(u), typeof(t_props),
-        }(
-            u,
-            t,
-            I,
-            p,
-            h,
-            z,
-            extrapolation_left,
-            extrapolation_right,
-            Guesser(t),
-            t_props,
-            kind,
-            cache_parameters,
-        )
-    end
+end
+
+function CubicSpline(
+        u, t, I, p, h, z, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return CubicSpline{
+        typeof(u), typeof(t), typeof(I), typeof(p.c₁),
+        typeof(h), typeof(z), eltype(u), typeof(t_props),
+    }(
+        u,
+        t,
+        I,
+        p,
+        h,
+        z,
+        extrapolation_left,
+        extrapolation_right,
+        Guesser(t),
+        t_props,
+        kind,
+        cache_parameters,
+    )
 end
 
 function CubicSpline(
@@ -1201,37 +1218,38 @@ struct BSplineInterpolation{uType, tType, kType, cType, scType, T, propsType} <:
     iguesser::Guesser{tType}
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
-    function BSplineInterpolation(
-            u,
-            t,
-            d,
-            k,
-            c,
-            sc,
-            knotVecType,
-            extrapolation_left,
-            extrapolation_right,
-            t_props,
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(k),
-            typeof(c), typeof(sc), eltype(u), typeof(t_props),
-        }(
-            u,
-            t,
-            d,
-            k,
-            c,
-            sc,
-            knotVecType,
-            extrapolation_left,
-            extrapolation_right,
-            Guesser(t),
-            t_props,
-            kind
-        )
-    end
+end
+
+function BSplineInterpolation(
+        u,
+        t,
+        d,
+        k,
+        c,
+        sc,
+        knotVecType,
+        extrapolation_left,
+        extrapolation_right,
+        t_props,
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return BSplineInterpolation{
+        typeof(u), typeof(t), typeof(k),
+        typeof(c), typeof(sc), eltype(u), typeof(t_props),
+    }(
+        u,
+        t,
+        d,
+        k,
+        c,
+        sc,
+        knotVecType,
+        extrapolation_left,
+        extrapolation_right,
+        Guesser(t),
+        t_props,
+        kind
+    )
 end
 
 function BSplineInterpolation(
@@ -1439,39 +1457,40 @@ struct BSplineApprox{
     iguesser::Guesser{tType}
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
-    function BSplineApprox(
-            u,
-            t,
-            d,
-            h,
-            k,
-            c,
-            sc,
-            knotVecType,
-            extrapolation_left,
-            extrapolation_right,
-            t_props,
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(k),
-            typeof(c), typeof(sc), eltype(u), typeof(t_props),
-        }(
-            u,
-            t,
-            d,
-            h,
-            k,
-            c,
-            sc,
-            knotVecType,
-            extrapolation_left,
-            extrapolation_right,
-            Guesser(t),
-            t_props,
-            kind
-        )
-    end
+end
+
+function BSplineApprox(
+        u,
+        t,
+        d,
+        h,
+        k,
+        c,
+        sc,
+        knotVecType,
+        extrapolation_left,
+        extrapolation_right,
+        t_props,
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return BSplineApprox{
+        typeof(u), typeof(t), typeof(k),
+        typeof(c), typeof(sc), eltype(u), typeof(t_props),
+    }(
+        u,
+        t,
+        d,
+        h,
+        k,
+        c,
+        sc,
+        knotVecType,
+        extrapolation_left,
+        extrapolation_right,
+        Guesser(t),
+        t_props,
+        kind
+    )
 end
 
 function BSplineApprox(
@@ -1742,19 +1761,20 @@ struct CubicHermiteSpline{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    function CubicHermiteSpline(
-            du, u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters, t_props
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(I), typeof(du),
-            typeof(p.c₁), eltype(u), typeof(t_props),
-        }(
-            du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
-        )
-    end
+end
+
+function CubicHermiteSpline(
+        du, u, t, I, p, extrapolation_left, extrapolation_right,
+        cache_parameters, t_props
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return CubicHermiteSpline{
+        typeof(u), typeof(t), typeof(I), typeof(du),
+        typeof(p.c₁), eltype(u), typeof(t_props),
+    }(
+        du, u, t, I, p, extrapolation_left, extrapolation_right,
+        Guesser(t), t_props, kind, cache_parameters
+    )
 end
 
 function CubicHermiteSpline(
@@ -1889,19 +1909,20 @@ struct QuinticHermiteSpline{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    function QuinticHermiteSpline(
-            ddu, du, u, t, I, p, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(I), typeof(du),
-            typeof(ddu), typeof(p.c₁), eltype(u), typeof(t_props),
-        }(
-            ddu, du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
-        )
-    end
+end
+
+function QuinticHermiteSpline(
+        ddu, du, u, t, I, p, extrapolation_left,
+        extrapolation_right, cache_parameters, t_props
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return QuinticHermiteSpline{
+        typeof(u), typeof(t), typeof(I), typeof(du),
+        typeof(ddu), typeof(p.c₁), eltype(u), typeof(t_props),
+    }(
+        ddu, du, u, t, I, p, extrapolation_left, extrapolation_right,
+        Guesser(t), t_props, kind, cache_parameters
+    )
 end
 
 function QuinticHermiteSpline(
@@ -1957,23 +1978,24 @@ struct SmoothArcLengthInterpolation{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
-    function SmoothArcLengthInterpolation(
-            u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
-            center, radius, dir_1, dir_2, short_side_left,
-            I, extrapolation_left, extrapolation_right,
-            cache_parameters, t_props
-        )
-        kind = _resolve_strategy_kind(t, t_props)
-        return new{
-            typeof(u), typeof(t), typeof(I), eltype(radius),
-            eltype(d), typeof(shape_itp), eltype(u), typeof(t_props),
-        }(
-            u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
-            center, radius, dir_1, dir_2, short_side_left,
-            I, nothing, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
-        )
-    end
+end
+
+function SmoothArcLengthInterpolation(
+        u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
+        center, radius, dir_1, dir_2, short_side_left,
+        I, extrapolation_left, extrapolation_right,
+        cache_parameters, t_props
+    )
+    kind = _resolve_strategy_kind(t, t_props)
+    return SmoothArcLengthInterpolation{
+        typeof(u), typeof(t), typeof(I), eltype(radius),
+        eltype(d), typeof(shape_itp), eltype(u), typeof(t_props),
+    }(
+        u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
+        center, radius, dir_1, dir_2, short_side_left,
+        I, nothing, extrapolation_left, extrapolation_right,
+        Guesser(t), t_props, kind, cache_parameters
+    )
 end
 
 """
