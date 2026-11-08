@@ -286,31 +286,24 @@ struct CurvefitCache{
     alg::algType    # alg to optimize cost function
     pmin::pminType  # optimized params
     extrapolate::Bool
-    function CurvefitCache(u, t, m, p0, ub, lb, alg, pmin, extrapolate)
-        return new{
-            typeof(u), typeof(t), typeof(m),
-            typeof(p0), typeof(ub), typeof(lb),
-            typeof(alg), typeof(pmin), eltype(u),
-        }(
-            u,
-            t,
-            m,
-            p0,
-            ub,
-            lb,
-            alg,
-            pmin,
-            extrapolate
-        )
-    end
+end
 
-    function CurvefitCache{uType, tType, mType, p0Type, ubType, lbType, algType, pminType, T}(
-            u, t, m, p0, ub, lb, alg, pmin, extrapolate,
-        ) where {uType, tType, mType, p0Type, ubType, lbType, algType, pminType, T}
-        return new{uType, tType, mType, p0Type, ubType, lbType, algType, pminType, T}(
-            u, t, m, p0, ub, lb, alg, pmin, extrapolate,
-        )
-    end
+function CurvefitCache(u, t, m, p0, ub, lb, alg, pmin, extrapolate)
+    return CurvefitCache{
+        typeof(u), typeof(t), typeof(m),
+        typeof(p0), typeof(ub), typeof(lb),
+        typeof(alg), typeof(pmin), eltype(u),
+    }(
+        u,
+        t,
+        m,
+        p0,
+        ub,
+        lb,
+        alg,
+        pmin,
+        extrapolate
+    )
 end
 
 """
