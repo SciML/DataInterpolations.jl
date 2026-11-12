@@ -615,11 +615,12 @@ function du_monotonic_makima(u::AbstractVector{<:Number}, t)
             β = du[k + 1] / s_safe
             αβ_max = ifelse(α > β, α, β)
             limit = nonzero & (αβ_max > 3)
-            αβ_max_safe = ifelse(limit, αβ_max, one(αβ_max))
-            # Written as `3s * (α / max(α, β))` so the larger of the two scaled slopes is
-            # exactly `3s`.
-            du[k] = ifelse(limit, 3 * s * (α / αβ_max_safe), du[k])
-            du[k + 1] = ifelse(limit, 3 * s * (β / αβ_max_safe), du[k + 1])
+            # One factor `r = 3 / max(α, β)` for both end slopes; the larger scaled slope
+            # is then `3s` up to rounding (a few ulps), not exactly `3s`. Since `r ≤ 1`, a
+            # scaled slope never grows.
+            r = 3 / ifelse(limit, αβ_max, one(αβ_max))
+            du[k] = ifelse(limit, r * du[k], du[k])
+            du[k + 1] = ifelse(limit, r * du[k + 1], du[k + 1])
         end
     end
     return du

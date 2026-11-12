@@ -1882,10 +1882,12 @@ computed in three steps:
     secant is `0`. Local extrema of the data and flat segments therefore get zero slopes.
  3. **Square Fritsch–Carlson limiter.** For each segment `k` with `s_k ≠ 0`, processed
     from left to right, let `α = d_k / s_k` and `β = d_{k+1} / s_k` (both `≥ 0` after
-    step 2). If `max(α, β) > 3`, both end slopes of the segment are scaled by the same
-    factor `τ = 3 / max(α, β)`, i.e. `(α, β)` is projected radially onto the boundary of
-    the square `[0, 3]²`, keeping the ratio `α : β`. A slope shared with the previous
-    segment can only shrink, so all segments end up inside the square.
+    step 2). If `max(α, β) > 3`, both end slopes of the segment are multiplied by the
+    same factor `τ = 3 / max(α, β)`, i.e. `(α, β)` is projected radially onto the boundary
+    of the square `[0, 3]²`, keeping the ratio `α : β`. In floating point the larger
+    scaled slope is `3 s_k` up to rounding (within a few ulps), not exactly `3 s_k`. A
+    slope shared with the previous segment can only shrink (`τ ≤ 1`), so all segments end
+    up inside the square, up to that rounding.
 
 Fritsch & Carlson (1980) show that a cubic Hermite segment is monotone if and only if
 `(α, β)` lies in a certain region of the first quadrant, which contains the square `[0, 3]²`.
