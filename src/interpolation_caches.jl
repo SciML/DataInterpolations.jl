@@ -281,7 +281,7 @@ function LagrangeInterpolation(
 end
 
 """
-    AkimaInterpolation(u, t; modified = false, extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+    AkimaInterpolation(u, t; modified = false, tol = 1.0e-9, extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
 
 It is a spline interpolation built from cubic polynomials. It forms a continuously differentiable function. For more details, refer: [https://en.wikipedia.org/wiki/Akima_spline](https://en.wikipedia.org/wiki/Akima_spline).
@@ -299,6 +299,14 @@ Extrapolation extends the last cubic polynomial on each side.
     and oscillation on data with flat regions or repeated values. See
     [https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/](https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/).
     Defaults to `false`.
+  - `tol`: non-negative relative cutoff for the slope weights `w1`, `w2` at each knot. Where
+    `w1 + w2` is at most `tol / 2` times its largest value over all knots, the weights are
+    treated as zero and the knot slope falls back to an average of neighbouring secant
+    slopes; between `tol / 2` and `tol` the two are blended so the slopes stay continuous in
+    `u`. `tol = 0` disables the cutoff: the weighted mean is used wherever `w1 + w2 != 0`.
+    Where both weights are exactly zero the slope is `0` for `modified = true` (the four
+    secants around the knot are then zero) and the mean of the outer two secants for
+    `modified = false`. Defaults to `1e-9`.
   - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
     are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
     `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
@@ -310,6 +318,8 @@ Extrapolation extends the last cubic polynomial on each side.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+With two data points the result is the straight line through them.
 
 # Examples
 
@@ -361,15 +371,26 @@ struct AkimaInterpolation{
     end
 end
 
+# Underlying real value, through nested ForwardDiff `Dual`s
+_akima_primal(x) = x
+_akima_primal(x::ForwardDiff.Dual) = _akima_primal(ForwardDiff.value(x))
+
 # In-place scalar kernel for computing the Akima / makima coefficients.
 # Allocates a single length-(n+3) buffer for the padded divided differences;
 # every other intermediate (dm, f1, f2, f12, w1, w2, ind, b-default) from the
 # original vectorized formulation is fused into a scalar pass.
 function _akima_init!(
         b::AbstractVector{T}, c::AbstractVector{T}, d::AbstractVector{T},
-        u::AbstractVector, t::AbstractVector, ::Val{modified}
+        u::AbstractVector, t::AbstractVector, ::Val{modified}, tol::Real
     ) where {T, modified}
     n = length(u)
+    if n == 2
+        # A single secant, which the end-slope extrapolation below cannot extend: the
+        # interpolant is the straight line through both points.
+        b[1] = b[2] = (u[2] - u[1]) / (t[2] - t[1])
+        c[1] = d[1] = zero(T)
+        return nothing
+    end
     m = Vector{T}(undef, n + 3)
     @inbounds begin
         for i in 1:(n - 1)
@@ -381,8 +402,9 @@ function _akima_init!(
         m[n + 3] = 2 * m[n + 2] - m[n + 1]
 
         # First pass: maximum weight, used as the small-weight cutoff
+        exact = iszero(tol)
         wmax = zero(T)
-        for i in 1:n
+        for i in 1:(exact ? 0 : n)
             if modified
                 w1 = abs(m[i + 3] - m[i + 2]) + abs(m[i + 3] + m[i + 2]) / 2
                 w2 = abs(m[i + 1] - m[i]) + abs(m[i + 1] + m[i]) / 2
@@ -393,7 +415,7 @@ function _akima_init!(
             w12 = w1 + w2
             wmax = ifelse(w12 > wmax, w12, wmax)
         end
-        tol = T(1.0e-9) * wmax
+        cutoff = T(tol) * wmax
 
         # Second pass: coefficients
         for i in 1:n
@@ -407,16 +429,27 @@ function _akima_init!(
                 bdefault = (m[i + 3] + m[i]) / 2
             end
             w12 = w1 + w2
-            # Weights up to `tol / 2` are rounding noise and give `bdefault`, weights above
-            # `tol` the weighted slope; the band between blends the two linearly so `b` is
-            # continuous in `u`. Scaling by `s = max(w1, w2)` keeps `w * m` finite.
-            # `ifelse`, not `?:`, so `u` may hold symbolic (e.g. Symbolics.Num) entries.
-            full = w12 > tol
-            part = 2 * w12 > tol
-            s = ifelse(part, ifelse(w1 > w2, w1, w2), one(w12))
-            bw = (w1 / s * m[i + 1] + w2 / s * m[i + 2]) / ifelse(part, w12 / s, one(w12))
-            λ = 2 * w12 / ifelse(part, tol, one(tol)) - 1
-            b[i] = ifelse(full, bw, ifelse(part, bdefault + λ * (bw - bdefault), bdefault))
+            # Weighted mean of the adjacent secants. Scaling by `s = max(w1, w2)` keeps
+            # `w * m` finite. `ifelse`, not `?:`, so `u` may hold symbolic (e.g.
+            # Symbolics.Num) entries. Branch on primal values: `Dual` comparisons break ties
+            # on the partials, so a zero weight would otherwise take the 0/0 path.
+            nonzero = _akima_primal(w12) > 0
+            s = ifelse(nonzero, ifelse(w1 > w2, w1, w2), one(w12))
+            bw = (w1 / s * m[i + 1] + w2 / s * m[i + 2]) / ifelse(nonzero, w12 / s, one(w12))
+            if exact
+                # No cutoff: the weighted mean wherever `w1 + w2 != 0`. For makima, zero
+                # weights mean the four secants around the knot are zero, and so is the
+                # slope.
+                b[i] = ifelse(nonzero, bw, modified ? zero(T) : bdefault)
+            else
+                # Weights up to `cutoff / 2` are rounding noise and give `bdefault`, weights
+                # above `cutoff` the weighted mean; the band between blends the two linearly
+                # so `b` is continuous in `u`.
+                full = _akima_primal(w12) > _akima_primal(cutoff)
+                part = 2 * _akima_primal(w12) > _akima_primal(cutoff)
+                λ = 2 * w12 / ifelse(part & !full, cutoff, one(cutoff)) - 1
+                b[i] = ifelse(full, bw, ifelse(part, bdefault + λ * (bw - bdefault), bdefault))
+            end
         end
 
         for i in 1:(n - 1)
@@ -428,8 +461,13 @@ function _akima_init!(
     return nothing
 end
 
+function check_akima_tol(tol::Real)
+    tol >= 0 || throw(ArgumentError("`tol` must be non-negative, but `tol = $tol` was given."))
+    return nothing
+end
+
 function AkimaInterpolation(
-        u::AbstractVector{<:Number}, t; modified::Bool = false,
+        u::AbstractVector{<:Number}, t; modified::Bool = false, tol::Real = 1.0e-9,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
@@ -443,13 +481,14 @@ function AkimaInterpolation(
     u, t = munge_data(u, t)
     check_no_duplicate_t(AkimaInterpolation, t)
     check_min_length(AkimaInterpolation, t)
+    check_akima_tol(tol)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     T = eltype(u)
     b = Vector{T}(undef, n)
     c = Vector{T}(undef, n - 1)
     d = Vector{T}(undef, n - 1)
-    _akima_init!(b, c, d, u, t, Val(modified))
+    _akima_init!(b, c, d, u, t, Val(modified), tol)
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
@@ -467,7 +506,7 @@ end
 # component of a Vector{Vector}, ...). Akima's weights are defined per-dimension, so this
 # is not simply a broadcast of the scalar formula, unlike e.g. QuadraticInterpolation.
 function AkimaInterpolation(
-        u::AbstractArray{T, N}, t; modified::Bool = false,
+        u::AbstractArray{T, N}, t; modified::Bool = false, tol::Real = 1.0e-9,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
@@ -481,6 +520,7 @@ function AkimaInterpolation(
     u, t = munge_data(u, t)
     check_no_duplicate_t(AkimaInterpolation, t)
     check_min_length(AkimaInterpolation, t)
+    check_akima_tol(tol)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     dims = size(u)[1:(end - 1)]
@@ -494,7 +534,7 @@ function AkimaInterpolation(
     for i in axes(u_flat, 1)
         _akima_init!(
             view(b_flat, i, :), view(c_flat, i, :), view(d_flat, i, :),
-            view(u_flat, i, :), t, Val(modified)
+            view(u_flat, i, :), t, Val(modified), tol
         )
     end
 
@@ -510,7 +550,7 @@ function AkimaInterpolation(
 end
 
 function AkimaInterpolation(
-        u::AbstractVector{<:AbstractVector{T}}, t; modified::Bool = false,
+        u::AbstractVector{<:AbstractVector{T}}, t; modified::Bool = false, tol::Real = 1.0e-9,
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
@@ -524,6 +564,7 @@ function AkimaInterpolation(
     u, t = munge_data(u, t)
     check_no_duplicate_t(AkimaInterpolation, t)
     check_min_length(AkimaInterpolation, t)
+    check_akima_tol(tol)
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     n = length(t)
     dim = length(u[1])
@@ -535,7 +576,7 @@ function AkimaInterpolation(
         b_j = Vector{T}(undef, n)
         c_j = Vector{T}(undef, n - 1)
         d_j = Vector{T}(undef, n - 1)
-        _akima_init!(b_j, c_j, d_j, u_j, t, Val(modified))
+        _akima_init!(b_j, c_j, d_j, u_j, t, Val(modified), tol)
         for i in 1:n
             b[i][j] = b_j[i]
         end
