@@ -1132,6 +1132,79 @@ end
         end
     end
 
+    # Akima / makima knot slopes without a cutoff: the weighted mean of the adjacent
+    # secants (weights rescaled by their maximum) wherever `w1 + w2 != 0`.
+    function akima_reference_b(u, t, modified)
+        s = diff(u) ./ diff(t)
+        m1, mn = 2 * s[1] - s[2], 2 * s[end] - s[end - 1]
+        m = [2 * m1 - s[1]; m1; s; mn; 2 * mn - s[end]]
+        return map(eachindex(u)) do i
+            mll, ml, mr, mrr = m[i], m[i + 1], m[i + 2], m[i + 3]
+            w1 = abs(mrr - mr) + (modified ? abs(mrr + mr) / 2 : 0.0)
+            w2 = abs(ml - mll) + (modified ? abs(ml + mll) / 2 : 0.0)
+            w1 + w2 == 0 && return modified ? 0.0 : (mrr + mll) / 2
+            sc = max(w1, w2)
+            return (w1 / sc * ml + w2 / sc * mr) / ((w1 + w2) / sc)
+        end
+    end
+
+    @testset "Akima tol" begin
+        rng = StableRNG(614)
+        noisy = [1.0 .+ 1.0e-11 .* randn(rng, 10); 1.0 .+ (1:5)]
+        for modified in (false, true)
+            for (u_, t_) in (
+                    (randn(rng, 20), cumsum(rand(rng, 20) .+ 0.1)),
+                    (noisy, collect(1.0:15.0)),
+                    (1.0e300 .* randn(rng, 10), collect(1.0:10.0)),
+                    ([0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0], collect(1.0:7.0)),
+                )
+                A0 = @inferred AkimaInterpolation(u_, t_; modified, tol = 0)
+                @test A0.b == akima_reference_b(u_, t_, modified)
+                @test AkimaInterpolation(u_, t_; modified).b ==
+                    AkimaInterpolation(u_, t_; modified, tol = 1.0e-9).b
+            end
+            # The default cutoff treats the ~1e-11 noise as flat; `tol = 0` does not.
+            @test AkimaInterpolation(noisy, 1.0:15.0; modified, tol = 0).b !=
+                AkimaInterpolation(noisy, 1.0:15.0; modified).b
+        end
+        # Zero weights: makima slope 0 on a plateau; classic Akima keeps lines straight.
+        @test AkimaInterpolation(zeros(5), 1.0:5.0; modified = true, tol = 0).b == zeros(5)
+        @test AkimaInterpolation(2.0:2.0:10.0, 1.0:5.0; tol = 0).b == fill(2.0, 5)
+        # Zero `Dual` weights do not take the 0/0 path.
+        for modified in (false, true)
+            g = ForwardDiff.gradient(
+                x -> AkimaInterpolation(x, 1.0:6.0; modified, tol = 0)(2.5),
+                [1.0, 1.0, 1.0, 1.0, 2.0, 3.0]
+            )
+            @test all(isfinite, g)
+        end
+        @test_throws ArgumentError AkimaInterpolation(noisy, 1.0:15.0; tol = -1)
+    end
+
+    @testset "Akima with two and three points" begin
+        for modified in (false, true), tol in (1.0e-9, 0)
+            # Two points: the straight line through them
+            for (u_, t_) in (([1.0, 3.0], [0.0, 3.0]), ([0.1, 0.2], [1.0, 2.0]))
+                k = (u_[2] - u_[1]) / (t_[2] - t_[1])
+                A = AkimaInterpolation(
+                    u_, t_; modified, tol, extrapolation = ExtrapolationType.Extension
+                )
+                @test A.b == [k, k] && A.c == [0.0] && A.d == [0.0]
+                for x in (t_[1] - 1, (t_[1] + t_[2]) / 2, t_[2] + 1)
+                    @test A(x) ≈ u_[1] + k * (x - t_[1])
+                    @test DataInterpolations.derivative(A, x) ≈ k
+                end
+                @test AkimaInterpolation([u_ u_]' |> collect, t_; modified, tol).b == [k k; k k]
+            end
+            # Three points: textbook slopes, collinear data stays a line
+            A = AkimaInterpolation([1.0, 2.0, 1.0], [0.0, 1.0, 3.0]; modified, tol)
+            @test A.b ≈ akima_reference_b([1.0, 2.0, 1.0], [0.0, 1.0, 3.0], modified)
+            @test A.([0.0, 1.0, 3.0]) ≈ [1.0, 2.0, 1.0]
+            @test AkimaInterpolation([1.0, 2.0, 3.0], [0.0, 1.0, 2.0]; modified, tol).b ==
+                ones(3)
+        end
+    end
+
     # Duplicate time points throw an informative error instead of silently
     # producing NaN across the entire domain (#475)
     @test_throws ArgumentError AkimaInterpolation(
