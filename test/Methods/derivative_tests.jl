@@ -195,6 +195,25 @@ end
     )
 end
 
+@testset "Monotonic Makima Interpolation" begin
+    # The limiter and the sign pass both act on this data
+    u = [0.0, 0.05, 1.0, 1.05, 1.1, 1.1, 0.5, 0.0]
+    t = [0.0, 1.0, 1.1, 2.1, 3.1, 4.0, 5.0, 6.5]
+    test_derivatives(
+        MonotonicMakimaInterpolation; args = [u, t], name = "Monotonic Makima Interpolation"
+    )
+    u2 = vcat(u', u')
+    test_derivatives(
+        MonotonicMakimaInterpolation; args = [u2, t],
+        name = "Monotonic Makima Interpolation (Matrix)"
+    )
+    u_vov = [[u_, u_] for u_ in u]
+    test_derivatives(
+        MonotonicMakimaInterpolation; args = [u_vov, t],
+        name = "Monotonic Makima Interpolation (Vector of Vectors)"
+    )
+end
+
 @testset "Constant Interpolation" begin
     u = [0.0, 2.0, 1.0, 3.0, 2.0, 6.0, 5.5, 5.5, 2.7, 5.1, 3.0]
     t = collect(0.0:10.0)
