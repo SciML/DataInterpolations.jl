@@ -583,32 +583,82 @@ function du_PCHIP(u::AbstractVector{<:Number}, t)
     return _du.(eachindex(t))
 end
 
-# Builds each dimension's PCHIP derivative independently, by reusing the scalar
-# `du_PCHIP` kernel on a length-`n` scalar slice per leading index (row of a Matrix,
-# component of a Vector{Vector}, ...), matching the `AkimaInterpolation` pattern.
-function du_PCHIP(u::AbstractArray{T, N}, t) where {T, N}
+# Knot slopes of `MonotonicMakimaInterpolation`: makima slopes, followed by a sign pass
+# and the square Fritsch–Carlson limiter. See the docstring of
+# `MonotonicMakimaInterpolation` for the precise algorithm.
+function du_monotonic_makima(u::AbstractVector{<:Number}, t)
+    n = length(t)
+    T = typeof(oneunit(eltype(u)) / oneunit(eltype(t)))
+    du = Vector{T}(undef, n)
+    # `m[k + 2]` is the secant of segment `k`, see `_akima_slopes!`.
+    m = Vector{T}(undef, n + 3)
+    _akima_slopes!(du, m, u, t, Val(true))
+    # `ifelse`/`&`, not `if`/`&&`, so `u` may hold symbolic entries.
+    @inbounds begin
+        # Sign pass: keep a slope only if it has the same (nonzero) sign as every
+        # adjacent secant, so local extrema and flat segments get a zero slope.
+        for i in 1:n
+            sₗ = m[i + ifelse(i > 1, 1, 2)]
+            sᵣ = m[i + ifelse(i < n, 2, 1)]
+            keep = (sign(du[i]) == sign(sₗ)) & (sign(du[i]) == sign(sᵣ))
+            du[i] = ifelse(keep, du[i], zero(T))
+        end
+        # Square Fritsch–Carlson limiter, segment by segment from left to right: if
+        # `max(α, β) > 3`, scale both end slopes by `3 / max(α, β)`. A slope shared with
+        # the previous segment can only shrink here, which keeps that segment's `(α, β)`
+        # inside the square.
+        for k in 1:(n - 1)
+            s = m[k + 2]
+            nonzero = s != 0
+            s_safe = ifelse(nonzero, s, oneunit(s))
+            α = du[k] / s_safe
+            β = du[k + 1] / s_safe
+            αβ_max = ifelse(α > β, α, β)
+            limit = nonzero & (αβ_max > 3)
+            # One factor `r = 3 / max(α, β)` for both end slopes; the larger scaled slope
+            # is then `3s` up to rounding (a few ulps), not exactly `3s`. Since `r ≤ 1`, a
+            # scaled slope never grows.
+            r = 3 / ifelse(limit, αβ_max, one(αβ_max))
+            du[k] = ifelse(limit, r * du[k], du[k])
+            du[k + 1] = ifelse(limit, r * du[k + 1], du[k + 1])
+        end
+    end
+    return du
+end
+
+# Builds each dimension's knot slopes independently, by reusing a scalar slope kernel
+# `du_fn(u, t)` (e.g. `du_PCHIP`) on a length-`n` scalar slice per leading index (row of
+# a Matrix, component of a Vector{Vector}, ...), matching the `AkimaInterpolation` pattern.
+function _du_per_dimension(du_fn, u::AbstractArray{T, N}, t) where {T, N}
     n = length(t)
     dims = size(u)[1:(end - 1)]
     du = Array{T}(undef, dims..., n)
     u_flat = reshape(u, :, n)
     du_flat = reshape(du, :, n)
     for i in axes(u_flat, 1)
-        du_flat[i, :] .= du_PCHIP(u_flat[i, :], t)
+        du_flat[i, :] .= du_fn(u_flat[i, :], t)
     end
     return du
 end
 
-function du_PCHIP(u::AbstractVector{<:AbstractVector{T}}, t) where {T}
+function _du_per_dimension(du_fn, u::AbstractVector{<:AbstractVector{T}}, t) where {T}
     dim = length(u[1])
     du = [Vector{T}(undef, dim) for _ in eachindex(u)]
     for j in 1:dim
         u_j = [u_[j] for u_ in u]
-        du_j = du_PCHIP(u_j, t)
+        du_j = du_fn(u_j, t)
         for i in eachindex(t)
             du[i][j] = du_j[i]
         end
     end
     return du
+end
+
+du_PCHIP(u::AbstractArray, t) = _du_per_dimension(du_PCHIP, u, t)
+du_PCHIP(u::AbstractVector{<:AbstractVector}, t) = _du_per_dimension(du_PCHIP, u, t)
+du_monotonic_makima(u::AbstractArray, t) = _du_per_dimension(du_monotonic_makima, u, t)
+function du_monotonic_makima(u::AbstractVector{<:AbstractVector}, t)
+    return _du_per_dimension(du_monotonic_makima, u, t)
 end
 
 function integrate_cubic_polynomial(t1, t2, offset, a, b, c, d)

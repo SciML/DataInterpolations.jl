@@ -361,24 +361,31 @@ struct AkimaInterpolation{
     end
 end
 
-# In-place scalar kernel for computing the Akima / makima coefficients.
-# Allocates a single length-(n+3) buffer for the padded divided differences;
-# every other intermediate (dm, f1, f2, f12, w1, w2, ind, b-default) from the
-# original vectorized formulation is fused into a scalar pass.
-function _akima_init!(
-        b::AbstractVector{T}, c::AbstractVector{T}, d::AbstractVector{T},
+# In-place scalar kernel for the Akima / makima knot slopes `b` (length n).
+# `m` is a length-(n+3) buffer that is filled with the padded divided differences:
+# `m[k + 2]` is the secant of segment `k` (k = 1, ..., n - 1), and `m[1:2]`,
+# `m[n + 2:n + 3]` are the linearly extrapolated ghost secants. Every other intermediate
+# (dm, f1, f2, f12, w1, w2, ind, b-default) of the original vectorized formulation is
+# fused into a scalar pass.
+function _akima_slopes!(
+        b::AbstractVector{T}, m::AbstractVector{T},
         u::AbstractVector, t::AbstractVector, ::Val{modified}
     ) where {T, modified}
     n = length(u)
-    m = Vector{T}(undef, n + 3)
     @inbounds begin
         for i in 1:(n - 1)
             m[i + 2] = (u[i + 1] - u[i]) / (t[i + 1] - t[i])
         end
-        m[2] = 2 * m[3] - m[4]
-        m[1] = 2 * m[2] - m[3]
-        m[n + 2] = 2 * m[n + 1] - m[n]
-        m[n + 3] = 2 * m[n + 2] - m[n + 1]
+        if n == 2
+            # A single secant: its linear extrapolation is the secant itself, which
+            # makes both knot slopes equal to it (a straight line).
+            m[1] = m[2] = m[4] = m[5] = m[3]
+        else
+            m[2] = 2 * m[3] - m[4]
+            m[1] = 2 * m[2] - m[3]
+            m[n + 2] = 2 * m[n + 1] - m[n]
+            m[n + 3] = 2 * m[n + 2] - m[n + 1]
+        end
 
         # First pass: maximum weight, used as the small-weight cutoff
         wmax = zero(T)
@@ -418,7 +425,19 @@ function _akima_init!(
             λ = 2 * w12 / ifelse(part, tol, one(tol)) - 1
             b[i] = ifelse(full, bw, ifelse(part, bdefault + λ * (bw - bdefault), bdefault))
         end
+    end
+    return nothing
+end
 
+# In-place scalar kernel for computing the Akima / makima coefficients.
+function _akima_init!(
+        b::AbstractVector{T}, c::AbstractVector{T}, d::AbstractVector{T},
+        u::AbstractVector, t::AbstractVector, ::Val{modified}
+    ) where {T, modified}
+    n = length(u)
+    m = Vector{T}(undef, n + 3)
+    _akima_slopes!(b, m, u, t, Val(modified))
+    @inbounds begin
         for i in 1:(n - 1)
             dt = t[i + 1] - t[i]
             c[i] = (3 * m[i + 2] - 2 * b[i] - b[i + 1]) / dt
@@ -1832,6 +1851,99 @@ function PCHIPInterpolation(u, t; kwargs...)
     # which only needs 2 since its `du` is supplied directly, not derived from `u`).
     check_min_length(:PCHIPInterpolation, 3, t)
     du = du_PCHIP(u, t)
+    return CubicHermiteSpline(du, u, t; kwargs...)
+end
+
+"""
+    MonotonicMakimaInterpolation(u, t; extrapolation::ExtrapolationType.T = ExtrapolationType.None, extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
+        extrapolation_right::ExtrapolationType.T = ExtrapolationType.None, cache_parameters = false)
+
+A shape-preserving variant of the modified Akima (makima) interpolation. It is a
+[`CubicHermiteSpline`](@ref) whose derivative values `du` are the makima slopes of
+[`AkimaInterpolation`](@ref) with `modified = true`, passed through a Fritsch–Carlson
+monotonicity limiter. On every segment where the data is monotone the interpolant is
+monotone, it never overshoots the data (local extrema of the interpolant are at data
+points), and flat segments of the data stay flat. Where steps 2 and 3 below leave the
+slopes unchanged, the interpolant is identical to `AkimaInterpolation(u, t; modified = true)`.
+
+With secants `s_k = (u[k + 1] - u[k]) / (t[k + 1] - t[k])`, the slope `d_i` at knot `i` is
+computed in three steps:
+
+ 1. **Makima slopes.** `d_i = (w₁ s_{i-1} + w₂ s_i) / (w₁ + w₂)` with
+    `w₁ = |s_{i+1} - s_i| + |s_{i+1} + s_i| / 2` and
+    `w₂ = |s_{i-1} - s_{i-2}| + |s_{i-1} + s_{i-2}| / 2`. Missing secants at the ends are
+    linearly extrapolated (`s_0 = 2s_1 - s_2`, `s_{-1} = 2s_0 - s_1` and the mirror image on
+    the right), and `d_i = 0` when `w₁ = w₂ = 0` (the adjacent secants are then both 0).
+    These are exactly the slopes of `AkimaInterpolation(u, t; modified = true)`, including
+    its fallback to the mean of the adjacent secants when both weights are negligible
+    compared with the largest weight.
+ 2. **Sign pass.** `d_i` is set to `0` if its sign differs from the sign of an adjacent
+    secant (`s_{i-1}` or `s_i`; only one of them at the end points), or if an adjacent
+    secant is `0`. Local extrema of the data and flat segments therefore get zero slopes.
+ 3. **Square Fritsch–Carlson limiter.** For each segment `k` with `s_k ≠ 0`, processed
+    from left to right, let `α = d_k / s_k` and `β = d_{k+1} / s_k` (both `≥ 0` after
+    step 2). If `max(α, β) > 3`, both end slopes of the segment are multiplied by the
+    same factor `τ = 3 / max(α, β)`, i.e. `(α, β)` is projected radially onto the boundary
+    of the square `[0, 3]²`, keeping the ratio `α : β`. In floating point the larger
+    scaled slope is `3 s_k` up to rounding (within a few ulps), not exactly `3 s_k`. A
+    slope shared with the previous segment can only shrink (`τ ≤ 1`), so all segments end
+    up inside the square, up to that rounding.
+
+Fritsch & Carlson (1980) show that a cubic Hermite segment is monotone if and only if
+`(α, β)` lies in a certain region of the first quadrant, which contains the square `[0, 3]²`.
+Their algorithm limits `(α, β)` to the disk of radius 3 instead, with the scaling factor
+`τ = 3 / √(α² + β²)`; the square used here is a larger subset of the monotonicity region,
+so it modifies the makima slopes less often and less strongly (for example `(α, β) = (3, 3)`
+is left unchanged). Fritsch–Butland type methods such as [`PCHIPInterpolation`](@ref)
+(weighted harmonic mean of the secants) and the method of Steffen (1990) differ in that they
+do not limit an existing slope: they define the slope by a formula that lies in the
+monotonicity region by construction, so they do not reduce to makima on smooth data.
+
+References:
+
+  - F. N. Fritsch and R. E. Carlson, "Monotone Piecewise Cubic Interpolation",
+    SIAM J. Numer. Anal. 17(2), 238–246 (1980), doi:10.1137/0717021.
+  - C. Moler, "Makima Piecewise Cubic Interpolation", [https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/](https://blogs.mathworks.com/cleve/2019/04/29/makima-piecewise-cubic-interpolation/).
+
+With 2 data points the interpolant is the straight line through them.
+
+# Arguments
+
+  - `u`: data points.
+  - `t`: time points.
+
+# Keywords
+
+  - `extrapolation`: The extrapolation type applied left and right of the data. Possible options
+    are `ExtrapolationType.None` (default), `ExtrapolationType.Constant`, `ExtrapolationType.Linear`
+    `ExtrapolationType.Extension`, `ExtrapolationType.Periodic` and `ExtrapolationType.Reflective`.
+  - `extrapolation_left`: The extrapolation type applied left of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
+  - `extrapolation_right`: The extrapolation type applied right of the data. See `extrapolation` for
+    the possible options. This keyword is ignored if `extrapolation != ExtrapolationType.None`.
+  - `cache_parameters`: precompute parameters at initialization for faster interpolation computations. Note: if activated, `u` and `t` should not be modified. Defaults to `false`.
+  - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
+    to skip the construction-time knot probe or override its result (e.g. built with
+    `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+
+# Examples
+
+```julia
+using DataInterpolations
+
+u = [0.0, 0.0, 0.01, 10.0, 10.0, 10.0]
+t = [0.0, 1.0, 2.0, 2.05, 3.0, 4.0]
+A = MonotonicMakimaInterpolation(u, t)
+A(0.5) # 0.0, whereas makima undershoots to about -0.00047 here
+```
+"""
+function MonotonicMakimaInterpolation(u, t; kwargs...)
+    u, t = munge_data(u, t)
+    # Checked here (rather than in the delegated `CubicHermiteSpline` constructor) so the
+    # error names `MonotonicMakimaInterpolation` and fires before the slopes are computed.
+    check_no_duplicate_t(:MonotonicMakimaInterpolation, t)
+    check_min_length(:MonotonicMakimaInterpolation, 2, t)
+    du = du_monotonic_makima(u, t)
     return CubicHermiteSpline(du, u, t; kwargs...)
 end
 

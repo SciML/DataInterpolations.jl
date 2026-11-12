@@ -768,6 +768,13 @@ end
     @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
     @test_throws DataInterpolations.RightExtrapolationError A(11.0)
 
+    # Two points: the straight line through them
+    for modified in (false, true)
+        A2 = AkimaInterpolation([1.0, 3.0], [0.0, 2.0]; modified)
+        @test A2.b == [1.0, 1.0]
+        @test A2.(0.0:0.25:2.0) ≈ 1.0 .+ (0.0:0.25:2.0)
+    end
+
     # Modified Akima (makima) — same struct, different b computation
     @testset "Modified Akima (makima)" begin
         A_makima = @inferred(AkimaInterpolation(u, t; modified = true))
@@ -2145,6 +2152,91 @@ end
     end
 end
 
+@testset "MonotonicMakimaInterpolation" begin
+    # `true` if `v` is non-decreasing up to floating-point rounding of the cubic evaluation
+    nondecreasing(v) = all(diff(v) .>= -8 * eps(maximum(abs, v)))
+
+    @testset "Monotone data gives a monotone interpolant" begin
+        rng = StableRNG(13)
+        for _ in 1:5
+            n = rand(rng, 4:12)
+            t = cumsum(rand(rng, n))
+            u = cumsum(rand(rng, n) .^ 3)
+            tt = range(t[1], t[end]; length = 1001)
+            @test nondecreasing(MonotonicMakimaInterpolation(u, t).(tt))
+            @test nondecreasing(-MonotonicMakimaInterpolation(-u, t).(tt))
+        end
+        # Plain makima overshoots on this data, the monotone variant does not
+        u = [0.0, 0.05, 1.0, 1.05, 1.1]
+        t = [0.0, 1.0, 1.1, 2.1, 3.1]
+        tt = range(t[1], t[end]; length = 3001)
+        @test !nondecreasing(AkimaInterpolation(u, t; modified = true).(tt))
+        @test nondecreasing(MonotonicMakimaInterpolation(u, t).(tt))
+    end
+
+    @testset "Equal to makima where the limiter is inactive" begin
+        t = collect(0.1:0.1:1.0)
+        u = exp.(t)
+        A = @inferred(MonotonicMakimaInterpolation(u, t))
+        @test A isa CubicHermiteSpline
+        @test A.du == AkimaInterpolation(u, t; modified = true).b
+    end
+
+    @testset "Flat segments stay flat" begin
+        u = [0.0, 1.0, 1.0, 1.0, 2.0, 3.0, 3.0]
+        t = collect(0.0:6.0)
+        A = MonotonicMakimaInterpolation(u, t)
+        @test all(A.(range(1.0, 3.0; length = 101)) .== 1.0)
+        @test all(A.(range(5.0, 6.0; length = 101)) .== 3.0)
+        @test nondecreasing(A.(range(0.0, 6.0; length = 601)))
+    end
+
+    @testset "Limiter scaling" begin
+        # Makima slopes [-3.5, 4.76, ...]: the sign pass zeroes the first one (opposite
+        # sign to the secant), the limiter scales the second one to 3 s₁.
+        u = [0.0, 0.05, 1.0, 1.05, 1.1]
+        t = [0.0, 1.0, 1.1, 2.1, 3.1]
+        B = AkimaInterpolation(u, t; modified = true)
+        A = MonotonicMakimaInterpolation(u, t)
+        @test A.du[1] == 0
+        @test A.du[2] ≈ 3 * 0.05
+        @test A.du[3:end] == B.b[3:end]
+
+        # A shallow segment between two steep ones: both end slopes are multiplied by
+        # r = 3 / max(α, β), so the larger goes to 3s (up to rounding) and the ratio is kept
+        u = [0.0, 1.0, 2.0, 2.1, 2.6, 3.1]
+        t = collect(0.0:5.0)
+        B = AkimaInterpolation(u, t; modified = true)
+        A = MonotonicMakimaInterpolation(u, t)
+        s = (u[4] - u[3]) / (t[4] - t[3])
+        r = 3 / (max(B.b[3], B.b[4]) / s)
+        @test r < 1
+        @test A.du[3] == r * B.b[3]
+        @test A.du[4] == r * B.b[4]
+        @test max(A.du[3], A.du[4]) ≈ 3s
+        @test A.du[[1, 2, 5, 6]] == B.b[[1, 2, 5, 6]]
+    end
+
+    @testset "2-point tables" begin
+        A = MonotonicMakimaInterpolation([1.0, 3.0], [0.0, 2.0])
+        @test A.du == [1.0, 1.0]
+        @test A.(0.0:0.25:2.0) ≈ 1.0 .+ (0.0:0.25:2.0)
+        @test MonotonicMakimaInterpolation([1.0, 1.0], [0.0, 2.0]).du == [0.0, 0.0]
+    end
+
+    @testset "Extrapolation and caching" begin
+        u = [0.0, 0.05, 1.0, 1.05, 1.1]
+        t = [0.0, 1.0, 1.1, 2.1, 3.1]
+        A = MonotonicMakimaInterpolation(u, t)
+        @test_throws DataInterpolations.LeftExtrapolationError A(-1.0)
+        A_lin = MonotonicMakimaInterpolation(u, t; extrapolation = ExtrapolationType.Linear)
+        @test A_lin(4.0) ≈ u[end] + 0.9 * A.du[end]
+        A_cached = MonotonicMakimaInterpolation(u, t; cache_parameters = true)
+        tt = range(t[1], t[end]; length = 101)
+        @test A_cached.(tt) ≈ A.(tt)
+    end
+end
+
 @testset "Quintic Hermite Spline" begin
     test_interpolation_type(QuinticHermiteSpline)
 
@@ -2476,6 +2568,7 @@ end
     @test_nowarn bsa = BSplineApprox(x, t, 3, 20, :Average)
     @test_nowarn ai = AkimaInterpolation(x, t)
     @test_nowarn pc = PCHIPInterpolation(x, t)
+    @test_nowarn mmi = MonotonicMakimaInterpolation(x, t)
     @test_nowarn bsi = BSplineInterpolation(x, t, 3, :Average)
     @test_nowarn qs = QuadraticSpline(x, t)
     # `SmoothArcLengthInterpolation` fits circle/line segments, which requires branching on
