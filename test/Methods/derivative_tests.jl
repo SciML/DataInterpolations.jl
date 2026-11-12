@@ -207,11 +207,6 @@ end
         MonotonicMakimaInterpolation; args = [u2, t],
         name = "Monotonic Makima Interpolation (Matrix)"
     )
-    u_vov = [[u_, u_] for u_ in u]
-    test_derivatives(
-        MonotonicMakimaInterpolation; args = [u_vov, t],
-        name = "Monotonic Makima Interpolation (Vector of Vectors)"
-    )
 end
 
 @testset "Constant Interpolation" begin

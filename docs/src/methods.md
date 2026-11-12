@@ -174,19 +174,6 @@ A = MonotonicMakimaInterpolation(u, t)
 plot(A)
 ```
 
-On data with a steep step, makima can undershoot on the flat segment before the step, while the monotone variant keeps it flat:
-
-```@example tutorial
-u_step = [0.0, 0.0, 0.01, 10.0, 10.0, 10.0]
-t_step = [0.0, 1.0, 2.0, 2.05, 3.0, 4.0]
-A_makima = AkimaInterpolation(u_step, t_step; modified = true)
-A_monotonic = MonotonicMakimaInterpolation(u_step, t_step)
-tt = range(0.0, 2.2; length = 500)
-plot(tt, A_makima.(tt); label = "makima")
-plot!(tt, A_monotonic.(tt); label = "monotonic makima")
-scatter!(t_step[1:4], u_step[1:4]; label = "data", ylims = (-0.002, 0.03))
-```
-
 ## Quintic Hermite Spline
 
 This is the quintic (fifth order) Hermite interpolation. It matches the values and first and second order derivatives in the data points exactly.

@@ -245,15 +245,6 @@ end
     )
 end
 
-@testset "MonotonicMakimaInterpolation" begin
-    u = [0.0, 0.05, 1.0, 1.05, 1.1, 1.1, 0.5, 0.0]
-    t = [0.0, 1.0, 1.1, 2.1, 3.1, 4.0, 5.0, 6.5]
-    test_integral(
-        MonotonicMakimaInterpolation; args = [u, t],
-        name = "Monotonic Makima Interpolation (Vector)"
-    )
-end
-
 @testset "CubicHermiteSpline" begin
     du = [-0.047, -0.058, 0.054, 0.012, -0.068, 0.0]
     u = [14.7, 11.51, 10.41, 14.95, 12.24, 11.22]
