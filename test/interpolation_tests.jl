@@ -2217,6 +2217,34 @@ end
         @test A.du[[1, 2, 5, 6]] == B.b[[1, 2, 5, 6]]
     end
 
+    @testset "Limiter ratio overflow" begin
+        for (T, small, large) in ((Float64, 1.0e-200, 1.0e200), (Float32, 1.0f-20, 1.0f20)),
+                sign in (-1, 1)
+            A = MonotonicMakimaInterpolation(sign .* T[0, small, large, 2large], T[0, 1, 2, 3])
+            @test A.du[2] ≈ sign * 3small
+            @test A(T(0.5)) ≈ sign * small / 8
+        end
+    end
+
+    @testset "Promoted array slopes" begin
+        u, t = [0, 1, 4, 9], [0.0, 1.0, 2.0, 3.0]
+        g = ForwardDiff.gradient(tt -> MonotonicMakimaInterpolation(float.(u), tt)(0.5), t)
+        for shape in (x -> reshape(x, 1, :), x -> [[v] for v in x])
+            @test only(MonotonicMakimaInterpolation(shape(u), Int.(t))(0.5)) ≈ 0.3125
+            @test ForwardDiff.gradient(
+                tt -> only(MonotonicMakimaInterpolation(shape(float.(u)), tt)(0.5)), t
+            ) ≈ g
+        end
+    end
+
+    @testset "Unitful slopes" begin
+        for u in ([0.0, 1.0, 4.0, 9.0], zeros(4))
+            A = MonotonicMakimaInterpolation(u * u"m", [0.0, 1.0, 2.0, 3.0]u"s")
+            reference = MonotonicMakimaInterpolation(u, [0.0, 1.0, 2.0, 3.0])(0.5)
+            @test A(0.5u"s") ≈ reference * u"m"
+        end
+    end
+
     @testset "2-point tables" begin
         A = MonotonicMakimaInterpolation([1.0, 3.0], [0.0, 2.0])
         @test A.du == [1.0, 1.0]

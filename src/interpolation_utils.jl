@@ -619,8 +619,15 @@ function du_monotonic_makima(u::AbstractVector{<:Number}, t)
             # is then `3s` up to rounding (a few ulps), not exactly `3s`. Since `r ≤ 1`, a
             # scaled slope never grows.
             r = 3 / ifelse(limit, αβ_max, one(αβ_max))
-            du[k] = ifelse(limit, r * du[k], du[k])
-            du[k + 1] = ifelse(limit, r * du[k + 1], du[k + 1])
+            # If a slope/secant ratio overflowed, normalize by the dominant slope
+            # first; the common multiplier `r` would otherwise underflow to zero.
+            dmax = max(abs(du[k]), abs(du[k + 1]))
+            dmax_safe = ifelse(limit, dmax, oneunit(dmax))
+            overflow = !isfinite(αβ_max)
+            dₗ = ifelse(overflow, (du[k] / dmax_safe) * (3 * abs(s)), r * du[k])
+            dᵣ = ifelse(overflow, (du[k + 1] / dmax_safe) * (3 * abs(s)), r * du[k + 1])
+            du[k] = ifelse(limit, dₗ, du[k])
+            du[k + 1] = ifelse(limit, dᵣ, du[k + 1])
         end
     end
     return du
@@ -632,7 +639,9 @@ end
 function _du_per_dimension(du_fn, u::AbstractArray{T, N}, t) where {T, N}
     n = length(t)
     dims = size(u)[1:(end - 1)]
-    du = Array{T}(undef, dims..., n)
+    # Match the scalar kernel: division and the time type can promote the slopes.
+    S = typeof(oneunit(T) / oneunit(eltype(t)))
+    du = Array{S}(undef, dims..., n)
     u_flat = reshape(u, :, n)
     du_flat = reshape(du, :, n)
     for i in axes(u_flat, 1)
@@ -643,7 +652,8 @@ end
 
 function _du_per_dimension(du_fn, u::AbstractVector{<:AbstractVector{T}}, t) where {T}
     dim = length(u[1])
-    du = [Vector{T}(undef, dim) for _ in eachindex(u)]
+    S = typeof(oneunit(T) / oneunit(eltype(t)))
+    du = [Vector{S}(undef, dim) for _ in eachindex(u)]
     for j in 1:dim
         u_j = [u_[j] for u_ in u]
         du_j = du_fn(u_j, t)

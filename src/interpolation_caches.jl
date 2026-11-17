@@ -400,7 +400,7 @@ function _akima_slopes!(
             w12 = w1 + w2
             wmax = ifelse(w12 > wmax, w12, wmax)
         end
-        tol = T(1.0e-9) * wmax
+        tol = oftype(one(T), 1.0e-9) * wmax
 
         # Second pass: coefficients
         for i in 1:n
@@ -420,9 +420,9 @@ function _akima_slopes!(
             # `ifelse`, not `?:`, so `u` may hold symbolic (e.g. Symbolics.Num) entries.
             full = w12 > tol
             part = 2 * w12 > tol
-            s = ifelse(part, ifelse(w1 > w2, w1, w2), one(w12))
+            s = ifelse(part, ifelse(w1 > w2, w1, w2), oneunit(w12))
             bw = (w1 / s * m[i + 1] + w2 / s * m[i + 2]) / ifelse(part, w12 / s, one(w12))
-            λ = 2 * w12 / ifelse(part, tol, one(tol)) - 1
+            λ = 2 * w12 / ifelse(part, tol, oneunit(tol)) - 1
             b[i] = ifelse(full, bw, ifelse(part, bdefault + λ * (bw - bdefault), bdefault))
         end
     end
