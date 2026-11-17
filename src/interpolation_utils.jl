@@ -620,7 +620,7 @@ function du_monotonic_makima(u::AbstractVector{<:Number}, t)
             # scaled slope never grows.
             r = 3 / ifelse(limit, αβ_max, one(αβ_max))
             # If a slope/secant ratio overflowed, normalize by the dominant slope
-            # first; the common multiplier `r` would otherwise underflow to zero.
+            # first; the common multiplier `r` would otherwise be exactly zero.
             dmax = max(abs(du[k]), abs(du[k + 1]))
             dmax_safe = ifelse(limit, dmax, oneunit(dmax))
             overflow = !isfinite(αβ_max)
