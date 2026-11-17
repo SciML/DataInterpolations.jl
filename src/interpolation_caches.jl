@@ -435,7 +435,9 @@ function _akima_init!(
             # on the partials, so a zero weight would otherwise take the 0/0 path.
             nonzero = _akima_primal(w12) > 0
             s = ifelse(nonzero, ifelse(w1 > w2, w1, w2), one(w12))
-            bw = (w1 / s * m[i + 1] + w2 / s * m[i + 2]) / ifelse(nonzero, w12 / s, one(w12))
+            # In exact mode normalize before adding: `w1 + w2` can overflow.
+            denominator = exact ? w1 / s + w2 / s : w12 / s
+            bw = (w1 / s * m[i + 1] + w2 / s * m[i + 2]) / ifelse(nonzero, denominator, one(w12))
             if exact
                 # No cutoff: the weighted mean wherever `w1 + w2 != 0`. For makima, zero
                 # weights mean the four secants around the knot are zero, and so is the

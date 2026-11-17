@@ -1144,7 +1144,7 @@ end
             w2 = abs(ml - mll) + (modified ? abs(ml + mll) / 2 : 0.0)
             w1 + w2 == 0 && return modified ? 0.0 : (mrr + mll) / 2
             sc = max(w1, w2)
-            return (w1 / sc * ml + w2 / sc * mr) / ((w1 + w2) / sc)
+            return (w1 / sc * ml + w2 / sc * mr) / (w1 / sc + w2 / sc)
         end
     end
 
@@ -1179,6 +1179,15 @@ end
             @test all(isfinite, g)
         end
         @test_throws ArgumentError AkimaInterpolation(noisy, 1.0:15.0; tol = -1)
+    end
+
+    @testset "Akima exact weights near overflow" begin
+        u = [0.0, 0.5, 1.0, 0.5, 0.0, 0.5, 1.0] .* 1.0e308
+        for modified in (false, true)
+            A = AkimaInterpolation(u, collect(1.0:7.0); modified, tol = 0)
+            @test A.b[4] ≈ -5.0e307
+            @test A(3.5) ≈ 8.125e307
+        end
     end
 
     @testset "Akima with two and three points" begin
