@@ -165,6 +165,15 @@ A = PCHIPInterpolation(u, t)
 plot(A)
 ```
 
+## Monotonic Makima Interpolation
+
+This is a type of `CubicHermiteSpline` whose derivative values `du` are the modified Akima (makima) slopes of `AkimaInterpolation(u, t; modified = true)`, passed through a Fritsch–Carlson monotonicity limiter: slopes at local extrema and next to flat segments are set to zero, and on each segment the end slopes are scaled back so that `du / secant` lies in the square `[0, 3]²`. Like PCHIP, the interpolation never overshoots the data and is monotone wherever the data is; where the limiter does not act, it is identical to makima. See [`MonotonicMakimaInterpolation`](@ref) for the precise algorithm.
+
+```@example tutorial
+A = MonotonicMakimaInterpolation(u, t)
+plot(A)
+```
+
 ## Quintic Hermite Spline
 
 This is the quintic (fifth order) Hermite interpolation. It matches the values and first and second order derivatives in the data points exactly.
