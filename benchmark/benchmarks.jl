@@ -46,6 +46,24 @@ SUITE["eval"]["cubic_vector"] = @benchmarkable $cubic($t_eval)
 SUITE["eval"]["akima_vector"] = @benchmarkable $akima($t_eval)
 SUITE["eval"]["constant_vector"] = @benchmarkable $const_interp($t_eval)
 
+function sum_scalar_queries(interpolation, queries)
+    result = zero(eltype(queries))
+    for query in queries
+        result += interpolation(query)
+    end
+    return result
+end
+
+for n in (33, 513)
+    knots = collect(range(0.0, 8.0; length = n))
+    sites = knots .+ (1 .- cos.(knots)) ./ 1000
+    spline = BSplineInterpolation(sin.(knots) .+ knots ./ 16, sites, 3, :Average)
+    queries = collect(range(0.1, 7.9; length = 1024))
+    out = similar(queries)
+    SUITE["eval"]["bspline_scalar_sorted_$n"] = @benchmarkable sum_scalar_queries($spline, $queries)
+    SUITE["eval"]["bspline_batch_sorted_$n"] = @benchmarkable $spline($out, $queries)
+end
+
 # =============================================================================
 # Derivatives
 # =============================================================================
