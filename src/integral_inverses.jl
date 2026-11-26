@@ -110,7 +110,14 @@ function invertible_integral(A::LinearInterpolation{<:AbstractVector{<:Number}})
 end
 
 function get_I(A::AbstractInterpolation)
-    I = isempty(A.I) ? cumulative_integral(A, true) : copy(A.I)
+    if isempty(A.I)
+        # Fresh from `cumulative_integral`: reuse a dynamic Vector; materialize static.
+        I = cumulative_integral(A, true)
+        I = I isa StaticArray ? collect(I) : I
+    else
+        # Existing cache must not be mutated by `pushfirst!`.
+        I = collect(A.I)
+    end
     pushfirst!(I, 0)
     return I
 end

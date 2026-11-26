@@ -1,6 +1,7 @@
 using DataInterpolations
 using DataInterpolations: integral, derivative, invert_integral
 using FiniteDifferences
+using StaticArrays: SA
 
 function test_integral_inverses(method; args = [], kwargs = [])
     A = method(args...; kwargs..., extrapolation = ExtrapolationType.Extension)
@@ -88,3 +89,18 @@ t = collect(1:5)
 u = [1.0, 1.0, 2.0, 4.0, 3.0]
 A = QuadraticInterpolation(u, t)
 @test_throws DataInterpolations.IntegralInverseNotFoundError invert_integral(A)
+
+@testset "Static invert_integral and I cache preservation" begin
+    u_s = SA[1.0, 2.0, 4.0]
+    t_s = SA[0.0, 1.0, 2.0]
+    for cp in (false, true)
+        A = LinearInterpolation(u_s, t_s; cache_parameters = cp)
+        A_inv = invert_integral(A)
+        @test A_inv(integral(A, 1.0)) ≈ 1.0
+    end
+
+    A = LinearInterpolation([1.0, 2.0, 4.0], [0.0, 1.0, 2.0]; cache_parameters = true)
+    I_before = copy(A.I)
+    invert_integral(A)
+    @test A.I == I_before
+end
