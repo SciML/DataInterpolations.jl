@@ -31,6 +31,11 @@ right-continuous — `A(t)` returns the post-jump value, matching
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -56,9 +61,10 @@ struct LinearInterpolation{
     # A field, not a type parameter, so the constructor stays inferred.
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
+    cache_search::Bool
     @inline function LinearInterpolation(
             u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters, t_props,
+            cache_parameters, t_props, cache_search = true
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -66,7 +72,7 @@ struct LinearInterpolation{
             eltype(u), typeof(t_props),
         }(
             u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters,
+            Guesser(t), t_props, kind, cache_parameters, cache_search,
         )
     end
 end
@@ -76,7 +82,8 @@ function LinearInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -88,12 +95,12 @@ function LinearInterpolation(
     p = LinearParameterCache(u, t, cache_parameters)
     A = LinearInterpolation(
         u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return LinearInterpolation(
         u, t, I, p, extrapolation_left, extrapolation_right,
-        cache_parameters, t_props
+        cache_parameters, t_props, cache_search
     )
 end
 
@@ -124,6 +131,11 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -147,9 +159,10 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
+    cache_search::Bool
     function QuadraticInterpolation(
             u, t, I, p, mode, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
+            extrapolation_right, cache_parameters, t_props, cache_search = true
         )
         mode ∈ (:Forward, :Backward) ||
             error("mode should be :Forward or :Backward for QuadraticInterpolation")
@@ -159,7 +172,7 @@ struct QuadraticInterpolation{uType, tType, IType, pType, T, propsType} <:
             eltype(u), typeof(t_props),
         }(
             u, t, I, p, mode, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters, cache_search
         )
     end
 end
@@ -169,7 +182,8 @@ function QuadraticInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -182,12 +196,12 @@ function QuadraticInterpolation(
     p = QuadraticParameterCache(u, t, cache_parameters, mode)
     A = QuadraticInterpolation(
         u, t, nothing, p, mode, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return QuadraticInterpolation(
         u, t, I, p, mode, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -219,6 +233,8 @@ It is the method of interpolation using Lagrange polynomials of (k-1)th order pa
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: accepted for consistency with the other interpolation types.
+    `LagrangeInterpolation` evaluation keeps no search state, so it has no effect. Defaults to `true`.
 
 # Examples
 
@@ -240,7 +256,10 @@ struct LagrangeInterpolation{uType, tType, T, pType, propsType} <:
     iguesser::Guesser{tType}
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
-    function LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right, t_props)
+    cache_search::Bool
+    function LagrangeInterpolation(
+            u, t, n, extrapolation_left, extrapolation_right, t_props, cache_search = true
+        )
         p = LagrangeParameterCache(u, t)
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -255,7 +274,8 @@ struct LagrangeInterpolation{uType, tType, T, pType, propsType} <:
             extrapolation_right,
             Guesser(t),
             t_props,
-            kind
+            kind,
+            cache_search
         )
     end
 end
@@ -265,7 +285,8 @@ function LagrangeInterpolation(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -277,7 +298,9 @@ function LagrangeInterpolation(
         error("Currently only n=length(t) - 1 is supported")
     end
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
-    return LagrangeInterpolation(u, t, n, extrapolation_left, extrapolation_right, t_props)
+    return LagrangeInterpolation(
+        u, t, n, extrapolation_left, extrapolation_right, t_props, cache_search
+    )
 end
 
 """
@@ -310,6 +333,11 @@ Extrapolation extends the last cubic polynomial on each side.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -336,9 +364,10 @@ struct AkimaInterpolation{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
+    cache_search::Bool
     function AkimaInterpolation(
             u, t, I, b, c, d, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
+            extrapolation_right, cache_parameters, t_props, cache_search = true
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -357,6 +386,7 @@ struct AkimaInterpolation{
             t_props,
             kind,
             cache_parameters,
+            cache_search,
         )
     end
 end
@@ -434,7 +464,8 @@ function AkimaInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -453,12 +484,12 @@ function AkimaInterpolation(
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return AkimaInterpolation(
         u, t, I, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -472,7 +503,8 @@ function AkimaInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     ) where {T, N}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -500,12 +532,12 @@ function AkimaInterpolation(
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return AkimaInterpolation(
         u, t, I, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -515,7 +547,8 @@ function AkimaInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     ) where {T}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -547,12 +580,12 @@ function AkimaInterpolation(
 
     A = AkimaInterpolation(
         u, t, nothing, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return AkimaInterpolation(
         u, t, I, b, c, d, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -583,6 +616,11 @@ Extrapolation extends the last constant polynomial at the end points on each sid
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -606,9 +644,10 @@ struct ConstantInterpolation{uType, tType, IType, T, propsType} <:
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
+    cache_search::Bool
     function ConstantInterpolation(
             u, t, I, dir, extrapolation_left, extrapolation_right,
-            cache_parameters, t_props
+            cache_parameters, t_props, cache_search = true
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -616,7 +655,7 @@ struct ConstantInterpolation{uType, tType, IType, T, propsType} <:
             typeof(t_props),
         }(
             u, t, I, nothing, dir, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters, cache_search
         )
     end
 end
@@ -626,7 +665,8 @@ function ConstantInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -636,12 +676,12 @@ function ConstantInterpolation(
     t_props = something(search_properties, FindFirstFunctions.SearchProperties(t))
     A = ConstantInterpolation(
         u, t, nothing, dir, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return ConstantInterpolation(
         u, t, I, dir, extrapolation_left, extrapolation_right,
-        cache_parameters, t_props
+        cache_parameters, t_props, cache_search
     )
 end
 
@@ -674,6 +714,11 @@ except when using extrapolation types `Constant` or `Extension`.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -699,9 +744,10 @@ struct SmoothedConstantInterpolation{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
+    cache_search::Bool
     function SmoothedConstantInterpolation(
             u, t, I, p, d_max, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
+            extrapolation_right, cache_parameters, t_props, cache_search = true
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -709,7 +755,7 @@ struct SmoothedConstantInterpolation{
             typeof(p.c), typeof(d_max), eltype(u), typeof(t_props),
         }(
             u, t, I, p, d_max, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters, cache_search
         )
     end
 end
@@ -719,7 +765,8 @@ function SmoothedConstantInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -733,12 +780,12 @@ function SmoothedConstantInterpolation(
     )
     A = SmoothedConstantInterpolation(
         u, t, nothing, p, d_max, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return SmoothedConstantInterpolation(
         u, t, I, p, d_max, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -767,6 +814,11 @@ Extrapolation extends the last quadratic polynomial on each side.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -794,9 +846,10 @@ struct QuadraticSpline{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
+    cache_search::Bool
     function QuadraticSpline(
             u, t, I, p, k, c, sc, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
+            extrapolation_right, cache_parameters, t_props, cache_search = true
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -816,6 +869,7 @@ struct QuadraticSpline{
             t_props,
             kind,
             cache_parameters,
+            cache_search,
         )
     end
 end
@@ -825,7 +879,8 @@ function QuadraticSpline(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -845,12 +900,12 @@ function QuadraticSpline(
     p = QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return QuadraticSpline(
         u, t, I, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -859,7 +914,8 @@ function QuadraticSpline(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -887,12 +943,12 @@ function QuadraticSpline(
     p = QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return QuadraticSpline(
         u, t, I, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -901,7 +957,8 @@ function QuadraticSpline(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     ) where {T, N}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -922,12 +979,12 @@ function QuadraticSpline(
     p = QuadraticSplineParameterCache(u, t, k, c, cache_parameters)
     A = QuadraticSpline(
         u, t, nothing, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return QuadraticSpline(
         u, t, I, p, k, c, sc, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -956,6 +1013,11 @@ Second derivative on both ends are zero, which are also called "natural" boundar
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -980,9 +1042,10 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
+    cache_search::Bool
     function CubicSpline(
             u, t, I, p, h, z, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
+            extrapolation_right, cache_parameters, t_props, cache_search = true
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -1001,6 +1064,7 @@ struct CubicSpline{uType, tType, IType, pType, hType, zType, T, propsType} <:
             t_props,
             kind,
             cache_parameters,
+            cache_search,
         )
     end
 end
@@ -1011,7 +1075,8 @@ function CubicSpline(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -1043,12 +1108,12 @@ function CubicSpline(
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicSpline(
         u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -1059,7 +1124,8 @@ function CubicSpline(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     ) where {T, N}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -1094,12 +1160,12 @@ function CubicSpline(
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicSpline(
         u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -1108,7 +1174,8 @@ function CubicSpline(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -1136,12 +1203,12 @@ function CubicSpline(
     p = CubicSplineParameterCache(u, h, z, cache_parameters)
     A = CubicSpline(
         u, t, nothing, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicSpline(
         u, t, I, p, h[1:(n + 1)], z, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -1177,6 +1244,8 @@ Extrapolation is a constant polynomial of the end points on each side.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: accepted for consistency with the other interpolation types.
+    `BSplineInterpolation` evaluation keeps no search state, so it has no effect. Defaults to `true`.
 
 # Examples
 
@@ -1201,6 +1270,7 @@ struct BSplineInterpolation{uType, tType, kType, cType, scType, T, propsType} <:
     iguesser::Guesser{tType}
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
+    cache_search::Bool
     function BSplineInterpolation(
             u,
             t,
@@ -1212,6 +1282,7 @@ struct BSplineInterpolation{uType, tType, kType, cType, scType, T, propsType} <:
             extrapolation_left,
             extrapolation_right,
             t_props,
+            cache_search = true,
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -1229,7 +1300,8 @@ struct BSplineInterpolation{uType, tType, kType, cType, scType, T, propsType} <:
             extrapolation_right,
             Guesser(t),
             t_props,
-            kind
+            kind,
+            cache_search
         )
     end
 end
@@ -1239,7 +1311,8 @@ function BSplineInterpolation(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -1282,7 +1355,7 @@ function BSplineInterpolation(
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
         u, t, d, k, c, sc, knotVecType,
-        extrapolation_left, extrapolation_right, t_props
+        extrapolation_left, extrapolation_right, t_props, cache_search
     )
 end
 
@@ -1291,7 +1364,8 @@ function BSplineInterpolation(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     ) where {T}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -1330,7 +1404,7 @@ function BSplineInterpolation(
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
         u, t, d, k, c, sc, knotVecType,
-        extrapolation_left, extrapolation_right, t_props
+        extrapolation_left, extrapolation_right, t_props, cache_search
     )
 end
 
@@ -1340,6 +1414,7 @@ function BSplineInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true,
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -1381,7 +1456,7 @@ function BSplineInterpolation(
     sc = zeros(eltype(t), n)
     return BSplineInterpolation(
         u, t, d, k, c, sc, knotVecType,
-        extrapolation_left, extrapolation_right, t_props
+        extrapolation_left, extrapolation_right, t_props, cache_search
     )
 end
 
@@ -1412,6 +1487,8 @@ Extrapolation is a constant polynomial of the end points on each side.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: accepted for consistency with the other interpolation types.
+    `BSplineApprox` evaluation keeps no search state, so it has no effect. Defaults to `true`.
 
 # Examples
 
@@ -1439,6 +1516,7 @@ struct BSplineApprox{
     iguesser::Guesser{tType}
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
+    cache_search::Bool
     function BSplineApprox(
             u,
             t,
@@ -1451,6 +1529,7 @@ struct BSplineApprox{
             extrapolation_left,
             extrapolation_right,
             t_props,
+            cache_search = true,
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -1469,7 +1548,8 @@ struct BSplineApprox{
             extrapolation_right,
             Guesser(t),
             t_props,
-            kind
+            kind,
+            cache_search
         )
     end
 end
@@ -1479,7 +1559,8 @@ function BSplineApprox(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -1540,7 +1621,7 @@ function BSplineApprox(
     sc = zeros(eltype(t), h)
     return BSplineApprox(
         u, t, d, h, k, c, sc, knotVecType,
-        extrapolation_left, extrapolation_right, t_props
+        extrapolation_left, extrapolation_right, t_props, cache_search
     )
 end
 
@@ -1549,7 +1630,8 @@ function BSplineApprox(
         extrapolation::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     ) where {T}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -1612,7 +1694,7 @@ function BSplineApprox(
     sc = zeros(eltype(t), h)
     return BSplineApprox(
         u, t, d, h, k, c, sc, knotVecType,
-        extrapolation_left, extrapolation_right, t_props
+        extrapolation_left, extrapolation_right, t_props, cache_search
     )
 end
 
@@ -1622,6 +1704,7 @@ function BSplineApprox(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true,
     ) where {T, N}
     extrapolation_left,
         extrapolation_right = munge_extrapolation(
@@ -1689,7 +1772,7 @@ function BSplineApprox(
     sc = zeros(eltype(t), h)
     return BSplineApprox(
         u, t, d, h, k, c, sc, knotVecType,
-        extrapolation_left, extrapolation_right, t_props
+        extrapolation_left, extrapolation_right, t_props, cache_search
     )
 end
 """
@@ -1717,6 +1800,11 @@ It is a Cubic Hermite interpolation, which is a piece-wise third degree polynomi
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -1742,9 +1830,10 @@ struct CubicHermiteSpline{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
+    cache_search::Bool
     function CubicHermiteSpline(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
-            cache_parameters, t_props
+            cache_parameters, t_props, cache_search = true
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -1752,7 +1841,7 @@ struct CubicHermiteSpline{
             typeof(p.c₁), eltype(u), typeof(t_props),
         }(
             du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters, cache_search
         )
     end
 end
@@ -1762,7 +1851,8 @@ function CubicHermiteSpline(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     @assert length(u) == length(du) "Length of `u` is not equal to length of `du`."
     extrapolation_left,
@@ -1776,12 +1866,12 @@ function CubicHermiteSpline(
     p = CubicHermiteParameterCache(du, u, t, cache_parameters)
     A = CubicHermiteSpline(
         du, u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return CubicHermiteSpline(
         du, u, t, I, p, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -1811,6 +1901,11 @@ section 3.4 for more details.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -1861,6 +1956,11 @@ It is a Quintic Hermite interpolation, which is a piece-wise fifth degree polyno
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -1889,9 +1989,10 @@ struct QuinticHermiteSpline{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
+    cache_search::Bool
     function QuinticHermiteSpline(
             ddu, du, u, t, I, p, extrapolation_left,
-            extrapolation_right, cache_parameters, t_props
+            extrapolation_right, cache_parameters, t_props, cache_search = true
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -1899,7 +2000,7 @@ struct QuinticHermiteSpline{
             typeof(ddu), typeof(p.c₁), eltype(u), typeof(t_props),
         }(
             ddu, du, u, t, I, p, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters, cache_search
         )
     end
 end
@@ -1909,7 +2010,8 @@ function QuinticHermiteSpline(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     @assert length(u) == length(du) == length(ddu) "Length of `u` is not equal to length of `du` or `ddu`."
     extrapolation_left,
@@ -1923,12 +2025,12 @@ function QuinticHermiteSpline(
     p = QuinticHermiteParameterCache(ddu, du, u, t, cache_parameters)
     A = QuinticHermiteSpline(
         ddu, du, u, t, nothing, p, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return QuinticHermiteSpline(
         ddu, du, u, t, I, p, extrapolation_left,
-        extrapolation_right, cache_parameters, t_props
+        extrapolation_right, cache_parameters, t_props, cache_search
     )
 end
 
@@ -1957,11 +2059,12 @@ struct SmoothArcLengthInterpolation{
     t_props::propsType
     kind::FindFirstFunctions.StrategyKind
     cache_parameters::Bool
+    cache_search::Bool
     function SmoothArcLengthInterpolation(
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, extrapolation_left, extrapolation_right,
-            cache_parameters, t_props
+            cache_parameters, t_props, cache_search = true
         )
         kind = _resolve_strategy_kind(t, t_props)
         return new{
@@ -1971,7 +2074,7 @@ struct SmoothArcLengthInterpolation{
             u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
             center, radius, dir_1, dir_2, short_side_left,
             I, nothing, extrapolation_left, extrapolation_right,
-            Guesser(t), t_props, kind, cache_parameters
+            Guesser(t), t_props, kind, cache_parameters, cache_search
         )
     end
 end
@@ -2013,6 +2116,11 @@ If you want to do this, construct the shape interpolation yourself and use the
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -2078,6 +2186,11 @@ Approximate the `shape_itp` with a C¹ unit speed interpolation using line segme
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -2165,6 +2278,11 @@ segments and circle segments.
   - `search_properties`: a pre-built `FindFirstFunctions.SearchProperties` for `t`, used
     to skip the construction-time knot probe or override its result (e.g. built with
     `is_uniform = true`). Defaults to `nothing`, which probes `t` automatically.
+  - `cache_search`: start each lookup from the interval found by the previous one. This
+    speeds up correlated (e.g. increasing) queries, but every evaluation then writes to the
+    interpolation. Set to `false` so that evaluation writes nothing, e.g. to share one
+    interpolation across threads; lookups on irregular knots then use a binary search.
+    Defaults to `true`.
 
 # Examples
 
@@ -2273,7 +2391,8 @@ function SmoothArcLengthInterpolation(
         extrapolation_left::ExtrapolationType.T = ExtrapolationType.None,
         extrapolation_right::ExtrapolationType.T = ExtrapolationType.None,
         cache_parameters::Bool = false,
-        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing
+        search_properties::Union{Nothing, FindFirstFunctions.SearchProperties} = nothing,
+        cache_search::Bool = true
     )
     # Needs at least one segment to fit a line/circle through, independent of whatever
     # `interpolation_type` was used to build the shape (which has its own, possibly
@@ -2333,13 +2452,13 @@ function SmoothArcLengthInterpolation(
         u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
         center, radius, dir_1, dir_2, short_side_left,
         nothing, extrapolation_left, extrapolation_right,
-        cache_parameters, t_props
+        cache_parameters, t_props, cache_search
     )
     I = cumulative_integral(A, cache_parameters)
     return SmoothArcLengthInterpolation(
         u, t, d, shape_itp, Δt_circle_segment, Δt_line_segment,
         center, radius, dir_1, dir_2, short_side_left,
         I, extrapolation_left, extrapolation_right,
-        cache_parameters, t_props
+        cache_parameters, t_props, cache_search
     )
 end

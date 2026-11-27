@@ -36,6 +36,10 @@ The generic integral interface additionally requires the following fields:
   with `FindFirstFunctions.SearchProperties(t)` and
   `FindFirstFunctions.Auto(t, t_props)`.
 
+An optional `cache_search::Bool` field set to `false` stops the generic interval search
+from reading or writing the interval stored in `iguesser`. Without the field, the stored
+interval is used.
+
 The following developer hooks define the behavior of a new interpolation method:
 
 - [`DataInterpolations._interpolate`](@ref): evaluate one sample at a scalar location.

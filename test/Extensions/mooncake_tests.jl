@@ -219,3 +219,15 @@ end
     # `increment_and_get_rdata!`/tangent-type error on the `Vector{Vector}` intermediates
     # it builds while fitting circle/line segments.
 end
+
+# Knots that do not look linear take the unhinted lookup with `cache_search = false` (#618).
+@testset "cache_search = false" begin
+    t = collect(100 .* range(0, 1; length = 20) .^ 3)
+    u = sin.(t ./ 7)
+    for method in (LinearInterpolation, CubicSpline)
+        name = "$method, cache_search = false"
+        test_mooncake_ugrad(method, u, t; kwargs = (; cache_search = false), name)
+        A = method(u, t; cache_search = false, extrapolation = ExtrapolationType.Extension)
+        test_mooncake_tgrad(A, t; name)
+    end
+end
