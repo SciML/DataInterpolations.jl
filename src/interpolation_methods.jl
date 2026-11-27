@@ -1097,7 +1097,7 @@ function _quadraticspline_eval_sorted!(
 end
 
 # CubicSpline Interpolation
-function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
+@inline function _interpolate(A::CubicSpline{<:AbstractVector}, t::Number, iguess)
     idx = get_idx(A, t, iguess)
     Δt₁ = t - A.t[idx]
     Δt₂ = A.t[idx + 1] - t
