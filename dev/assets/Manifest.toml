@@ -221,11 +221,11 @@ weakdeps = ["ChainRulesCore", "ForwardDiff"]
     BracketingNonlinearSolveForwardDiffExt = "ForwardDiff"
 
 [[deps.Bzip2_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "1b96ea4a01afe0ea4090c5c8039690672dd13f2e"
+deps = ["Artifacts", "LazyJLLWrappers", "Libdl"]
+git-tree-sha1 = "4d0b66ab0ba8ed6fccfd82631775b22fc1f6823a"
 registries = "General"
 uuid = "6e34b625-4abd-537c-b88f-471c36dfa7a0"
-version = "1.0.9+0"
+version = "1.0.10"
 
 [[deps.Cairo_jll]]
 deps = ["Artifacts", "Bzip2_jll", "CompilerSupportLibraries_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "Libdl", "Pixman_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
@@ -395,7 +395,7 @@ version = "1.16.0"
 deps = ["EnumX", "FindFirstFunctions", "ForwardDiff", "LinearAlgebra", "PrecompileTools", "PrettyTables", "RecipesBase", "Reexport", "StaticArrays"]
 path = "/home/runner/_work/DataInterpolations.jl/DataInterpolations.jl"
 uuid = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
-version = "10.1.4"
+version = "10.1.5"
 
     [deps.DataInterpolations.extensions]
     DataInterpolationsChainRulesCoreExt = "ChainRulesCore"
@@ -695,10 +695,10 @@ version = "0.4.6"
 
 [[deps.FFMPEG_jll]]
 deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "PCRE2_jll", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libva_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
-git-tree-sha1 = "d9d3cd382f2c999f684e6bfa4039fcc16c153b6f"
+git-tree-sha1 = "0e882760626767d5406472c645751551a8bb34fd"
 registries = "General"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
-version = "9.0.2+0"
+version = "9.1.0+0"
 
 [[deps.FastBroadcast]]
 deps = ["ArrayInterface", "LinearAlgebra", "PrecompileTools"]
@@ -967,10 +967,10 @@ version = "2.56.0+0"
 
 [[deps.Glib_jll]]
 deps = ["Artifacts", "GettextRuntime_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Libiconv_jll", "Libmount_jll", "PCRE2_jll", "Zlib_jll"]
-git-tree-sha1 = "ea9f1fb37ff10597353b56f3ba0ebd525acef6e0"
+git-tree-sha1 = "1638fea231fe18a947dcbf007ce4975ffd2ef3aa"
 registries = "General"
 uuid = "7746bdde-850d-59dc-9ae8-88ece973131d"
-version = "2.90.1+0"
+version = "2.90.2+0"
 
 [[deps.Graphite2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -995,10 +995,10 @@ version = "1.15.0"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll"]
-git-tree-sha1 = "59d266e426ab9695f625fe2b6a51c2d3a04f1ecd"
+git-tree-sha1 = "3373195b17beba7ccc1c82f00db9859e82f74c6b"
 registries = "General"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
-version = "100.15001.0+0"
+version = "100.15002.0+0"
 
 [[deps.HypergeometricFunctions]]
 deps = ["Gamma", "LinearAlgebra"]
@@ -3081,10 +3081,10 @@ version = "1.13.4+0"
 
 [[deps.libfdk_aac_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "646634dd19587a56ee2f1199563ec056c5f228df"
+git-tree-sha1 = "f4b5792967cc898b39fe56ef7c93e0075d2027f4"
 registries = "General"
 uuid = "f638f0a6-7fb0-5443-88ba-1cc74229b280"
-version = "2.0.4+0"
+version = "3.0.0+0"
 
 [[deps.libinput_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "eudev_jll", "libevdev_jll", "mtdev_jll"]
@@ -3140,17 +3140,17 @@ version = "17.8.5+0"
 
 [[deps.x264_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "14cc7083fc6dff3cc44f2bc435ee96d06ed79aa7"
+git-tree-sha1 = "259b60b03674ab6a9eb638ec31b8705762c4c31d"
 registries = "General"
 uuid = "1270edf5-f2f9-52d2-97e9-ab00b5d0237a"
-version = "10164.0.1+0"
+version = "10165.0.0+0"
 
 [[deps.x265_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "e7b67590c14d487e734dcb925924c5dc43ec85f3"
+git-tree-sha1 = "2157099b8ffffc130d5ebc67d38ea501b6101f97"
 registries = "General"
 uuid = "dfaa095f-4041-5dcd-9319-2fabd8486b76"
-version = "4.1.0+0"
+version = "4.2.0+0"
 
 [[deps.xkbcommon_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libxcb_jll", "Xorg_xkeyboard_config_jll"]
