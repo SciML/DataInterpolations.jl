@@ -248,7 +248,8 @@ _output_size(u::AbstractArray) = Base.front(size(u))
 export LinearInterpolation, QuadraticInterpolation, LagrangeInterpolation,
     AkimaInterpolation, ConstantInterpolation, SmoothedConstantInterpolation,
     QuadraticSpline, CubicSpline, BSplineInterpolation, BSplineApprox,
-    CubicHermiteSpline, PCHIPInterpolation, QuinticHermiteSpline,
+    CubicHermiteSpline, PCHIPInterpolation, MonotonicMakimaInterpolation,
+    QuinticHermiteSpline,
     SmoothArcLengthInterpolation, LinearInterpolationIntInv,
     ConstantInterpolationIntInv, ExtrapolationType
 export output_dim, output_size

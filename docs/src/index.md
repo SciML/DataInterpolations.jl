@@ -32,6 +32,7 @@ corresponding to `(u,t)` pairs.
   - `BSplineApprox(u,t,d,h,knotVec)` - A regression B-spline which smooths the fitting curve. The argument choices are the same as the `BSplineInterpolation`, with the additional parameter `h<length(t)` which is the number of control points to use, with smaller `h` indicating more smoothing.
   - `CubicHermiteSpline(du, u, t)` - A third order Hermite interpolation, which matches the values and first (`du`) order derivatives in the data points exactly.
   - `PCHIPInterpolation(u, t)` - a type of `CubicHermiteSpline` where the derivative values `du` are derived from the input data in such a way that the interpolation never overshoots the data.
+  - `MonotonicMakimaInterpolation(u, t)` - a type of `CubicHermiteSpline` that uses the modified Akima (makima) derivative values, limited so that the interpolation is monotone wherever the data is and never overshoots the data.
   - `QuinticHermiteSpline(ddu, du, u, t)` - a fifth order Hermite interpolation, which matches the values and first (`du`) and second (`ddu`) order derivatives in the data points exactly.
   - `SmoothArcLengthInterpolation(u)` - A C¹ smooth, unit-speed (arc-length parameterized) interpolation through `u` given in matrix form `(ndim, ndata)`, approximated with line and circle segments. Unlike the methods above, `t` is derived from `u` rather than supplied by the user. See [Smooth arc length interpolation](arclength_interpolation.md) for details.
 

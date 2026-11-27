@@ -1,6 +1,7 @@
 [default.extend-words]
 Commun = "Commun"
 Comput = "Comput"
+Numer = "Numer"
 
 # Additional SciML terms
 setp = "setp"

@@ -13,6 +13,7 @@ BSplineInterpolation
 BSplineApprox
 CubicHermiteSpline
 PCHIPInterpolation
+MonotonicMakimaInterpolation
 QuinticHermiteSpline
 ```
 

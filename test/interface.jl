@@ -64,6 +64,7 @@ end
     @testset "Hermite Splines" begin
         @inferred CubicHermiteSpline(du, u, t)
         @inferred PCHIPInterpolation(u, t)
+        @inferred MonotonicMakimaInterpolation(u, t)
         @inferred QuinticHermiteSpline(ddu, du, u, t)
     end
 end
