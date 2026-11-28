@@ -33,15 +33,27 @@ DataInterpolations.derivative(A, 2.5)
 5.0
 ```
 """
-function derivative(A, t, order = 1)
-    (order ∉ (1, 2)) && throw(DerivativeNotFoundError())
+@inline function derivative(A, t, order)
+    # Inlined into the caller, as the single runtime-order method used to be: as a separate
+    # call, a runtime `order` was up to 35% slower for a CubicSpline.
+    order == 1 && return derivative(A, t)
+    order == 2 && return _derivative_of_order(A, t, Val(2))
+    throw(DerivativeNotFoundError())
+end
+
+# The first derivative has its own method so that its order is known at compile time. With a
+# runtime `order`, every first-derivative call also inferred and compiled the ForwardDiff
+# second-derivative code below, in the interior and in each extrapolation branch.
+derivative(A, t) = _derivative_of_order(A, t, Val(1))
+
+function _derivative_of_order(A, t, order::Val)
     if t < first(A.t)
         _extrapolate_derivative_left(A, t, order)
     elseif t > last(A.t)
         _extrapolate_derivative_right(A, t, order)
     else
         iguess = A.iguesser
-        if order == 1
+        if order === Val(1)
             return _derivative(A, t, iguess)
         end
         return ForwardDiff.derivative(
@@ -66,9 +78,9 @@ function _extrapolate_derivative_left(A, t, order)
     elseif extrapolation_left == ExtrapolationType.Constant
         _zero_derivative(A)
     elseif extrapolation_left == ExtrapolationType.Linear
-        (order == 1) ? _derivative(A, first(A.t), 1) : _zero_derivative(A)
+        (order === Val(1)) ? _derivative(A, first(A.t), 1) : _zero_derivative(A)
     elseif extrapolation_left == ExtrapolationType.Extension
-        (order == 1) ? _derivative(A, t, length(A.t)) :
+        (order === Val(1)) ? _derivative(A, t, length(A.t)) :
             ForwardDiff.derivative(
                 t -> begin
                     _derivative(A, t, length(A.t))
@@ -76,7 +88,7 @@ function _extrapolate_derivative_left(A, t, order)
             )
     elseif extrapolation_left == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
-        (order == 1) ? _derivative(A, t_, A.iguesser) :
+        (order === Val(1)) ? _derivative(A, t_, A.iguesser) :
             ForwardDiff.derivative(
                 t -> begin
                     _derivative(A, t, A.iguesser)
@@ -86,7 +98,7 @@ function _extrapolate_derivative_left(A, t, order)
         # extrapolation_left == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         sign = isodd(n) ? -1 : 1
-        (order == 1) ? sign * _derivative(A, t_, A.iguesser) :
+        (order === Val(1)) ? sign * _derivative(A, t_, A.iguesser) :
             ForwardDiff.derivative(
                 t -> begin
                     sign * _derivative(A, t, A.iguesser)
@@ -102,9 +114,9 @@ function _extrapolate_derivative_right(A, t, order)
     elseif extrapolation_right == ExtrapolationType.Constant
         _zero_derivative(A)
     elseif extrapolation_right == ExtrapolationType.Linear
-        (order == 1) ? _derivative(A, last(A.t), length(A.t)) : _zero_derivative(A)
+        (order === Val(1)) ? _derivative(A, last(A.t), length(A.t)) : _zero_derivative(A)
     elseif extrapolation_right == ExtrapolationType.Extension
-        (order == 1) ? _derivative(A, t, length(A.t)) :
+        (order === Val(1)) ? _derivative(A, t, length(A.t)) :
             ForwardDiff.derivative(
                 t -> begin
                     _derivative(A, t, length(A.t))
@@ -112,7 +124,7 @@ function _extrapolate_derivative_right(A, t, order)
             )
     elseif extrapolation_right == ExtrapolationType.Periodic
         t_, _ = transformation_periodic(A, t)
-        (order == 1) ? _derivative(A, t_, A.iguesser) :
+        (order === Val(1)) ? _derivative(A, t_, A.iguesser) :
             ForwardDiff.derivative(
                 t -> begin
                     _derivative(A, t, A.iguesser)
@@ -122,7 +134,7 @@ function _extrapolate_derivative_right(A, t, order)
         # extrapolation_right == ExtrapolationType.Reflective
         t_, n = transformation_reflective(A, t)
         sign = iseven(n) ? -1 : 1
-        (order == 1) ? sign * _derivative(A, t_, A.iguesser) :
+        (order === Val(1)) ? sign * _derivative(A, t_, A.iguesser) :
             ForwardDiff.derivative(
                 t -> begin
                     sign * _derivative(A, t, A.iguesser)
@@ -293,15 +305,14 @@ end
 # since ForwardDiff's `Dual` equality compares partials too so the node check misses
 # under nested AD. Use the exact second differentiation matrix there instead; off-node,
 # the generic nested-autodiff path already works.
-function derivative(A::LagrangeInterpolation, t::Number, order::Int = 1)
-    (order ∉ (1, 2)) && throw(DerivativeNotFoundError())
+function _derivative_of_order(A::LagrangeInterpolation, t::Number, order::Val)
     if t < first(A.t)
         return _extrapolate_derivative_left(A, t, order)
     elseif t > last(A.t)
         return _extrapolate_derivative_right(A, t, order)
     end
     iguess = A.iguesser
-    order == 1 && return _derivative(A, t, iguess)
+    order === Val(1) && return _derivative(A, t, iguess)
     idx = _searchsortedfirst(A.t, t)
     !isnothing(idx) && return _lagrange_second_derivative_at_node(A, idx)
     return ForwardDiff.derivative(τ -> -_derivative(A, -τ, iguess), -t)
